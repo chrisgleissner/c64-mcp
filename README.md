@@ -89,28 +89,26 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`doc/6502-instructions.md`](doc/6502-instructions.md)) anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
 
-#### External sources (opt-in)
+#### Extending the RAG (external sources)
 
-To grow the corpus with material from the Internet in a controlled and reproducible way, this project supports a CSV-driven retrieval process that only runs when explicitly invoked:
+To add internet sources in a controlled, reproducible way:
 
-- The seed list lives at `src/rag/sources.csv` with columns: `type, description, link, depth`.
-- The `depth` column defines the number of transitive link levels permitted from each seed URL. If omitted, a default of 5 is used.
-- Retrieval is restricted to the same registered domain (subdomains allowed). Cross-domain links are skipped and logged.
-- Throttling is applied per domain: max 10 HTTP requests/second; additionally max 500 total requests per seed.
-- Retrieved files with code-like extensions (`.bas`, `.asm`, `.s`, `.a65`, `.inc`, `.txt`, `.md`) are stored under `external/` (ignored by git).
-- Ordinary builds/tests never perform network access.
-
-Run retrieval manually:
-
+1) Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
+2) Fetch (opt-in, no network on builds/tests):
 ```bash
 npm run rag:fetch
-# Environment variables:
-# RAG_SOURCES_CSV=path/to/sources.csv (default: src/rag/sources.csv)
-# RAG_EXTERNAL_DIR=/abs/path/to/external (default: <repo>/external)
-# RAG_DEFAULT_DEPTH=5 RAG_RPS=10 RAG_MAX_REQUESTS=500
+```
+3) Update the RAG index:
+```bash
+# either rely on the running server's auto-reindexer (default ~15s), or
+npm run rag:rebuild
 ```
 
-Logs are structured JSON lines with events like `seed_start`, `request_ok`, `download`, `skip_out_of_domain`, `depth_exceeded`, and a final `session_summary`.
+Notes:
+- Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
+- If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
+
+For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
 
 ## Build & Test
 - `npm run build` — type-check the TypeScript sources.
