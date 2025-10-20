@@ -50,6 +50,11 @@
       "description": "Get the 6502/6510 assembly quick reference or filter by topic keywords",
       "parameters": { "topic": "string" }
     },
+    {
+      "name": "vic_ii_spec",
+      "description": "Get the VIC-II timing/graphics spec or filter by topic",
+      "parameters": { "topic": "string" }
+    },
     
     { "name": "version", "description": "Get c64 REST API version" },
     { "name": "info", "description": "Get device information" },
@@ -101,6 +106,16 @@
       "name": "rag_retrieve_asm",
       "description": "Retrieve 6502/6510 assembly snippets and guidance for fast machine-code routines",
       "parameters": { "q": "string", "k": "number" }
+    },
+    {
+      "name": "generate_sprite_prg",
+      "description": "Generate and run a PRG that displays a sprite from 63 raw bytes",
+      "parameters": { "sprite": "string", "index": "number", "x": "number", "y": "number", "color": "number", "multicolour": "boolean" }
+    },
+    {
+      "name": "render_petscii_screen",
+      "description": "Render PETSCII text to screen with optional colours via a generated BASIC program",
+      "parameters": { "text": "string", "borderColor": "number", "backgroundColor": "number" }
     }
   ]
 }

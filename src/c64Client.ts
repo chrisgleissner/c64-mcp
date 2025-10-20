@@ -34,6 +34,35 @@ export class C64Client {
     return this.runPrg(prg);
   }
 
+  /**
+   * Build a simple sprite PRG from raw 63-byte sprite data and position/color attributes.
+   * Returns the REST result after uploading and running the generated PRG.
+   */
+  async generateAndRunSpritePrg(options: {
+    spriteBytes: Uint8Array | Buffer;
+    spriteIndex?: number;
+    x?: number;
+    y?: number;
+    color?: number;
+    multicolour?: boolean;
+  }): Promise<RunBasicResult> {
+    const prg = buildSingleSpriteProgram(options);
+    return this.runPrg(prg);
+  }
+
+  /**
+   * Build a BASIC program that draws a PETSCII screen (optionally set border/bg colours),
+   * then upload and run it.
+   */
+  async renderPetsciiScreenAndRun(options: {
+    text: string;
+    borderColor?: number;
+    backgroundColor?: number;
+  }): Promise<RunBasicResult> {
+    const program = buildPetsciiScreenBasic(options);
+    return this.uploadAndRunBasic(program);
+  }
+
   async uploadAndRunAsm(program: string): Promise<RunBasicResult> {
     const prg = assemblyToPrg(program);
     return this.runPrg(prg);
@@ -567,4 +596,138 @@ export class C64Client {
 
     return Buffer.from(cleaned, "hex");
   }
+}
+
+// --- Helpers to synthesize tiny programs for sprites and PETSCII screens ---
+
+function toByte(value: number | undefined, fallback = 0): number {
+  const v = value ?? fallback;
+  return Math.max(0, Math.min(255, v)) & 0xff;
+}
+
+function buildSingleSpriteProgram(opts: {
+  spriteBytes: Uint8Array | Buffer;
+  spriteIndex?: number;
+  x?: number;
+  y?: number;
+  color?: number;
+  multicolour?: boolean;
+}): Buffer {
+  const index = Math.max(0, Math.min(7, opts.spriteIndex ?? 0));
+  const mx = Math.max(0, Math.min(511, opts.x ?? 100));
+  const xLo = mx & 0xff;
+  const xMsbBit = (mx & 0x100) ? (1 << index) : 0;
+  const y = toByte(opts.y, 100);
+  const color = toByte(opts.color, 1);
+  const multicolour = !!opts.multicolour;
+
+  const spriteData = Buffer.from(opts.spriteBytes);
+  if (spriteData.length !== 63) {
+    throw new Error("spriteBytes must be exactly 63 bytes");
+  }
+
+  // We'll assemble a tiny machine-code program that:
+  // - Copies 63 bytes to a safe sprite data page ($2000 by default)
+  // - Sets screen memory base to $0400, sprite pointer to point into $2000
+  // - Positions and enables the sprite
+  // - Loops forever
+  // This avoids relying on KERNAL calls and works from a cold start.
+
+  const SPRITE_BASE = 0x2000; // must be 64-byte aligned
+  const POINTER_PAGE = 0x07f8 + index; // sprite pointer table location
+  const pointerValue = (SPRITE_BASE >> 6) & 0xff;
+
+  // Place code starting at $0801 so it runs as a program via SYS.
+  // We'll create an assembler source and reuse assemblyToPrg.
+  const lines: string[] = [];
+  lines.push("* = $0801");
+  // Tiny BASIC loader header not needed; we will use pure ML and jump via RESET runner which executes by SYS 2061
+  // Build code at $0810 to avoid conflicting with potential KERNAL vectors
+  lines.push("* = $0810");
+  lines.push("\nstart:");
+  // Copy 63 bytes from inlined table to SPRITE_BASE
+  lines.push("  LDA #<sprite_data");
+  lines.push("  STA src");
+  lines.push("  LDA #>sprite_data");
+  lines.push("  STA src+1");
+  lines.push(`  LDA #<${hex16(SPRITE_BASE)}`);
+  lines.push("  STA dest");
+  lines.push(`  LDA #>${hex16(SPRITE_BASE)}`);
+  lines.push("  STA dest+1");
+  lines.push("  LDY #$00");
+  lines.push("copy_loop:");
+  lines.push("  LDA (src),Y");
+  lines.push("  STA (dest),Y");
+  lines.push("  INY");
+  lines.push("  CPY #$3F");
+  lines.push("  BNE copy_loop");
+  // Set sprite pointer, color, coordinates, enable
+  lines.push(`  LDA #$${pointerValue.toString(16).toUpperCase().padStart(2, "0")}`);
+  lines.push(`  STA $${(POINTER_PAGE).toString(16).toUpperCase()}`);
+  lines.push(`  LDA #$${color.toString(16).toUpperCase().padStart(2, "0")}`);
+  lines.push(`  STA $D027+${index}`);
+  lines.push(`  LDA #$${xLo.toString(16).toUpperCase().padStart(2, "0")}`);
+  lines.push(`  STA $${(0xD000 + index * 2).toString(16).toUpperCase()}`);
+  lines.push(`  LDA #$${y.toString(16).toUpperCase().padStart(2, "0")}`);
+  lines.push(`  STA $${(0xD001 + index * 2).toString(16).toUpperCase()}`);
+  // MSB X if needed
+  if (xMsbBit) {
+    const bit = xMsbBit;
+    lines.push(`  LDA $D010`);
+    lines.push(`  ORA #$${bit.toString(16).toUpperCase().padStart(2, "0")}`);
+    lines.push(`  STA $D010`);
+  }
+  // Multicolour toggle per-sprite
+  if (multicolour) {
+    const bit = 1 << index;
+    lines.push(`  LDA $D01C`);
+    lines.push(`  ORA #$${bit.toString(16).toUpperCase().padStart(2, "0")}`);
+    lines.push(`  STA $D01C`);
+  }
+  // Enable sprite
+  {
+    const bit = 1 << index;
+    lines.push(`  LDA $D015`);
+    lines.push(`  ORA #$${bit.toString(16).toUpperCase().padStart(2, "0")}`);
+    lines.push(`  STA $D015`);
+  }
+  // Idle loop
+  lines.push("forever: JMP forever");
+  // Zero page pointers
+  // Use fixed zero-page pointers for (zp),Y addressing
+  lines.push("\nsrc = $FB");
+  lines.push("dest = $FD");
+  // Sprite data table
+  lines.push("\nsprite_data:");
+  for (let i = 0; i < 63; i += 3) {
+    const a = spriteData[i] ?? 0;
+    const b = spriteData[i + 1] ?? 0;
+    const c = spriteData[i + 2] ?? 0;
+    lines.push(`  .byte $${hex2(a)},$${hex2(b)},$${hex2(c)}`);
+  }
+
+  const source = lines.join("\n");
+  return assemblyToPrg(source, { fileName: "sprite_gen.asm", loadAddress: 0x0801 });
+}
+
+function buildPetsciiScreenBasic(opts: { text: string; borderColor?: number; backgroundColor?: number }): string {
+  const border = toByte(opts.borderColor ?? 6); // default blue-ish
+  const bg = toByte(opts.backgroundColor ?? 0); // default black
+  // Clear screen, set colours, print text starting at 1,1
+  // Note: CHR$(147) clears the screen.
+  const sanitized = opts.text.replace(/\r\n?|\n/g, "\\n");
+  const program = [
+    `10 POKE 53280,${border}:POKE 53281,${bg}:PRINT CHR$(147)`,
+    `20 PRINT "${sanitized}"`,
+    `30 GETA$:IFA$<>""THENEND:REM wait for key then end`,
+  ].join("\n");
+  return program;
+}
+
+function hex2(n: number): string {
+  return (n & 0xff).toString(16).toUpperCase().padStart(2, "0");
+}
+
+function hex16(n: number): string {
+  return (n & 0xffff).toString(16).toUpperCase().padStart(4, "0");
 }

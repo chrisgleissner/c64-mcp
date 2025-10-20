@@ -50,6 +50,7 @@ The commands should report Node 20.x or newer.
 - [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the c64 REST endpoints.
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
+ - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
 
 ## Getting Started
 1. Clone the repository and install dependencies:
@@ -147,6 +148,9 @@ Generated binaries are written to the `artifacts/` directory by default (ignored
 | `write_memory` | `POST /tools/write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
 | `basic_v2_spec` | `GET /tools/basic_v2_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
 | `asm_quick_reference` | `GET /tools/asm_quick_reference?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
+| `vic_ii_spec` | `GET /tools/vic_ii_spec?topic=<pattern>` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
+| `generate_sprite_prg` | `POST /tools/generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
+| `render_petscii_screen` | `POST /tools/render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
 
 See [`src/mcpManifest.json`](src/mcpManifest.json) for the MCP manifest consumed by ChatGPT and other LLM clients.
 
