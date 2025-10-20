@@ -96,6 +96,32 @@
     { "name": "run_crt_file", "description": "Run cartridge image from filesystem", "parameters": { "path": "string" } },
     { "name": "sidplay_file", "description": "Play SID from filesystem", "parameters": { "path": "string", "songnr": "number" } },
     { "name": "modplay_file", "description": "Play MOD from filesystem", "parameters": { "path": "string" } },
+    { "name": "sid_volume", "description": "Set SID master volume (0-15)", "parameters": { "volume": "number" } },
+    { "name": "sid_reset", "description": "Reset or silence SID", "parameters": { "hard": "boolean" } },
+    {
+      "name": "sid_note_on",
+      "description": "Start a SID note on a voice",
+      "parameters": {
+        "voice": "number",
+        "note": "string",
+        "frequencyHz": "number",
+        "system": "string",
+        "waveform": "string",
+        "pulseWidth": "number",
+        "attack": "number",
+        "decay": "number",
+        "sustain": "number",
+        "release": "number"
+      }
+    },
+    { "name": "sid_note_off", "description": "Release a SID voice", "parameters": { "voice": "number" } },
+    {
+      "name": "music_generate",
+      "description": "Generate and play a simple arpeggio pattern",
+      "parameters": { "root": "string", "pattern": "string", "steps": "number", "tempoMs": "number", "waveform": "string" }
+    },
+    { "name": "sid_silence_all", "description": "Silence all SID voices" },
+    { "name": "sid_reference", "description": "Return the SID overview document" },
     { "name": "rag_retrieve_basic", "description": "Retrieve BASIC references for a query", "parameters": { "q": "string", "k": "number" } },
     {
       "name": "rag_retrieve_asm",
