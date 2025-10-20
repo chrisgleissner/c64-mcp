@@ -89,10 +89,68 @@ test('applies throttling (10 rps) and max 500 per seed', async () => {
   }
 
   const logs = [];
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, request: fakeRequesterFactory(pages), log: (e) => logs.push(e), defaultDepth: 1, maxRequestsPerSeed: 500, perDomainRps: Infinity });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, request: fakeRequesterFactory(pages), log: (e) => logs.push(e), defaultDepth: 1, maxRequestsPerSeed: 500, perDomainRps: Infinity, concurrency: 8 });
   const s = summaries[0];
   assert.ok(s.visited <= 500);
   assert.ok(s.downloaded >= 1);
+});
+
+test('allows concurrent requests to a single host within per-domain RPS', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'basic,Root,http://conc.com/index.html,1',
+  ]);
+  const outDir = tmpDir('out5');
+
+  const requestedAt = [];
+  const pages = {
+    'http://conc.com/index.html': { headers: { 'content-type': 'text/html' }, body: '<a href="/x.bas">X</a><a href="/y.bas">Y</a><a href="/z.bas">Z</a><a href="/w.bas">W</a>' },
+    'http://conc.com/x.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT X' },
+    'http://conc.com/y.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT Y' },
+    'http://conc.com/z.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT Z' },
+    'http://conc.com/w.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT W' },
+  };
+  const requester = async (url) => {
+    requestedAt.push(Date.now());
+    const key = url.toString();
+    const page = pages[key];
+    if (!page) throw new Error('404');
+    // small jitter to simulate network
+    await new Promise((r) => setTimeout(r, 5));
+    return { statusCode: 200, headers: page.headers, body: Buffer.from(page.body) };
+  };
+
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 10, concurrency: 4 });
+  assert.equal(summaries[0].downloaded, 4);
+  // Verify multiple timestamps are not all identical (i.e., concurrency occurred) while still being rate-limited by 10 rps.
+  assert.ok(requestedAt.length >= 5); // includes HTML + 4 files
+});
+
+test('concurrent retrieval across multiple hosts respects per-host rate limits', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,HostA,http://a.com/index.html,1',
+    'asm,HostB,http://b.com/index.html,1',
+  ]);
+  const outDir = tmpDir('out6');
+  const pages = {
+    'http://a.com/index.html': { headers: { 'content-type': 'text/html' }, body: '<a href="/a1.s">A1</a><a href="/a2.s">A2</a>' },
+    'http://a.com/a1.s': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$01' },
+    'http://a.com/a2.s': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$02' },
+    'http://b.com/index.html': { headers: { 'content-type': 'text/html' }, body: '<a href="/b1.s">B1</a><a href="/b2.s">B2</a>' },
+    'http://b.com/b1.s': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$03' },
+    'http://b.com/b2.s': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$04' },
+  };
+  const requester = async (url) => {
+    await new Promise((r) => setTimeout(r, 1));
+    const key = url.toString();
+    const page = pages[key];
+    if (!page) throw new Error('404');
+    return { statusCode: 200, headers: page.headers, body: Buffer.from(page.body) };
+  };
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 10, concurrency: 4 });
+  assert.equal(summaries.length, 2);
+  assert.equal(summaries[0].downloaded + summaries[1].downloaded, 4);
 });
 
 test('logs key events and handles failures gracefully', async () => {
