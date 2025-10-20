@@ -97,7 +97,26 @@ function splitCsvLine(line: string): string[] {
   return result.map((s) => s.trim());
 }
 
-const CODE_EXTS = new Set(['.bas', '.asm', '.s', '.a65', '.inc', '.txt', '.md']);
+// Recognised code-like extensions (deduplicated and sorted alphabetically)
+const CODE_EXTS = new Set([
+  '.a',
+  '.a65',
+  '.acme',
+  '.asm',
+  '.bas',
+  '.dasm',
+  '.inc',
+  '.kick',
+  '.lst',
+  '.mac',
+  '.md',
+  '.pal',
+  '.s',
+  '.seq',
+  '.src',
+  '.txt',
+  '.x65',
+]);
 
 function isCodeLikeUrl(url: URL): boolean {
   const ext = path.extname(url.pathname).toLowerCase();
