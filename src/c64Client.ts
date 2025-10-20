@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import axios from "axios";
 import { basicToPrg } from "./basicConverter.js";
+import { assemblyToPrg } from "./assemblyConverter.js";
 import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
 import { Api, HttpClient } from "../generated/ultimate64/index.js";
@@ -30,6 +31,11 @@ export class C64Client {
 
   async uploadAndRunBasic(program: string): Promise<RunBasicResult> {
     const prg = basicToPrg(program);
+    return this.runPrg(prg);
+  }
+
+  async uploadAndRunAsm(program: string): Promise<RunBasicResult> {
+    const prg = assemblyToPrg(program);
     return this.runPrg(prg);
   }
 

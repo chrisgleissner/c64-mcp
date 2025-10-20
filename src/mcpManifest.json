@@ -9,6 +9,16 @@
       "parameters": { "program": "string" }
     },
     {
+      "name": "upload_and_run_asm",
+      "description": "Assemble 6502/6510 source to PRG and run it on the C64",
+      "parameters": { "program": "string" }
+    },
+    {
+      "name": "upload_and_run_program",
+      "description": "Upload and run program with language inference (BASIC vs ASM)",
+      "parameters": { "program": "string", "lang": "string" }
+    },
+    {
       "name": "read_screen",
       "description": "Read 1KB of screen memory from the C64"
     },
