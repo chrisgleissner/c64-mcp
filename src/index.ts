@@ -9,9 +9,12 @@ See <https://www.gnu.org/licenses/> for details.
 import Fastify from "fastify";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
-
-
-import { listMemoryMap, listSymbols } from "./knowledge.js";
+import {
+  listMemoryMap,
+  listSymbols,
+  getBasicV2Spec,
+  searchBasicV2Spec,
+} from "./knowledge.js";
 import { initRag } from "./rag/init.js";
 
 async function main() {
