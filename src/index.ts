@@ -9,7 +9,7 @@ See <https://www.gnu.org/licenses/> for details.
 import Fastify from "fastify";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
-import { listMemoryMap, listSymbols } from "./knowledge.js";
+import { listMemoryMap, listSymbols, getBasicV2Spec, searchBasicV2Spec } from "./knowledge.js";
 
 async function main() {
   const config = loadConfig();
@@ -27,6 +27,17 @@ async function main() {
   // Knowledge endpoints
   server.get("/knowledge/memory_map", async () => ({ regions: listMemoryMap() }));
   server.get("/knowledge/symbols", async () => ({ symbols: listSymbols() }));
+  server.get<{ Querystring: { topic?: string } }>(
+    "/tools/basic_v2_spec",
+    async (request) => {
+      const { topic } = request.query ?? {};
+      if (!topic) {
+        return { spec: getBasicV2Spec() };
+      }
+      const results = searchBasicV2Spec(String(topic));
+      return { topic, results };
+    },
+  );
 
   server.post<{ Body: { program: string } }>("/tools/upload_and_run_basic", async (request, reply) => {
     const { program } = request.body ?? {};

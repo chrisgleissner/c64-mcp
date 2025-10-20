@@ -4,6 +4,7 @@ on:
   push:
     branches: ["*"]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,4 +16,4 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm install
-      - run: npm run build
+      - run: npm run check
