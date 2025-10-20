@@ -187,6 +187,24 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
 
       log({ level: 'info', event: 'request_ok', data: { url: href, statusCode, depth: d, discovered: 0, visited, remaining: Math.max(0, maxReq - visited) } });
 
+      // Handle redirects with domain restriction
+      if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
+        const loc = headers.location.toString();
+        let redirected: URL | null = null;
+        try { redirected = new URL(loc, url); } catch {}
+        if (redirected) {
+          const toStr = redirected.toString();
+          if (sameRegisteredDomain(seed, toStr)) {
+            log({ level: 'info', event: 'redirect', data: { from: href, to: toStr } });
+            queue.unshift({ url: redirected, depth: d });
+          } else {
+            skipped++;
+            log({ level: 'info', event: 'skip_redirect_out_of_domain', data: { from: href, to: toStr } });
+          }
+        }
+        continue;
+      }
+
       if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct)) {
         skipped++;
         log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: href, contentLength, contentType: ct } });
