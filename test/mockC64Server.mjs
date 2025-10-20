@@ -48,6 +48,49 @@ export async function startMockC64Server() {
       return;
     }
 
+    if (method === "GET" && url === "/v1/version") {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ version: "0.1-mock", errors: [] }));
+      return;
+    }
+
+    if (method === "GET" && url === "/v1/info") {
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({ product: "U64-MOCK", firmware_version: "3.12-mock", hostname: "mockc64", errors: [] }),
+      );
+      return;
+    }
+
+    if (method === "PUT" && url === "/v1/machine:pause") {
+      state.paused = true;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ result: "paused" }));
+      return;
+    }
+
+    if (method === "PUT" && url === "/v1/machine:resume") {
+      state.paused = false;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ result: "resumed" }));
+      return;
+    }
+
+    if (method === "GET" && url === "/v1/machine:debugreg") {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ value: state.debugreg ?? "00", errors: [] }));
+      return;
+    }
+
+    if (method === "PUT" && url.startsWith("/v1/machine:debugreg")) {
+      const routeUrl = new URL(url, "http://mock.local");
+      const value = (routeUrl.searchParams.get("value") ?? "00").toUpperCase();
+      state.debugreg = value;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ value, errors: [] }));
+      return;
+    }
+
     if (method === "POST" && url === "/v1/runners:run_prg") {
       const chunks = [];
       for await (const chunk of req) {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { basicToPrg } from "../src/basicConverter.js";
+import { encodeStringWithNames } from "../src/petscii.js";
 
 test("basicToPrg encodes line pointers, tokens, and terminator", () => {
   const program = `10 PRINT "HI"\n20 GOTO 10\n`;
@@ -51,4 +52,13 @@ test("basicToPrg respects strings and remarks", () => {
   const textAfterRem = String.fromCharCode(...bytesAfterRem);
   assert.ok(textAfterRem.includes("keep tokens"));
   assert.ok(!bytesAfterRem.includes(0x99), "Tokens must not appear after REM");
+});
+
+test("encodeStringWithNames maps {heart} to a PETSCII byte", () => {
+  const bytes = encodeStringWithNames("A{heart}B");
+  // Expect three bytes: 'A', heart, 'B'
+  assert.equal(bytes.length, 3);
+  // Middle byte should be a non-ASCII graphic; ensure it's not 'A' or 'B'
+  assert.notEqual(bytes[1], "A".charCodeAt(0));
+  assert.notEqual(bytes[1], "B".charCodeAt(0));
 });
