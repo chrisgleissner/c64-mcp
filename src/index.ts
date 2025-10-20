@@ -10,6 +10,7 @@ import Fastify from "fastify";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
 import { listMemoryMap, listSymbols } from "./knowledge.js";
+import { initRag } from "./rag/init.js";
 
 async function main() {
   const config = loadConfig();
@@ -21,6 +22,9 @@ async function main() {
       level: process.env.LOG_LEVEL ?? "info",
     },
   });
+
+  // Initialize local RAG (builds index on first run or when data changes)
+  const rag = await initRag();
 
   server.get("/health", async () => ({ status: "ok" }));
 
@@ -43,6 +47,21 @@ async function main() {
 
     return result;
   });
+
+  // RAG helper endpoints for MCP clients (optional but useful for validation)
+  server.get<{ Querystring: { q?: string; k?: string; lang?: "basic" | "asm" } }>(
+    "/rag/retrieve",
+    async (request, reply) => {
+      const { q, k, lang } = request.query ?? {};
+      if (!q) {
+        reply.code(400);
+        return { error: "Missing q" };
+      }
+      const topK = k ? Number(k) : 3;
+      const refs = await rag.retrieve(q, topK, lang);
+      return { refs };
+    },
+  );
 
   server.post<{ Body: { path?: string } }>("/tools/run_prg_file", async (request, reply) => {
     const { path } = request.body ?? {};
@@ -97,6 +116,27 @@ async function main() {
     const result = await client.modplayFile(path);
     if (!result.success) reply.code(502);
     return result;
+  });
+
+  // Expose RAG retrieval as MCP tools for convenience
+  server.post<{ Body: { q?: string; k?: number } }>("/tools/rag_retrieve_basic", async (request, reply) => {
+    const { q, k } = request.body ?? {};
+    if (!q) {
+      reply.code(400);
+      return { error: "Missing q" };
+    }
+    const refs = await rag.retrieve(q, k ?? 3, "basic");
+    return { refs };
+  });
+
+  server.post<{ Body: { q?: string; k?: number } }>("/tools/rag_retrieve_asm", async (request, reply) => {
+    const { q, k } = request.body ?? {};
+    if (!q) {
+      reply.code(400);
+      return { error: "Missing q" };
+    }
+    const refs = await rag.retrieve(q, k ?? 3, "asm");
+    return { refs };
   });
 
   server.get("/tools/read_screen", async () => {
