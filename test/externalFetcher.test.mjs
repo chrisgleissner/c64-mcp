@@ -8,7 +8,8 @@ import { fetchFromCsv } from '../src/rag/externalFetcher.ts';
 
 function tmpDir(name) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  return path.join(__dirname, '..', '.tmp', name);
+  // Use an idiomatic in-repo test temp folder that is gitignored: test/tmp/
+  return path.join(__dirname, 'tmp', name);
 }
 
 async function setupCsv(lines) {
