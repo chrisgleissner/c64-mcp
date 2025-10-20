@@ -41,6 +41,7 @@ async function main() {
   server.get("/knowledge/memory_map", async () => ({ regions: listMemoryMap() }));
   server.get("/knowledge/symbols", async () => ({ symbols: listSymbols() }));
   server.get("/knowledge/sid_overview", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-overview.md", "utf8")) }));
+  server.get("/knowledge/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
   server.get<{ Querystring: { topic?: string } }>(
     "/tools/basic_v2_spec",
     async (request) => {
@@ -255,6 +256,9 @@ async function main() {
     if (!result.success) reply.code(502);
     return result;
   });
+
+  // Expose SID file structure doc as a simple tool for MCP clients
+  server.get("/tools/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
 
   // Very simple generator: arpeggiate a triad on voice 1 for N steps
   server.post<{ Body: { root?: string; pattern?: string; steps?: number; tempoMs?: number; waveform?: "pulse" | "saw" | "tri" | "noise" } }>(
