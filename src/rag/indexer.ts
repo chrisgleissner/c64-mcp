@@ -83,6 +83,8 @@ async function buildIndexForDir(root: string, files: string[], model: EmbeddingM
       sourceMtimeMs: stat.mtimeMs,
     });
   }
+  // Keep deterministic order to reduce diffs
+  records.sort((a, b) => a.name.localeCompare(b.name));
   return { dim: model.dim, model: model.constructor.name, records };
 }
 
@@ -94,6 +96,14 @@ function mergeIndexes(a: EmbeddingIndexFile, b: EmbeddingIndexFile): EmbeddingIn
 
 async function writeIndex(filePath: string, index: EmbeddingIndexFile): Promise<void> {
   const json = JSON.stringify(index);
+  try {
+    const existing = await fs.readFile(filePath, "utf8");
+    if (existing === json) {
+      return; // no-op if unchanged
+    }
+  } catch {
+    // file does not exist or unreadable — proceed to write
+  }
   await fs.writeFile(filePath, json, "utf8");
 }
 

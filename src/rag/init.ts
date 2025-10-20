@@ -16,17 +16,21 @@ const ASM_INDEX = path.resolve("data/embeddings_asm.json");
 
 export async function initRag(): Promise<RagRetriever> {
   const model = new LocalMiniHashEmbedding(384);
-
-  const needBuild = await needsRebuild();
-  if (needBuild) {
-    await buildAllIndexes({ model });
+  // Build on start only when explicitly requested
+  const buildOnStart = String(process.env.RAG_BUILD_ON_START ?? "").trim().toLowerCase();
+  if (buildOnStart === "1" || buildOnStart === "true" || buildOnStart === "yes") {
+    const needBuild = await needsRebuild();
+    if (needBuild) {
+      await buildAllIndexes({ model });
+    }
   }
 
   const { basic, asm } = await loadIndexes();
   const retriever = new LocalRagRetriever(model, { basic, asm });
 
   // Background watcher: reindex if source files change (checks mtimes periodically)
-  const intervalMs = Number(process.env.RAG_REINDEX_INTERVAL_MS ?? 15000);
+  // Default disabled to avoid churn/conflicts unless explicitly enabled
+  const intervalMs = Number(process.env.RAG_REINDEX_INTERVAL_MS ?? 0);
   if (intervalMs > 0) {
     setInterval(async () => {
       try {

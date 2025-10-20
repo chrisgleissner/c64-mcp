@@ -90,6 +90,18 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`doc/6502-instructions.md`](doc/6502-instructions.md)) anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
 
+#### RAG Rebuild Policy
+
+- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts.
+  - Set `RAG_REINDEX_INTERVAL_MS=0` (default) to disable periodic reindex.
+  - Omit `RAG_BUILD_ON_START`; the server will load existing indices if present and otherwise operate with empty indexes.
+- Opt-in rebuilds:
+  - Trigger a one-time on-start rebuild by exporting `RAG_BUILD_ON_START=1`.
+  - Or run `npm run rag:rebuild` explicitly to rebuild indices.
+- CI recommended settings: `RAG_REINDEX_INTERVAL_MS=0` and do not set `RAG_BUILD_ON_START`.
+
+To minimize diffs, the indexer writes files only when contents change and keeps a stable, sorted record order.
+
 #### Extending the RAG (external sources)
 
 To add internet sources in a controlled, reproducible way:
