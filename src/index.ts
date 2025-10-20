@@ -42,6 +42,8 @@ async function main() {
   // Knowledge endpoints
   server.get("/knowledge/memory_map", async () => ({ regions: listMemoryMap() }));
   server.get("/knowledge/symbols", async () => ({ symbols: listSymbols() }));
+  server.get("/knowledge/sid_overview", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-overview.md", "utf8")) }));
+  server.get("/knowledge/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
   server.get<{ Querystring: { topic?: string } }>(
     "/tools/basic_v2_spec",
     async (request) => {
@@ -224,6 +226,94 @@ async function main() {
     const screen = await client.readScreen();
     return { screen };
   });
+
+  // --- SID / Music control endpoints ---
+  server.post<{ Body: { volume?: number } }>("/tools/sid_volume", async (request, reply) => {
+    const { volume } = request.body ?? {};
+    if (typeof volume !== "number") {
+      reply.code(400);
+      return { error: "Missing volume" };
+    }
+    const result = await client.sidSetVolume(volume);
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { hard?: boolean } }>("/tools/sid_reset", async (request, reply) => {
+    const { hard } = request.body ?? {};
+    const result = await client.sidReset(Boolean(hard));
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { voice?: 1 | 2 | 3; note?: string; frequencyHz?: number; system?: "PAL" | "NTSC"; waveform?: "pulse" | "saw" | "tri" | "noise"; pulseWidth?: number; attack?: number; decay?: number; sustain?: number; release?: number } }>(
+    "/tools/sid_note_on",
+    async (request, reply) => {
+      const result = await client.sidNoteOn(request.body ?? {} as any);
+      if (!result.success) reply.code(502);
+      return result;
+    },
+  );
+
+  server.post<{ Body: { voice?: 1 | 2 | 3 } }>("/tools/sid_note_off", async (request, reply) => {
+    const { voice } = request.body ?? {};
+    if (voice !== 1 && voice !== 2 && voice !== 3) {
+      reply.code(400);
+      return { error: "Missing or invalid voice (1..3)" };
+    }
+    const result = await client.sidNoteOff(voice);
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post("/tools/sid_silence_all", async (_request, reply) => {
+    const result = await client.sidSilenceAll();
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  // Expose SID file structure doc as a simple tool for MCP clients
+  server.get("/tools/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
+
+  // Very simple generator: arpeggiate a triad on voice 1 for N steps
+  server.post<{ Body: { root?: string; pattern?: string; steps?: number; tempoMs?: number; waveform?: "pulse" | "saw" | "tri" | "noise" } }>(
+    "/tools/music_generate",
+    async (request, reply) => {
+      const { root = "C4", pattern = "0,4,7", steps = 16, tempoMs = 120, waveform = "pulse" } = request.body ?? {};
+      const intervals = pattern
+        .split(/[,\s]+/)
+        .map((p) => Number.parseInt(String(p), 10))
+        .filter((n) => Number.isFinite(n));
+      if (intervals.length === 0) {
+        reply.code(400);
+        return { error: "Invalid pattern" };
+      }
+      try {
+        const baseHz = (client as any).noteNameToHz?.(root) ?? 261.63;
+        const timeline: Array<{ t: number; note: string }> = [];
+        let t = 0;
+        for (let i = 0; i < steps; i += 1) {
+          const iv = intervals[i % intervals.length];
+          timeline.push({ t, note: transpose(root, iv) });
+          t += tempoMs;
+        }
+        // Fire-and-forget naive scheduler (non-realtime guarantees)
+        void (async () => {
+          await client.sidSetVolume(8);
+          for (let i = 0; i < steps; i += 1) {
+            const iv = intervals[i % intervals.length];
+            await client.sidNoteOn({ voice: 1, note: transpose(root, iv), waveform, pulseWidth: 0x0800, attack: 1, decay: 2, sustain: 8, release: 3 });
+            await sleep(tempoMs);
+          }
+          await client.sidNoteOff(1);
+        })();
+        return { ok: true, timeline } as any;
+      } catch (err) {
+        reply.code(500);
+        return { error: (err as Error).message };
+      }
+    },
+  );
 
   server.post("/tools/reset_c64", async (request, reply) => {
     const result = await client.reset();
@@ -534,6 +624,28 @@ function pickRagLanguage(
     return "basic";
   }
   return undefined;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function transpose(note: string, semitones: number): string {
+  // Convert to MIDI
+  const m = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(note.trim());
+  if (!m) return note;
+  const letter = m[1].toUpperCase();
+  const accidental = m[2];
+  const octave = Number(m[3]);
+  const map: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  let semi = map[letter] ?? 0;
+  if (accidental === "#") semi += 1;
+  if (accidental === "b") semi -= 1;
+  let midi = (octave + 1) * 12 + semi + semitones;
+  const letters = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const newOct = Math.floor(midi / 12) - 1;
+  const name = letters[((midi % 12) + 12) % 12];
+  return `${name}${newOct}`;
 }
 
 async function logConnectivity(server: FastifyInstance, client: C64Client, baseUrl: string): Promise<void> {

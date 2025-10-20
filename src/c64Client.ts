@@ -237,6 +237,110 @@ export class C64Client {
     }
   }
 
+  // --- SID/Music helpers ---
+
+  async sidSetVolume(volume: number): Promise<RunBasicResult> {
+    const clamped = Math.max(0, Math.min(15, Math.floor(volume)));
+    const byte = Buffer.from([clamped]);
+    return this.writeMemory("$D418", this.bytesToHex(byte));
+  }
+
+  async sidReset(hard = false): Promise<RunBasicResult> {
+    try {
+      if (hard) {
+        // Write $FF to $D400-$D418, then $00 to same range
+        const span = 0x19; // inclusive range length
+        const ff = Buffer.alloc(span, 0xff);
+        const zz = Buffer.alloc(span, 0x00);
+        const first = await this.api.v1.machineWritememUpdate(":writemem", { address: "D400", data: this.bytesToHex(ff, false) });
+        const second = await this.api.v1.machineWritememUpdate(":writemem", { address: "D400", data: this.bytesToHex(zz, false) });
+        return { success: true, details: { first: first.data, second: second.data } };
+      }
+      // Soft silence: clear GATE on all voices and volume to 0
+      await this.api.v1.machineWritememUpdate(":writemem", { address: "D404", data: "00" });
+      await this.api.v1.machineWritememUpdate(":writemem", { address: "D40B", data: "00" });
+      await this.api.v1.machineWritememUpdate(":writemem", { address: "D412", data: "00" });
+      await this.api.v1.machineWritememUpdate(":writemem", { address: "D418", data: "00" });
+      return { success: true };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async sidNoteOn(options: {
+    voice?: 1 | 2 | 3;
+    note?: string; // e.g. "A4", "C#5", "Bb3"
+    frequencyHz?: number;
+    system?: "PAL" | "NTSC";
+    waveform?: "pulse" | "saw" | "tri" | "noise";
+    pulseWidth?: number; // 0..4095 (12-bit)
+    attack?: number; // 0..15
+    decay?: number; // 0..15
+    sustain?: number; // 0..15
+    release?: number; // 0..15
+  }): Promise<RunBasicResult> {
+    const voice = options.voice ?? 1;
+    if (voice < 1 || voice > 3) {
+      return { success: false, details: { message: "Voice must be 1..3" } };
+    }
+    const system = options.system ?? "PAL";
+    const hz = options.frequencyHz ?? (options.note ? this.noteNameToHz(options.note) : 440);
+    const freq16 = this.hzToSidFrequency(hz, system);
+    const freqLo = freq16 & 0xff;
+    const freqHi = (freq16 >> 8) & 0xff;
+
+    const pulseWidth = Math.max(0, Math.min(0x0fff, Math.floor(options.pulseWidth ?? 0x0800)));
+    const pwLo = pulseWidth & 0xff;
+    const pwHi = (pulseWidth >> 8) & 0x0f; // upper 4 bits used
+
+    const waveform = options.waveform ?? "pulse";
+    let ctrl = 0x00;
+    if (waveform === "tri") ctrl |= 1 << 4;
+    else if (waveform === "saw") ctrl |= 1 << 5;
+    else if (waveform === "pulse") ctrl |= 1 << 6;
+    else if (waveform === "noise") ctrl |= 1 << 7;
+    ctrl |= 1 << 0; // GATE on
+
+    const attack = Math.max(0, Math.min(15, Math.floor(options.attack ?? 0x1)));
+    const decay = Math.max(0, Math.min(15, Math.floor(options.decay ?? 0x1)));
+    const sustain = Math.max(0, Math.min(15, Math.floor(options.sustain ?? 0xf)));
+    const release = Math.max(0, Math.min(15, Math.floor(options.release ?? 0x3)));
+    const ad = (attack << 4) | decay;
+    const sr = (sustain << 4) | release;
+
+    const base = 0xd400 + (voice - 1) * 7;
+    const bytes = Buffer.from([freqLo, freqHi, pwLo, pwHi, ctrl, ad, sr]);
+    try {
+      const res = await this.api.v1.machineWritememUpdate(":writemem", {
+        address: base.toString(16).toUpperCase(),
+        data: this.bytesToHex(bytes, false),
+      });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async sidNoteOff(voice: 1 | 2 | 3): Promise<RunBasicResult> {
+    if (voice < 1 || voice > 3) {
+      return { success: false, details: { message: "Voice must be 1..3" } };
+    }
+    const ctrlAddr = 0xd400 + (voice - 1) * 7 + 4;
+    try {
+      const res = await this.api.v1.machineWritememUpdate(":writemem", {
+        address: ctrlAddr.toString(16).toUpperCase(),
+        data: "00",
+      });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async sidSilenceAll(): Promise<RunBasicResult> {
+    return this.sidReset(false);
+  }
+
   // --- Additional API wrappers to cover full REST surface ---
 
   async version(): Promise<unknown> {
@@ -595,6 +699,37 @@ export class C64Client {
     }
 
     return Buffer.from(cleaned, "hex");
+  }
+
+  private hzToSidFrequency(hz: number, system: "PAL" | "NTSC" = "PAL"): number {
+    const phi2 = system === "PAL" ? 985_248 : 1_022_727;
+    const value = Math.round((hz * 65536) / phi2);
+    // Clamp to 16-bit
+    return Math.max(0, Math.min(0xffff, value));
+  }
+
+  private noteNameToHz(note: string): number {
+    // Parse note like C#4, Db3, A4
+    const m = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(note.trim());
+    if (!m) return 440; // default A4
+    const letter = m[1].toUpperCase();
+    const accidental = m[2];
+    const octave = Number(m[3]);
+    const semitoneMap: Record<string, number> = {
+      C: 0,
+      D: 2,
+      E: 4,
+      F: 5,
+      G: 7,
+      A: 9,
+      B: 11,
+    };
+    let semitone = semitoneMap[letter] ?? 9;
+    if (accidental === "#") semitone += 1;
+    if (accidental === "b") semitone -= 1;
+    const midi = (octave + 1) * 12 + semitone; // MIDI note number (C-1 => 0)
+    const hz = 440 * Math.pow(2, (midi - 69) / 12);
+    return hz;
   }
 }
 
