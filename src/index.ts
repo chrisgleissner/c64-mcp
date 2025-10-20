@@ -79,6 +79,40 @@ async function main() {
     return result;
   });
 
+  server.post<{ Body: { program: string } }>("/tools/upload_and_run_asm", async (request, reply) => {
+    const { program } = request.body ?? {};
+
+    if (!program || typeof program !== "string") {
+      reply.code(400);
+      return { error: "Missing assembly program string" };
+    }
+
+    const result = await client.uploadAndRunAsm(program);
+    if (!result.success) {
+      reply.code(502);
+    }
+
+    return result;
+  });
+
+  server.post<{ Body: { program?: string; lang?: "basic" | "asm" } }>("/tools/upload_and_run_program", async (request, reply) => {
+    const { program, lang } = request.body ?? {};
+    if (!program || typeof program !== "string") {
+      reply.code(400);
+      return { error: "Missing program string" };
+    }
+
+    const inferred = pickRagLanguage(program, lang);
+    // Heuristic: look for assembly intent keywords
+    const wantsAsm = inferred === "asm" || /\b(game|demo|interrupt|irq|nmi|sprite|multiplex|sprites|raster|vblank|machine\s*code)\b/i.test(program);
+
+    const result = wantsAsm ? await client.uploadAndRunAsm(program) : await client.uploadAndRunBasic(program);
+    if (!result.success) {
+      reply.code(502);
+    }
+    return { ...result, language: wantsAsm ? "asm" : "basic" } as any;
+  });
+
   // RAG helper endpoints for MCP clients (optional but useful for validation)
   server.get<{ Querystring: { q?: string; k?: string; lang?: "basic" | "asm" } }>(
     "/rag/retrieve",
