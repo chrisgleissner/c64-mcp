@@ -1,10 +1,18 @@
+/*
+C64 MCP - An MCP Server for the Commodore 64 Ultimate
+Copyright (C) 2025 Christian Gleissner
+
+Licensed under the GNU General Public License v2.0 or later.
+See <https://www.gnu.org/licenses/> for details.
+*/
+
 import Fastify from "fastify";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
 
 async function main() {
   const config = loadConfig();
-  const client = new C64Client(config.baseUrl ?? `http://${config.c64_ip}`);
+  const client = new C64Client(config.baseUrl ?? `http://${config.c64_host}`);
   const port = Number(process.env.PORT ?? 8000);
 
   const server = Fastify({
@@ -38,6 +46,44 @@ async function main() {
 
   server.post("/tools/reset_c64", async (request, reply) => {
     const result = await client.reset();
+    if (!result.success) {
+      reply.code(502);
+    }
+    return result;
+  });
+
+  server.post("/tools/reboot_c64", async (request, reply) => {
+    const result = await client.reboot();
+    if (!result.success) {
+      reply.code(502);
+    }
+    return result;
+  });
+
+  server.post<{ Body: { address?: string; length?: string } }>("/tools/read_memory", async (request, reply) => {
+    const { address, length } = request.body ?? {};
+
+    if (!address || !length) {
+      reply.code(400);
+      return { error: "Missing address or length" };
+    }
+
+    const result = await client.readMemory(address, length);
+    if (!result.success) {
+      reply.code(502);
+    }
+    return result;
+  });
+
+  server.post<{ Body: { address?: string; bytes?: string } }>("/tools/write_memory", async (request, reply) => {
+    const { address, bytes } = request.body ?? {};
+
+    if (!address || !bytes) {
+      reply.code(400);
+      return { error: "Missing address or bytes" };
+    }
+
+    const result = await client.writeMemory(address, bytes);
     if (!result.success) {
       reply.code(502);
     }

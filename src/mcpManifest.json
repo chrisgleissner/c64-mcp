@@ -15,6 +15,20 @@
     {
       "name": "reset_c64",
       "description": "Reset the C64 via REST API"
+    },
+    {
+      "name": "reboot_c64",
+      "description": "Reboot the Ultimate 64 firmware"
+    },
+    {
+      "name": "read_memory",
+      "description": "Read bytes from main memory and return them as hex",
+      "parameters": { "address": "string", "length": "string" }
+    },
+    {
+      "name": "write_memory",
+      "description": "Write a hex byte sequence into main memory",
+      "parameters": { "address": "string", "bytes": "string" }
     }
   ]
 }
