@@ -121,7 +121,7 @@ test('allows concurrent requests to a single host within per-domain RPS', async 
     return { statusCode: 200, headers: page.headers, body: Buffer.from(page.body) };
   };
 
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 10, concurrency: 4 });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 10, concurrency: 4, maxRetries: 0, recoveryIntervalMs: 10, recoveryStep: 5 });
   assert.equal(summaries[0].downloaded, 4);
   // Verify multiple timestamps are not all identical (i.e., concurrency occurred) while still being rate-limited by 10 rps.
   assert.ok(requestedAt.length >= 5); // includes HTML + 4 files
@@ -149,9 +149,38 @@ test('concurrent retrieval across multiple hosts respects per-host rate limits',
     if (!page) throw new Error('404');
     return { statusCode: 200, headers: page.headers, body: Buffer.from(page.body) };
   };
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 10, concurrency: 4 });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 10, concurrency: 4, maxRetries: 0, recoveryIntervalMs: 10, recoveryStep: 5 });
   assert.equal(summaries.length, 2);
   assert.equal(summaries[0].downloaded + summaries[1].downloaded, 4);
+});
+
+test('reduces per-host RPS on 429 and slowly recovers', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'basic,Root,http://rl.com/index.html,1',
+  ]);
+  const outDir = tmpDir('rate');
+  let count = 0;
+  const pages = {
+    'http://rl.com/index.html': { headers: { 'content-type': 'text/html' }, body: '<a href="/a.bas">A</a><a href="/b.bas">B</a><a href="/c.bas">C</a><a href="/d.bas">D</a>' },
+    'http://rl.com/a.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT A' },
+    'http://rl.com/b.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT B' },
+    'http://rl.com/c.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT C' },
+    'http://rl.com/d.bas': { headers: { 'content-type': 'text/plain' }, body: '10 PRINT D' },
+  };
+  const requester = async (url) => {
+    const key = url.toString();
+    if (key !== 'http://rl.com/index.html') {
+      count++;
+      if (count <= 2) {
+        return { statusCode: 429, headers: { 'content-type': 'text/plain' }, body: Buffer.from('rate limited') };
+      }
+    }
+    return { statusCode: 200, headers: pages[key].headers, body: Buffer.from(pages[key].body) };
+  };
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: requester, perDomainRps: 6, concurrency: 4, maxRetries: 3, recoveryIntervalMs: 20, recoveryStep: 2, throttleBackoffFactor: 0.5 });
+  // Should complete downloads despite initial 429s due to retries/backoff and recovery
+  assert.equal(summaries[0].downloaded, 4);
 });
 
 test('logs key events and handles failures gracefully', async () => {

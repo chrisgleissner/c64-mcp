@@ -8,7 +8,7 @@ import path from 'node:path';
 import { URL } from 'node:url';
 import https from 'node:https';
 import http from 'node:http';
-import { SlidingWindowRateLimiter, RealTimeSource, type TimeSource } from './rateLimiter.js';
+import { SlidingWindowRateLimiter, RealTimeSource, type TimeSource, AdaptiveRateLimiter } from './rateLimiter.js';
 import { parseUrlSafe, sameRegisteredDomain, getRegisteredDomain } from './urlUtils.js';
 
 export interface FetcherOptions {
@@ -25,6 +25,13 @@ export interface FetcherOptions {
   request?: (url: URL, userAgent: string) => Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: Buffer; }>;
   /** optional time source for throttling (tests) */
   timeSource?: TimeSource;
+  /** retry attempts for transient failures (default 3) */
+  maxRetries?: number;
+  /** factor to reduce RPS on throttling (default 0.5) */
+  throttleBackoffFactor?: number;
+  /** adaptive limiter recovery interval and step (ms and rps step) */
+  recoveryIntervalMs?: number;
+  recoveryStep?: number;
 }
 
 export interface LogEntry {
@@ -128,8 +135,14 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
   const maxBytes = opts.maxContentBytes ?? 2 * 1024 * 1024;
   const userAgent = opts.userAgent ?? 'c64-mcp-fetcher/0.1';
   const log = opts.log ?? (() => {});
+  const maxRetries = Math.max(0, opts.maxRetries ?? 3);
+  const throttleBackoffFactor = opts.throttleBackoffFactor ?? 0.5;
 
-  const limiter = new SlidingWindowRateLimiter(perDomainRps, opts.timeSource ?? new RealTimeSource());
+  const limiter = new AdaptiveRateLimiter(perDomainRps, opts.timeSource ?? new RealTimeSource(), {
+    increaseIntervalMs: opts.recoveryIntervalMs ?? 15000,
+    increaseStep: opts.recoveryStep ?? 1,
+    minRps: 1,
+  });
 
   const summaries: FetchSummary[] = [];
 
@@ -181,7 +194,12 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
         await limiter.consume(domainKey);
 
         const requester = opts.request ?? httpGet;
-        const res = await requester(url, userAgent).catch((err) => ({ error: err as Error }));
+        const res = await withRetries(requester, url, userAgent, maxRetries, async (statusCode) => {
+          if (statusCode === 429 || (statusCode && statusCode >= 500 && statusCode < 600)) {
+            // server throttling or transient error
+            limiter.notifyThrottle(domainKey, throttleBackoffFactor);
+          }
+        }).catch((err) => ({ error: err as Error }));
         if ('error' in res) {
           errors++;
           log({ level: 'warn', event: 'request_error', data: { url: href, message: res.error.message } });
@@ -292,4 +310,34 @@ async function httpGet(url: URL, userAgent: string): Promise<{ statusCode: numbe
 
 function sanitizeForFs(input: string): string {
   return input.replace(/[^a-zA-Z0-9_.\-\/]/g, '_').replace(/^_+/, '').replace(/_+$/, '');
+}
+
+async function withRetries(
+  requester: (url: URL, ua: string) => Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: Buffer; }>,
+  url: URL,
+  userAgent: string,
+  maxRetries: number,
+  onStatus?: (code?: number) => Promise<void> | void,
+): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: Buffer; }> {
+  let attempt = 0;
+  let delay = 50; // small base for tests; real backoff controlled by caller env if needed
+  while (true) {
+    try {
+      const res = await requester(url, userAgent);
+      if (onStatus) await onStatus(res.statusCode);
+      if (res.statusCode && (res.statusCode >= 500 || res.statusCode === 429)) {
+        if (attempt >= maxRetries) return res; // give up returning last response
+        await new Promise((r) => setTimeout(r, delay));
+        attempt++;
+        delay = Math.min(delay * 2, 1000);
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt >= maxRetries) throw err;
+      await new Promise((r) => setTimeout(r, delay));
+      attempt++;
+      delay = Math.min(delay * 2, 1000);
+    }
+  }
 }
