@@ -471,7 +471,7 @@ async function logConnectivity(server: FastifyInstance, client: C64Client, baseU
     const response = await axios.get(baseUrl, { timeout: 2000 });
     server.log.info(
       { status: response.status },
-      `Connectivity check succeeded for Ultimate 64 at ${baseUrl}`,
+      `Connectivity check succeeded for c64 device at ${baseUrl}`,
     );
 
     try {
@@ -499,7 +499,7 @@ async function logConnectivity(server: FastifyInstance, client: C64Client, baseU
     }
     server.log.warn(
       { err: error },
-      `Connectivity check failed for Ultimate 64 at ${baseUrl}: ${message}`,
+      `Connectivity check failed for c64 device at ${baseUrl}: ${message}`,
     );
   }
 }

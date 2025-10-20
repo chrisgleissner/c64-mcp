@@ -4,7 +4,7 @@
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](doc/developer.md)
 
-Local Model Context Protocol (MCP) server for driving a [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/) via the official REST API. It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
+Local Model Context Protocol (MCP) server for driving a c64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
 
 ## Highlights
 - Fastify-based MCP server running locally on port 8000.
@@ -47,9 +47,9 @@ The commands should report Node 20.x or newer.
 ## Documentation
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents.
 - [`doc/developer.md`](doc/developer.md) — Development environment and workflow details.
-- [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the Ultimate 64 REST endpoints.
+- [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the c64 REST endpoints.
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
-- [`doc/ultimate64-openapi.yaml`](doc/ultimate64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
+- [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
 
 ## Getting Started
 1. Clone the repository and install dependencies:
@@ -89,23 +89,44 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`doc/6502-instructions.md`](doc/6502-instructions.md)) anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
 
+#### Extending the RAG (external sources)
+
+To add internet sources in a controlled, reproducible way:
+
+1) Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
+2) Fetch (opt-in, no network on builds/tests):
+```bash
+npm run rag:fetch
+```
+3) Update the RAG index:
+```bash
+# either rely on the running server's auto-reindexer (default ~15s), or
+npm run rag:rebuild
+```
+
+Notes:
+- Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
+- If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
+
+For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
+
 ## Build & Test
 - `npm run build` — type-check the TypeScript sources.
-- `npm test` — run the integration tests against an in-process mock that emulates the Ultimate 64 REST API.
-- `npm test -- --real` — exercise the same tests against a real C64/Ultimate 64. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
+- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 
 The test runner accepts the following options:
 - `--mock` (default): use the bundled mock hardware emulator.
-- `--real`: talk to physical hardware (requires reachable Ultimate 64).
+- `--real`: talk to physical hardware (requires reachable c64 device).
 - `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
 
 ## Utility Scripts
 - `npm run c64:tool` — interactive helper that can:
   - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
-  - convert and immediately run the generated PRG on the configured Ultimate 64,
-  - upload an existing PRG and run it on the Ultimate 64.
-- `npm run api:generate` — regenerate the typed REST client under `generated/ultimate64/` from [`doc/ultimate64-openapi.yaml`](doc/ultimate64-openapi.yaml).
+  - convert and immediately run the generated PRG on the configured c64 device,
+  - upload an existing PRG and run it on the c64 device.
+- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml).
 - Advanced users can call the underlying CLI directly:
   ```bash
   node --loader ts-node/esm scripts/c64-cli.mjs convert-basic --input path/to/program.bas
@@ -113,7 +134,7 @@ The test runner accepts the following options:
   node --loader ts-node/esm scripts/c64-cli.mjs run-prg --input artifacts/program.prg
   ```
 
-Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at the Ultimate 64 before using the run options.
+Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
 
 ## Available Tools
 | Tool | Endpoint | Description |
@@ -167,7 +188,7 @@ Add this configuration to your workspace `.vscode/settings.json`:
 npm start
 ```
 
-Keep this running - it will log successful connectivity to your Ultimate 64.
+Keep this running - it will log successful connectivity to your c64 device.
 
 ### 4. Use MCP Tools in Copilot Chat
 
@@ -188,7 +209,7 @@ Copilot will automatically use the appropriate MCP tools (`upload_and_run_basic`
 1. Install the [Model Context Protocol desktop bridge](https://github.com/modelcontextprotocol/desktop) or your preferred MCP client.
 2. Point the client at `http://localhost:8000` and load `src/mcpManifest.json`.
 3. Configure the MCP session to expose the available tools to the LLM.
-4. Invoke the tools from your LLM of choice; the server performs REST calls against the configured Ultimate 64.
+4. Invoke the tools from your LLM of choice; the server performs REST calls against the configured c64 device.
 
 ## Visual Studio Code Walkthrough: “HELLO WORLD”
 
@@ -198,7 +219,7 @@ Step-by-step instructions to upload and run a BASIC program from VS Code:
    ```bash
    npm start
    ```
-   Leave it running in a terminal; it logs connectivity to your Ultimate 64 (`c64_host`).
+   Leave it running in a terminal; it logs connectivity to your c64 device (`c64_host`).
 
 2. **Enable Copilot MCP support**
    - GitHub Copilot (versions 1.214 and later) includes the MCP client. Full instructions live in the [official guide](https://code.visualstudio.com/api/extension-guides/ai/mcp).

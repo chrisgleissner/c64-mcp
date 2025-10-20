@@ -9,9 +9,10 @@
     "build": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
     "check": "npm run build && npm test",
-    "api:generate": "swagger-typescript-api -p doc/ultimate64-openapi.yaml -o generated/ultimate64 -n index.ts --axios --single-http-client --module-name-first-tag",
+    "api:generate": "swagger-typescript-api -p doc/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",
-    "rag:rebuild": "node --loader ts-node/esm scripts/rag-rebuild.mjs"
+    "rag:rebuild": "node --loader ts-node/esm scripts/rag-rebuild.mjs",
+    "rag:fetch": "node scripts/fetch-external-sources.mjs"
   },
   "keywords": [
     "c64",
