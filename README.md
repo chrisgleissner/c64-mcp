@@ -11,6 +11,7 @@ Local Model Context Protocol (MCP) server for driving a [Commodore 64 Ultimate](
 - TypeScript ESM modules throughout; `ts-node` powers the local development flow.
 - BASIC text → PRG converter with byte-level tests and reusable CLI entry points.
 - Configurable via `~/.c64mcp.json` (or `C64MCP_CONFIG`) so hardware details stay out of source control.
+- Built-in local RAG for Commodore 64 BASIC and 6502 assembly examples (no external services).
 
 ## Use Cases
 - **LLM tooling integration** – expose `upload_and_run_basic`, `read_screen`, and `reset_c64` to MCP-aware agents for program synthesis experiments on real hardware.
@@ -67,6 +68,26 @@ The commands should report Node 20.x or newer.
    npm start
    ```
    The server listens on `http://localhost:8000` by default. Set `PORT` to change the port.
+
+### Local RAG (Retrieval-Augmented Generation)
+
+This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
+
+- Programmatic use inside MCP flow: the server uses the retriever to inject relevant examples into prompts. You can also call helper endpoints to validate retrieval:
+  - `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` — returns reference snippets
+  - `POST /tools/rag_retrieve_basic` body `{ "q": "your query", "k": 3 }`
+  - `POST /tools/rag_retrieve_asm` body `{ "q": "your query", "k": 3 }`
+
+Examples:
+
+```bash
+curl -s "http://localhost:8000/rag/retrieve?q=draw%20a%20sine%20wave&k=3&lang=basic" | jq
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"q":"cycle border colors","k":3}' \
+  http://localhost:8000/tools/rag_retrieve_asm | jq
+```
+
+You can add your own `.bas`, `.asm`, or `.s` files anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
 
 ## Build & Test
 - `npm run build` — type-check the TypeScript sources.

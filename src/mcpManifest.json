@@ -80,6 +80,8 @@
     { "name": "load_prg_file", "description": "Load PRG into memory (no run)", "parameters": { "path": "string" } },
     { "name": "run_crt_file", "description": "Run cartridge image from filesystem", "parameters": { "path": "string" } },
     { "name": "sidplay_file", "description": "Play SID from filesystem", "parameters": { "path": "string", "songnr": "number" } },
-    { "name": "modplay_file", "description": "Play MOD from filesystem", "parameters": { "path": "string" } }
+    { "name": "modplay_file", "description": "Play MOD from filesystem", "parameters": { "path": "string" } },
+    { "name": "rag_retrieve_basic", "description": "Retrieve BASIC references for a query", "parameters": { "q": "string", "k": "number" } },
+    { "name": "rag_retrieve_asm", "description": "Retrieve 6502 assembly references for a query", "parameters": { "q": "string", "k": "number" } }
   ]
 }
