@@ -99,6 +99,19 @@ flowchart LR
 ## Retrieval-Augmented Knowledge
 
 - The RAG subsystem (see `src/rag/*`) indexes `.bas`, `.asm`, `.s`, and reference Markdown files under `data/basic_examples/` and `data/assembly_examples/`. Dropping new examples or notes triggers a background re-index.
+- External sources can be fetched on-demand from `src/rag/sources.csv` (columns: `type,description,link,depth`). The retrieval depth is the number of transitive link levels allowed from each seed (default 5 if omitted).
+- Domain restriction: retrieval never leaves the registered domain of the seed URL (subdomains allowed). Cross-domain links are skipped and logged.
+- Throttling: max 10 HTTP requests per second per domain; total of 500 requests per seed. Use `RAG_RPS` and `RAG_MAX_REQUESTS` to override.
+- Storage: fetched files are written to `external/` which is ignored by git and included in the local RAG indexer alongside `data/*`.
+- Opt-in: builds/tests never perform network access. To fetch:
+
+```bash
+npm run rag:fetch
+# Optional env overrides:
+#   RAG_SOURCES_CSV, RAG_EXTERNAL_DIR, RAG_DEFAULT_DEPTH, RAG_RPS, RAG_MAX_REQUESTS
+```
+
+Logs are structured JSON lines including URL, depth, discoveries, and throttling counters for reproducibility.
 - `doc/6502-instructions.md` contains the condensed 6502/6510 quick reference served via the `asm_quick_reference` MCP tool and the `/rag/retrieve` helper when assembly or "fast program" keywords are present.
 - When adding new knowledge artefacts, prefer Markdown with `##` headings so the search helpers in `src/knowledge.ts` can return focused sections.
 - To force a full rebuild of the embedding indices (e.g., after large content changes), run `npm run rag:rebuild`. This regenerates `data/embeddings_basic.json` and `data/embeddings_asm.json` from the current files on disk.

@@ -89,6 +89,29 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`doc/6502-instructions.md`](doc/6502-instructions.md)) anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
 
+#### External sources (opt-in)
+
+To grow the corpus with material from the Internet in a controlled and reproducible way, this project supports a CSV-driven retrieval process that only runs when explicitly invoked:
+
+- The seed list lives at `src/rag/sources.csv` with columns: `type, description, link, depth`.
+- The `depth` column defines the number of transitive link levels permitted from each seed URL. If omitted, a default of 5 is used.
+- Retrieval is restricted to the same registered domain (subdomains allowed). Cross-domain links are skipped and logged.
+- Throttling is applied per domain: max 10 HTTP requests/second; additionally max 500 total requests per seed.
+- Retrieved files with code-like extensions (`.bas`, `.asm`, `.s`, `.a65`, `.inc`, `.txt`, `.md`) are stored under `external/` (ignored by git).
+- Ordinary builds/tests never perform network access.
+
+Run retrieval manually:
+
+```bash
+npm run rag:fetch
+# Environment variables:
+# RAG_SOURCES_CSV=path/to/sources.csv (default: src/rag/sources.csv)
+# RAG_EXTERNAL_DIR=/abs/path/to/external (default: <repo>/external)
+# RAG_DEFAULT_DEPTH=5 RAG_RPS=10 RAG_MAX_REQUESTS=500
+```
+
+Logs are structured JSON lines with events like `seed_start`, `request_ok`, `download`, `skip_out_of_domain`, `depth_exceeded`, and a final `session_summary`.
+
 ## Build & Test
 - `npm run build` — type-check the TypeScript sources.
 - `npm test` — run the integration tests against an in-process mock that emulates the Ultimate 64 REST API.

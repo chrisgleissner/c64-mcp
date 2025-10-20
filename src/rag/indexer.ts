@@ -6,10 +6,12 @@ GPL-2.0-only
 import fs from "node:fs/promises";
 import path from "node:path";
 import { EmbeddingIndexFile, EmbeddingRecord, RagLanguage } from "./types.js";
+import fsSync from "node:fs";
 import { EmbeddingModel } from "./embeddings.js";
 
 const BASIC_DIR = path.resolve("data/basic_examples");
 const ASM_DIR = path.resolve("data/assembly_examples");
+const EXTERNAL_DIR = path.resolve("external");
 const BASIC_INDEX = path.resolve("data/embeddings_basic.json");
 const ASM_INDEX = path.resolve("data/embeddings_asm.json");
 
@@ -20,6 +22,10 @@ export interface BuildIndexOptions {
 export async function ensureSeedDirs(): Promise<void> {
   await fs.mkdir(BASIC_DIR, { recursive: true });
   await fs.mkdir(ASM_DIR, { recursive: true });
+  // External dir is created by the fetch CLI; ensure it exists for indexing if present
+  if (!fsSync.existsSync(EXTERNAL_DIR)) {
+    try { await fs.mkdir(EXTERNAL_DIR, { recursive: true }); } catch {}
+  }
 }
 
 async function collectFiles(root: string, exts: string[]): Promise<string[]> {
@@ -80,6 +86,12 @@ async function buildIndexForDir(root: string, files: string[], model: EmbeddingM
   return { dim: model.dim, model: model.constructor.name, records };
 }
 
+function mergeIndexes(a: EmbeddingIndexFile, b: EmbeddingIndexFile): EmbeddingIndexFile {
+  if (a.dim !== b.dim) throw new Error("Embedding dimension mismatch while merging indexes");
+  const model = a.model === b.model ? a.model : a.model;
+  return { dim: a.dim, model, records: a.records.concat(b.records) };
+}
+
 async function writeIndex(filePath: string, index: EmbeddingIndexFile): Promise<void> {
   const json = JSON.stringify(index);
   await fs.writeFile(filePath, json, "utf8");
@@ -88,15 +100,22 @@ async function writeIndex(filePath: string, index: EmbeddingIndexFile): Promise<
 export async function buildAllIndexes({ model }: BuildIndexOptions): Promise<void> {
   await ensureSeedDirs();
 
-  const [basicFiles, asmFiles] = await Promise.all([
+  const [basicLocal, asmLocal, basicExt, asmExt] = await Promise.all([
     collectFiles(BASIC_DIR, [".bas"]),
-    collectFiles(ASM_DIR, [".asm", ".s", ".md"]),
+    collectFiles(ASM_DIR, [".asm", ".s", ".md", ".a65", ".inc", ".txt"]),
+    collectFiles(EXTERNAL_DIR, [".bas"]),
+    collectFiles(EXTERNAL_DIR, [".asm", ".s", ".md", ".a65", ".inc", ".txt"]),
   ]);
 
-  const [basicIndex, asmIndex] = await Promise.all([
-    buildIndexForDir(BASIC_DIR, basicFiles, model),
-    buildIndexForDir(ASM_DIR, asmFiles, model),
+  const [basicLocalIdx, basicExtIdx, asmLocalIdx, asmExtIdx] = await Promise.all([
+    buildIndexForDir(BASIC_DIR, basicLocal, model),
+    buildIndexForDir(EXTERNAL_DIR, basicExt, model),
+    buildIndexForDir(ASM_DIR, asmLocal, model),
+    buildIndexForDir(EXTERNAL_DIR, asmExt, model),
   ]);
+
+  const basicIndex = mergeIndexes(basicLocalIdx, basicExtIdx);
+  const asmIndex = mergeIndexes(asmLocalIdx, asmExtIdx);
 
   await Promise.all([
     writeIndex(BASIC_INDEX, basicIndex),

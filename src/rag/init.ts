@@ -9,6 +9,7 @@ import { LocalMiniHashEmbedding } from "./embeddings.js";
 import { buildAllIndexes, loadIndexes } from "./indexer.js";
 import { LocalRagRetriever } from "./retriever.js";
 import type { RagRetriever } from "./types.js";
+const EXTERNAL_DIR = path.resolve("external");
 
 const BASIC_INDEX = path.resolve("data/embeddings_basic.json");
 const ASM_INDEX = path.resolve("data/embeddings_asm.json");
@@ -81,7 +82,8 @@ async function needsRebuild(): Promise<boolean> {
   const asmIdx = await fileMtime(ASM_INDEX);
   const basicDataM = await dirMtimeRecursive(path.resolve("data/basic_examples"));
   const asmDataM = await dirMtimeRecursive(path.resolve("data/assembly_examples"));
+  const externalM = await dirMtimeRecursive(EXTERNAL_DIR);
 
   if (basicIdx === null || asmIdx === null) return true;
-  return basicDataM > basicIdx || asmDataM > asmIdx;
+  return basicDataM > basicIdx || asmDataM > asmIdx || externalM > Math.min(basicIdx, asmIdx);
 }
