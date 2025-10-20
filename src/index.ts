@@ -6,7 +6,8 @@ Licensed under the GNU General Public License v2.0 or later.
 See <https://www.gnu.org/licenses/> for details.
 */
 
-import Fastify from "fastify";
+import Fastify, { FastifyInstance } from "fastify";
+import axios from "axios";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
 import { listMemoryMap, listSymbols } from "./knowledge.js";
@@ -14,7 +15,8 @@ import { initRag } from "./rag/init.js";
 
 async function main() {
   const config = loadConfig();
-  const client = new C64Client(config.baseUrl ?? `http://${config.c64_host}`);
+  const baseUrl = config.baseUrl ?? `http://${config.c64_host}`;
+  const client = new C64Client(baseUrl);
   const port = Number(process.env.PORT ?? 8000);
 
   const server = Fastify({
@@ -367,6 +369,8 @@ async function main() {
     return result;
   });
 
+  await logConnectivity(server, client, baseUrl);
+
   try {
     await server.listen({ port, host: "0.0.0.0" });
     server.log.info(`c64-mcp server listening on port ${port}`);
@@ -380,3 +384,41 @@ main().catch((error) => {
   console.error("Fatal error starting server", error);
   process.exit(1);
 });
+
+async function logConnectivity(server: FastifyInstance, client: C64Client, baseUrl: string): Promise<void> {
+  try {
+    const response = await axios.get(baseUrl, { timeout: 2000 });
+    server.log.info(
+      { status: response.status },
+      `Connectivity check succeeded for Ultimate 64 at ${baseUrl}`,
+    );
+
+    try {
+      const memoryAddress = "$0000";
+      const expected = "$2F";
+      const memoryResult = await client.readMemory(memoryAddress, "1");
+
+      if (memoryResult.success && memoryResult.data) {
+        const matches = memoryResult.data.toUpperCase() === expected;
+        const suffix = matches ? " (matches expected $2F)" : ` (expected ${expected})`;
+        server.log.info(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}${suffix}`);
+      } else {
+        server.log.warn({ details: memoryResult.details }, "Zero-page probe failed");
+      }
+    } catch (memoryError) {
+      server.log.warn({ err: memoryError }, "Zero-page probe threw an error");
+    }
+  } catch (error) {
+    let message = "unknown error";
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      message = status ? `${error.message} (status ${status})` : error.message;
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+    server.log.warn(
+      { err: error },
+      `Connectivity check failed for Ultimate 64 at ${baseUrl}: ${message}`,
+    );
+  }
+}

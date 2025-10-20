@@ -33,7 +33,7 @@ npm install
 cp doc/examples/c64mcp.sample.json ~/.c64mcp.json # adjust host/IP as needed
 ```
 
-You can override the configuration path with the `C64MCP_CONFIG` environment variable.
+You can override the configuration path with the `C64MCP_CONFIG` environment variable. If that file is absent, the runtime will look for the repository-level [`.c64mcp.json`](../.c64mcp.json) before falling back to `http://c64u`.
 
 ## Useful npm Scripts
 

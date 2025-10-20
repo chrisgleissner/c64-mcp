@@ -4,7 +4,7 @@ This repository hosts a local MCP server that bridges large language models with
 
 ## Quick Start
 - Install dependencies with `npm install`.
-- Configure the target device by creating `~/.c64mcp.json` (see `README.md` or `doc/developer.md`).
+- Configure the target device by creating `~/.c64mcp.json` (see `README.md` or `doc/developer.md`). Without it, the server uses the bundled repo-level `.c64mcp.json` (defaults to `c64u`).
 - Start the MCP server locally via `npm start`.
 
 ## Repository Layout

@@ -1,0 +1,6 @@
+{
+  "name": "C64 BASIC Helper",
+  "description": "Assist with uploading and running BASIC programs via the c64-mcp server.",
+  "persona": "../prompts/c64_basic_helper.md",
+  "temperature": 0.2
+}

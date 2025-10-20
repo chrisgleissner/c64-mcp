@@ -1,0 +1,6 @@
+{
+  "name": "C64 Memory Utility",
+  "description": "Read or write Ultimate 64 memory through the MCP tools with safety guidance.",
+  "persona": "../prompts/memory_util.md",
+  "temperature": 0.1
+}
