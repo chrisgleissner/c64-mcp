@@ -30,6 +30,11 @@
       "description": "Write a hex byte sequence into main memory",
       "parameters": { "address": "string", "bytes": "string" }
     },
+    {
+      "name": "basic_v2_spec",
+      "description": "Get Commodore BASIC v2 concise language spec or filtered by topic",
+      "parameters": { "topic": "string" }
+    },
     
     { "name": "version", "description": "Get Ultimate 64 REST API version" },
     { "name": "info", "description": "Get device information" },
