@@ -1,0 +1,20 @@
+{
+  "name": "c64-mcp",
+  "version": "0.1.0",
+  "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
+  "tools": [
+    {
+      "name": "upload_and_run_basic",
+      "description": "Upload and run a BASIC program on the C64",
+      "parameters": { "program": "string" }
+    },
+    {
+      "name": "read_screen",
+      "description": "Read 1KB of screen memory from the C64"
+    },
+    {
+      "name": "reset_c64",
+      "description": "Reset the C64 via REST API"
+    }
+  ]
+}

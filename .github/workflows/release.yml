@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install
+      - run: npm run build
+      - name: Package artifacts
+        run: |
+          tar -czf c64-mcp-${GITHUB_REF_NAME}.tar.gz \
+            LICENSE \
+            README.md \
+            AGENTS.md \
+            package.json \
+            tsconfig.json \
+            src \
+            doc
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: c64-mcp ${{ github.ref_name }}
+          files: |
+            c64-mcp-${{ github.ref_name }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
