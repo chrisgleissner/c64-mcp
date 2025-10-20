@@ -7,6 +7,7 @@ See <https://www.gnu.org/licenses/> for details.
 */
 
 import { Buffer } from "node:buffer";
+import { asciiToPetscii, encodeStringWithNames } from "./petscii.js";
 
 const DEFAULT_START_ADDRESS = 0x0801;
 const REM_TOKEN = 0x8f;
@@ -90,13 +91,30 @@ function tokenize(content: string): Uint8Array {
     }
 
     const char = content[index]!;
-    const plainChar = (!inString && !inRemark ? upper[index]! : char) ?? char;
-    bytes.push(asciiToPetscii(plainChar));
 
+    // Special handling for string literals: encode the inner text in one go
     if (!inRemark && char === '"') {
+      bytes.push(asciiToPetscii('"'));
       inString = !inString;
+      index += 1;
+
+      if (inString) {
+        // capture until next quote or end of line
+        const start = index;
+        let end = start;
+        while (end < content.length && content[end] !== '"') {
+          end += 1;
+        }
+        const segment = content.slice(start, end);
+        const encoded = encodeStringWithNames(segment);
+        for (const b of encoded) bytes.push(b);
+        index = end; // leave closing quote to be processed next iteration
+      }
+      continue;
     }
 
+    const plainChar = (!inString && !inRemark ? upper[index]! : char) ?? char;
+    bytes.push(asciiToPetscii(plainChar));
     index += 1;
   }
 
@@ -116,18 +134,7 @@ function matchToken(upperSource: string, startIndex: number): TokenEntry | undef
   return undefined;
 }
 
-function asciiToPetscii(char: string): number {
-  if (char.length !== 1) {
-    throw new Error("Expected a single character");
-  }
-
-  const code = char.charCodeAt(0);
-  if (code < 0 || code > 255) {
-    throw new Error(`Character out of PETSCII range: ${char}`);
-  }
-
-  return code;
-}
+// asciiToPetscii is imported from petscii.ts
 
 function buildTokenTable(): TokenEntry[] {
   const baseTokens: Array<[string, number]> = [
