@@ -122,6 +122,7 @@
     },
     { "name": "sid_silence_all", "description": "Silence all SID voices" },
     { "name": "sid_reference", "description": "Return the SID overview document" },
+    { "name": "sid_file_structure", "description": "Return the SID file structure overview" },
     { "name": "rag_retrieve_basic", "description": "Retrieve BASIC references for a query", "parameters": { "q": "string", "k": "number" } },
     {
       "name": "rag_retrieve_asm",
