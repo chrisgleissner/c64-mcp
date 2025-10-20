@@ -83,6 +83,30 @@ test("C64Client against mock server", async (t) => {
     assert.ok(screen.includes("READY."));
   });
 
+  await t.test("SID: set volume, note on/off, and silence all", async () => {
+    // Volume write should produce a write to $D418
+    const vol = await client.sidSetVolume(12);
+    assert.equal(vol.success, true);
+    assert.equal(mock.state.lastWrite.address, 0xd418);
+    assert.equal(mock.state.lastWrite.bytes.length, 1);
+
+    // Note on voice 1 writes FREQ..SR block starting at $D400
+    const noteOn = await client.sidNoteOn({ voice: 1, note: "A4", waveform: "pulse", pulseWidth: 0x0800, attack: 1, decay: 2, sustain: 8, release: 3 });
+    assert.equal(noteOn.success, true);
+    assert.equal(mock.state.lastWrite.address, 0xd400);
+    assert.equal(mock.state.lastWrite.bytes.length, 7);
+
+    const noteOff = await client.sidNoteOff(1);
+    assert.equal(noteOff.success, true);
+    assert.equal(mock.state.lastWrite.address, 0xd404);
+    assert.equal(mock.state.lastWrite.bytes[0], 0x00);
+
+    const silence = await client.sidSilenceAll();
+    assert.equal(silence.success, true);
+    assert.equal(mock.state.lastWrite.address, 0xd418);
+    assert.equal(mock.state.lastWrite.bytes[0], 0x00);
+  });
+
   await t.test("write message to high RAM and read back", async () => {
     const message = "HELLO FROM MCP";
     const length = message.length.toString(10);
