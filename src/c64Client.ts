@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import axios from "axios";
 import { basicToPrg } from "./basicConverter.js";
 import { petsciiToAscii } from "./petscii.js";
+import { resolveAddressSymbol } from "./knowledge.js";
 import { Api, HttpClient } from "../generated/ultimate64/index.js";
 
 export interface RunBasicResult {
@@ -53,6 +54,51 @@ export class C64Client {
     }
   }
 
+  async loadPrgFile(path: string): Promise<RunBasicResult> {
+    try {
+      const response = await this.api.v1.runnersLoadPrgUpdate(":load_prg", { file: path });
+      return { success: true, details: response.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async runPrgFile(path: string): Promise<RunBasicResult> {
+    try {
+      const response = await this.api.v1.runnersRunPrgUpdate(":run_prg", { file: path });
+      return { success: true, details: response.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async runCrtFile(path: string): Promise<RunBasicResult> {
+    try {
+      const response = await this.api.v1.runnersRunCrtUpdate(":run_crt", { file: path });
+      return { success: true, details: response.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async sidplayFile(path: string, songnr?: number): Promise<RunBasicResult> {
+    try {
+      const response = await this.api.v1.runnersSidplayUpdate(":sidplay", { file: path, songnr });
+      return { success: true, details: response.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async modplayFile(path: string): Promise<RunBasicResult> {
+    try {
+      const response = await this.api.v1.runnersModplayUpdate(":modplay", { file: path });
+      return { success: true, details: response.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
   async readScreen(): Promise<string> {
     const response = await this.api.v1.machineReadmemList(":readmem", {
       address: "0400",
@@ -95,7 +141,8 @@ export class C64Client {
 
   async readMemory(addressInput: string, lengthInput: string): Promise<MemoryReadResult> {
     try {
-      const address = this.parseNumeric(addressInput);
+      const resolved = resolveAddressSymbol(addressInput);
+      const address = resolved ?? this.parseNumeric(addressInput);
       const length = this.parseNumeric(lengthInput);
       if (length <= 0) {
         throw new Error("Length must be greater than zero");
@@ -127,7 +174,8 @@ export class C64Client {
 
   async writeMemory(addressInput: string, bytesInput: string): Promise<RunBasicResult> {
     try {
-      const address = this.parseNumeric(addressInput);
+      const resolved = resolveAddressSymbol(addressInput);
+      const address = resolved ?? this.parseNumeric(addressInput);
       const dataBuffer = this.hexStringToBuffer(bytesInput);
       if (dataBuffer.length === 0) {
         throw new Error("No bytes provided");
@@ -151,6 +199,249 @@ export class C64Client {
         success: false,
         details: this.normaliseError(error),
       };
+    }
+  }
+
+  // --- Additional API wrappers to cover full REST surface ---
+
+  async version(): Promise<unknown> {
+    const res = await this.api.v1.versionList();
+    return res.data;
+  }
+
+  async info(): Promise<unknown> {
+    const res = await this.api.v1.infoList();
+    return res.data;
+  }
+
+  async pause(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.machinePauseUpdate(":pause");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async resume(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.machineResumeUpdate(":resume");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async poweroff(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.machinePoweroffUpdate(":poweroff");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async menuButton(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.machineMenuButtonUpdate(":menu_button");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async debugregRead(): Promise<{ success: boolean; value?: string; details?: unknown }> {
+    try {
+      const res = await this.api.v1.machineDebugregList(":debugreg");
+      return { success: true, value: (res.data as any).value, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async debugregWrite(value: string): Promise<{ success: boolean; value?: string; details?: unknown }> {
+    try {
+      const res = await this.api.v1.machineDebugregUpdate(":debugreg", { value });
+      return { success: true, value: (res.data as any).value, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async drivesList(): Promise<unknown> {
+    const res = await this.api.v1.drivesList();
+    return res.data;
+  }
+
+  async driveMount(
+    drive: string,
+    imagePath: string,
+    options?: { type?: "d64" | "g64" | "d71" | "g71" | "d81"; mode?: "readwrite" | "readonly" | "unlinked" },
+  ): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.drivesMountUpdate(drive, ":mount", { image: imagePath, type: options?.type, mode: options?.mode });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async driveRemove(drive: string): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.drivesRemoveUpdate(drive, ":remove");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async driveReset(drive: string): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.drivesResetUpdate(drive, ":reset");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async driveOn(drive: string): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.drivesOnUpdate(drive, ":on");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async driveOff(drive: string): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.drivesOffUpdate(drive, ":off");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async driveSetMode(drive: string, mode: "1541" | "1571" | "1581"): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.drivesSetModeUpdate(drive, ":set_mode", { mode });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async streamStart(stream: "video" | "audio" | "debug", ip: string): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.streamsStartUpdate(stream, ":start", { ip });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async streamStop(stream: "video" | "audio" | "debug"): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.streamsStopUpdate(stream, ":stop");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async configsList(): Promise<unknown> {
+    const res = await this.api.v1.configsList();
+    return res.data;
+  }
+
+  async configGet(category: string, item?: string): Promise<unknown> {
+    const res = item ? await this.api.v1.configsDetail2(category, item) : await this.api.v1.configsDetail(category);
+    return res.data;
+  }
+
+  async configSet(category: string, item: string, value: string): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.configsUpdate(category, item, { value });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async configBatchUpdate(payload: Record<string, object>): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.configsCreate(payload);
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async configLoadFromFlash(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.configsLoadFromFlashUpdate(":load_from_flash");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async configSaveToFlash(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.configsSaveToFlashUpdate(":save_to_flash");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async configResetToDefault(): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.configsResetToDefaultUpdate(":reset_to_default");
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async filesInfo(path: string): Promise<unknown> {
+    const res = await this.api.v1.filesInfoDetail(encodeURIComponent(path), ":info");
+    return res.data;
+  }
+
+  async filesCreateD64(path: string, options?: { tracks?: 35 | 40; diskname?: string }): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.filesCreateD64Update(encodeURIComponent(path), ":create_d64", { tracks: options?.tracks, diskname: options?.diskname });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async filesCreateD71(path: string, options?: { diskname?: string }): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.filesCreateD71Update(encodeURIComponent(path), ":create_d71", { diskname: options?.diskname });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async filesCreateD81(path: string, options?: { diskname?: string }): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.filesCreateD81Update(encodeURIComponent(path), ":create_d81", { diskname: options?.diskname });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
+  async filesCreateDnp(path: string, tracks: number, options?: { diskname?: string }): Promise<RunBasicResult> {
+    try {
+      const res = await this.api.v1.filesCreateDnpUpdate(encodeURIComponent(path), ":create_dnp", { tracks, diskname: options?.diskname });
+      return { success: true, details: res.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
     }
   }
 

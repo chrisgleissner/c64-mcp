@@ -9,6 +9,7 @@ See <https://www.gnu.org/licenses/> for details.
 import Fastify from "fastify";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
+import { listMemoryMap, listSymbols } from "./knowledge.js";
 
 async function main() {
   const config = loadConfig();
@@ -23,6 +24,10 @@ async function main() {
 
   server.get("/health", async () => ({ status: "ok" }));
 
+  // Knowledge endpoints
+  server.get("/knowledge/memory_map", async () => ({ regions: listMemoryMap() }));
+  server.get("/knowledge/symbols", async () => ({ symbols: listSymbols() }));
+
   server.post<{ Body: { program: string } }>("/tools/upload_and_run_basic", async (request, reply) => {
     const { program } = request.body ?? {};
 
@@ -36,6 +41,61 @@ async function main() {
       reply.code(502);
     }
 
+    return result;
+  });
+
+  server.post<{ Body: { path?: string } }>("/tools/run_prg_file", async (request, reply) => {
+    const { path } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    const result = await client.runPrgFile(path);
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { path?: string } }>("/tools/load_prg_file", async (request, reply) => {
+    const { path } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    const result = await client.loadPrgFile(path);
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { path?: string } }>("/tools/run_crt_file", async (request, reply) => {
+    const { path } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    const result = await client.runCrtFile(path);
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { path?: string; songnr?: number } }>("/tools/sidplay_file", async (request, reply) => {
+    const { path, songnr } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    const result = await client.sidplayFile(path, songnr);
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { path?: string } }>("/tools/modplay_file", async (request, reply) => {
+    const { path } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    const result = await client.modplayFile(path);
+    if (!result.success) reply.code(502);
     return result;
   });
 
@@ -59,6 +119,183 @@ async function main() {
     }
     return result;
   });
+
+  // Additional REST API feature tools
+  server.get("/tools/version", async () => ({ details: await client.version() }));
+  server.get("/tools/info", async () => ({ details: await client.info() }));
+  server.post("/tools/pause", async () => await client.pause());
+  server.post("/tools/resume", async () => await client.resume());
+  server.post("/tools/poweroff", async () => await client.poweroff());
+  server.post("/tools/menu_button", async () => await client.menuButton());
+  server.get("/tools/debugreg_read", async () => await client.debugregRead());
+  server.post<{ Body: { value?: string } }>("/tools/debugreg_write", async (request, reply) => {
+    const { value } = request.body ?? {};
+    if (!value) {
+      reply.code(400);
+      return { error: "Missing value" };
+    }
+    return client.debugregWrite(value);
+  });
+  server.get("/tools/drives", async () => ({ details: await client.drivesList() }));
+  server.post<{ Body: { drive?: string; image?: string; type?: string; mode?: string } }>(
+    "/tools/drive_mount",
+    async (request, reply) => {
+      const { drive, image, type, mode } = request.body ?? {};
+      if (!drive || !image) {
+        reply.code(400);
+        return { error: "Missing drive or image" };
+      }
+      return client.driveMount(drive, image, { type: type as any, mode: mode as any });
+    },
+  );
+  server.post<{ Body: { drive?: string } }>("/tools/drive_remove", async (request, reply) => {
+    const { drive } = request.body ?? {};
+    if (!drive) {
+      reply.code(400);
+      return { error: "Missing drive" };
+    }
+    return client.driveRemove(drive);
+  });
+  server.post<{ Body: { drive?: string } }>("/tools/drive_reset", async (request, reply) => {
+    const { drive } = request.body ?? {};
+    if (!drive) {
+      reply.code(400);
+      return { error: "Missing drive" };
+    }
+    return client.driveReset(drive);
+  });
+  server.post<{ Body: { drive?: string } }>("/tools/drive_on", async (request, reply) => {
+    const { drive } = request.body ?? {};
+    if (!drive) {
+      reply.code(400);
+      return { error: "Missing drive" };
+    }
+    return client.driveOn(drive);
+  });
+  server.post<{ Body: { drive?: string } }>("/tools/drive_off", async (request, reply) => {
+    const { drive } = request.body ?? {};
+    if (!drive) {
+      reply.code(400);
+      return { error: "Missing drive" };
+    }
+    return client.driveOff(drive);
+  });
+  server.post<{ Body: { drive?: string; mode?: "1541" | "1571" | "1581" } }>(
+    "/tools/drive_mode",
+    async (request, reply) => {
+      const { drive, mode } = request.body ?? {};
+      if (!drive || !mode) {
+        reply.code(400);
+        return { error: "Missing drive or mode" };
+      }
+      return client.driveSetMode(drive, mode);
+    },
+  );
+  server.post<{ Body: { stream?: "video" | "audio" | "debug"; ip?: string } }>(
+    "/tools/stream_start",
+    async (request, reply) => {
+      const { stream, ip } = request.body ?? {};
+      if (!stream || !ip) {
+        reply.code(400);
+        return { error: "Missing stream or ip" };
+      }
+      return client.streamStart(stream, ip);
+    },
+  );
+  server.post<{ Body: { stream?: "video" | "audio" | "debug" } }>(
+    "/tools/stream_stop",
+    async (request, reply) => {
+      const { stream } = request.body ?? {};
+      if (!stream) {
+        reply.code(400);
+        return { error: "Missing stream" };
+      }
+      return client.streamStop(stream);
+    },
+  );
+  server.get<{ Querystring: { category?: string; item?: string } }>(
+    "/tools/config_get",
+    async (request, reply) => {
+      const { category, item } = request.query ?? {};
+      if (!category) {
+        reply.code(400);
+        return { error: "Missing category" };
+      }
+      return { details: await client.configGet(category, item) };
+    },
+  );
+  server.get("/tools/config_list", async () => ({ details: await client.configsList() }));
+  server.post<{ Body: { category?: string; item?: string; value?: string } }>(
+    "/tools/config_set",
+    async (request, reply) => {
+      const { category, item, value } = request.body ?? {};
+      if (!category || !item || !value) {
+        reply.code(400);
+        return { error: "Missing category, item, or value" };
+      }
+      return client.configSet(category, item, value);
+    },
+  );
+  server.post<{ Body: { payload?: Record<string, object> } }>(
+    "/tools/config_batch_update",
+    async (request, reply) => {
+      const { payload } = request.body ?? {};
+      if (!payload || typeof payload !== "object") {
+        reply.code(400);
+        return { error: "Missing payload" };
+      }
+      return client.configBatchUpdate(payload);
+    },
+  );
+  server.post("/tools/config_load_from_flash", async () => await client.configLoadFromFlash());
+  server.post("/tools/config_save_to_flash", async () => await client.configSaveToFlash());
+  server.post("/tools/config_reset_to_default", async () => await client.configResetToDefault());
+  server.get<{ Querystring: { path?: string } }>("/tools/file_info", async (request, reply) => {
+    const { path } = request.query ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    return { details: await client.filesInfo(path) };
+  });
+  server.post<{ Body: { path?: string; tracks?: number; diskname?: string } }>(
+    "/tools/create_d64",
+    async (request, reply) => {
+      const { path, tracks, diskname } = request.body ?? {};
+      if (!path) {
+        reply.code(400);
+        return { error: "Missing path" };
+      }
+      return client.filesCreateD64(path, { tracks: tracks as any, diskname });
+    },
+  );
+  server.post<{ Body: { path?: string; diskname?: string } }>("/tools/create_d71", async (request, reply) => {
+    const { path, diskname } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    return client.filesCreateD71(path, { diskname });
+  });
+  server.post<{ Body: { path?: string; diskname?: string } }>("/tools/create_d81", async (request, reply) => {
+    const { path, diskname } = request.body ?? {};
+    if (!path) {
+      reply.code(400);
+      return { error: "Missing path" };
+    }
+    return client.filesCreateD81(path, { diskname });
+  });
+  server.post<{ Body: { path?: string; tracks?: number; diskname?: string } }>(
+    "/tools/create_dnp",
+    async (request, reply) => {
+      const { path, tracks, diskname } = request.body ?? {};
+      if (!path || !tracks) {
+        reply.code(400);
+        return { error: "Missing path or tracks" };
+      }
+      return client.filesCreateDnp(path, Number(tracks), { diskname });
+    },
+  );
 
   server.post<{ Body: { address?: string; length?: string } }>("/tools/read_memory", async (request, reply) => {
     const { address, length } = request.body ?? {};

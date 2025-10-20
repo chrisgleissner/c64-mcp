@@ -38,6 +38,33 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(finalMarker), [0x00, 0x00]);
   });
 
+  await t.test("version and info endpoints respond", async () => {
+    const v = await client.version();
+    assert.ok(v && typeof v === "object");
+    const info = await client.info();
+    assert.ok(info && typeof info === "object");
+  });
+
+  await t.test("pause/resume and debugreg read/write work", async () => {
+    let r = await client.pause();
+    assert.equal(r.success, true);
+    r = await client.resume();
+    assert.equal(r.success, true);
+
+    const write = await client.debugregWrite("AB");
+    assert.equal(write.success, true);
+    const read = await client.debugregRead();
+    assert.equal(read.success, true);
+    assert.equal(read.value?.toUpperCase(), "AB");
+  });
+
+  await t.test("symbol address 'screen' resolves for readMemory", async () => {
+    const result = await client.readMemory("screen", "1");
+    assert.equal(result.success, true);
+    assert.equal(typeof result.data, "string");
+    assert.ok(result.data?.startsWith("$"));
+  });
+
   await t.test("readScreen returns translated ASCII text", async () => {
     const screen = await client.readScreen();
     assert.ok(screen.includes("READY."));
