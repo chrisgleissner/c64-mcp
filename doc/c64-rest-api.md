@@ -1,6 +1,6 @@
-# Ultimate 64 REST API Reference
+# c64 REST API Reference
 
-Authoritative source: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html)
+Authoritative source: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html) for devices such as Commodore 64 Ultimate and Ultimate 64.
 
 ## Conventions
 - Base path: `/v1`.
@@ -99,5 +99,5 @@ Authoritative source: [Ultimate 64 REST API](https://1541u-documentation.readthe
 - `500`: device reported internal failure—inspect `errors` array for details.
 
 ## Assets in Repository
-- `doc/ultimate64-openapi.yaml` captures the full API surface in OpenAPI 3.1 format for mock generation and tooling.
+- `doc/c64-openapi.yaml` captures the full API surface in OpenAPI 3.1 format for mock generation and tooling.
 - Firmware change log: <https://1541u-documentation.readthedocs.io/en/latest/api/changelog.html>

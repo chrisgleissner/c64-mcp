@@ -1,13 +1,13 @@
 # Developer Guide
 
-This document outlines how to work on the MCP server that bridges large language models with Ultimate 64 hardware.
+This document outlines how to work on the MCP server that bridges large language models with c64 hardware (including Commodore 64 Ultimate and Ultimate 64).
 
 ## Project Layout
 
 ```
 src/                Core server and client logic
   basicConverter.ts BASIC text → PRG encoder
-  c64Client.ts      REST client for Ultimate 64
+  c64Client.ts      REST client for c64 devices
   config.ts         Configuration loader
   index.ts          Fastify MCP endpoint
 doc/                Reference material and specs
@@ -17,8 +17,8 @@ test/               Node test runner suites and helpers
 
 Key documentation:
 - `doc/c64-basic-spec.md` — BASIC tokenisation rules used by the converter.
-- `doc/c64-rest-api.md` — Summary of the Ultimate 64 HTTP API.
-- `doc/ultimate64-openapi.yaml` — Machine-readable API schema for mocking and generators.
+- `doc/c64-rest-api.md` — Summary of the c64 REST API.
+- `doc/c64-openapi.yaml` — Machine-readable API schema for mocking and generators.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ You can override the configuration path with the `C64MCP_CONFIG` environment var
 | `npm test -- --real [--base-url=http://host]` | Execute the same suites against real hardware. The runner reuses the MCP config (`C64MCP_CONFIG`, `~/.c64mcp.json`, or repo `.c64mcp.json`) for the base URL, falling back to `http://c64u`. |
 | `npm run check` | Convenience command that runs both the build step and the mock-backed tests. |
 | `npm run c64:tool` | Launch an interactive helper to convert BASIC sources to PRG files, upload binaries, and run them on the Ultimate 64. |
-| `npm run api:generate` | Regenerate the auto-generated REST client (`generated/ultimate64/index.ts`) from the OpenAPI spec. |
+| `npm run api:generate` | Regenerate the auto-generated REST client (`generated/c64/index.ts`) from the OpenAPI spec. |
 
 The test script is implemented in `scripts/run-tests.mjs`. It sets `C64_TEST_TARGET` for the suites and accepts the following flags:
 - `--mock` (default) to use `test/mockC64Server.mjs`.
@@ -61,13 +61,13 @@ flowchart TD
       ClientFacade["C64Client facade (src/c64Client.ts)"]
     end
 
-    subgraph Generated SDK (generated/ultimate64/)
-      Api["Auto-generated REST client"]
+    subgraph Generated SDK (generated/c64/)
+    Api["Auto-generated REST client"]
     end
 
     Tools --> ClientFacade
     ClientFacade --> Api
-    Api -->|HTTP| Ultimate["Ultimate 64 REST API"]
+    Api -->|HTTP| C64API["c64 REST API"]
 
     ClientFacade --> BasicConverter["basicConverter.ts (BASIC → PRG)"]
     ClientFacade --> Config["config.ts (load C64 host/base URL)"]
@@ -75,9 +75,9 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    OpenAPI["doc/ultimate64-openapi.yaml"]
+    OpenAPI["doc/c64-openapi.yaml"]
     Generator["npm run api:generate (swagger-typescript-api)"]
-    Generated["generated/ultimate64/index.ts"]
+    Generated["generated/c64/index.ts"]
     Facade["src/c64Client.ts"]
 
     OpenAPI --> Generator --> Generated --> Facade
@@ -93,8 +93,8 @@ flowchart LR
 
 1. Run `npm run build` to ensure TypeScript types remain valid.
 2. Use `npm test` to verify PRG encoding and REST interactions via the mock server.
-3. When ready, execute `npm test -- --real` to confirm the server operates correctly against the actual Ultimate 64.
-4. Update `doc/` when introducing new endpoints, tokens, or behaviour; keep `doc/ultimate64-openapi.yaml` in sync with the code.
+3. When ready, execute `npm test -- --real` to confirm the server operates correctly against an actual c64 device.
+4. Update `doc/` when introducing new endpoints, tokens, or behaviour; keep `doc/c64-openapi.yaml` in sync with the code.
 
 ## Retrieval-Augmented Knowledge
 

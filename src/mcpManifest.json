@@ -1,7 +1,7 @@
 {
   "name": "c64-mcp",
   "version": "0.1.0",
-  "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
+  "description": "Local MCP server for controlling a c64 device via REST API",
   "tools": [
     {
       "name": "upload_and_run_basic",
@@ -28,7 +28,7 @@
     },
     {
       "name": "reboot_c64",
-      "description": "Reboot the Ultimate 64 firmware"
+      "description": "Reboot the c64 device firmware"
     },
     {
       "name": "read_memory",
@@ -51,7 +51,7 @@
       "parameters": { "topic": "string" }
     },
     
-    { "name": "version", "description": "Get Ultimate 64 REST API version" },
+    { "name": "version", "description": "Get c64 REST API version" },
     { "name": "info", "description": "Get device information" },
     { "name": "pause", "description": "Pause the machine via DMA" },
     { "name": "resume", "description": "Resume the machine from pause" },

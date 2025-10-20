@@ -8,8 +8,8 @@ This repository hosts a local MCP server that bridges large language models with
 - Start the MCP server locally via `npm start`.
 
 ## Repository Layout
-- `src/` – Fastify entry-point (`index.ts`), Ultimate 64 REST client, BASIC converter, and config loader.
-- `test/` – Node test runner suites (`*.test.mjs`) and the mock Ultimate 64 server.
+- `src/` – Fastify entry-point (`index.ts`), c64 REST client, BASIC converter, and config loader.
+- `test/` – Node test runner suites (`*.test.mjs`) and the mock c64 server.
 - `scripts/` – Helper CLIs (e.g. `run-tests.mjs` to toggle mock vs real hardware).
 - `doc/` – Engineering docs (`c64-rest-api.md`, `c64-basic-spec.md`, `developer.md`, OpenAPI schema).
 - `AGENTS.md` & `README.md` – High-level guidance.
@@ -18,7 +18,7 @@ This repository hosts a local MCP server that bridges large language models with
 - `npm start` – Run the MCP server with ts-node (listens on `PORT` or `8000`).
 - `npm run build` – Type-check TypeScript.
 - `npm test` – Execute tests against the in-process mock C64 (`test/mockC64Server.mjs`).
-- `npm test -- --real [--base-url=http://host]` – Re-run tests against an actual Ultimate 64 instance.
+- `npm test -- --real [--base-url=http://host]` – Re-run tests against an actual c64 device.
 - `npm run check` – Sequential `build` + `test`.
 - `npm run c64:tool` – Interactive helper to turn BASIC into PRG files, upload binaries, and run them on hardware.
 - `npm run api:generate` – Regenerate the typed REST client from the OpenAPI spec when endpoints change.
