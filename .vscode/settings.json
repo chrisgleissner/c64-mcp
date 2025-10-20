@@ -1,0 +1,12 @@
+{
+  "github.copilot.chat.experimental.mcp": {
+    "servers": [
+      {
+        "name": "c64-mcp",
+        "url": "http://localhost:8000",
+        "manifestPath": "/home/chris/dev/c64/c64-mcp/src/mcpManifest.json",
+        "type": "http"
+      }
+    ]
+  }
+}

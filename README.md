@@ -61,7 +61,7 @@ The commands should report Node 20.x or newer.
    ```json
    { "c64_host": "c64u" }
    ```
-   The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. You can override the path with the `C64MCP_CONFIG` environment variable. If the file is missing, the server defaults to `http://c64u`.
+   The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. You can override the path with the `C64MCP_CONFIG` environment variable. If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
 3. Launch the MCP server:
    ```bash
    npm start
@@ -106,11 +106,121 @@ Generated binaries are written to the `artifacts/` directory by default (ignored
 
 See [`src/mcpManifest.json`](src/mcpManifest.json) for the MCP manifest consumed by ChatGPT and other LLM clients.
 
-## Using with ChatGPT MCP
+## Using with GitHub Copilot in VS Code
+
+GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
+
+### 1. Enable MCP in Copilot Chat
+
+- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in
+- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**
+- Enable the **MCP** checkbox
+- Restart VS Code
+
+### 2. Configure the C64 MCP Server
+
+Add this configuration to your workspace `.vscode/settings.json`:
+
+```json
+{
+  "github.copilot.chat.experimental.mcp": {
+    "servers": [
+      {
+        "name": "c64-mcp",
+        "url": "http://localhost:8000",
+        "manifestPath": "/absolute/path/to/c64-mcp/src/mcpManifest.json",
+        "type": "http"
+      }
+    ]
+  }
+}
+```
+
+**Important:** Replace `/absolute/path/to/c64-mcp/` with the actual absolute path to your c64-mcp project directory.
+
+### 3. Start the MCP Server
+
+```bash
+npm start
+```
+
+Keep this running - it will log successful connectivity to your Ultimate 64.
+
+### 4. Use MCP Tools in Copilot Chat
+
+Open Copilot Chat in VS Code and use natural language to interact with your C64:
+
+**Example prompts:**
+
+- "Upload and run this BASIC program: `10 PRINT "HELLO WORLD" \n 20 GOTO 10`"
+- "Read the current screen content from my C64"
+- "Reset my C64"
+- "Make the border red by writing to memory address $D020"
+- "Write a love message with PETSCII characters"
+
+Copilot will automatically use the appropriate MCP tools (`upload_and_run_basic`, `read_screen`, `reset_c64`, `read_memory`, `write_memory`) to execute your requests on the actual C64 hardware.
+
+## Using with Other MCP Clients
+
 1. Install the [Model Context Protocol desktop bridge](https://github.com/modelcontextprotocol/desktop) or your preferred MCP client.
 2. Point the client at `http://localhost:8000` and load `src/mcpManifest.json`.
-3. Configure the MCP session to expose the three tools above to the LLM.
+3. Configure the MCP session to expose the available tools to the LLM.
 4. Invoke the tools from your LLM of choice; the server performs REST calls against the configured Ultimate 64.
+
+## Visual Studio Code Walkthrough: “HELLO WORLD”
+
+Step-by-step instructions to upload and run a BASIC program from VS Code:
+
+1. **Start the MCP server**
+   ```bash
+   npm start
+   ```
+   Leave it running in a terminal; it logs connectivity to your Ultimate 64 (`c64_host`).
+
+2. **Enable Copilot MCP support**
+   - GitHub Copilot (versions 1.214 and later) includes the MCP client. Full instructions live in the [official guide](https://code.visualstudio.com/api/extension-guides/ai/mcp).
+   - Make sure Copilot Chat is installed and signed in. If Copilot prompts you to enable MCP, accept the prompt; otherwise open Copilot Chat and run `@workspace enable mcp` (or toggle the setting under **Settings → GitHub Copilot → Experimental → MCP Support**).
+   - Restart VS Code after enabling. Copilot Chat will expose an **MCP Servers** section in its settings once MCP is active.
+
+3. **Register the local MCP server**
+   - In VS Code, open **Settings → GitHub Copilot → Experimental → MCP Servers**.
+   - Click **Add Server**, choose **HTTP**.
+   - Supply:
+     * **Name:** `c64-mcp` (any label works).
+     * **Server URL:** `http://localhost:8000`.
+     * **Manifest path:** absolute path to `src/mcpManifest.json`.
+   - Save. Copilot Chat now lists `c64-mcp`; expand it to run the tools from the chat interface.
+
+4. **Upload and run the BASIC program**
+   - In the MCP panel, expand **c64-mcp → Tools**.
+   - Click ▶ next to `upload_and_run_basic`.
+   - Provide the request body:
+     ```json
+     {
+       "program": "10 PRINT \"HELLO WORLD\"\n20 GOTO 10"
+     }
+     ```
+
+## Minimal CLI interaction
+
+If you want to exercise the MCP endpoints from a terminal, you can call them directly with `curl` (or any HTTP client). Examples:
+
+```bash
+# Upload and run HELLO WORLD
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"program": "10 PRINT \"HELLO\"\n20 GOTO 10"}' \
+  http://localhost:8000/tools/upload_and_run_basic | jq
+
+# Fetch the current screen buffer
+curl -s http://localhost:8000/tools/read_screen | jq
+
+# Reset or reboot the machine
+curl -s -X POST http://localhost:8000/tools/reset_c64
+curl -s -X POST http://localhost:8000/tools/reboot_c64
+```
+
+Any endpoint listed in [`src/mcpManifest.json`](src/mcpManifest.json) can be invoked the same way by posting JSON to `/tools/<name>`.
 
 ## Visual Studio Code Setup
 - Open the project folder in VS Code.
