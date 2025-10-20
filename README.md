@@ -87,12 +87,12 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://localhost:8000/tools/rag_retrieve_asm | jq
 ```
 
-You can add your own `.bas`, `.asm`, or `.s` files anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
+You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`doc/6502-instructions.md`](doc/6502-instructions.md)) anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
 
 ## Build & Test
 - `npm run build` — type-check the TypeScript sources.
 - `npm test` — run the integration tests against an in-process mock that emulates the Ultimate 64 REST API.
-- `npm test -- --real` — exercise the same tests against a real C64/Ultimate 64. By default this targets `http://c64u`; override with `--base-url=http://<host>`.
+- `npm test -- --real` — exercise the same tests against a real C64/Ultimate 64. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 
 The test runner accepts the following options:
@@ -124,6 +124,8 @@ Generated binaries are written to the `artifacts/` directory by default (ignored
 | `reboot_c64` | `POST /tools/reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
 | `read_memory` | `POST /tools/read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
 | `write_memory` | `POST /tools/write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
+| `basic_v2_spec` | `GET /tools/basic_v2_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
+| `asm_quick_reference` | `GET /tools/asm_quick_reference?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
 
 See [`src/mcpManifest.json`](src/mcpManifest.json) for the MCP manifest consumed by ChatGPT and other LLM clients.
 

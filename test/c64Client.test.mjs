@@ -5,6 +5,19 @@ import { C64Client } from "../src/c64Client.js";
 import { basicToPrg } from "../src/basicConverter.js";
 import { startMockC64Server } from "./mockC64Server.mjs";
 
+const SCREEN_BASE = "$0400";
+const SAFE_RAM_BASE = "$C000";
+
+function asciiToHexBytes(text) {
+  return Buffer.from(text, "ascii").toString("hex").toUpperCase();
+}
+
+async function writeMessageAt(client, baseAddress, message) {
+  const hex = asciiToHexBytes(message);
+  const write = await client.writeMemory(baseAddress, `$${hex}`);
+  return { write, hex: `$${hex}` };
+}
+
 const target = (process.env.C64_TEST_TARGET ?? "mock").toLowerCase();
 const injectedBaseUrl = process.env.C64_TEST_BASE_URL;
 
@@ -70,6 +83,28 @@ test("C64Client against mock server", async (t) => {
     assert.ok(screen.includes("READY."));
   });
 
+  await t.test("write message to high RAM and read back", async () => {
+    const message = "HELLO FROM MCP";
+    const length = message.length.toString(10);
+
+    const before = await client.readMemory(SAFE_RAM_BASE, length);
+    assert.equal(before.success, true);
+    const previousHex = before.data ?? null;
+
+    try {
+      const { write, hex } = await writeMessageAt(client, SAFE_RAM_BASE, message);
+      assert.equal(write.success, true, `Write failed: ${JSON.stringify(write.details)}`);
+
+      const readBack = await client.readMemory(SAFE_RAM_BASE, length);
+      assert.equal(readBack.success, true);
+      assert.equal(readBack.data, hex);
+    } finally {
+      if (previousHex) {
+        await client.writeMemory(SAFE_RAM_BASE, previousHex);
+      }
+    }
+  });
+
   await t.test("runPrg uploads a raw PRG payload", async () => {
     const prg = basicToPrg('10 PRINT "RAW"');
     const result = await client.runPrg(prg);
@@ -117,7 +152,7 @@ test("C64Client against real C64", async (t) => {
   });
 
   await t.test("upload program to real C64", async () => {
-    const program = '10 PRINT "MCP!"\n20 GOTO 10';
+    const program = '10 PRINT "MCP!"\n20 END';
     const response = await client.uploadAndRunBasic(program);
     assert.equal(response.success, true, `Upload failed: ${JSON.stringify(response.details)}`);
   });
@@ -127,6 +162,29 @@ test("C64Client against real C64", async (t) => {
     assert.equal(typeof screen, "string");
     assert.ok(screen.length > 0, "Screen buffer empty");
   });
+
+  // TODO(chris): Re-enable once the real hardware exposes consistent RAM reads at $C000
+  // await t.test("write message to real high RAM and read back", async () => {
+  //   const message = "MCP SCREEN TEST";
+  //   const length = message.length.toString(10);
+
+  //   const before = await client.readMemory(SAFE_RAM_BASE, length);
+  //   assert.equal(before.success, true, `Pre-read failed: ${JSON.stringify(before.details)}`);
+  //   const previousHex = before.data ?? null;
+
+  //   try {
+  //     const { write, hex } = await writeMessageAt(client, SAFE_RAM_BASE, message);
+  //     assert.equal(write.success, true, `Write failed: ${JSON.stringify(write.details)}`);
+
+  //     const readBack = await client.readMemory(SAFE_RAM_BASE, length);
+  //     assert.equal(readBack.success, true, `Read-back failed: ${JSON.stringify(readBack.details)}`);
+  //     assert.equal(readBack.data, hex);
+  //   } finally {
+  //     if (previousHex) {
+  //       await client.writeMemory(SAFE_RAM_BASE, previousHex);
+  //     }
+  //   }
+  // });
 
   await t.test("reboot real C64", async () => {
     const response = await client.reboot();

@@ -15,6 +15,8 @@ import {
   listSymbols,
   getBasicV2Spec,
   searchBasicV2Spec,
+  getAsmQuickReference,
+  searchAsmQuickReference,
 } from "./knowledge.js";
 import { initRag } from "./rag/init.js";
 
@@ -49,6 +51,17 @@ async function main() {
       return { topic, results };
     },
   );
+  server.get<{ Querystring: { topic?: string } }>(
+    "/tools/asm_quick_reference",
+    async (request) => {
+      const { topic } = request.query ?? {};
+      if (!topic) {
+        return { guide: getAsmQuickReference() };
+      }
+      const results = searchAsmQuickReference(String(topic));
+      return { topic, results };
+    },
+  );
 
   server.post<{ Body: { program: string } }>("/tools/upload_and_run_basic", async (request, reply) => {
     const { program } = request.body ?? {};
@@ -76,8 +89,9 @@ async function main() {
         return { error: "Missing q" };
       }
       const topK = k ? Number(k) : 3;
-      const refs = await rag.retrieve(q, topK, lang);
-      return { refs };
+      const inferredLang = pickRagLanguage(q, lang);
+      const refs = await rag.retrieve(q, topK, inferredLang);
+      return { refs, language: inferredLang ?? "auto" };
     },
   );
 
@@ -400,6 +414,23 @@ main().catch((error) => {
   console.error("Fatal error starting server", error);
   process.exit(1);
 });
+
+function pickRagLanguage(
+  query: string,
+  explicit?: "basic" | "asm",
+): "basic" | "asm" | undefined {
+  if (explicit === "basic" || explicit === "asm") {
+    return explicit;
+  }
+  const lowered = query.toLowerCase();
+  if (/(\bmachine\s*code\b|\bassembly\b|\basm\b|\b6510\b|\bfast\s+(program|code)\b)/.test(lowered)) {
+    return "asm";
+  }
+  if (/(\bbasic\b)/.test(lowered)) {
+    return "basic";
+  }
+  return undefined;
+}
 
 async function logConnectivity(server: FastifyInstance, client: C64Client, baseUrl: string): Promise<void> {
   try {

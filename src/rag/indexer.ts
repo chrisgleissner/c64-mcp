@@ -54,8 +54,12 @@ function languageForExt(file: string): RagLanguage {
   return ext === ".bas" ? "basic" : "asm";
 }
 
+function toPosixRelative(from: string, to: string): string {
+  return path.relative(from, to).split("\\").join("/");
+}
+
 function nameRelativeTo(root: string, file: string): string {
-  return path.relative(root, file).split("\\").join("/");
+  return toPosixRelative(root, file);
 }
 
 async function buildIndexForDir(root: string, files: string[], model: EmbeddingModel): Promise<EmbeddingIndexFile> {
@@ -69,7 +73,7 @@ async function buildIndexForDir(root: string, files: string[], model: EmbeddingM
       language: languageForExt(file),
       vector,
       text,
-      sourcePath: file,
+      sourcePath: toPosixRelative(process.cwd(), file),
       sourceMtimeMs: stat.mtimeMs,
     });
   }
@@ -86,7 +90,7 @@ export async function buildAllIndexes({ model }: BuildIndexOptions): Promise<voi
 
   const [basicFiles, asmFiles] = await Promise.all([
     collectFiles(BASIC_DIR, [".bas"]),
-    collectFiles(ASM_DIR, [".asm", ".s"]),
+    collectFiles(ASM_DIR, [".asm", ".s", ".md"]),
   ]);
 
   const [basicIndex, asmIndex] = await Promise.all([

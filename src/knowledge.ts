@@ -6,6 +6,10 @@ Licensed under the GNU General Public License v2.0 or later.
 See <https://www.gnu.org/licenses/> for details.
 */
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 export interface MemoryRegion {
   name: string;
   start: number;
@@ -184,12 +188,34 @@ export function getBasicV2Spec(): string {
 }
 
 export function searchBasicV2Spec(query: string): Array<{ heading: string; content: string }> {
+  return searchMarkdownSections(BASIC_V2_SPEC, query);
+}
+
+const ASM_GUIDE_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../doc/6502-instructions.md");
+let cachedAsmReference: string | null = null;
+
+export function getAsmQuickReference(): string {
+  if (cachedAsmReference) return cachedAsmReference;
+  try {
+    cachedAsmReference = readFileSync(ASM_GUIDE_PATH, "utf8");
+  } catch {
+    cachedAsmReference = "# 6502 Assembly Quick Reference\n\nReference file not found.";
+  }
+  return cachedAsmReference;
+}
+
+export function searchAsmQuickReference(query: string): Array<{ heading: string; content: string }> {
+  const guide = getAsmQuickReference();
+  return searchMarkdownSections(guide, query);
+}
+
+function searchMarkdownSections(content: string, query: string): Array<{ heading: string; content: string }> {
   if (!query || typeof query !== "string") {
     return [];
   }
   const normalized = query.trim().toLowerCase();
   const sections: Array<{ heading: string; content: string }> = [];
-  const lines = BASIC_V2_SPEC.split(/\r?\n/);
+  const lines = content.split(/\r?\n/);
   let currentHeading = "";
   let currentBuffer: string[] = [];
   const flush = () => {

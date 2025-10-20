@@ -42,7 +42,7 @@ You can override the configuration path with the `C64MCP_CONFIG` environment var
 | `npm start` | Launch the Fastify MCP server with ts-node. |
 | `npm run build` | Type-check the TypeScript sources (no emit). |
 | `npm test` | Run the Node test runner against the bundled mock Ultimate 64 server. |
-| `npm test -- --real [--base-url=http://host]` | Execute the same suites against real hardware; defaults to `http://c64u`. |
+| `npm test -- --real [--base-url=http://host]` | Execute the same suites against real hardware. The runner reuses the MCP config (`C64MCP_CONFIG`, `~/.c64mcp.json`, or repo `.c64mcp.json`) for the base URL, falling back to `http://c64u`. |
 | `npm run check` | Convenience command that runs both the build step and the mock-backed tests. |
 | `npm run c64:tool` | Launch an interactive helper to convert BASIC sources to PRG files, upload binaries, and run them on the Ultimate 64. |
 | `npm run api:generate` | Regenerate the auto-generated REST client (`generated/ultimate64/index.ts`) from the OpenAPI spec. |
@@ -95,6 +95,13 @@ flowchart LR
 2. Use `npm test` to verify PRG encoding and REST interactions via the mock server.
 3. When ready, execute `npm test -- --real` to confirm the server operates correctly against the actual Ultimate 64.
 4. Update `doc/` when introducing new endpoints, tokens, or behaviour; keep `doc/ultimate64-openapi.yaml` in sync with the code.
+
+## Retrieval-Augmented Knowledge
+
+- The RAG subsystem (see `src/rag/*`) indexes `.bas`, `.asm`, `.s`, and reference Markdown files under `data/basic_examples/` and `data/assembly_examples/`. Dropping new examples or notes triggers a background re-index.
+- `doc/6502-instructions.md` contains the condensed 6502/6510 quick reference served via the `asm_quick_reference` MCP tool and the `/rag/retrieve` helper when assembly or "fast program" keywords are present.
+- When adding new knowledge artefacts, prefer Markdown with `##` headings so the search helpers in `src/knowledge.ts` can return focused sections.
+- To force a full rebuild of the embedding indices (e.g., after large content changes), run `npm run rag:rebuild`. This regenerates `data/embeddings_basic.json` and `data/embeddings_asm.json` from the current files on disk.
 
 ## MCP Server Tips
 

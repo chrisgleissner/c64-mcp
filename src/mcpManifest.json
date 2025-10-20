@@ -35,6 +35,11 @@
       "description": "Get Commodore BASIC v2 concise language spec or filtered by topic",
       "parameters": { "topic": "string" }
     },
+    {
+      "name": "asm_quick_reference",
+      "description": "Get the 6502/6510 assembly quick reference or filter by topic keywords",
+      "parameters": { "topic": "string" }
+    },
     
     { "name": "version", "description": "Get Ultimate 64 REST API version" },
     { "name": "info", "description": "Get device information" },
@@ -82,6 +87,10 @@
     { "name": "sidplay_file", "description": "Play SID from filesystem", "parameters": { "path": "string", "songnr": "number" } },
     { "name": "modplay_file", "description": "Play MOD from filesystem", "parameters": { "path": "string" } },
     { "name": "rag_retrieve_basic", "description": "Retrieve BASIC references for a query", "parameters": { "q": "string", "k": "number" } },
-    { "name": "rag_retrieve_asm", "description": "Retrieve 6502 assembly references for a query", "parameters": { "q": "string", "k": "number" } }
+    {
+      "name": "rag_retrieve_asm",
+      "description": "Retrieve 6502/6510 assembly snippets and guidance for fast machine-code routines",
+      "parameters": { "q": "string", "k": "number" }
+    }
   ]
 }
