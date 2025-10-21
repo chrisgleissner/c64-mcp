@@ -639,8 +639,23 @@ async function main() {
       }
 
       try {
+        // Optionally enrich the prompt using the local RAG retriever
+        let ragRefs: string[] | undefined = undefined;
+        let usedPrompt: string | undefined = prompt;
+        try {
+          if (typeof prompt === "string" && prompt.trim().length > 0) {
+            // retrieve top-3 references using inferred language
+            ragRefs = await rag.retrieve(prompt, 3, pickRagLanguage(prompt));
+            if (Array.isArray(ragRefs) && ragRefs.length > 0) {
+              usedPrompt = prompt + "\n\nREFERENCES:\n" + ragRefs.join("\n\n");
+            }
+          }
+        } catch (e) {
+          request.log.warn({ err: e }, "RAG retrieval failed; proceeding without enrichment");
+        }
+
         const art = createPetsciiArt({
-          prompt,
+          prompt: usedPrompt,
           text,
           maxWidth,
           maxHeight,
@@ -674,6 +689,7 @@ async function main() {
           petsciiCodes: art.petsciiCodes,
           usedShape: art.usedShape,
           sourceText: art.sourceText,
+          ragRefs,
         };
       } catch (error) {
         request.log.error(error, "Failed to generate PETSCII art");

@@ -71,6 +71,13 @@ export function listMemoryMap(): MemoryRegion[] {
 export const BASIC_V2_SPEC: string = `
 # Commodore BASIC v2 – Concise Language Specification
 
+## When to Use REST API vs BASIC/Assembly
+**IMPORTANT: Use REST API for direct hardware manipulation**
+- If user says "direct", "directly change", "poke", or mentions "direct" + "RAM/SID/VIC", use write_memory REST API
+- REST API endpoints: write_memory (address, bytes), read_memory (address, length)
+- Examples: "directly set border red" → write_memory(53280, "02"), NOT POKE 53280,2
+- Only generate BASIC/ASM code when user explicitly asks for programs/code
+
 ## Program Structure
 - Programs consist of numbered lines: 1–63999 recommended (absolute max 65535).
 - Each line: lineNumber <space?> statement [{ : statement } ...]
@@ -134,6 +141,8 @@ Parentheses may be used to group.
 - Substrings: LEFT$(A$,n), MID$(A$,start[,len]), RIGHT$(A$,n)
 - Conversion: STR$(n) -> string; VAL(A$) -> numeric; CHR$(n) -> 1-char string; ASC(A$) -> code of first char.
 - LEN(A$) -> length in characters.
+- **Quotes in strings**: Cannot use " directly inside "...". Use CHR$(34) for quote character.
+  Example: PRINT "He said " + CHR$(34) + "Hello!" + CHR$(34) + " to me"
 
 ## Numeric Functions
 - ABS, SGN, INT, RND([n]), SQR, LOG, EXP, SIN, COS, TAN, ATN, FRE(x), POS(x), USR(x)
