@@ -4,18 +4,24 @@ GPL-2.0-only
 */
 
 import fs from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import path from 'node:path';
 import { URL } from 'node:url';
 import https from 'node:https';
 import http from 'node:http';
+import { pipeline } from 'node:stream/promises';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { SlidingWindowRateLimiter, RealTimeSource, type TimeSource, AdaptiveRateLimiter } from './rateLimiter.js';
 import { parseUrlSafe, sameRegisteredDomain, getRegisteredDomain } from './urlUtils.js';
+
+const execAsync = promisify(exec);
 
 export interface FetcherOptions {
   csvPath: string;
   outDir: string; // must be outside VCS and ignored
   defaultDepth?: number; // default 5
-  perDomainRps?: number; // default 10
+  perDomainRps?: number; // default 5
   maxRequestsPerSeed?: number; // default 500
   concurrency?: number; // number of parallel workers per seed (default 6)
   maxContentBytes?: number; // default 2MB
@@ -32,6 +38,8 @@ export interface FetcherOptions {
   /** adaptive limiter recovery interval and step (ms and rps step) */
   recoveryIntervalMs?: number;
   recoveryStep?: number;
+  /** optional override for GitHub repository handling (tests) */
+  githubRepoFetcher?: (args: GithubRepoFetcherArgs) => Promise<FetchSummary | null>;
 }
 
 export interface LogEntry {
@@ -112,7 +120,6 @@ const CODE_EXTS = new Set([
   '.kick',
   '.lst',
   '.mac',
-  '.md',
   '.pal',
   '.s',
   '.seq',
@@ -191,6 +198,35 @@ function shouldFollowLink(seed: URL, current: URL, next: URL): boolean {
   return next.pathname.endsWith('/');
 }
 
+function isGithubSingleFileUrl(url: URL): boolean {
+  const hostname = url.hostname.toLowerCase();
+  const segments = url.pathname.split('/').filter((s) => s.length > 0);
+  if (segments.length === 0) {
+    return false;
+  }
+  const last = segments[segments.length - 1];
+  const hasExtension = path.extname(last) !== '';
+
+  if (hostname === 'github.com') {
+    if (!hasExtension) {
+      return false;
+    }
+    if (segments.length >= 3) {
+      const marker = segments[2];
+      if (marker === 'blob' || marker === 'raw') {
+        return true;
+      }
+    }
+    return true;
+  }
+
+  if (hostname === 'raw.githubusercontent.com' || hostname === 'raw.github.com' || hostname.endsWith('githubusercontent.com')) {
+    return hasExtension;
+  }
+
+  return false;
+}
+
 function isCodeLikeUrl(url: URL): boolean {
   const ext = path.extname(url.pathname).toLowerCase();
   if (!ext) return false;
@@ -231,12 +267,152 @@ function looksLikePdf(buffer: Buffer): boolean {
   return false;
 }
 
+async function pruneNonSourceFiles(root: string, allowedExtensions: Set<string>): Promise<{ kept: number; removed: number }> {
+  let kept = 0;
+  let removed = 0;
+
+  async function walk(dir: string): Promise<boolean> {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    let hasKept = false;
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const childHasKept = await walk(full);
+        if (!childHasKept) {
+          await fs.rm(full, { recursive: true, force: true });
+          removed += 1;
+        } else {
+          hasKept = true;
+        }
+      } else {
+        const ext = path.extname(entry.name).toLowerCase();
+        if (allowedExtensions.has(ext)) {
+          kept += 1;
+          hasKept = true;
+        } else {
+          await fs.rm(full, { force: true });
+          removed += 1;
+        }
+      }
+    }
+    return hasKept;
+  }
+
+  await walk(root);
+  return { kept, removed };
+}
+
+async function downloadGithubRepoZip(seedUrl: URL, outDir: string, userAgent: string, log: (entry: LogEntry) => void): Promise<string> {
+  const info = parseGithubRepoInfo(seedUrl);
+  if (!info) {
+    throw new Error('Not a GitHub repository URL');
+  }
+
+  const repoBase = sanitizeForFs(`${info.owner}_${info.repo}`);
+  const repoDir = path.join(outDir, repoBase);
+  await fs.rm(repoDir, { recursive: true, force: true });
+  await fs.mkdir(repoDir, { recursive: true });
+
+  const branches = ['main', 'master'];
+  const zipPath = path.join(repoDir, 'repo.zip');
+  let downloaded = false;
+  for (const branch of branches) {
+    const zipUrl = `https://github.com/${info.owner}/${info.repo}/archive/refs/heads/${branch}.zip`;
+    log({ level: 'info', event: 'github_repo_zip_download', data: { url: zipUrl } });
+    const response = await fetch(zipUrl, {
+      headers: {
+        'User-Agent': userAgent,
+        'Accept': 'application/octet-stream',
+      },
+    }).catch((err) => {
+      log({ level: 'error', event: 'github_repo_error', data: { seed: seedUrl.toString(), message: (err as Error).message } });
+      return { ok: false } as Response;
+    });
+    if (response && response.ok && response.body) {
+      await pipeline(response.body as any, createWriteStream(zipPath));
+      downloaded = true;
+      log({ level: 'info', event: 'github_repo_zip_saved', data: { path: zipPath } });
+      break;
+    }
+  }
+
+  if (!downloaded) {
+    throw new Error('Unable to download repository zip (branches main/master)');
+  }
+
+  await execAsync(`unzip -q -o "${zipPath}" -d "${repoDir}"`);
+  await fs.rm(zipPath, { force: true });
+
+  const entries = await fs.readdir(repoDir, { withFileTypes: true });
+  const innerDir = entries.find((entry) => entry.isDirectory());
+  if (innerDir) {
+    const innerPath = path.join(repoDir, innerDir.name);
+    const innerEntries = await fs.readdir(innerPath, { withFileTypes: true });
+    for (const entry of innerEntries) {
+      const from = path.join(innerPath, entry.name);
+      const to = path.join(repoDir, entry.name);
+      await fs.rename(from, to);
+    }
+    await fs.rm(innerPath, { recursive: true, force: true });
+  }
+
+  return repoDir;
+}
+
+async function defaultGithubRepoFetcher(args: GithubRepoFetcherArgs): Promise<FetchSummary | null> {
+  const { seedUrl, outDir, log, allowedExtensions } = args;
+  const info = parseGithubRepoInfo(seedUrl);
+  if (!info) {
+    return null;
+  }
+
+  await fs.mkdir(outDir, { recursive: true });
+  let repoDir: string;
+  try {
+    repoDir = await downloadGithubRepoZip(seedUrl, outDir, args.userAgent, log);
+  } catch (err) {
+    log({ level: 'error', event: 'github_repo_error', data: { seed: seedUrl.toString(), message: (err as Error).message } });
+    return { seed: seedUrl.toString(), visited: 1, downloaded: 0, skipped: 0, errors: 1 };
+  }
+
+  const { kept, removed } = await pruneNonSourceFiles(repoDir, allowedExtensions);
+  log({ level: 'info', event: 'github_repo_cloned', data: { seed: seedUrl.toString(), repoDir, downloaded: kept, removed } });
+  return { seed: seedUrl.toString(), visited: 1, downloaded: kept, skipped: removed, errors: 0 };
+}
+
+function parseGithubRepoInfo(url: URL): { owner: string; repo: string } | null {
+  if (!isGithubFamily(url.hostname) || url.hostname.toLowerCase() !== 'github.com') {
+    return null;
+  }
+  const segments = url.pathname.split('/').filter((s) => s.length > 0);
+  if (segments.length < 2) {
+    return null;
+  }
+  const [owner, repo] = segments;
+  if (!owner || !repo) {
+    return null;
+  }
+  if (isGithubSingleFileUrl(url)) {
+    return null;
+  }
+  const repoName = repo.endsWith('.git') ? repo.slice(0, -4) : repo;
+  return { owner, repo: repoName };
+}
+
 export interface FetchSummary {
   seed: string;
   visited: number;
   downloaded: number;
   skipped: number;
   errors: number;
+}
+
+export interface GithubRepoFetcherArgs {
+  seedUrl: URL;
+  outDir: string;
+  log: (entry: LogEntry) => void;
+  userAgent: string;
+  allowedExtensions: Set<string>;
 }
 
 export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]> {
@@ -253,6 +429,7 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
   const log = opts.log ?? (() => {});
   const maxRetries = Math.max(0, opts.maxRetries ?? 3);
   const throttleBackoffFactor = opts.throttleBackoffFactor ?? 0.5;
+  const githubRepoFetcher = opts.githubRepoFetcher ?? defaultGithubRepoFetcher;
 
   const limiter = new AdaptiveRateLimiter(perDomainRps, opts.timeSource ?? new RealTimeSource(), {
     increaseIntervalMs: opts.recoveryIntervalMs ?? 15000,
@@ -270,6 +447,17 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
       continue;
     }
     const seedUrl = maybeSeedUrl;
+    if (!isGithubSingleFileUrl(seedUrl)) {
+      const repoInfo = parseGithubRepoInfo(seedUrl);
+      if (repoInfo) {
+        const repoOutDir = path.join(outDir, sanitizeForFs(seedUrl.hostname.toLowerCase()));
+        const summary = await githubRepoFetcher({ seedUrl, outDir: repoOutDir, log, userAgent, allowedExtensions: CODE_EXTS });
+        if (summary) {
+          summaries.push(summary);
+        }
+        continue;
+      }
+    }
     const depth = Number.isFinite(row.depth ?? NaN) ? (row.depth as number) : defaultDepth;
     const registeredDomain = getRegisteredDomain(seedUrl.hostname);
     const domainKey = registeredDomain;

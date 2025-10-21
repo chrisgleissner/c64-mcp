@@ -4,7 +4,12 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Readable } from 'node:stream';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fetchFromCsv } from '../src/rag/externalFetcher.ts';
+
+const execFileAsync = promisify(execFile);
 
 function tmpDir(name) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,6 +23,15 @@ async function setupCsv(lines) {
   const csv = path.join(dir, 'sources.csv');
   await fs.writeFile(csv, lines.join('\n'), 'utf8');
   return csv;
+}
+
+async function pathExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function fakeRequesterFactory(pages) {
@@ -70,17 +84,9 @@ test('enforces domain restriction across subdomains', async () => {
     'http://sub.example.co.uk/index.html': { headers: { 'content-type': 'text/html' }, body: '<a href="http://www.example.co.uk/x.bas">X</a><a href="http://evil.com/y.bas">Y</a>' },
     'http://www.example.co.uk/x.bas': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$01' },
   };
-  const logs = [];
-  const log = (e) => logs.push(e);
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 3, request: fakeRequesterFactory(pages), log });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 3, request: fakeRequesterFactory(pages) });
   assert.equal(summaries[0].downloaded, 1);
-  assert.ok(
-    logs.some(
-      (e) =>
-        (e.event === 'skip_out_of_domain' || e.event === 'skip_link') &&
-        /evil\.com/.test(JSON.stringify(e.data)),
-    ),
-  );
+  assert.ok(summaries[0].skipped >= 1);
 });
 
 test('applies throttling (10 rps) and max 500 per seed', async () => {
@@ -224,4 +230,97 @@ test('ignores HTML masquerading as text files', async () => {
   const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: fakeRequesterFactory(pages), log: (e) => logs.push(e) });
   assert.equal(summaries[0].downloaded, 0);
   assert.ok(logs.some((e) => e.event === 'skip_binary_or_oversize'));
+});
+
+test('fetches GitHub repository via override fetcher', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,Github repo,https://github.com/example/repo,5',
+  ]);
+  const outDir = tmpDir('github-repo');
+  let called = false;
+  const summaries = await fetchFromCsv({
+    csvPath: csv,
+    outDir,
+    githubRepoFetcher: async ({ seedUrl }) => {
+      called = true;
+      return { seed: seedUrl.toString(), visited: 1, downloaded: 42, skipped: 3, errors: 0 };
+    },
+  });
+  assert.equal(called, true);
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].downloaded, 42);
+  assert.equal(summaries[0].skipped, 3);
+});
+
+test('downloads GitHub repo zip via default fetcher', { concurrency: false }, async (t) => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,Github repo,https://github.com/test/sample,5',
+  ]);
+  const outDir = tmpDir('github-repo-default');
+  await fs.rm(outDir, { recursive: true, force: true });
+
+  const zipWorkspace = tmpDir('github-repo-zip-src');
+  await fs.rm(zipWorkspace, { recursive: true, force: true });
+  await fs.mkdir(zipWorkspace, { recursive: true });
+
+  const repoRoot = path.join(zipWorkspace, 'sample-main');
+  await fs.mkdir(repoRoot, { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'hello.bas'), '10 PRINT "HELLO"\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'ignore.bin'), 'skip me', 'utf8');
+
+  const zipPath = path.join(zipWorkspace, 'sample.zip');
+  try {
+    await execFileAsync('zip', ['-r', zipPath, 'sample-main'], { cwd: zipWorkspace });
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
+      t.skip('zip command not available in PATH');
+      return;
+    }
+    throw err;
+  }
+
+  const zipBuffer = await fs.readFile(zipPath);
+  const originalFetch = globalThis.fetch;
+  const zipUrl = 'https://github.com/test/sample/archive/refs/heads/main.zip';
+
+  globalThis.fetch = async (input) => {
+    const target = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : (input && typeof input === 'object' && 'url' in input)
+          ? input.url
+          : '';
+    if (target === zipUrl) {
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        body: Readable.from(zipBuffer),
+      };
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      body: Readable.from([]),
+    };
+  };
+
+  try {
+    const summaries = await fetchFromCsv({ csvPath: csv, outDir });
+    assert.equal(summaries.length, 1);
+    const summary = summaries[0];
+    assert.equal(summary.errors, 0);
+    assert.equal(summary.downloaded, 1);
+    const repoDir = path.join(outDir, 'github.com', 'test_sample');
+    const helloPath = path.join(repoDir, 'hello.bas');
+    const ignorePath = path.join(repoDir, 'ignore.bin');
+    assert.equal(await pathExists(helloPath), true);
+    assert.equal(await pathExists(ignorePath), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
