@@ -11,8 +11,9 @@ import { LocalRagRetriever } from "./retriever.js";
 import type { RagRetriever } from "./types.js";
 const EXTERNAL_DIR = path.resolve("external");
 
-const BASIC_INDEX = path.resolve("data/embeddings_basic.json");
-const ASM_INDEX = path.resolve("data/embeddings_asm.json");
+const EMBEDDINGS_DIR = path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
+const BASIC_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_basic.json");
+const ASM_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_asm.json");
 
 export async function initRag(): Promise<RagRetriever> {
   const model = new LocalMiniHashEmbedding(384);

@@ -1,0 +1,257 @@
+petscii_code,screen_code,basic_repr,char_name,byte0,byte1,byte2,byte3,byte4,byte5,byte6,byte7
+64,0,@,commercial at,3C,66,6E,6E,60,62,3C,00
+65,1,A,latin capital letter a,18,3C,66,7E,66,66,66,00
+66,2,B,latin capital letter b,7C,66,66,7C,66,66,7C,00
+67,3,C,latin capital letter c,3C,66,60,60,60,66,3C,00
+68,4,D,latin capital letter d,78,6C,66,66,66,6C,78,00
+69,5,E,latin capital letter e,7E,60,60,78,60,60,7E,00
+70,6,F,latin capital letter f,7E,60,60,78,60,60,60,00
+71,7,G,latin capital letter g,3C,66,60,6E,66,66,3C,00
+72,8,H,latin capital letter h,66,66,66,7E,66,66,66,00
+73,9,I,latin capital letter i,3C,18,18,18,18,18,3C,00
+74,10,J,latin capital letter j,1E,0C,0C,0C,0C,6C,38,00
+75,11,K,latin capital letter k,66,6C,78,70,78,6C,66,00
+76,12,L,latin capital letter l,60,60,60,60,60,60,7E,00
+77,13,M,latin capital letter m,63,77,7F,6B,63,63,63,00
+78,14,N,latin capital letter n,66,76,7E,7E,6E,66,66,00
+79,15,O,latin capital letter o,3C,66,66,66,66,66,3C,00
+80,16,P,latin capital letter p,7C,66,66,7C,60,60,60,00
+81,17,Q,latin capital letter q,3C,66,66,66,66,3C,0E,00
+82,18,R,latin capital letter r,7C,66,66,7C,78,6C,66,00
+83,19,S,latin capital letter s,3C,66,60,3C,06,66,3C,00
+84,20,T,latin capital letter t,7E,18,18,18,18,18,18,00
+85,21,U,latin capital letter u,66,66,66,66,66,66,3C,00
+86,22,V,latin capital letter v,66,66,66,66,66,3C,18,00
+87,23,W,latin capital letter w,63,63,63,6B,7F,77,63,00
+88,24,X,latin capital letter x,66,66,3C,18,3C,66,66,00
+89,25,Y,latin capital letter y,66,66,66,3C,18,18,18,00
+90,26,Z,latin capital letter z,7E,06,0C,18,30,60,7E,00
+91,27,[,left square bracket,66,18,3C,66,7E,66,66,00
+92,28,\,reverse solidus,66,3C,66,66,66,66,3C,00
+93,29,],right square bracket,18,24,3C,66,7E,66,66,00
+94,30,^,circumflex accent,00,18,3C,7E,18,18,18,18
+95,31,_,low line,00,10,30,7F,7F,30,10,00
+32,32, ,space,00,00,00,00,00,00,00,00
+33,33,!,exclamation mark,18,18,18,18,00,00,18,00
+34,34,"""",quotation mark,66,66,66,00,00,00,00,00
+35,35,#,number sign,66,66,FF,66,FF,66,66,00
+36,36,$,dollar sign,18,3E,60,3C,06,7C,18,00
+37,37,%,percent sign,62,66,0C,18,30,66,46,00
+38,38,&,ampersand,3C,66,3C,38,67,66,3F,00
+39,39,',apostrophe,06,0C,18,00,00,00,00,00
+40,40,(,left parenthesis,0C,18,30,30,30,18,0C,00
+41,41,),right parenthesis,30,18,0C,0C,0C,18,30,00
+42,42,*,asterisk,00,66,3C,FF,3C,66,00,00
+43,43,+,plus sign,00,18,18,7E,18,18,00,00
+44,44,",",comma,00,00,00,00,00,18,18,30
+45,45,-,hyphen-minus,00,00,00,7E,00,00,00,00
+46,46,.,full stop,00,00,00,00,00,18,18,00
+47,47,/,solidus,00,03,06,0C,18,30,60,00
+48,48,0,digit zero,3C,66,6E,76,66,66,3C,00
+49,49,1,digit one,18,18,38,18,18,18,7E,00
+50,50,2,digit two,3C,66,06,0C,30,60,7E,00
+51,51,3,digit three,3C,66,06,1C,06,66,3C,00
+52,52,4,digit four,06,0E,1E,66,7F,06,06,00
+53,53,5,digit five,7E,60,7C,06,06,66,3C,00
+54,54,6,digit six,3C,66,60,7C,66,66,3C,00
+55,55,7,digit seven,7E,66,0C,18,18,18,18,00
+56,56,8,digit eight,3C,66,66,3C,66,66,3C,00
+57,57,9,digit nine,3C,66,66,3E,06,66,3C,00
+58,58,:,colon,00,00,18,00,00,18,00,00
+59,59,;,semicolon,00,00,18,00,00,18,18,30
+60,60,<,less-than sign,0E,18,30,60,30,18,0E,00
+61,61,=,equals sign,00,00,7E,00,7E,00,00,00
+62,62,>,greater-than sign,70,18,0C,06,0C,18,70,00
+63,63,?,question mark,3C,66,06,0C,18,00,18,00
+64,64,@,commercial at,00,00,00,FF,FF,00,00,00
+65,65,A,latin capital letter a,08,1C,3E,7F,7F,1C,3E,00
+66,66,B,latin capital letter b,18,18,18,18,18,18,18,18
+67,67,C,latin capital letter c,00,00,00,FF,FF,00,00,00
+68,68,D,latin capital letter d,00,00,FF,FF,00,00,00,00
+69,69,E,latin capital letter e,00,FF,FF,00,00,00,00,00
+70,70,F,latin capital letter f,00,00,00,00,FF,FF,00,00
+71,71,G,latin capital letter g,30,30,30,30,30,30,30,30
+72,72,H,latin capital letter h,0C,0C,0C,0C,0C,0C,0C,0C
+73,73,I,latin capital letter i,00,00,00,E0,F0,38,18,18
+74,74,J,latin capital letter j,18,18,1C,0F,07,00,00,00
+75,75,K,latin capital letter k,18,18,38,F0,E0,00,00,00
+76,76,L,latin capital letter l,C0,C0,C0,C0,C0,C0,FF,FF
+77,77,M,latin capital letter m,C0,E0,70,38,1C,0E,07,03
+78,78,N,latin capital letter n,03,07,0E,1C,38,70,E0,C0
+79,79,O,latin capital letter o,FF,FF,C0,C0,C0,C0,C0,C0
+80,80,P,latin capital letter p,FF,FF,03,03,03,03,03,03
+81,81,Q,latin capital letter q,00,3C,7E,7E,7E,7E,3C,00
+82,82,R,latin capital letter r,00,00,00,00,00,FF,FF,00
+83,83,S,latin capital letter s,36,7F,7F,7F,3E,1C,08,00
+84,84,T,latin capital letter t,60,60,60,60,60,60,60,60
+85,85,U,latin capital letter u,00,00,00,07,0F,1C,18,18
+86,86,V,latin capital letter v,C3,E7,7E,3C,3C,7E,E7,C3
+87,87,W,latin capital letter w,00,3C,7E,66,66,7E,3C,00
+88,88,X,latin capital letter x,18,18,66,66,18,18,3C,00
+89,89,Y,latin capital letter y,06,06,06,06,06,06,06,06
+90,90,Z,latin capital letter z,08,1C,3E,7F,3E,1C,08,00
+91,91,[,left square bracket,18,18,18,FF,FF,18,18,18
+92,92,\,reverse solidus,C0,C0,30,30,C0,C0,30,30
+93,93,],right square bracket,18,18,18,18,18,18,18,18
+94,94,^,circumflex accent,00,00,03,3E,76,36,36,00
+95,95,_,low line,FF,7F,3F,1F,0F,07,03,01
+96,96,`,grave accent,00,00,00,00,00,00,00,00
+97,97,a,latin small letter a,F0,F0,F0,F0,F0,F0,F0,F0
+98,98,b,latin small letter b,00,00,00,00,FF,FF,FF,FF
+99,99,c,latin small letter c,FF,00,00,00,00,00,00,00
+100,100,d,latin small letter d,00,00,00,00,00,00,00,FF
+101,101,e,latin small letter e,C0,C0,C0,C0,C0,C0,C0,C0
+102,102,f,latin small letter f,CC,CC,33,33,CC,CC,33,33
+103,103,g,latin small letter g,03,03,03,03,03,03,03,03
+104,104,h,latin small letter h,00,00,00,00,CC,CC,33,33
+105,105,i,latin small letter i,FF,FE,FC,F8,F0,E0,C0,80
+106,106,j,latin small letter j,03,03,03,03,03,03,03,03
+107,107,k,latin small letter k,18,18,18,1F,1F,18,18,18
+108,108,l,latin small letter l,00,00,00,00,0F,0F,0F,0F
+109,109,m,latin small letter m,18,18,18,1F,1F,00,00,00
+110,110,n,latin small letter n,00,00,00,F8,F8,18,18,18
+111,111,o,latin small letter o,00,00,00,00,00,00,FF,FF
+112,112,p,latin small letter p,00,00,00,1F,1F,18,18,18
+113,113,q,latin small letter q,18,18,18,FF,FF,00,00,00
+114,114,r,latin small letter r,00,00,00,FF,FF,18,18,18
+115,115,s,latin small letter s,18,18,18,F8,F8,18,18,18
+116,116,t,latin small letter t,C0,C0,C0,C0,C0,C0,C0,C0
+117,117,u,latin small letter u,E0,E0,E0,E0,E0,E0,E0,E0
+118,118,v,latin small letter v,07,07,07,07,07,07,07,07
+119,119,w,latin small letter w,FF,FF,00,00,00,00,00,00
+120,120,x,latin small letter x,FF,FF,FF,00,00,00,00,00
+121,121,y,latin small letter y,00,00,00,00,00,FF,FF,FF
+122,122,z,latin small letter z,03,03,03,03,03,03,FF,FF
+123,123,{,left curly bracket,00,00,00,00,F0,F0,F0,F0
+124,124,|,vertical line,0F,0F,0F,0F,00,00,00,00
+125,125,},right curly bracket,18,18,18,F8,F8,00,00,00
+126,126,~,tilde,F0,F0,F0,F0,00,00,00,00
+,127,,,F0,F0,F0,F0,0F,0F,0F,0F
+,128,,,C3,99,91,91,9F,99,C3,FF
+,129,,,E7,C3,99,81,99,99,99,FF
+,130,,,83,99,99,83,99,99,83,FF
+,131,,,C3,99,9F,9F,9F,99,C3,FF
+,132,,,87,93,99,99,99,93,87,FF
+,133,,,81,9F,9F,87,9F,9F,81,FF
+,134,,,81,9F,9F,87,9F,9F,9F,FF
+,135,,,C3,99,9F,91,99,99,C3,FF
+,136,,,99,99,99,81,99,99,99,FF
+,137,,,C3,E7,E7,E7,E7,E7,C3,FF
+,138,,,E1,F3,F3,F3,F3,93,C7,FF
+,139,,,99,93,87,8F,87,93,99,FF
+,140,,,9F,9F,9F,9F,9F,9F,81,FF
+,141,,,9C,88,80,94,9C,9C,9C,FF
+,142,,,99,89,81,81,91,99,99,FF
+,143,,,C3,99,99,99,99,99,C3,FF
+,144,,,83,99,99,83,9F,9F,9F,FF
+,145,,,C3,99,99,99,99,C3,F1,FF
+,146,,,83,99,99,83,87,93,99,FF
+,147,,,C3,99,9F,C3,F9,99,C3,FF
+,148,,,81,E7,E7,E7,E7,E7,E7,FF
+,149,,,99,99,99,99,99,99,C3,FF
+,150,,,99,99,99,99,99,C3,E7,FF
+,151,,,9C,9C,9C,94,80,88,9C,FF
+,152,,,99,99,C3,E7,C3,99,99,FF
+,153,,,99,99,99,C3,E7,E7,E7,FF
+,154,,,81,F9,F3,E7,CF,9F,81,FF
+,155,,,99,E7,C3,99,81,99,99,FF
+,156,,,99,C3,99,99,99,99,C3,FF
+,157,,,E7,DB,C3,99,81,99,99,FF
+,158,,,FF,E7,C3,81,E7,E7,E7,E7
+,159,,,FF,EF,CF,80,80,CF,EF,FF
+,160,,,FF,FF,FF,FF,FF,FF,FF,FF
+,161,,,E7,E7,E7,E7,FF,FF,E7,FF
+,162,,,99,99,99,FF,FF,FF,FF,FF
+,163,,,99,99,00,99,00,99,99,FF
+,164,,,E7,C1,9F,C3,F9,83,E7,FF
+,165,,,9D,99,F3,E7,CF,99,B9,FF
+,166,,,C3,99,C3,C7,98,99,C0,FF
+,167,,,F9,F3,E7,FF,FF,FF,FF,FF
+,168,,,F3,E7,CF,CF,CF,E7,F3,FF
+,169,,,CF,E7,F3,F3,F3,E7,CF,FF
+,170,,,FF,99,C3,00,C3,99,FF,FF
+,171,,,FF,E7,E7,81,E7,E7,FF,FF
+,172,,,FF,FF,FF,FF,FF,E7,E7,CF
+,173,,,FF,FF,FF,81,FF,FF,FF,FF
+,174,,,FF,FF,FF,FF,FF,E7,E7,FF
+,175,,,FF,FC,F9,F3,E7,CF,9F,FF
+,176,,,C3,99,91,89,99,99,C3,FF
+,177,,,E7,E7,C7,E7,E7,E7,81,FF
+,178,,,C3,99,F9,F3,CF,9F,81,FF
+,179,,,C3,99,F9,E3,F9,99,C3,FF
+,180,,,F9,F1,E1,99,80,F9,F9,FF
+,181,,,81,9F,83,F9,F9,99,C3,FF
+,182,,,C3,99,9F,83,99,99,C3,FF
+,183,,,81,99,F3,E7,E7,E7,E7,FF
+,184,,,C3,99,99,C3,99,99,C3,FF
+,185,,,C3,99,99,C1,F9,99,C3,FF
+,186,,,FF,FF,E7,FF,FF,E7,FF,FF
+,187,,,FF,FF,E7,FF,FF,E7,E7,CF
+,188,,,F1,E7,CF,9F,CF,E7,F1,FF
+,189,,,FF,FF,81,FF,81,FF,FF,FF
+,190,,,8F,E7,F3,F9,F3,E7,8F,FF
+,191,,,C3,99,F9,F3,E7,FF,E7,FF
+,192,,,FF,FF,FF,00,00,FF,FF,FF
+,193,,,F7,E3,C1,80,80,E3,C1,FF
+,194,,,E7,E7,E7,E7,E7,E7,E7,E7
+,195,,,FF,FF,FF,00,00,FF,FF,FF
+,196,,,FF,FF,00,00,FF,FF,FF,FF
+,197,,,FF,00,00,FF,FF,FF,FF,FF
+,198,,,FF,FF,FF,FF,00,00,FF,FF
+,199,,,CF,CF,CF,CF,CF,CF,CF,CF
+,200,,,F3,F3,F3,F3,F3,F3,F3,F3
+,201,,,FF,FF,FF,1F,0F,C7,E7,E7
+,202,,,E7,E7,E3,F0,F8,FF,FF,FF
+,203,,,E7,E7,C7,0F,1F,FF,FF,FF
+,204,,,3F,3F,3F,3F,3F,3F,00,00
+,205,,,3F,1F,8F,C7,E3,F1,F8,FC
+,206,,,FC,F8,F1,E3,C7,8F,1F,3F
+,207,,,00,00,3F,3F,3F,3F,3F,3F
+,208,,,00,00,FC,FC,FC,FC,FC,FC
+,209,,,FF,C3,81,81,81,81,C3,FF
+,210,,,FF,FF,FF,FF,FF,00,00,FF
+,211,,,C9,80,80,80,C1,E3,F7,FF
+,212,,,9F,9F,9F,9F,9F,9F,9F,9F
+,213,,,FF,FF,FF,F8,F0,E3,E7,E7
+,214,,,3C,18,81,C3,C3,81,18,3C
+,215,,,FF,C3,81,99,99,81,C3,FF
+,216,,,E7,E7,99,99,E7,E7,C3,FF
+,217,,,F9,F9,F9,F9,F9,F9,F9,F9
+,218,,,F7,E3,C1,80,C1,E3,F7,FF
+,219,,,E7,E7,E7,00,00,E7,E7,E7
+,220,,,3F,3F,CF,CF,3F,3F,CF,CF
+,221,,,E7,E7,E7,E7,E7,E7,E7,E7
+,222,,,FF,FF,FC,C1,89,C9,C9,FF
+,223,,,00,80,C0,E0,F0,F8,FC,FE
+,224,,,FF,FF,FF,FF,FF,FF,FF,FF
+,225,,,0F,0F,0F,0F,0F,0F,0F,0F
+,226,,,FF,FF,FF,FF,00,00,00,00
+,227,,,00,FF,FF,FF,FF,FF,FF,FF
+,228,,,FF,FF,FF,FF,FF,FF,FF,00
+,229,,,3F,3F,3F,3F,3F,3F,3F,3F
+,230,,,33,33,CC,CC,33,33,CC,CC
+,231,,,FC,FC,FC,FC,FC,FC,FC,FC
+,232,,,FF,FF,FF,FF,33,33,CC,CC
+,233,,,00,01,03,07,0F,1F,3F,7F
+,234,,,FC,FC,FC,FC,FC,FC,FC,FC
+,235,,,E7,E7,E7,E0,E0,E7,E7,E7
+,236,,,FF,FF,FF,FF,F0,F0,F0,F0
+,237,,,E7,E7,E7,E0,E0,FF,FF,FF
+,238,,,FF,FF,FF,07,07,E7,E7,E7
+,239,,,FF,FF,FF,FF,FF,FF,00,00
+,240,,,FF,FF,FF,E0,E0,E7,E7,E7
+,241,,,E7,E7,E7,00,00,FF,FF,FF
+,242,,,FF,FF,FF,00,00,E7,E7,E7
+,243,,,E7,E7,E7,07,07,E7,E7,E7
+,244,,,3F,3F,3F,3F,3F,3F,3F,3F
+,245,,,1F,1F,1F,1F,1F,1F,1F,1F
+,246,,,F8,F8,F8,F8,F8,F8,F8,F8
+,247,,,00,00,FF,FF,FF,FF,FF,FF
+,248,,,00,00,00,FF,FF,FF,FF,FF
+,249,,,FF,FF,FF,FF,FF,00,00,00
+,250,,,FC,FC,FC,FC,FC,FC,00,00
+,251,,,FF,FF,FF,FF,0F,0F,0F,0F
+,252,,,F0,F0,F0,F0,FF,FF,FF,FF
+,253,,,E7,E7,E7,07,07,FF,FF,FF
+,254,,,0F,0F,0F,0F,FF,FF,FF,FF
+,255,,,0F,0F,0F,0F,F0,F0,F0,F0

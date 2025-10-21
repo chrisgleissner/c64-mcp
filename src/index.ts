@@ -10,6 +10,8 @@ import Fastify, { FastifyInstance } from "fastify";
 import axios from "axios";
 import { C64Client } from "./c64Client.js";
 import { loadConfig } from "./config.js";
+import { getChargenGlyphs } from "./chargen.js";
+import { createPetsciiArt, type Bitmap } from "./petsciiArt.js";
 import {
   listMemoryMap,
   listSymbols,
@@ -36,6 +38,8 @@ async function main() {
 
   // Initialize local RAG (builds index on first run or when data changes)
   const rag = await initRag();
+  // Preload chargen glyphs once at startup
+  getChargenGlyphs();
 
   server.get("/health", async () => ({ status: "ok" }));
 
@@ -572,6 +576,111 @@ async function main() {
     if (!result.success) reply.code(502);
     return result;
   });
+
+  server.post<{
+    Body: {
+      prompt?: string;
+      text?: string;
+      maxWidth?: number;
+      maxHeight?: number;
+      borderColor?: number;
+      backgroundColor?: number;
+      foregroundColor?: number;
+      dryRun?: boolean;
+      bitmap?: { width?: number; height?: number; pixels?: Array<number> };
+    };
+  }>(
+    "/tools/create_petscii_image",
+    async (request, reply) => {
+      const body = request.body ?? {};
+      const {
+        prompt,
+        text,
+        maxWidth,
+        maxHeight,
+        borderColor,
+        backgroundColor,
+        foregroundColor,
+        dryRun,
+      } = body;
+
+      let explicitBitmap: Bitmap | undefined;
+      if (body.bitmap) {
+        const { width, height, pixels } = body.bitmap;
+        if (!Number.isFinite(width) || !Number.isFinite(height)) {
+          reply.code(400);
+          return { error: "Bitmap width and height must be numbers" };
+        }
+        if (!Array.isArray(pixels)) {
+          reply.code(400);
+          return { error: "Bitmap pixels must be an array of numbers" };
+        }
+        const w = Number(width);
+        const h = Number(height);
+        if (w <= 0 || h <= 0 || w > 320 || h > 200) {
+          reply.code(400);
+          return { error: "Bitmap dimensions must be within 1..320x1..200" };
+        }
+        if (pixels.length !== w * h) {
+          reply.code(400);
+          return { error: "Bitmap pixel array length must equal width*height" };
+        }
+        explicitBitmap = {
+          width: w,
+          height: h,
+          pixels: Uint8Array.from(pixels.map((value) => (value ? 1 : 0))),
+        };
+      }
+
+      if (!prompt && !text && !explicitBitmap) {
+        reply.code(400);
+        return { error: "Provide a prompt, text, or explicit bitmap definition" };
+      }
+
+      try {
+        const art = createPetsciiArt({
+          prompt,
+          text,
+          maxWidth,
+          maxHeight,
+          borderColor,
+          backgroundColor,
+          foregroundColor,
+          bitmap: explicitBitmap,
+        });
+
+        let result;
+        if (!dryRun) {
+          result = await client.uploadAndRunBasic(art.program);
+          if (!result.success) {
+            reply.code(502);
+          }
+        }
+
+        const runSuccess = dryRun ? true : result?.success ?? false;
+
+        return {
+          success: runSuccess,
+          ranOnC64: !dryRun && Boolean(result?.success),
+          runDetails: result?.details,
+          program: art.program,
+          bitmapHex: art.bitmapHex,
+          rowHex: art.rowHex,
+          width: art.bitmap.width,
+          height: art.bitmap.height,
+          charColumns: art.charColumns,
+          charRows: art.charRows,
+          petsciiCodes: art.petsciiCodes,
+          usedShape: art.usedShape,
+          sourceText: art.sourceText,
+        };
+      } catch (error) {
+        request.log.error(error, "Failed to generate PETSCII art");
+        reply.code(500);
+        return { error: (error as Error).message };
+      }
+    },
+  );
 
   server.post<{ Body: { text?: string; borderColor?: number; backgroundColor?: number } }>(
     "/tools/render_petscii_screen",

@@ -97,6 +97,7 @@ flowchart LR
 ## Retrieval-Augmented Knowledge
 
 - RAG subsystem (`src/rag/*`) indexes `.bas`, `.asm`, `.s`, and Markdown files under `data/*`. Changes trigger a background re-index.
+- Set `RAG_EMBEDDINGS_DIR` to redirect the generated `embeddings_basic.json` / `embeddings_asm.json` files to another directory (the test runner uses `artifacts/test-embeddings` to avoid touching tracked files).
 - External sources: edit `src/rag/sources.csv` (`type,description,link,depth`), then:
 
 ```bash
