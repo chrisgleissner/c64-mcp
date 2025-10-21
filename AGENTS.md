@@ -17,7 +17,7 @@ The server listens on `http://localhost:8000` (override with `PORT`). The MCP ma
 - **Screen & memory**: `read_screen`, `read_memory`, `write_memory`.
 - **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
-- **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, use `GET /knowledge/sid_overview`. For practical SID programming with pleasant musical results, see `doc/sid-programming-best-practices.md`.
+- **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, use `GET /knowledge/sid_overview`. For practical SID programming with pleasant musical results and expressive children's songs, see `doc/sid-programming-best-practices.md` and example `data/basic_examples/audio/alle-meine-entchen-expressive.bas`.
 - **Audio analysis**: `analyze_audio` - Records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
 - **Knowledge & RAG**: `basic_v2_spec`, `asm_quick_reference`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
@@ -92,3 +92,23 @@ curl -X POST -H 'Content-Type: application/json' \
   -d '{"request":"check if the music sounds correct"}' \
   http://localhost:8000/tools/analyze_audio
 ```
+
+### Children's Songs and Musical Expression
+
+When creating children's songs or simple melodies, the server has proven approaches for musical expression:
+
+**Key Principles for Engaging Melodies:**
+
+- **Varied timing** - not all notes the same length (avoid mechanical feel)
+- **Phrase breathing** - longer pauses between musical phrases (150-200 cycles)
+- **Emphasis patterns** - important notes get longer duration (250-400+ cycles)
+- **Character variation** - each verse/phrase has its own timing personality
+- **Triangle wave + proper ADSR** - produces warm, pleasant tones
+
+**Example Request Patterns:**
+
+- "Create a simple children's song with musical expression"
+- "Write a melody that tells a story, not just plays notes"
+- "Make a song with proper phrasing and breathing"
+
+**Reference Implementation:** `data/basic_examples/audio/alle-meine-entchen-expressive.bas` demonstrates these principles in a complete traditional German children's song with proper musical phrasing.
