@@ -104,7 +104,9 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://localhost:8000/tools/rag_retrieve_asm | jq
 ```
 
-You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`doc/6502-instructions.md`](doc/6502-instructions.md)) anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
+You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
+
+A small curated set of documentation from `doc/` is also indexed; by default this includes [`doc/6502-instructions.md`](doc/6502-instructions.md). To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
 
 #### RAG Rebuild Policy
 

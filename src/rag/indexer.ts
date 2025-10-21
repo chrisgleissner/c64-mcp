@@ -15,6 +15,14 @@ const EXTERNAL_DIR = path.resolve("external");
 const EMBEDDINGS_DIR = path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
 const BASIC_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_basic.json");
 const ASM_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_asm.json");
+const DOC_ROOT = path.resolve("doc");
+const DEFAULT_DOC_FILES = [path.join(DOC_ROOT, "6502-instructions.md")];
+const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean)
+  .map((entry) => path.resolve(entry));
+const DOC_INCLUDE_FILES = Array.from(new Set([...DEFAULT_DOC_FILES, ...ENV_DOC_FILES]));
 
 export interface BuildIndexOptions {
   model: EmbeddingModel;
@@ -118,6 +126,7 @@ export async function buildAllIndexes({ model }: BuildIndexOptions): Promise<voi
     collectFiles(EXTERNAL_DIR, [".bas"]),
     collectFiles(EXTERNAL_DIR, [".asm", ".s", ".md", ".a65", ".inc", ".txt"]),
   ]);
+  const docIncluded = DOC_INCLUDE_FILES.filter((file) => fsSync.existsSync(file));
 
   const [basicLocalIdx, basicExtIdx, asmLocalIdx, asmExtIdx] = await Promise.all([
     buildIndexForDir(BASIC_DIR, basicLocal, model),
@@ -127,7 +136,11 @@ export async function buildAllIndexes({ model }: BuildIndexOptions): Promise<voi
   ]);
 
   const basicIndex = mergeIndexes(basicLocalIdx, basicExtIdx);
-  const asmIndex = mergeIndexes(asmLocalIdx, asmExtIdx);
+  let asmIndex = mergeIndexes(asmLocalIdx, asmExtIdx);
+  if (docIncluded.length > 0) {
+    const docIndex = await buildIndexForDir(process.cwd(), docIncluded, model);
+    asmIndex = mergeIndexes(asmIndex, docIndex);
+  }
 
   await Promise.all([
     writeIndex(BASIC_INDEX, basicIndex),
