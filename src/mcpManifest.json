@@ -154,6 +154,20 @@
       "name": "render_petscii_screen",
       "description": "Render PETSCII text to screen with optional colours via a generated BASIC program",
       "parameters": { "text": "string", "borderColor": "number", "backgroundColor": "number" }
+    },
+    {
+      "name": "create_petscii_image",
+      "description": "Create a PETSCII character art image from text or prompts, run it on the C64, and return the BASIC program and bitmap",
+      "parameters": {
+        "prompt": "string",
+        "text": "string",
+        "maxWidth": "number",
+        "maxHeight": "number",
+        "borderColor": "number",
+        "backgroundColor": "number",
+        "foregroundColor": "number",
+        "dryRun": "boolean"
+      }
     }
   ]
 }
