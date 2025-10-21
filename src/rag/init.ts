@@ -10,10 +10,16 @@ import { buildAllIndexes, loadIndexes } from "./indexer.js";
 import { LocalRagRetriever } from "./retriever.js";
 import type { RagRetriever } from "./types.js";
 const EXTERNAL_DIR = path.resolve("external");
+const BASIC_DATA_DIR = path.resolve("data/basic_examples");
+const ASM_DATA_DIR = path.resolve("data/assembly_examples");
 
 const EMBEDDINGS_DIR = path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
 const BASIC_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_basic.json");
 const ASM_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_asm.json");
+const MIXED_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_mixed.json");
+const HARDWARE_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_hardware.json");
+const OTHER_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_other.json");
+const INDEX_FILES = [BASIC_INDEX, ASM_INDEX, MIXED_INDEX, HARDWARE_INDEX, OTHER_INDEX];
 
 export async function initRag(): Promise<RagRetriever> {
   const model = new LocalMiniHashEmbedding(384);
@@ -26,8 +32,8 @@ export async function initRag(): Promise<RagRetriever> {
     }
   }
 
-  const { basic, asm } = await loadIndexes();
-  const retriever = new LocalRagRetriever(model, { basic, asm });
+  const { basic, asm, mixed, hardware, other } = await loadIndexes();
+  const retriever = new LocalRagRetriever(model, { basic, asm, mixed, hardware, other });
 
   // Background watcher: reindex if source files change (checks mtimes periodically)
   // Default disabled to avoid churn/conflicts unless explicitly enabled
@@ -83,12 +89,16 @@ async function dirMtimeRecursive(root: string): Promise<number> {
 }
 
 async function needsRebuild(): Promise<boolean> {
-  const basicIdx = await fileMtime(BASIC_INDEX);
-  const asmIdx = await fileMtime(ASM_INDEX);
-  const basicDataM = await dirMtimeRecursive(path.resolve("data/basic_examples"));
-  const asmDataM = await dirMtimeRecursive(path.resolve("data/assembly_examples"));
-  const externalM = await dirMtimeRecursive(EXTERNAL_DIR);
-
-  if (basicIdx === null || asmIdx === null) return true;
-  return basicDataM > basicIdx || asmDataM > asmIdx || externalM > Math.min(basicIdx, asmIdx);
+  const indexTimes = await Promise.all(INDEX_FILES.map((file) => fileMtime(file)));
+  if (indexTimes.some((time) => time === null)) {
+    return true;
+  }
+  const oldestIndex = Math.min(...(indexTimes as number[]));
+  const [basicDataM, asmDataM, externalM] = await Promise.all([
+    dirMtimeRecursive(BASIC_DATA_DIR),
+    dirMtimeRecursive(ASM_DATA_DIR),
+    dirMtimeRecursive(EXTERNAL_DIR),
+  ]);
+  const newestSource = Math.max(basicDataM, asmDataM, externalM);
+  return newestSource > oldestIndex;
 }

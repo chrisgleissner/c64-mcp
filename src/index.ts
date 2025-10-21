@@ -23,6 +23,7 @@ import {
   searchVicIISpec,
 } from "./knowledge.js";
 import { initRag } from "./rag/init.js";
+import type { RagLanguage } from "./rag/types.js";
 
 async function main() {
   const config = loadConfig();
@@ -130,7 +131,7 @@ async function main() {
     return result;
   });
 
-  server.post<{ Body: { program?: string; lang?: "basic" | "asm" } }>("/tools/upload_and_run_program", async (request, reply) => {
+  server.post<{ Body: { program?: string; lang?: RagLanguage } }>("/tools/upload_and_run_program", async (request, reply) => {
     const { program, lang } = request.body ?? {};
     if (!program || typeof program !== "string") {
       reply.code(400);
@@ -149,7 +150,7 @@ async function main() {
   });
 
   // RAG helper endpoints for MCP clients (optional but useful for validation)
-  server.get<{ Querystring: { q?: string; k?: string; lang?: "basic" | "asm" } }>(
+  server.get<{ Querystring: { q?: string; k?: string; lang?: RagLanguage } }>(
     "/rag/retrieve",
     async (request, reply) => {
       const { q, k, lang } = request.query ?? {};
@@ -744,12 +745,15 @@ main().catch((error) => {
 
 function pickRagLanguage(
   query: string,
-  explicit?: "basic" | "asm",
-): "basic" | "asm" | undefined {
-  if (explicit === "basic" || explicit === "asm") {
+  explicit?: RagLanguage,
+): RagLanguage | undefined {
+  if (explicit === "basic" || explicit === "asm" || explicit === "mixed" || explicit === "hardware" || explicit === "other") {
     return explicit;
   }
   const lowered = query.toLowerCase();
+  if (/(sid|vic-?ii|vicii|cia|6510|6502|hardware|register|sprite|raster)/.test(lowered)) {
+    return "hardware";
+  }
   if (/(\bmachine\s*code\b|\bassembly\b|\basm\b|\b6510\b|\bfast\s+(program|code)\b)/.test(lowered)) {
     return "asm";
   }

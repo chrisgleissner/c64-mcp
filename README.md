@@ -160,9 +160,9 @@ The test runner accepts the following options:
 - `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml).
 - Advanced users can call the underlying CLI directly:
   ```bash
-  node --loader ts-node/esm scripts/c64-cli.mjs convert-basic --input path/to/program.bas
-  node --loader ts-node/esm scripts/c64-cli.mjs run-basic --input path/to/program.bas
-  node --loader ts-node/esm scripts/c64-cli.mjs run-prg --input artifacts/program.prg
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
   ```
 
 Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.

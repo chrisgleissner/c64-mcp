@@ -4,7 +4,7 @@ GPL-2.0-only
 */
 
 import fs from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import path from 'node:path';
 import { URL } from 'node:url';
 import https from 'node:https';
@@ -12,6 +12,8 @@ import http from 'node:http';
 import { pipeline } from 'node:stream/promises';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createHash } from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import { SlidingWindowRateLimiter, RealTimeSource, type TimeSource, AdaptiveRateLimiter } from './rateLimiter.js';
 import { parseUrlSafe, sameRegisteredDomain, getRegisteredDomain } from './urlUtils.js';
 
@@ -40,6 +42,8 @@ export interface FetcherOptions {
   recoveryStep?: number;
   /** optional override for GitHub repository handling (tests) */
   githubRepoFetcher?: (args: GithubRepoFetcherArgs) => Promise<FetchSummary | null>;
+  /** optional override for GitHub license fetching (tests) */
+  githubLicenseFetcher?: (args: GithubLicenseFetcherArgs) => Promise<GithubLicenseInfo | null>;
 }
 
 export interface LogEntry {
@@ -135,6 +139,26 @@ const GITHUB_HOSTS = new Set([
   'raw.github.com',
   'codeload.github.com',
 ]);
+
+const NON_C64_MACHINE_PATTERN = /(?:^|[_\-.])(c128|c65|c16|plus4|vic20|vic-20|pet|cbm2|ted)(?:[_\-.]|$)/i;
+const MACHINE_SUFFIXES = ['c64', 'c128', 'c65', 'c16', 'plus4', 'vic20', 'vic-20', 'pet', 'cbm2', 'ted'];
+const COUNTRY_CODE_PATTERN = /^(.*?)(?:[_-]([a-z]{2}))$/i;
+const LICENSE_FILENAMES = new Set(['LICENSE', 'LICENSE.TXT', 'COPYING', 'COPYING.TXT', 'COPYING.MD', 'LICENSE.MD']);
+
+export interface GithubLicenseFetcherArgs {
+  owner: string;
+  repo: string;
+  userAgent: string;
+  log: (entry: LogEntry) => void;
+}
+
+export interface GithubLicenseInfo {
+  licenseId?: string | null;
+  licenseName?: string | null;
+  licenseUrl?: string | null;
+  licenseText?: string;
+  attribution?: string | null;
+}
 
 function normalizeGithubUrl(original: URL): { url: URL; raw: boolean; changed: boolean } {
   if (original.hostname !== 'github.com') {
@@ -285,6 +309,11 @@ async function pruneNonSourceFiles(root: string, allowedExtensions: Set<string>)
           hasKept = true;
         }
       } else {
+        const upperName = entry.name.toUpperCase();
+        if (LICENSE_FILENAMES.has(upperName) || entry.name === '_metadata.json') {
+          hasKept = true;
+          continue;
+        }
         const ext = path.extname(entry.name).toLowerCase();
         if (allowedExtensions.has(ext)) {
           kept += 1;
@@ -302,7 +331,209 @@ async function pruneNonSourceFiles(root: string, allowedExtensions: Set<string>)
   return { kept, removed };
 }
 
-async function downloadGithubRepoZip(seedUrl: URL, outDir: string, userAgent: string, log: (entry: LogEntry) => void): Promise<string> {
+interface FileEntry {
+  path: string;
+  dir: string;
+  name: string;
+  base: string;
+  ext: string;
+}
+
+interface CleanupStats {
+  removedNonC64: number;
+  removedLocaleVariants: number;
+  removedAltMachineSuffix: number;
+  remaining: number;
+}
+
+function parseFileEntry(fullPath: string): FileEntry {
+  const dir = path.dirname(fullPath);
+  const name = path.basename(fullPath);
+  const parsed = path.parse(name);
+  return {
+    path: fullPath,
+    dir,
+    name,
+    base: parsed.name,
+    ext: parsed.ext.toLowerCase(),
+  };
+}
+
+async function collectFileEntries(root: string): Promise<FileEntry[]> {
+  const result: FileEntry[] = [];
+  async function walk(current: string): Promise<void> {
+    const entries = await fs.readdir(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile()) {
+        result.push(parseFileEntry(full));
+      }
+    }
+  }
+  await walk(root);
+  return result;
+}
+
+function detectMachineSuffix(base: string): { root: string; suffix: string } | null {
+  const lower = base.toLowerCase();
+  for (const token of MACHINE_SUFFIXES) {
+    const suffixLen = token.length;
+    if (lower.endsWith(`_${token}`)) {
+      return { root: base.slice(0, base.length - suffixLen - 1), suffix: token };
+    }
+    if (lower.endsWith(`-${token}`)) {
+      return { root: base.slice(0, base.length - suffixLen - 1), suffix: token };
+    }
+  }
+  return null;
+}
+
+async function cleanupC64SpecificFiles(root: string, log: (entry: LogEntry) => void): Promise<CleanupStats> {
+  const removedPaths = new Set<string>();
+
+  const removeFile = async (entry: FileEntry, reason: string, extra?: Record<string, unknown>): Promise<void> => {
+    if (removedPaths.has(entry.path)) return;
+    await fs.rm(entry.path, { force: true });
+    removedPaths.add(entry.path);
+    log({ level: 'info', event: reason, data: { path: entry.path, ...extra } });
+  };
+
+  let entries = await collectFileEntries(root);
+
+  let removedNonC64 = 0;
+  for (const entry of entries) {
+    if (removedPaths.has(entry.path)) continue;
+    const lowerName = entry.name.toLowerCase();
+    if (NON_C64_MACHINE_PATTERN.test(lowerName) && !/\bc64\b/.test(lowerName)) {
+      await removeFile(entry, 'cleanup_remove_non_c64');
+      removedNonC64++;
+    }
+  }
+
+  entries = entries.filter((entry) => !removedPaths.has(entry.path));
+
+  let removedLocaleVariants = 0;
+  const localeGroups = new Map<string, Array<{ entry: FileEntry; locale: string }>>();
+  for (const entry of entries) {
+    const match = entry.base.match(COUNTRY_CODE_PATTERN);
+    if (!match) continue;
+    const rootBase = match[1];
+    const locale = match[2].toLowerCase();
+    if (!/^[a-z]{2}$/.test(locale)) continue;
+    const key = `${entry.dir}::${rootBase}`;
+    if (!localeGroups.has(key)) {
+      localeGroups.set(key, []);
+    }
+    localeGroups.get(key)!.push({ entry, locale });
+  }
+
+  for (const group of localeGroups.values()) {
+    const hasEnglish = group.some((item) => item.locale === 'en');
+    if (!hasEnglish) continue;
+    for (const item of group) {
+      if (item.locale !== 'en') {
+        await removeFile(item.entry, 'cleanup_remove_locale_variant', { locale: item.locale });
+        removedLocaleVariants++;
+      }
+    }
+  }
+
+  entries = entries.filter((entry) => !removedPaths.has(entry.path));
+
+  let removedAltMachineSuffix = 0;
+  const suffixGroups = new Map<string, Array<{ entry: FileEntry; suffix: string }>>();
+  for (const entry of entries) {
+    const detected = detectMachineSuffix(entry.base);
+    if (!detected) continue;
+    const key = `${entry.dir}::${detected.root}`;
+    if (!suffixGroups.has(key)) {
+      suffixGroups.set(key, []);
+    }
+    suffixGroups.get(key)!.push({ entry, suffix: detected.suffix.toLowerCase() });
+  }
+
+  for (const group of suffixGroups.values()) {
+    const hasC64 = group.some((item) => item.suffix === 'c64');
+    if (!hasC64) continue;
+    for (const item of group) {
+      if (item.suffix !== 'c64') {
+        await removeFile(item.entry, 'cleanup_remove_machine_variant', { suffix: item.suffix });
+        removedAltMachineSuffix++;
+      }
+    }
+  }
+
+  const remainingEntries = (await collectFileEntries(root)).filter((entry) => !removedPaths.has(entry.path));
+
+  return {
+    removedNonC64,
+    removedLocaleVariants,
+    removedAltMachineSuffix,
+    remaining: remainingEntries.length,
+  };
+}
+
+async function hashFile(filePath: string): Promise<string> {
+  const hash = createHash('sha256');
+  return new Promise<string>((resolve, reject) => {
+    const stream = createReadStream(filePath);
+    stream.on('error', reject);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+  });
+}
+
+async function removeDuplicateFiles(root: string, log: (entry: LogEntry) => void): Promise<void> {
+  const entries = await collectFileEntries(root);
+  const bySize = new Map<number, Array<FileEntry & { size: number }>>();
+
+  for (const entry of entries) {
+    if (LICENSE_FILENAMES.has(entry.name.toUpperCase()) || entry.name === '_metadata.json') {
+      continue;
+    }
+    const stat = await fs.stat(entry.path).catch(() => null);
+    if (!stat || !stat.isFile()) continue;
+    const size = stat.size;
+    if (!bySize.has(size)) {
+      bySize.set(size, []);
+    }
+    bySize.get(size)!.push({ ...entry, size });
+  }
+
+  let removedCount = 0;
+  for (const group of bySize.values()) {
+    if (group.length < 2) continue;
+    const byHash = new Map<string, Array<FileEntry>>();
+    for (const entry of group) {
+      const digest = await hashFile(entry.path);
+      if (!byHash.has(digest)) {
+        byHash.set(digest, []);
+      }
+      byHash.get(digest)!.push(entry);
+    }
+
+    for (const [digest, dupes] of byHash.entries()) {
+      if (dupes.length < 2) continue;
+      const sorted = dupes.sort((a, b) => a.path.localeCompare(b.path));
+      const keeper = sorted[0];
+      for (const duplicate of sorted.slice(1)) {
+        await fs.rm(duplicate.path, { force: true });
+        removedCount++;
+        log({
+          level: 'info',
+          event: 'duplicate_removed',
+          data: { kept: keeper.path, removed: duplicate.path, hash: digest },
+        });
+      }
+    }
+  }
+
+  log({ level: 'info', event: 'duplicate_cleanup_done', data: { removed: removedCount } });
+}
+
+async function downloadGithubRepoZip(seedUrl: URL, outDir: string, userAgent: string, log: (entry: LogEntry) => void): Promise<{ repoDir: string; branch: string }> {
   const info = parseGithubRepoInfo(seedUrl);
   if (!info) {
     throw new Error('Not a GitHub repository URL');
@@ -316,6 +547,7 @@ async function downloadGithubRepoZip(seedUrl: URL, outDir: string, userAgent: st
   const branches = ['main', 'master'];
   const zipPath = path.join(repoDir, 'repo.zip');
   let downloaded = false;
+  let branchUsed = branches[0];
   for (const branch of branches) {
     const zipUrl = `https://github.com/${info.owner}/${info.repo}/archive/refs/heads/${branch}.zip`;
     log({ level: 'info', event: 'github_repo_zip_download', data: { url: zipUrl } });
@@ -331,6 +563,7 @@ async function downloadGithubRepoZip(seedUrl: URL, outDir: string, userAgent: st
     if (response && response.ok && response.body) {
       await pipeline(response.body as any, createWriteStream(zipPath));
       downloaded = true;
+      branchUsed = branch;
       log({ level: 'info', event: 'github_repo_zip_saved', data: { path: zipPath } });
       break;
     }
@@ -356,7 +589,7 @@ async function downloadGithubRepoZip(seedUrl: URL, outDir: string, userAgent: st
     await fs.rm(innerPath, { recursive: true, force: true });
   }
 
-  return repoDir;
+  return { repoDir, branch: branchUsed };
 }
 
 async function defaultGithubRepoFetcher(args: GithubRepoFetcherArgs): Promise<FetchSummary | null> {
@@ -368,16 +601,181 @@ async function defaultGithubRepoFetcher(args: GithubRepoFetcherArgs): Promise<Fe
 
   await fs.mkdir(outDir, { recursive: true });
   let repoDir: string;
+  let branchUsed: string = 'main';
   try {
-    repoDir = await downloadGithubRepoZip(seedUrl, outDir, args.userAgent, log);
+    const result = await downloadGithubRepoZip(seedUrl, outDir, args.userAgent, log);
+    repoDir = result.repoDir;
+    branchUsed = result.branch;
   } catch (err) {
     log({ level: 'error', event: 'github_repo_error', data: { seed: seedUrl.toString(), message: (err as Error).message } });
     return { seed: seedUrl.toString(), visited: 1, downloaded: 0, skipped: 0, errors: 1 };
   }
 
   const { kept, removed } = await pruneNonSourceFiles(repoDir, allowedExtensions);
-  log({ level: 'info', event: 'github_repo_cloned', data: { seed: seedUrl.toString(), repoDir, downloaded: kept, removed } });
-  return { seed: seedUrl.toString(), visited: 1, downloaded: kept, skipped: removed, errors: 0 };
+  const cleanupStats = await cleanupC64SpecificFiles(repoDir, log);
+  const totalRemoved = removed + cleanupStats.removedNonC64 + cleanupStats.removedLocaleVariants + cleanupStats.removedAltMachineSuffix;
+  const downloaded = cleanupStats.remaining;
+
+  const licenseFetcher = args.licenseFetcher ?? fetchGithubLicense;
+  let licenseInfo: GithubLicenseInfo | null = null;
+  try {
+    licenseInfo = await licenseFetcher({ owner: info.owner, repo: info.repo, userAgent: args.userAgent, log });
+  } catch (err) {
+    log({ level: 'warn', event: 'github_repo_license_error', data: { seed: seedUrl.toString(), message: err instanceof Error ? err.message : String(err) } });
+  }
+
+  if (licenseInfo?.licenseText) {
+    try {
+      const licensePath = path.join(repoDir, 'LICENSE');
+      await fs.writeFile(licensePath, licenseInfo.licenseText, 'utf8');
+      log({ level: 'info', event: 'github_repo_license_written', data: { path: licensePath } });
+    } catch (err) {
+      log({ level: 'warn', event: 'github_repo_license_write_failed', data: { message: err instanceof Error ? err.message : String(err) } });
+    }
+  }
+
+  try {
+    await writeGithubRepoMetadata(repoDir, {
+      type: 'github',
+      owner: info.owner,
+      repo: info.repo,
+      branch: branchUsed,
+      repoUrl: `https://github.com/${info.owner}/${info.repo}`,
+      license: licenseInfo,
+    });
+  } catch (err) {
+    log({ level: 'warn', event: 'github_repo_metadata_write_failed', data: { message: err instanceof Error ? err.message : String(err) } });
+  }
+
+  log({
+    level: 'info',
+    event: 'github_repo_cloned',
+    data: {
+      seed: seedUrl.toString(),
+      repoDir,
+      branch: branchUsed,
+      downloaded,
+      removed: totalRemoved,
+      removedNonC64: cleanupStats.removedNonC64,
+      removedLocaleVariants: cleanupStats.removedLocaleVariants,
+      removedMachineVariants: cleanupStats.removedAltMachineSuffix,
+    },
+  });
+  return { seed: seedUrl.toString(), visited: 1, downloaded, skipped: totalRemoved, errors: 0 };
+}
+
+interface GithubRepoMetadataPayload {
+  type: 'github';
+  owner: string;
+  repo: string;
+  branch: string;
+  repoUrl: string;
+  license?: GithubLicenseInfo | null;
+}
+
+async function writeGithubRepoMetadata(repoDir: string, payload: GithubRepoMetadataPayload): Promise<void> {
+  const now = new Date().toISOString();
+  const data: Record<string, unknown> = {
+    type: payload.type,
+    owner: payload.owner,
+    repo: payload.repo,
+    branch: payload.branch,
+    repoUrl: payload.repoUrl,
+    generatedAt: now,
+  };
+  if (payload.license) {
+    data.license = {
+      spdxId: payload.license.licenseId ?? null,
+      name: payload.license.licenseName ?? null,
+      url: payload.license.licenseUrl ?? null,
+      attribution: payload.license.attribution ?? null,
+    };
+  }
+  const metadataPath = path.join(repoDir, '_metadata.json');
+  await fs.writeFile(metadataPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+}
+
+function buildLicenseAttribution(owner: string, repo: string, licenseId?: string | null, licenseName?: string | null): string {
+  const repoRef = `${owner}/${repo}`;
+  const normalizedId = licenseId && licenseId !== 'NOASSERTION' ? licenseId : null;
+  const label = normalizedId ?? (licenseName ?? null);
+  const suffix = label ? ` (${label})` : ' (License unknown)';
+  return `Source: ${repoRef}${suffix}`;
+}
+
+async function fetchGithubLicense(args: GithubLicenseFetcherArgs): Promise<GithubLicenseInfo | null> {
+  const apiUrl = `https://api.github.com/repos/${args.owner}/${args.repo}/license`;
+  const headers: Record<string, string> = {
+    'User-Agent': args.userAgent,
+    Accept: 'application/vnd.github+json',
+  };
+  try {
+    const response = await fetch(apiUrl, { headers });
+    if (response.ok) {
+      const json: any = await response.json();
+      const licenseId = json?.license?.spdx_id ?? null;
+      const licenseName = json?.license?.name ?? null;
+      const licenseUrl = json?.html_url ?? null;
+      let licenseText: string | undefined;
+      if (typeof json?.content === 'string' && (json?.encoding ?? '').toLowerCase() === 'base64') {
+        try {
+          licenseText = Buffer.from(json.content, 'base64').toString('utf8');
+        } catch (err) {
+          args.log({ level: 'warn', event: 'github_repo_license_decode_failed', data: { message: err instanceof Error ? err.message : String(err) } });
+        }
+      } else if (json?.download_url) {
+        try {
+          const textRes = await fetch(json.download_url, { headers: { 'User-Agent': args.userAgent } });
+          if (textRes.ok) {
+            licenseText = await textRes.text();
+          }
+        } catch (err) {
+          args.log({ level: 'warn', event: 'github_repo_license_download_failed', data: { message: err instanceof Error ? err.message : String(err) } });
+        }
+      }
+      return {
+        licenseId,
+        licenseName,
+        licenseUrl,
+        licenseText,
+        attribution: buildLicenseAttribution(args.owner, args.repo, licenseId, licenseName),
+      };
+    }
+    if (response.status !== 404) {
+      args.log({ level: 'warn', event: 'github_repo_license_http_error', data: { status: response.status, url: apiUrl } });
+    }
+  } catch (err) {
+    args.log({ level: 'warn', event: 'github_repo_license_fetch_error', data: { message: err instanceof Error ? err.message : String(err), url: apiUrl } });
+  }
+
+  const candidates = ['LICENSE', 'LICENSE.txt', 'LICENSE.md', 'COPYING', 'COPYING.txt', 'COPYING.md'];
+  for (const candidate of candidates) {
+    const rawUrl = `https://raw.githubusercontent.com/${args.owner}/${args.repo}/HEAD/${candidate}`;
+    try {
+      const res = await fetch(rawUrl, { headers: { 'User-Agent': args.userAgent } });
+      if (res.ok) {
+        const text = await res.text();
+        const licenseUrl = `https://github.com/${args.owner}/${args.repo}/blob/HEAD/${candidate}`;
+        return {
+          licenseId: null,
+          licenseName: null,
+          licenseUrl,
+          licenseText: text,
+          attribution: buildLicenseAttribution(args.owner, args.repo, null, null),
+        };
+      }
+    } catch (err) {
+      args.log({ level: 'warn', event: 'github_repo_license_raw_error', data: { message: err instanceof Error ? err.message : String(err), url: rawUrl } });
+    }
+  }
+
+  return {
+    licenseId: null,
+    licenseName: null,
+    licenseUrl: null,
+    licenseText: undefined,
+    attribution: buildLicenseAttribution(args.owner, args.repo, null, null),
+  };
 }
 
 function parseGithubRepoInfo(url: URL): { owner: string; repo: string } | null {
@@ -413,6 +811,7 @@ export interface GithubRepoFetcherArgs {
   log: (entry: LogEntry) => void;
   userAgent: string;
   allowedExtensions: Set<string>;
+  licenseFetcher?: (args: GithubLicenseFetcherArgs) => Promise<GithubLicenseInfo | null>;
 }
 
 export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]> {
@@ -451,7 +850,14 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
       const repoInfo = parseGithubRepoInfo(seedUrl);
       if (repoInfo) {
         const repoOutDir = path.join(outDir, sanitizeForFs(seedUrl.hostname.toLowerCase()));
-        const summary = await githubRepoFetcher({ seedUrl, outDir: repoOutDir, log, userAgent, allowedExtensions: CODE_EXTS });
+        const summary = await githubRepoFetcher({
+          seedUrl,
+          outDir: repoOutDir,
+          log,
+          userAgent,
+          allowedExtensions: CODE_EXTS,
+          licenseFetcher: opts.githubLicenseFetcher,
+        });
         if (summary) {
           summaries.push(summary);
         }
@@ -593,6 +999,12 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
 
     log({ level: 'info', event: 'seed_done', data: { seed, visited, downloaded, skipped, errors, maxReq } });
     summaries.push({ seed, visited, downloaded, skipped, errors });
+  }
+
+  try {
+    await removeDuplicateFiles(outDir, log);
+  } catch (err) {
+    log({ level: 'error', event: 'duplicate_cleanup_error', data: { message: err instanceof Error ? err.message : String(err) } });
   }
 
   return summaries;

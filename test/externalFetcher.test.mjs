@@ -269,6 +269,15 @@ test('downloads GitHub repo zip via default fetcher', { concurrency: false }, as
   await fs.mkdir(repoRoot, { recursive: true });
   await fs.writeFile(path.join(repoRoot, 'hello.bas'), '10 PRINT "HELLO"\n', 'utf8');
   await fs.writeFile(path.join(repoRoot, 'ignore.bin'), 'skip me', 'utf8');
+  await fs.mkdir(path.join(repoRoot, 'notes'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'notes', 'control_codes_c64.txt'), 'C64 codes', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'notes', 'control_codes_c128.txt'), 'C128 codes', 'utf8');
+  await fs.mkdir(path.join(repoRoot, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'docs', 'c64disasm_en.txt'), 'English docs', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'docs', 'c64disasm_de.txt'), 'Deutsch docs', 'utf8');
+  await fs.mkdir(path.join(repoRoot, 'duplicates'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'duplicates', 'dup.bas'), '1 REM DUPLICATE\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'duplicates', 'dup_copy.bas'), '1 REM DUPLICATE\n', 'utf8');
 
   const zipPath = path.join(zipWorkspace, 'sample.zip');
   try {
@@ -310,16 +319,51 @@ test('downloads GitHub repo zip via default fetcher', { concurrency: false }, as
   };
 
   try {
-    const summaries = await fetchFromCsv({ csvPath: csv, outDir });
+    const summaries = await fetchFromCsv({
+      csvPath: csv,
+      outDir,
+      githubLicenseFetcher: async () => ({
+        licenseId: 'MIT',
+        licenseName: 'MIT License',
+        licenseUrl: 'https://github.com/test/sample/blob/main/LICENSE',
+        licenseText: 'MIT License TEXT',
+        attribution: 'Source: test/sample (MIT)',
+      }),
+    });
     assert.equal(summaries.length, 1);
     const summary = summaries[0];
     assert.equal(summary.errors, 0);
-    assert.equal(summary.downloaded, 1);
+    assert.equal(summary.downloaded, 4);
     const repoDir = path.join(outDir, 'github.com', 'test_sample');
     const helloPath = path.join(repoDir, 'hello.bas');
     const ignorePath = path.join(repoDir, 'ignore.bin');
+    const codesC64Path = path.join(repoDir, 'notes', 'control_codes_c64.txt');
+    const codesC128Path = path.join(repoDir, 'notes', 'control_codes_c128.txt');
+    const disasmEnPath = path.join(repoDir, 'docs', 'c64disasm_en.txt');
+    const disasmDePath = path.join(repoDir, 'docs', 'c64disasm_de.txt');
+    const duplicatesDir = path.join(repoDir, 'duplicates');
+    const metadataPath = path.join(repoDir, '_metadata.json');
+    const licensePath = path.join(repoDir, 'LICENSE');
     assert.equal(await pathExists(helloPath), true);
     assert.equal(await pathExists(ignorePath), false);
+    assert.equal(await pathExists(codesC64Path), true);
+    assert.equal(await pathExists(codesC128Path), false);
+    assert.equal(await pathExists(disasmEnPath), true);
+    assert.equal(await pathExists(disasmDePath), false);
+    const duplicateEntries = await fs.readdir(duplicatesDir);
+    assert.deepEqual(duplicateEntries.sort(), ['dup.bas']);
+    const metadataRaw = await fs.readFile(metadataPath, 'utf8');
+    const metadata = JSON.parse(metadataRaw);
+    assert.equal(metadata.type, 'github');
+    assert.equal(metadata.owner, 'test');
+    assert.equal(metadata.repo, 'sample');
+    assert.equal(metadata.branch, 'main');
+    assert.equal(metadata.repoUrl, 'https://github.com/test/sample');
+    assert.equal(metadata.license.spdxId, 'MIT');
+    assert.equal(metadata.license.name, 'MIT License');
+    assert.equal(metadata.license.url, 'https://github.com/test/sample/blob/main/LICENSE');
+    const licenseContent = await fs.readFile(licensePath, 'utf8');
+    assert.match(licenseContent, /MIT License TEXT/);
   } finally {
     globalThis.fetch = originalFetch;
   }
