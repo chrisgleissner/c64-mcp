@@ -34,10 +34,11 @@ export async function startMockC64Server() {
     reboots: 0,
     memory: new Uint8Array(0x10000),
     lastWrite: null,
+    lastRequest: null,
   };
 
-  // seed memory with READY prompt at $0400
-  state.memory.set(Buffer.from("READY.\n", "ascii"), 0x0400);
+  // seed memory with READY prompt at $0400 and support PETSCII mapper used by petsciiToAscii
+  state.memory.set(Buffer.from([0x12, 0x52, 0x45, 0x41, 0x44, 0x59, 0x2E, 0x0D]), 0x0400);
 
   const server = createServer(async (req, res) => {
     const { method, url } = req;
@@ -47,6 +48,9 @@ export async function startMockC64Server() {
       res.end();
       return;
     }
+
+    // Track last request metadata
+    state.lastRequest = { method, url, headers: req.headers };
 
     if (method === "GET" && url === "/v1/version") {
       res.setHeader("Content-Type", "application/json");
@@ -114,9 +118,15 @@ export async function startMockC64Server() {
       const length = Math.max(0, parseNumeric(lengthValue, 10));
       const bytes = state.memory.slice(address, address + length);
 
-      res.setHeader("Content-Type", "application/json");
-      const payload = Buffer.from(bytes).toString("base64");
-      res.end(JSON.stringify({ data: payload }));
+      const accept = String(req.headers["accept"] || "");
+      if (accept.includes("application/octet-stream")) {
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.end(Buffer.from(bytes));
+      } else {
+        res.setHeader("Content-Type", "application/json");
+        const payload = Buffer.from(bytes).toString("base64");
+        res.end(JSON.stringify({ data: payload }));
+      }
       return;
     }
 
@@ -140,6 +150,25 @@ export async function startMockC64Server() {
       const dataValue = normaliseHexString(routeUrl.searchParams.get("data") ?? "");
       const address = parseNumeric(addressValue);
       const bytes = Buffer.from(dataValue, "hex");
+
+      state.memory.set(bytes, address);
+      state.lastWrite = { address, bytes };
+
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ result: "wrote", address, length: bytes.length }));
+      return;
+    }
+
+    if (method === "POST" && url.startsWith("/v1/machine:writemem")) {
+      const routeUrl = new URL(url, "http://mock.local");
+      const addressValue = routeUrl.searchParams.get("address") ?? "0";
+      const address = parseNumeric(addressValue);
+
+      const chunks = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const bytes = Buffer.concat(chunks);
 
       state.memory.set(bytes, address);
       state.lastWrite = { address, bytes };
