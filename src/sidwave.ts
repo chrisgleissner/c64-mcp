@@ -6,7 +6,8 @@ Licensed under the GNU General Public License v2.0 or later.
 See <https://www.gnu.org/licenses/> for details.
 */
 
-import { parse as yamlParse } from "yaml";
+import pkg from 'yaml';
+const { parse: yamlParse } = pkg;
 
 export type SystemMode = "PAL" | "NTSC";
 

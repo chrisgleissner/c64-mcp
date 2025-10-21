@@ -1,5 +1,5 @@
 /*
-C64 MCP - CPG to PRG Compiler (minimal v1)
+C64 MCP - SIDWAVE to PRG Compiler
 Copyright (C) 2025 Christian Gleissner
 
 Licensed under the GNU General Public License v2.0 or later.
@@ -16,7 +16,7 @@ export interface CompileResult {
 }
 
 /**
- * Very small CPG compiler: generates a 50/60Hz player that writes SID registers from a precomputed frame table.
+ * Small SIDWAVE to PRG compiler: generates a 50/60Hz player that writes SID registers from a precomputed frame table.
  * It currently supports three voices with per-frame frequency, waveform, pulse width, and ADSR gate on/off.
  * Effects are not fully implemented; basic PWM sweep from pulse_width and simple transpositions are handled.
  */

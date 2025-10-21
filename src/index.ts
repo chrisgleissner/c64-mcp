@@ -25,7 +25,7 @@ import {
 import { initRag } from "./rag/init.js";
 import type { RagLanguage } from "./rag/types.js";
 import { parseSidwave } from "./sidwave.js";
-import { compileSidwaveToPrg, compileSidwaveToSid } from "./sidCompiler.js";
+import { compileSidwaveToPrg, compileSidwaveToSid } from "./sidwaveCompiler.js";
 
 async function main() {
   const config = loadConfig();
@@ -240,6 +240,49 @@ async function main() {
         return result;
       } catch (error) {
         request.log.error({ err: error }, "record_and_analyze_audio failed");
+        reply.code(500);
+        return { error: (error as Error).message };
+      }
+    },
+  );
+
+  // Smart audio verification tool triggered by natural language patterns
+  server.post<{ Body: { request?: string; durationSeconds?: number; expectedSidwave?: unknown } }>(
+    "/tools/analyze_audio",
+    async (request, reply) => {
+      const { request: userRequest, durationSeconds, expectedSidwave } = request.body ?? {};
+      
+      // Check if this is a verification/check/test request related to audio/music/sid
+      const shouldAnalyze = userRequest && typeof userRequest === "string" && (
+        (/(check|verify|test|analyze|listen|hear)/.test(userRequest.toLowerCase()) && 
+         /(sid|audio|music|sound|song|play)/.test(userRequest.toLowerCase())) ||
+        /(does.*sound|how.*sound|sound.*right|sound.*good|sound.*correct)/.test(userRequest.toLowerCase())
+      );
+
+      if (!shouldAnalyze) {
+        return { 
+          analyzed: false, 
+          reason: "No audio verification request detected. Use keywords like 'check', 'verify', or 'test' with 'audio', 'music', or 'sid'." 
+        };
+      }
+
+      const duration = Number(durationSeconds) || 3.0; // Default 3 seconds for verification
+      
+      try {
+        const mod = await import("./audio/record_and_analyze_audio.js");
+        const result = await mod.recordAndAnalyzeAudio({
+          durationSeconds: duration,
+          expectedSidwave,
+        });
+        
+        return {
+          analyzed: true,
+          userRequest,
+          result,
+          feedback: generateAudioFeedback(result, userRequest)
+        };
+      } catch (error) {
+        request.log.error({ err: error }, "analyze_audio failed");
         reply.code(500);
         return { error: (error as Error).message };
       }
@@ -853,6 +896,63 @@ function pickRagLanguage(
     return "basic";
   }
   return undefined;
+}
+
+function generateAudioFeedback(analysisResult: any, userRequest: string): string {
+  try {
+    const analysis = analysisResult?.analysis;
+    if (!analysis) {
+      return "Audio analysis completed but no musical content detected. Ensure the C64 is playing audio.";
+    }
+
+    const voices = analysis.voices || [];
+    const globalMetrics = analysis.global_metrics || {};
+    
+    // Generate feedback based on detected notes and patterns
+    let feedback = `Audio analysis detected ${voices.length} voice(s) over ${analysis.durationSeconds}s:\n\n`;
+    
+    voices.forEach((voice: any, index: number) => {
+      const notes = voice.detected_notes || [];
+      const validNotes = notes.filter((n: any) => n.note && n.frequency);
+      
+      if (validNotes.length > 0) {
+        feedback += `Voice ${voice.id || index + 1}: ${validNotes.length} note(s) - `;
+        feedback += validNotes.slice(0, 5).map((n: any) => `${n.note}(${Math.round(n.frequency)}Hz)`).join(', ');
+        if (validNotes.length > 5) feedback += '...';
+        
+        if (voice.average_deviation !== null) {
+          feedback += ` [avg deviation: ${Math.round(voice.average_deviation * 10) / 10} cents]`;
+        }
+        feedback += '\n';
+      } else {
+        feedback += `Voice ${voice.id || index + 1}: No clear notes detected\n`;
+      }
+    });
+
+    // Add global metrics
+    if (globalMetrics.average_pitch_deviation !== null) {
+      feedback += `\nOverall pitch accuracy: ${Math.round(globalMetrics.average_pitch_deviation * 10) / 10} cents deviation`;
+    }
+    if (globalMetrics.detected_bpm !== null) {
+      feedback += `\nDetected tempo: ${Math.round(globalMetrics.detected_bpm)} BPM`;
+    }
+
+    // Provide specific feedback based on user request
+    if (/(sound.*right|sound.*good|sound.*correct)/.test(userRequest.toLowerCase())) {
+      const avgDeviation = Math.abs(globalMetrics.average_pitch_deviation || 0);
+      if (avgDeviation < 20) {
+        feedback += "\n\n✓ The music sounds accurate with good pitch stability.";
+      } else if (avgDeviation < 50) {
+        feedback += "\n\n⚠ The music has some pitch variation but is generally recognizable.";
+      } else {
+        feedback += "\n\n✗ The music shows significant pitch deviation - check SID programming or playback.";
+      }
+    }
+
+    return feedback;
+  } catch (error) {
+    return `Audio feedback generation failed: ${(error as Error).message}`;
+  }
 }
 
 function sleep(ms: number): Promise<void> {

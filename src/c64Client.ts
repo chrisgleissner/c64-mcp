@@ -1,3 +1,11 @@
+/*
+C64 MCP - An MCP Server for the Commodore 64 Ultimate
+Copyright (C) 2025 Christian Gleissner
+
+Licensed under the GNU General Public License v2.0 or later.
+See <https://www.gnu.org/licenses/> for details.
+*/
+
 import { Buffer } from "node:buffer";
 import axios from "axios";
 import { basicToPrg } from "./basicConverter.js";

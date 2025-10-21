@@ -71,6 +71,24 @@ npm --version
    cd c64-mcp
    npm install
    ```
+
+   **Audio Analysis Dependencies**: For audio feedback capabilities (automatic verification of generated SID music), the following optional dependencies are installed:
+   - `meyda` - Audio feature extraction for frequency analysis
+   - `pitchfinder` - Pitch detection algorithms
+   - `naudiodon` - Audio I/O via PortAudio (requires system audio libraries)
+
+   On Linux, you may need to install PortAudio development headers:
+   ```bash
+   sudo apt install libportaudio2-dev  # Ubuntu/Debian
+   sudo yum install portaudio-devel    # CentOS/RHEL
+   ```
+
+   On macOS with Homebrew:
+   ```bash
+   brew install portaudio
+   ```
+
+   **Note**: Audio analysis is optional. If these dependencies fail to install, the server will still function normally but audio verification features will be unavailable.
 2. (Optional) Create your configuration file (a ready-made sample lives at [`doc/examples/c64mcp.sample.json`](doc/examples/c64mcp.sample.json)):
    ```json
    { "c64_host": "c64u" }

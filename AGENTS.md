@@ -18,6 +18,7 @@ The server listens on `http://localhost:8000` (override with `PORT`). The MCP ma
 - **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
 - **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, use `GET /knowledge/sid_overview`.
+- **Audio analysis**: `analyze_audio` - Records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
 - **Knowledge & RAG**: `basic_v2_spec`, `asm_quick_reference`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
 Refer to `src/mcpManifest.json` for the complete tool list and parameter types.

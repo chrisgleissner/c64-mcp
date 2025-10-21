@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { compileSidwaveToPrg, compileSidwaveToSid } from "../src/sidCompiler.js";
+import { compileSidwaveToPrg, compileSidwaveToSid } from "../src/sidwaveCompiler.js";
 import { parseSidwave } from "../src/sidwave.js";
 
 const EXAMPLE = `

@@ -107,6 +107,7 @@
     { "name": "sidplay_file", "description": "Play SID from filesystem", "parameters": { "path": "string", "songnr": "number" } },
     { "name": "modplay_file", "description": "Play MOD from filesystem", "parameters": { "path": "string" } },
     { "name": "record_and_analyze_audio", "description": "Records audio from default microphone and analyzes SID playback, returning SIDWAVE-compatible pitch/frequency data", "parameters": { "durationSeconds": "number", "expectedSidwave": "object" } },
+    { "name": "analyze_audio", "description": "Smart audio verification tool that automatically analyzes audio when user requests to check, verify, or test music/SID playback. Responds to natural language patterns like 'check the music', 'verify the song', 'does it sound right?'", "parameters": { "request": "string", "durationSeconds": "number", "expectedSidwave": "object" } },
     { "name": "sid_volume", "description": "Set SID master volume (0-15)", "parameters": { "volume": "number" } },
     { "name": "sid_reset", "description": "Reset or silence SID", "parameters": { "hard": "boolean" } },
     {
