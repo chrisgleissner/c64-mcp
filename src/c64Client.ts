@@ -145,6 +145,22 @@ export class C64Client {
     }
   }
 
+  /** Upload a SID binary and instruct firmware to play it (attachment mode). */
+  async sidplayAttachment(sid: Uint8Array | Buffer, options?: { songnr?: number; songlengths?: Uint8Array | Buffer }): Promise<RunBasicResult> {
+    try {
+      const form: any = {
+        sid: Buffer.isBuffer(sid) ? sid : Buffer.from(sid),
+      };
+      if (options?.songlengths) {
+        form.songlengths = Buffer.isBuffer(options.songlengths) ? options.songlengths : Buffer.from(options.songlengths);
+      }
+      const response = await this.api.v1.runnersSidplayCreate(":sidplay", form as any, options?.songnr !== undefined ? { songnr: options.songnr } : undefined);
+      return { success: true, details: response.data };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
   async loadPrgFile(path: string): Promise<RunBasicResult> {
     try {
       const response = await this.api.v1.runnersLoadPrgUpdate(":load_prg", { file: path });

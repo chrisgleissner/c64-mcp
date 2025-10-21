@@ -24,6 +24,8 @@ import {
 } from "./knowledge.js";
 import { initRag } from "./rag/init.js";
 import type { RagLanguage } from "./rag/types.js";
+import { parseSidwave } from "./sidwave.js";
+import { compileSidwaveToPrg, compileSidwaveToSid } from "./sidCompiler.js";
 
 async function main() {
   const config = loadConfig();
@@ -343,6 +345,56 @@ async function main() {
       }
     },
   );
+
+  // Compile and run a CPG (Compressed Pattern Graph) song (YAML or JSON). Returns metadata and run details.
+  server.post<{
+    Body: { sidwave?: string | object; cpg?: string | object; format?: "yaml" | "json"; output?: "prg" | "sid"; dryRun?: boolean };
+  }>("/tools/music_compile_and_play", async (request, reply) => {
+    const { sidwave, cpg, output = "prg", dryRun } = request.body ?? {} as any;
+    const payload = sidwave ?? cpg;
+    if (!payload) {
+      reply.code(400);
+      return { error: "Missing sidwave (YAML or JSON)" };
+    }
+    try {
+      const doc = typeof payload === "string" ? parseSidwave(payload) : parseSidwave(payload);
+      let result: any = { success: true, ranOnC64: false };
+      let ranOnC64 = false;
+      let runDetails: any = undefined;
+      const prgCompiled = compileSidwaveToPrg(doc);
+      if (!dryRun) {
+        if (output === "sid") {
+          const sid = compileSidwaveToSid(doc, prgCompiled.prg);
+          const res = await client.sidplayAttachment(sid.sid);
+          if (!res.success) reply.code(502);
+          result = res;
+          ranOnC64 = Boolean(res.success);
+          runDetails = res.details;
+        } else {
+          const run = await client.runPrg(prgCompiled.prg);
+          if (!run.success) reply.code(502);
+          result = run;
+          ranOnC64 = Boolean(run.success);
+          runDetails = run.details;
+        }
+      }
+      return {
+        success: true,
+        ranOnC64,
+        runDetails,
+        song: { title: doc.song.title, tempo: doc.song.tempo, mode: doc.song.mode, length_bars: doc.song.length_bars },
+        voices: doc.voices.map((v) => ({ id: v.id, name: v.name, waveform: v.waveform, pulse_width: v.pulse_width, adsr: v.adsr })),
+        format: output,
+      } as any;
+    } catch (error) {
+      reply.code(400);
+      const message = error instanceof Error ? error.message : String(error);
+      return { error: message };
+    }
+  });
+
+  // Expose the SIDWAVE format specification as a tool for clients
+  server.get("/tools/sidwave_spec", async () => ({ spec: await import("node:fs/promises").then((fs) => fs.readFile("doc/sidwave.md", "utf8")) }));
 
   server.post("/tools/reset_c64", async (request, reply) => {
     const result = await client.reset();
