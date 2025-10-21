@@ -1,41 +1,66 @@
-# Agent Onboarding
+## Agent Integration Guide
 
-This repository hosts a local MCP server that bridges large language models with Commodore 64 Ultimate hardware.
+This server exposes a Model Context Protocol (MCP) surface for driving a Commodore 64 (Ultimate 64/Commodore 64 Ultimate) over its REST API. It is designed for agent workflows that need to upload/run programs, inspect memory/screen state, control devices, or retrieve C64 knowledge snippets.
 
-## Quick Start
-- Install dependencies with `npm install`.
-- Configure the target device by creating `~/.c64mcp.json` (see `README.md` or `doc/developer.md`). Without it, the server uses the bundled repo-level `.c64mcp.json` (defaults to `c64u`).
-- Start the MCP server locally via `npm start`.
+### Run the server
+- Install and configure per the README (“Install” and “Quick start”).
+- Start the server locally:
 
-## Repository Layout
-- `src/` – Fastify entry-point (`index.ts`), c64 REST client, BASIC converter, and config loader.
-- `test/` – Node test runner suites (`*.test.mjs`) and the mock c64 server.
-- `scripts/` – Helper CLIs (e.g. `run-tests.mjs` to toggle mock vs real hardware).
-- `doc/` – Engineering docs (`c64-rest-api.md`, `c64-basic-spec.md`, `developer.md`, OpenAPI schema).
-- `AGENTS.md` & `README.md` – High-level guidance.
+```bash
+npm start
+```
 
-## Key Commands
-- `npm start` – Run the MCP server with ts-node (listens on `PORT` or `8000`).
-- `npm run build` – Type-check TypeScript.
-- `npm test` – Execute tests against the in-process mock C64 (`test/mockC64Server.mjs`).
-- `npm test -- --real [--base-url=http://host]` – Re-run tests against an actual c64 device.
-- `npm run check` – Sequential `build` + `test`.
-- `npm run c64:tool` – Interactive helper to turn BASIC into PRG files, upload binaries, and run them on hardware.
-- `npm run api:generate` – Regenerate the typed REST client from the OpenAPI spec when endpoints change.
-- MCP tools exposed: `upload_and_run_basic`, `read_screen`, `reset_c64`, `reboot_c64`, `read_memory`, and `write_memory`.
+The server listens on `http://localhost:8000` (override with `PORT`). The MCP manifest lives in your working copy at `src/mcpManifest.json`.
 
-## Development Guardrails
-- Maintain TypeScript ESM modules; use async/await.
-- Avoid introducing additional runtime dependencies without discussing them.
-- Keep REST interactions in `src/c64Client.ts` and shared utilities in dedicated modules.
-- Update `src/mcpManifest.json` when exposing new tools.
-- Follow KISS and DRY principles. Prefer simple, composable solutions over clever ones, and reuse existing helpers before adding new abstractions.
-- Consistency matters: match existing patterns, naming conventions, and error handling styles across the codebase.
+### Capabilities at a glance
+- **Program runners**: `upload_and_run_basic`, `upload_and_run_asm`, `upload_and_run_program`, `run_prg_file`, `load_prg_file`, `run_crt_file`, `sidplay_file`, `modplay_file`.
+- **Screen & memory**: `read_screen`, `read_memory`, `write_memory`.
+- **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
+- **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
+- **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, use `GET /knowledge/sid_overview`.
+- **Knowledge & RAG**: `basic_v2_spec`, `asm_quick_reference`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
-## Validation Checklist
-- Run `npm run build` to type-check.
-- Exercise the tool endpoints with `curl` or the MCP Inspector before submitting changes.
-- Update documentation (`README.md`, `doc/`) when adding capabilities.
-- Ensure the BASIC encoder remains covered by `test/basicConverter.test.mjs`.
-- Confirm MCP behaviour with `npm test -- --real` before shipping changes that touch hardware interactions.
-- Always run `npm run build` followed by `npm test` (and real hardware tests when applicable) before finalizing any change.
+Refer to `src/mcpManifest.json` for the complete tool list and parameter types.
+
+### Use with GitHub Copilot Chat (VS Code)
+1) Enable MCP support (Copilot Chat v1.214+): Settings → Extensions → GitHub Copilot → Chat: Experimental: MCP → enable, then restart VS Code.
+2) Add the server under Settings → GitHub Copilot → Experimental → MCP Servers:
+
+```json
+{
+  "github.copilot.chat.experimental.mcp": {
+    "servers": [
+      {
+        "name": "c64-mcp",
+        "url": "http://localhost:8000",
+        "manifestPath": "/absolute/path/to/your/checkout/src/mcpManifest.json",
+        "type": "http"
+      }
+    ]
+  }
+}
+```
+
+3) Keep `npm start` running. In Copilot Chat, invoke tools by natural language (e.g. “Upload and run this BASIC program”, “Read the current screen”, “Write $D020=2”).
+
+### Use with other MCP clients
+- Point the client at `http://localhost:8000` and load `src/mcpManifest.json`.
+- Expose the tools you need to the LLM session; call them with JSON bodies as described in the manifest.
+
+### HTTP examples (manual testing)
+```bash
+# Upload and run BASIC
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"program":"10 PRINT \"HELLO\"\n20 GOTO 10"}' \
+  http://localhost:8000/tools/upload_and_run_basic | jq
+
+# Read current screen content (PETSCII→ASCII)
+curl -s http://localhost:8000/tools/read_screen | jq
+
+# Reset the machine
+curl -s -X POST http://localhost:8000/tools/reset_c64
+```
+
+### Notes
+- Some tools can affect device state (e.g. power, reboot, drive ops). Use them deliberately.
+- The server includes a local RAG over examples in `data/` and optional fetched sources; see the README for details.
