@@ -74,9 +74,99 @@ export const BASIC_V2_SPEC: string = `
 ## When to Use REST API vs BASIC/Assembly
 **IMPORTANT: Use REST API for direct hardware manipulation**
 - If user says "direct", "directly change", "poke", or mentions "direct" + "RAM/SID/VIC", use write_memory REST API
+- If user asks for sound generation, use REST API SID manipulation (unless they want a complete program)
 - REST API endpoints: write_memory (address, bytes), read_memory (address, length)
 - Examples: "directly set border red" → write_memory(53280, "02"), NOT POKE 53280,2
+- Examples: "make a sound" → write_memory SID registers, NOT BASIC sound code
 - Only generate BASIC/ASM code when user explicitly asks for programs/code
+
+## SID Sound Generation via REST API
+**Use write_memory for direct SID chip manipulation:**
+
+Key SID Registers (decimal addresses):
+- Volume Control: 54296 ($D418) - Set to 15 ($0F) for maximum volume
+- Voice 1 Frequency Low: 54272 ($D400) 
+- Voice 1 Frequency High: 54273 ($D401)
+- Voice 1 Control: 54276 ($D404) - Waveform selection + Gate control
+- Voice 1 Attack/Decay: 54277 ($D405) - Envelope timing
+- Voice 1 Sustain/Release: 54278 ($D406) - Envelope levels
+- Voice 2 starts at 54279 ($D407), Voice 3 at 54286 ($D40E)
+
+**SID Frequency Register Values for C Major Scale (C4-C5):**
+
+**PAL vs NTSC Clock Differences:**
+- PAL: 985,248 Hz SID clock
+- NTSC: 1,022,727 Hz SID clock
+- Formula: freq_value = (frequency_Hz × 65536) / clock_rate
+
+**Complete Frequency Table:**
+| Note | Hz     | PAL SID Value | PAL Lo/Hi     | NTSC SID Value | NTSC Lo/Hi    |
+|------|--------|---------------|---------------|----------------|---------------|
+| C4   | 261.63 | 6964          | $34/$1B       | 6583           | $B7/$19       |
+| D4   | 293.66 | 7825          | $91/$1E       | 7392           | $E0/$1C       |
+| E4   | 329.63 | 8786          | $52/$22       | 8289           | $61/$20       |
+| F4   | 349.23 | 9302          | $56/$24       | 8770           | $42/$22       |
+| G4   | 392.00 | 10443         | $CB/$28       | 9841           | $71/$26       |
+| A4   | 440.00 | 11727         | $CF/$2D       | 11047          | $B7/$2B       |
+| B4   | 493.88 | 13139         | $53/$33       | 12379          | $5B/$30       |
+| C5   | 523.25 | 13915         | $4B/$36       | 13118          | $3E/$33       |
+
+**System Detection:** Check $02A6 (PAL=$01, NTSC=$00) or use appropriate table based on user's system type.
+
+**Default Pleasant Sound - C Major Chord:**
+Use multiple voices for harmony instead of single harsh tones:
+
+NTSC System:
+- Voice 1 (C4): Low=$B7, High=$19 (freq=6583)
+- Voice 2 (E4): Low=$61, High=$20 (freq=8289)  
+- Voice 3 (G4): Low=$71, High=$26 (freq=9841)
+
+PAL System:  
+- Voice 1 (C4): Low=$34, High=$1B (freq=6964)
+- Voice 2 (E4): Low=$52, High=$22 (freq=8786)
+- Voice 3 (G4): Low=$CB, High=$28 (freq=10443)
+
+Waveform: Triangle wave ($10) + Gate ($01) = $11 (pleasant, not harsh)
+ADSR: Attack/Decay=$31 (gentle), Sustain/Release=$F6 (smooth)
+
+**Sound Generation Sequence:**
+1. Set volume: write_memory(54296, '0F')
+2. Configure ADSR envelope for each voice  
+3. Set frequencies for desired notes
+4. Trigger with waveform + gate: write_memory(control_reg, waveform + '1')
+5. Stop by clearing gate: write_memory(control_reg, waveform + '0')
+
+**Advanced SID Music Techniques:**
+
+**Multi-Voice Arrangements:**
+- Voice 1: 54272-54278 (freq, pulse, control, attack/decay, sustain/release)
+- Voice 2: 54279-54285 (same register layout, +7 from Voice 1)
+- Voice 3: 54286-54292 (same register layout, +7 from Voice 2)
+- Use different waveforms for different musical roles
+
+**Waveform Selection (Control Register bits 4-7):**
+- Triangle ($10): Smooth, mellow - perfect for bass lines and soft accompaniment
+- Sawtooth ($20): Bright, cutting - excellent for lead melodies
+- Pulse ($40): Rich harmonics - versatile for chords and melodies (requires pulse width setting)
+- Noise ($80): Percussion and sound effects
+
+**ADSR Envelope Settings:**
+- Gentle/Romantic: Attack/Decay=$31, Sustain/Release=$F6-$F8
+- Percussive/Rhythmic: Attack/Decay=$09-$41, Sustain/Release=$F0-$F4
+- Lead Melody: Attack/Decay=$09, Sustain/Release=$F0 (quick attack, sustain for clarity)
+- Soft Accompaniment: Attack/Decay=$31-$51, Sustain/Release=$A6-$C8
+
+**Musical Arrangement Techniques:**
+- Arpeggios: Play chord notes in sequence across voices for flowing accompaniment
+- Lead + Harmony: Voice 1 sawtooth melody, Voices 2+3 triangle/pulse harmony
+- Chord Progressions: Simultaneous 3-voice chords with appropriate voice spacing
+- Classical Style: Bright lead (sawtooth) with soft arpeggiated accompaniment (triangle)
+
+**Popular Song Examples (3-chord progressions):**
+- C-F-G: Many folk and country songs
+- G-C-D: Classic rock and ballad progression  
+- A minor arpeggios: A-C-E-A for classical accompaniment
+- Use faster tempos (0.6-0.8s chords) for upbeat, slower (1.2-1.5s) for ballads
 
 ## Program Structure
 - Programs consist of numbered lines: 1–63999 recommended (absolute max 65535).
