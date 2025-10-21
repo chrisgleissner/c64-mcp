@@ -16,22 +16,47 @@ async function makeTempDir(prefix) {
 }
 
 function restoreEnv(key, originalValue) {
-  if (originalValue === undefined) {
-    delete process.env[key];
-  } else {
-    process.env[key] = originalValue;
-  }
+  if (originalValue === undefined) delete process.env[key];
+  else process.env[key] = originalValue;
 }
 
 test('RAG indexing scenarios', { concurrency: false }, async (t) => {
   const embeddingsDir = await makeTempDir('embeddings');
+  const basicDir = await makeTempDir('basic');
+  const asmDir = await makeTempDir('asm');
+  const externalDir = await makeTempDir('external');
   const originalEmbeddingsDir = process.env.RAG_EMBEDDINGS_DIR;
   process.env.RAG_EMBEDDINGS_DIR = embeddingsDir;
 
-  const model = new LocalMiniHashEmbedding(96);
+  const model = new LocalMiniHashEmbedding(64);
+
+  const basicSample = `10 PRINT "DRAW A SINE WAVE"
+20 FOR A=0 TO 255
+30 POKE 53280,(SIN(A/10)+1)*8
+40 NEXT A
+50 GOTO 20
+`;
+  const asmSample = `*=$0801
+START
+        LDA #$00
+LOOP    STA $D020
+        ADC #$01
+        JMP LOOP
+`;
+  await fs.writeFile(path.join(basicDir, 'sine.bas'), basicSample, 'utf8');
+  await fs.writeFile(path.join(asmDir, 'border.asm'), asmSample, 'utf8');
+
+  const buildOptions = {
+    model,
+    embeddingsDir,
+    basicDirs: [basicDir],
+    asmDirs: [asmDir],
+    externalDirs: [externalDir],
+    docFiles: [],
+  };
 
   try {
-    await buildAllIndexes({ model, embeddingsDir });
+    await buildAllIndexes(buildOptions);
     let indexes = await loadIndexes({ embeddingsDir });
     let rag = new LocalRagRetriever(model, indexes);
 
@@ -42,7 +67,7 @@ test('RAG indexing scenarios', { concurrency: false }, async (t) => {
     });
 
     await t.test('retrieves ASM refs for raster/border', async () => {
-      const refs = await rag.retrieve('cycle border colors', 5, 'asm');
+      const refs = await rag.retrieve('cycle border colors', 3, 'asm');
       assert.ok(refs.length > 0);
       const hasBorderColour = refs.some((text) => /\$d020|\$D020|border colour|border color/i.test(text));
       const hasAsmOps = refs.some((text) => /\b(JMP|LDA|STA|ADC|AND)\b/.test(text));
@@ -50,33 +75,39 @@ test('RAG indexing scenarios', { concurrency: false }, async (t) => {
     });
 
     await t.test('classification identifies mixed, hardware, and other sources', async () => {
-      const externalTestDir = path.resolve('external', `__rag_test_${Date.now()}`);
-      await fs.rm(externalTestDir, { recursive: true, force: true });
-      await fs.mkdir(externalTestDir, { recursive: true });
-      const mixedFile = path.join(externalTestDir, 'combo.txt');
-      const hardwareFile = path.join(externalTestDir, 'sid_notes.txt');
-      const otherFile = path.join(externalTestDir, 'notes.md');
+      const mixedFile = path.join(externalDir, 'combo.txt');
+      const hardwareFile = path.join(externalDir, 'sid_notes.txt');
+      const otherFile = path.join(externalDir, 'notes.md');
 
       try {
         await fs.writeFile(mixedFile, '10 PRINT "HELLO"\nJSR $FFD2\nLDA #$41\nSTA $0400\n', 'utf8');
         await fs.writeFile(hardwareFile, 'The SID chip at $D400 controls voices, and register 53280 alters the border colour.', 'utf8');
         await fs.writeFile(otherFile, 'This text documents planning notes unrelated to code or hardware.', 'utf8');
 
-        await buildAllIndexes({ model, embeddingsDir });
+        await buildAllIndexes(buildOptions);
         indexes = await loadIndexes({ embeddingsDir });
 
         assert.ok(indexes.mixed && indexes.mixed.records.some((r) => r.sourcePath.endsWith('combo.txt')));
         assert.ok(indexes.hardware && indexes.hardware.records.some((r) => r.sourcePath.endsWith('sid_notes.txt')));
         assert.ok(indexes.other && indexes.other.records.some((r) => r.sourcePath.endsWith('notes.md')));
       } finally {
-        await fs.rm(externalTestDir, { recursive: true, force: true });
-        await buildAllIndexes({ model, embeddingsDir });
+        await Promise.all([
+          fs.rm(mixedFile, { force: true }),
+          fs.rm(hardwareFile, { force: true }),
+          fs.rm(otherFile, { force: true }),
+        ]);
+        await buildAllIndexes(buildOptions);
         indexes = await loadIndexes({ embeddingsDir });
         rag = new LocalRagRetriever(model, indexes);
       }
     });
   } finally {
     restoreEnv('RAG_EMBEDDINGS_DIR', originalEmbeddingsDir);
-    await fs.rm(embeddingsDir, { recursive: true, force: true });
+    await Promise.all([
+      fs.rm(embeddingsDir, { recursive: true, force: true }),
+      fs.rm(basicDir, { recursive: true, force: true }),
+      fs.rm(asmDir, { recursive: true, force: true }),
+      fs.rm(externalDir, { recursive: true, force: true }),
+    ]);
   }
 });

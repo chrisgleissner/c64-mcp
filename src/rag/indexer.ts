@@ -38,6 +38,10 @@ function embeddingIndexPaths(dir: string) {
 export interface BuildIndexOptions {
   model: EmbeddingModel;
   embeddingsDir?: string;
+  basicDirs?: string[];
+  asmDirs?: string[];
+  externalDirs?: string[];
+  docFiles?: string[];
 }
 
 export async function ensureSeedDirs(): Promise<void> {
@@ -389,19 +393,24 @@ async function writeIndex(filePath: string, index: EmbeddingIndexFile): Promise<
   await fs.writeFile(filePath, json, "utf8");
 }
 
-export async function buildAllIndexes({ model, embeddingsDir: overrideDir }: BuildIndexOptions): Promise<void> {
+export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basicDirs, asmDirs, externalDirs, docFiles }: BuildIndexOptions): Promise<void> {
   await ensureSeedDirs();
   repoMetadataCache.clear();
 
   const embeddingsDir = resolveEmbeddingsDir(overrideDir);
   const paths = embeddingIndexPaths(embeddingsDir);
 
-  const docIncluded = DOC_INCLUDE_FILES.filter((file) => fsSync.existsSync(file));
+  const docIncludedSource = docFiles ?? DOC_INCLUDE_FILES;
+  const docIncluded = docIncludedSource.filter((file) => fsSync.existsSync(file));
+
+  const resolvedBasicDirs = (basicDirs ?? [BASIC_DIR]).map((dir) => path.resolve(dir));
+  const resolvedAsmDirs = (asmDirs ?? [ASM_DIR]).map((dir) => path.resolve(dir));
+  const resolvedExternalDirs = (externalDirs ?? [EXTERNAL_DIR]).map((dir) => path.resolve(dir));
 
   const sourcesConfig: Array<{ root: string; exts: string[] }> = [
-    { root: BASIC_DIR, exts: BASIC_EXTS },
-    { root: ASM_DIR, exts: ASM_EXTS },
-    { root: EXTERNAL_DIR, exts: EXTERNAL_EXTS },
+    ...resolvedBasicDirs.map((root) => ({ root, exts: BASIC_EXTS })),
+    ...resolvedAsmDirs.map((root) => ({ root, exts: ASM_EXTS })),
+    ...resolvedExternalDirs.map((root) => ({ root, exts: EXTERNAL_EXTS })),
   ];
 
   const fileSources: FileSource[] = [];
