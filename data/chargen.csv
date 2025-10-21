@@ -1,31 +1,31 @@
 petscii_code,screen_code,basic_repr,char_name,byte0,byte1,byte2,byte3,byte4,byte5,byte6,byte7
 64,0,@,commercial at,3C,66,6E,6E,60,62,3C,00
-65,1,A,A,18,3C,66,7E,66,66,66,00
-66,2,B,B,7C,66,66,7C,66,66,7C,00
-67,3,C,C,3C,66,60,60,60,66,3C,00
-68,4,D,D,78,6C,66,66,66,6C,78,00
-69,5,E,E,7E,60,60,78,60,60,7E,00
-70,6,F,F,7E,60,60,78,60,60,60,00
-71,7,G,G,3C,66,60,6E,66,66,3C,00
-72,8,H,H,66,66,66,7E,66,66,66,00
-73,9,I,I,3C,18,18,18,18,18,3C,00
-74,10,J,J,1E,0C,0C,0C,0C,6C,38,00
-75,11,K,K,66,6C,78,70,78,6C,66,00
-76,12,L,L,60,60,60,60,60,60,7E,00
-77,13,M,M,63,77,7F,6B,63,63,63,00
-78,14,N,N,66,76,7E,7E,6E,66,66,00
-79,15,O,O,3C,66,66,66,66,66,3C,00
-80,16,P,P,7C,66,66,7C,60,60,60,00
-81,17,Q,Q,3C,66,66,66,66,3C,0E,00
-82,18,R,R,7C,66,66,7C,78,6C,66,00
-83,19,S,S,3C,66,60,3C,06,66,3C,00
-84,20,T,T,7E,18,18,18,18,18,18,00
-85,21,U,U,66,66,66,66,66,66,3C,00
-86,22,V,V,66,66,66,66,66,3C,18,00
-87,23,W,W,63,63,63,6B,7F,77,63,00
-88,24,X,X,66,66,3C,18,3C,66,66,00
-89,25,Y,Y,66,66,66,3C,18,18,18,00
-90,26,Z,Z,7E,06,0C,18,30,60,7E,00
+65,1,A,latin capital letter a,18,3C,66,7E,66,66,66,00
+66,2,B,latin capital letter b,7C,66,66,7C,66,66,7C,00
+67,3,C,latin capital letter c,3C,66,60,60,60,66,3C,00
+68,4,D,latin capital letter d,78,6C,66,66,66,6C,78,00
+69,5,E,latin capital letter e,7E,60,60,78,60,60,7E,00
+70,6,F,latin capital letter f,7E,60,60,78,60,60,60,00
+71,7,G,latin capital letter g,3C,66,60,6E,66,66,3C,00
+72,8,H,latin capital letter h,66,66,66,7E,66,66,66,00
+73,9,I,latin capital letter i,3C,18,18,18,18,18,3C,00
+74,10,J,latin capital letter j,1E,0C,0C,0C,0C,6C,38,00
+75,11,K,latin capital letter k,66,6C,78,70,78,6C,66,00
+76,12,L,latin capital letter l,60,60,60,60,60,60,7E,00
+77,13,M,latin capital letter m,63,77,7F,6B,63,63,63,00
+78,14,N,latin capital letter n,66,76,7E,7E,6E,66,66,00
+79,15,O,latin capital letter o,3C,66,66,66,66,66,3C,00
+80,16,P,latin capital letter p,7C,66,66,7C,60,60,60,00
+81,17,Q,latin capital letter q,3C,66,66,66,66,3C,0E,00
+82,18,R,latin capital letter r,7C,66,66,7C,78,6C,66,00
+83,19,S,latin capital letter s,3C,66,60,3C,06,66,3C,00
+84,20,T,latin capital letter t,7E,18,18,18,18,18,18,00
+85,21,U,latin capital letter u,66,66,66,66,66,66,3C,00
+86,22,V,latin capital letter v,66,66,66,66,66,3C,18,00
+87,23,W,latin capital letter w,63,63,63,6B,7F,77,63,00
+88,24,X,latin capital letter x,66,66,3C,18,3C,66,66,00
+89,25,Y,latin capital letter y,66,66,66,3C,18,18,18,00
+90,26,Z,latin capital letter z,7E,06,0C,18,30,60,7E,00
 91,27,[,left square bracket,66,18,3C,66,7E,66,66,00
 92,28,\,reverse solidus,66,3C,66,66,66,66,3C,00
 93,29,],right square bracket,18,24,3C,66,7E,66,66,00
@@ -63,69 +63,69 @@ petscii_code,screen_code,basic_repr,char_name,byte0,byte1,byte2,byte3,byte4,byte
 61,61,=,equals sign,00,00,7E,00,7E,00,00,00
 62,62,>,greater-than sign,70,18,0C,06,0C,18,70,00
 63,63,?,question mark,3C,66,06,0C,18,00,18,00
-,64,,,00,00,00,FF,FF,00,00,00
-,65,,,08,1C,3E,7F,7F,1C,3E,00
-,66,,,18,18,18,18,18,18,18,18
-,67,,,00,00,00,FF,FF,00,00,00
-,68,,,00,00,FF,FF,00,00,00,00
-,69,,,00,FF,FF,00,00,00,00,00
-,70,,,00,00,00,00,FF,FF,00,00
-,71,,,30,30,30,30,30,30,30,30
-,72,,,0C,0C,0C,0C,0C,0C,0C,0C
-,73,,,00,00,00,E0,F0,38,18,18
-,74,,,18,18,1C,0F,07,00,00,00
-,75,,,18,18,38,F0,E0,00,00,00
-,76,,,C0,C0,C0,C0,C0,C0,FF,FF
-,77,,,C0,E0,70,38,1C,0E,07,03
-,78,,,03,07,0E,1C,38,70,E0,C0
-,79,,,FF,FF,C0,C0,C0,C0,C0,C0
-,80,,,FF,FF,03,03,03,03,03,03
-,81,,,00,3C,7E,7E,7E,7E,3C,00
-,82,,,00,00,00,00,00,FF,FF,00
-83,83,S,letter s,36,7F,7F,7F,3E,1C,08,00
-,84,,,60,60,60,60,60,60,60,60
-,85,,,00,00,00,07,0F,1C,18,18
-,86,,,C3,E7,7E,3C,3C,7E,E7,C3
-,87,,,00,3C,7E,66,66,7E,3C,00
-,88,,,18,18,66,66,18,18,3C,00
-,89,,,06,06,06,06,06,06,06,06
-,90,,,08,1C,3E,7F,3E,1C,08,00
-,91,,,18,18,18,FF,FF,18,18,18
-,92,,,C0,C0,30,30,C0,C0,30,30
-,93,,,18,18,18,18,18,18,18,18
-,94,,,00,00,03,3E,76,36,36,00
-,95,,,FF,7F,3F,1F,0F,07,03,01
-,96,,,00,00,00,00,00,00,00,00
-,97,,,F0,F0,F0,F0,F0,F0,F0,F0
-,98,,,00,00,00,00,FF,FF,FF,FF
-,99,,,FF,00,00,00,00,00,00,00
-,100,,,00,00,00,00,00,00,00,FF
-,101,,,C0,C0,C0,C0,C0,C0,C0,C0
-,102,,,CC,CC,33,33,CC,CC,33,33
-,103,,,03,03,03,03,03,03,03,03
-,104,,,00,00,00,00,CC,CC,33,33
-,105,,,FF,FE,FC,F8,F0,E0,C0,80
-,106,,,03,03,03,03,03,03,03,03
-,107,,,18,18,18,1F,1F,18,18,18
-,108,,,00,00,00,00,0F,0F,0F,0F
-,109,,,18,18,18,1F,1F,00,00,00
-,110,,,00,00,00,F8,F8,18,18,18
-,111,,,00,00,00,00,00,00,FF,FF
-,112,,,00,00,00,1F,1F,18,18,18
-,113,,,18,18,18,FF,FF,00,00,00
-,114,,,00,00,00,FF,FF,18,18,18
-,115,,,18,18,18,F8,F8,18,18,18
-,116,,,C0,C0,C0,C0,C0,C0,C0,C0
-,117,,,E0,E0,E0,E0,E0,E0,E0,E0
-,118,,,07,07,07,07,07,07,07,07
-,119,,,FF,FF,00,00,00,00,00,00
-,120,,,FF,FF,FF,00,00,00,00,00
-,121,,,00,00,00,00,00,FF,FF,FF
-,122,,,03,03,03,03,03,03,FF,FF
-,123,,,00,00,00,00,F0,F0,F0,F0
-,124,,,0F,0F,0F,0F,00,00,00,00
-,125,,,18,18,18,F8,F8,00,00,00
-,126,,,F0,F0,F0,F0,00,00,00,00
+64,64,@,commercial at,00,00,00,FF,FF,00,00,00
+65,65,A,latin capital letter a,08,1C,3E,7F,7F,1C,3E,00
+66,66,B,latin capital letter b,18,18,18,18,18,18,18,18
+67,67,C,latin capital letter c,00,00,00,FF,FF,00,00,00
+68,68,D,latin capital letter d,00,00,FF,FF,00,00,00,00
+69,69,E,latin capital letter e,00,FF,FF,00,00,00,00,00
+70,70,F,latin capital letter f,00,00,00,00,FF,FF,00,00
+71,71,G,latin capital letter g,30,30,30,30,30,30,30,30
+72,72,H,latin capital letter h,0C,0C,0C,0C,0C,0C,0C,0C
+73,73,I,latin capital letter i,00,00,00,E0,F0,38,18,18
+74,74,J,latin capital letter j,18,18,1C,0F,07,00,00,00
+75,75,K,latin capital letter k,18,18,38,F0,E0,00,00,00
+76,76,L,latin capital letter l,C0,C0,C0,C0,C0,C0,FF,FF
+77,77,M,latin capital letter m,C0,E0,70,38,1C,0E,07,03
+78,78,N,latin capital letter n,03,07,0E,1C,38,70,E0,C0
+79,79,O,latin capital letter o,FF,FF,C0,C0,C0,C0,C0,C0
+80,80,P,latin capital letter p,FF,FF,03,03,03,03,03,03
+81,81,Q,latin capital letter q,00,3C,7E,7E,7E,7E,3C,00
+82,82,R,latin capital letter r,00,00,00,00,00,FF,FF,00
+83,83,S,latin capital letter s,36,7F,7F,7F,3E,1C,08,00
+84,84,T,latin capital letter t,60,60,60,60,60,60,60,60
+85,85,U,latin capital letter u,00,00,00,07,0F,1C,18,18
+86,86,V,latin capital letter v,C3,E7,7E,3C,3C,7E,E7,C3
+87,87,W,latin capital letter w,00,3C,7E,66,66,7E,3C,00
+88,88,X,latin capital letter x,18,18,66,66,18,18,3C,00
+89,89,Y,latin capital letter y,06,06,06,06,06,06,06,06
+90,90,Z,latin capital letter z,08,1C,3E,7F,3E,1C,08,00
+91,91,[,left square bracket,18,18,18,FF,FF,18,18,18
+92,92,\,reverse solidus,C0,C0,30,30,C0,C0,30,30
+93,93,],right square bracket,18,18,18,18,18,18,18,18
+94,94,^,circumflex accent,00,00,03,3E,76,36,36,00
+95,95,_,low line,FF,7F,3F,1F,0F,07,03,01
+96,96,`,grave accent,00,00,00,00,00,00,00,00
+97,97,a,latin small letter a,F0,F0,F0,F0,F0,F0,F0,F0
+98,98,b,latin small letter b,00,00,00,00,FF,FF,FF,FF
+99,99,c,latin small letter c,FF,00,00,00,00,00,00,00
+100,100,d,latin small letter d,00,00,00,00,00,00,00,FF
+101,101,e,latin small letter e,C0,C0,C0,C0,C0,C0,C0,C0
+102,102,f,latin small letter f,CC,CC,33,33,CC,CC,33,33
+103,103,g,latin small letter g,03,03,03,03,03,03,03,03
+104,104,h,latin small letter h,00,00,00,00,CC,CC,33,33
+105,105,i,latin small letter i,FF,FE,FC,F8,F0,E0,C0,80
+106,106,j,latin small letter j,03,03,03,03,03,03,03,03
+107,107,k,latin small letter k,18,18,18,1F,1F,18,18,18
+108,108,l,latin small letter l,00,00,00,00,0F,0F,0F,0F
+109,109,m,latin small letter m,18,18,18,1F,1F,00,00,00
+110,110,n,latin small letter n,00,00,00,F8,F8,18,18,18
+111,111,o,latin small letter o,00,00,00,00,00,00,FF,FF
+112,112,p,latin small letter p,00,00,00,1F,1F,18,18,18
+113,113,q,latin small letter q,18,18,18,FF,FF,00,00,00
+114,114,r,latin small letter r,00,00,00,FF,FF,18,18,18
+115,115,s,latin small letter s,18,18,18,F8,F8,18,18,18
+116,116,t,latin small letter t,C0,C0,C0,C0,C0,C0,C0,C0
+117,117,u,latin small letter u,E0,E0,E0,E0,E0,E0,E0,E0
+118,118,v,latin small letter v,07,07,07,07,07,07,07,07
+119,119,w,latin small letter w,FF,FF,00,00,00,00,00,00
+120,120,x,latin small letter x,FF,FF,FF,00,00,00,00,00
+121,121,y,latin small letter y,00,00,00,00,00,FF,FF,FF
+122,122,z,latin small letter z,03,03,03,03,03,03,FF,FF
+123,123,{,left curly bracket,00,00,00,00,F0,F0,F0,F0
+124,124,|,vertical line,0F,0F,0F,0F,00,00,00,00
+125,125,},right curly bracket,18,18,18,F8,F8,00,00,00
+126,126,~,tilde,F0,F0,F0,F0,00,00,00,00
 ,127,,,F0,F0,F0,F0,0F,0F,0F,0F
 ,128,,,C3,99,91,91,9F,99,C3,FF
 ,129,,,E7,C3,99,81,99,99,99,FF

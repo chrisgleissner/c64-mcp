@@ -144,9 +144,20 @@ function loadGlyphs(): void {
     glyphCache.byPetscii.set(petsciiCode, glyph);
 
     if (basic && basic.length === 1) {
-      glyphCache.byBasic.set(basic, glyph);
-      glyphCache.byBasic.set(basic.toUpperCase(), glyph);
-      glyphCache.byBasic.set(basic.toLowerCase(), glyph);
+      const setIfMissing = (key: string) => {
+        if (!glyphCache.byBasic.has(key)) {
+          glyphCache.byBasic.set(key, glyph);
+        }
+      };
+      setIfMissing(basic);
+      const upper = basic.toUpperCase();
+      if (upper !== basic) {
+        setIfMissing(upper);
+      }
+      const lower = basic.toLowerCase();
+      if (lower !== basic) {
+        setIfMissing(lower);
+      }
     }
   }
 
