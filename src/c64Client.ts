@@ -191,12 +191,7 @@ export class C64Client {
   }
 
   async readScreen(): Promise<string> {
-    const response = await this.api.v1.machineReadmemList(":readmem", {
-      address: "0400",
-      length: 0x1000,
-    });
-
-    const bytes = this.extractBytes(response.data?.data ?? response.data);
+    const bytes = await this.readMemoryRaw(0x0400, 0x1000);
     return petsciiToAscii(bytes);
   }
 
@@ -239,12 +234,7 @@ export class C64Client {
         throw new Error("Length must be greater than zero");
       }
 
-      const response = await this.api.v1.machineReadmemList(":readmem", {
-        address: this.formatAddress(address),
-        length,
-      });
-
-      const rawBytes = this.extractBytes(response.data?.data ?? response.data);
+      const rawBytes = await this.readMemoryRaw(address, length);
       const bytes = rawBytes.slice(0, length);
 
       return {
@@ -272,17 +262,31 @@ export class C64Client {
         throw new Error("No bytes provided");
       }
 
-      const response = await this.api.v1.machineWritememUpdate(":writemem", {
-        address: this.formatAddress(address),
-        data: this.bytesToHex(dataBuffer, false),
-      });
+      // Prefer PUT with hex data for up to 128 bytes; fall back to POST binary for larger writes
+      const addrStr = this.formatAddress(address);
+      let response: unknown;
+      if (dataBuffer.length <= 128) {
+        const put = await this.api.v1.machineWritememUpdate(":writemem", {
+          address: addrStr,
+          data: this.bytesToHex(dataBuffer, false),
+        });
+        response = put.data;
+      } else {
+        const post = await this.api.v1.machineWritememCreate(
+          ":writemem",
+          { address: addrStr },
+          Buffer.from(dataBuffer) as unknown as File,
+          { headers: { "Content-Type": "application/octet-stream" } },
+        );
+        response = post.data;
+      }
 
       return {
         success: true,
         details: {
-          address: this.formatAddress(address),
+          address: addrStr,
           bytes: this.bytesToHex(dataBuffer),
-          response: response.data,
+          response,
         },
       };
     } catch (error) {
@@ -645,6 +649,21 @@ export class C64Client {
       return new Uint8Array();
     }
 
+    // Raw binary (ArrayBuffer) response
+    if (data instanceof ArrayBuffer) {
+      return new Uint8Array(data);
+    }
+
+    // Node.js Buffer
+    if (Buffer.isBuffer(data)) {
+      return new Uint8Array(data);
+    }
+
+    // Already a Uint8Array
+    if (data instanceof Uint8Array) {
+      return data;
+    }
+
     if (typeof data === "string") {
       try {
         return Uint8Array.from(Buffer.from(data, "base64"));
@@ -672,6 +691,41 @@ export class C64Client {
     }
 
     return new Uint8Array();
+  }
+
+  /**
+   * Low-level memory read that transparently handles devices returning either
+   * raw binary bytes or JSON with a base64 payload.
+   */
+  private async readMemoryRaw(address: number, length: number): Promise<Uint8Array> {
+    const addrStr = this.formatAddress(address);
+
+    // Request as binary first while advertising we accept octet-stream.
+    // Some firmware returns JSON regardless; detect and parse if needed.
+    const response = await this.api.v1.machineReadmemList(
+      ":readmem",
+      { address: addrStr, length },
+      { format: "arraybuffer", headers: { Accept: "application/octet-stream, application/json" } as any },
+    );
+
+    const contentType = (response.headers?.["content-type"] ?? "").toString().toLowerCase();
+    const body = response.data as unknown;
+
+    if (contentType.includes("application/json")) {
+      // Parse JSON string from ArrayBuffer
+      const text = Buffer.from(body as ArrayBuffer).toString("utf8");
+      try {
+        const parsed = JSON.parse(text);
+        return this.extractBytes(parsed?.data ?? parsed);
+      } catch {
+        // Fall through and try to interpret as base64/hex string
+        return this.extractBytes(text);
+      }
+    }
+
+    // Treat response as raw bytes
+    const raw = body instanceof ArrayBuffer ? new Uint8Array(body) : this.extractBytes(body);
+    return raw;
   }
 
   private normaliseError(error: unknown): unknown {

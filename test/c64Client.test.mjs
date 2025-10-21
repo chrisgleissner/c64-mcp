@@ -245,6 +245,24 @@ test("C64Client against mock server", async (t) => {
     assert.equal(result.success, true);
     assert.equal(result.data, "$AA55");
   });
+
+  await t.test("readMemory requests binary and falls back to JSON", async () => {
+    const r = await client.readMemory("$0400", "4");
+    assert.equal(r.success, true);
+    assert.equal(typeof r.data, "string");
+    // Ensure the mock recorded Accept header with octet-stream
+    const accept = String(mock.state.lastRequest.headers["accept"] || "");
+    assert.ok(accept.includes("application/octet-stream"));
+  });
+
+  await t.test("writeMemory uses POST for >128 bytes", async () => {
+    const big = Buffer.alloc(200, 0x42); // 'B'
+    const hex = `$${big.toString("hex").toUpperCase()}`;
+    const res = await client.writeMemory("$C100", hex);
+    assert.equal(res.success, true);
+    assert.equal(mock.state.lastWrite.address, 0xC100);
+    assert.equal(mock.state.lastWrite.bytes.length, 200);
+  });
 });
 
 test("C64Client against real C64", async (t) => {
