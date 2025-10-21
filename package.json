@@ -30,7 +30,12 @@
   "dependencies": {
     "axios": "^1.7.7",
     "fastify": "^4.28.1",
-    "yaml": "^2.6.0"
+    "yaml": "^2.6.0",
+    "meyda": "^5.6.2",
+    "pitchfinder": "^2.2.0"
+  },
+  "optionalDependencies": {
+    "naudiodon": "^2.3.6"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
