@@ -88,7 +88,7 @@ Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENT
 
 ### Local RAG (Retrieval-Augmented Generation)
 
-This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
+This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
 
 - Programmatic use inside MCP flow: the server uses the retriever to inject relevant examples into prompts. You can also call helper endpoints to validate retrieval:
   - `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` — returns reference snippets
@@ -108,7 +108,7 @@ You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes (e.g. [`d
 
 #### RAG Rebuild Policy
 
-- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts.
+- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts. The test runner forces `RAG_EMBEDDINGS_DIR=artifacts/test-embeddings` so CI and local builds never touch the tracked JSON files unless you opt in.
   - Set `RAG_REINDEX_INTERVAL_MS=0` (default) to disable periodic reindex.
   - Omit `RAG_BUILD_ON_START`; the server will load existing indices if present and otherwise operate with empty indexes.
 - Opt-in rebuilds:

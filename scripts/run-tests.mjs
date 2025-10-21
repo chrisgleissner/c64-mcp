@@ -34,10 +34,20 @@ for (const arg of process.argv.slice(2)) {
 
   nodeArgs.push(arg);
 }
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const defaultEmbeddingsDir = path.join(repoRoot, "artifacts", "test-embeddings");
+if (!fs.existsSync(defaultEmbeddingsDir)) {
+  fs.mkdirSync(defaultEmbeddingsDir, { recursive: true });
+}
+
 const env = {
   ...process.env,
   C64_TEST_TARGET: target,
 };
+
+if (!env.RAG_EMBEDDINGS_DIR) {
+  env.RAG_EMBEDDINGS_DIR = defaultEmbeddingsDir;
+}
 
 if (explicitBaseUrl) {
   env.C64_TEST_BASE_URL = explicitBaseUrl;
@@ -63,8 +73,7 @@ child.on("close", (code, signal) => {
 function resolveBaseUrlFromConfig() {
   const configPathEnv = process.env.C64MCP_CONFIG;
   const homeConfig = os.homedir() ? path.join(os.homedir(), ".c64mcp.json") : null;
-  const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const repoConfig = path.join(repoDir, ".c64mcp.json");
+  const repoConfig = path.join(repoRoot, ".c64mcp.json");
 
   const candidates = [];
   if (configPathEnv) candidates.push(configPathEnv);

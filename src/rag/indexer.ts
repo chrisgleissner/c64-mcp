@@ -12,8 +12,9 @@ import { EmbeddingModel } from "./embeddings.js";
 const BASIC_DIR = path.resolve("data/basic_examples");
 const ASM_DIR = path.resolve("data/assembly_examples");
 const EXTERNAL_DIR = path.resolve("external");
-const BASIC_INDEX = path.resolve("data/embeddings_basic.json");
-const ASM_INDEX = path.resolve("data/embeddings_asm.json");
+const EMBEDDINGS_DIR = path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
+const BASIC_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_basic.json");
+const ASM_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_asm.json");
 
 export interface BuildIndexOptions {
   model: EmbeddingModel;
@@ -104,6 +105,7 @@ async function writeIndex(filePath: string, index: EmbeddingIndexFile): Promise<
   } catch {
     // file does not exist or unreadable — proceed to write
   }
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, json, "utf8");
 }
 
