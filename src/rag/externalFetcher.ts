@@ -150,10 +150,17 @@ function isGithubFamily(hostname: string): boolean {
 }
 
 function isAllowedDomain(seed: URL, candidate: URL): boolean {
-  if (sameRegisteredDomain(seed.toString(), candidate.toString())) {
+  const seedHost = seed.hostname.toLowerCase();
+  const candidateHost = candidate.hostname.toLowerCase();
+  if (seedHost === candidateHost) {
     return true;
   }
-  if (isGithubFamily(seed.hostname) && isGithubFamily(candidate.hostname)) {
+  const seedGithub = isGithubFamily(seedHost);
+  const candidateGithub = isGithubFamily(candidateHost);
+  if (seedGithub && candidateGithub) {
+    return true;
+  }
+  if (!seedGithub && !candidateGithub && sameRegisteredDomain(seed.toString(), candidate.toString())) {
     return true;
   }
   return false;
@@ -313,24 +320,28 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
           log({ level: 'info', event: 'request_start', data: { url: targetHref, depth: d, visited, remaining: Math.max(0, maxReq - visited) } });
 
           const requester = opts.request ?? httpGet;
-          const res = await withRetries(requester, targetUrl, userAgent, maxRetries, async (statusCode) => {
-            if (statusCode === 429 || (statusCode && statusCode >= 500 && statusCode < 600)) {
-              limiter.notifyThrottle(domainKeyForRequest, throttleBackoffFactor);
-            }
-          }).catch((err) => ({ error: err as Error }));
+        const res = await withRetries(requester, targetUrl, userAgent, maxRetries, async (statusCode) => {
+          if (statusCode === 429 || (statusCode && statusCode >= 500 && statusCode < 600)) {
+            limiter.notifyThrottle(domainKeyForRequest, throttleBackoffFactor);
+          }
+        }).catch((err) => ({ error: err as Error }));
           if ('error' in res) {
             errors++;
             log({ level: 'warn', event: 'request_error', data: { url: targetHref, message: res.error.message } });
             continue;
           }
 
-          const { statusCode, headers, body } = res;
-          const ct = headers['content-type']?.toString();
-          const contentLength = Number(headers['content-length'] ?? 0);
+        const { statusCode, headers, body } = res;
+        const ct = headers['content-type']?.toString();
+        const contentLength = Number(headers['content-length'] ?? 0);
 
-          log({ level: 'info', event: 'request_ok', data: { url: targetHref, statusCode, depth: d, discovered: 0, visited, remaining: Math.max(0, maxReq - visited), raw } });
+        log({ level: 'info', event: 'request_ok', data: { url: targetHref, statusCode, depth: d, discovered: 0, visited, remaining: Math.max(0, maxReq - visited), raw } });
 
-          if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
+        if (statusCode && (statusCode < 200 || statusCode >= 400)) {
+          log({ level: 'error', event: 'http_error', data: { url: targetHref, statusCode } });
+        }
+
+        if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
             const loc = headers.location.toString();
             let redirected: URL | null = null;
             try { redirected = new URL(loc, targetUrl); } catch {}
@@ -347,35 +358,35 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
             continue;
           }
 
-        if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct) || looksLikeHtml(body) || looksLikePdf(body)) {
-          skipped++;
-          log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: targetHref, contentLength, contentType: ct } });
-          continue;
-        }
+        const isHtml = ct?.toLowerCase().includes('html');
 
-          const isHtml = ct?.toLowerCase().includes('html');
-          if (isHtml) {
-            const links = extractLinks(targetUrl, body.toString('utf8'));
-            const nextDepth = d + 1;
-            if (nextDepth <= depth) {
-              for (const next of links) {
+          if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct) || (!isHtml && (looksLikeHtml(body) || looksLikePdf(body)))) {
+            skipped++;
+            log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: targetHref, contentLength, contentType: ct } });
+            continue;
+          }
+
+        if (isHtml) {
+          const links = extractLinks(targetUrl, body.toString('utf8'));
+          const nextDepth = d + 1;
+          if (nextDepth <= depth) {
+            for (const next of links) {
                 const parsed = parseUrlSafe(next);
                 if (!parsed) continue;
                 const linkUrl = parsed;
-                if (!shouldFollowLink(seedUrl, targetUrl, linkUrl)) {
-                  skipped++;
-                  log({ level: 'info', event: 'skip_link', data: { from: targetHref, to: linkUrl.toString() } });
-                  continue;
-                }
-                queue.push({ url: linkUrl, depth: nextDepth });
+              if (!shouldFollowLink(seedUrl, targetUrl, linkUrl)) {
+                skipped++;
+                continue;
               }
+              queue.push({ url: linkUrl, depth: nextDepth });
+            }
             } else {
               log({ level: 'info', event: 'depth_exceeded', data: { url: targetHref, depth: d, maxDepth: depth } });
             }
             log({ level: 'info', event: 'discovered_links', data: { from: targetHref, count: links.length, depth: nextDepth } });
           }
 
-          if (isCodeLikeUrl(targetUrl)) {
+        if (!isHtml && isCodeLikeUrl(targetUrl)) {
             const rel = path.join(perSeedOut, sanitizeForFs(targetUrl.pathname));
             await fs.mkdir(path.dirname(rel), { recursive: true });
             await fs.writeFile(rel, body);

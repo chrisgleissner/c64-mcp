@@ -7,7 +7,8 @@ import { register } from 'node:module';
 async function main() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const projectRoot = path.resolve(__dirname, '..');
-  register('ts-node/esm', pathToFileURL(projectRoot));
+  const tsNodeLoader = pathToFileURL(path.join(projectRoot, 'node_modules', 'ts-node', 'esm.mjs')).href;
+  register(tsNodeLoader, pathToFileURL(projectRoot));
   const { fetchFromCsv } = await import('../src/rag/externalFetcher.ts');
   const csvPath = process.env.RAG_SOURCES_CSV || path.join(projectRoot, 'src/rag/sources.csv');
   const outDir = process.env.RAG_EXTERNAL_DIR || path.join(projectRoot, 'external');
@@ -31,8 +32,9 @@ async function main() {
     else if (event === 'download_success') color = colors.success;
     else if (level === 'warn') color = colors.warn;
     else if (level === 'error') color = colors.error;
+    const prefix = event === 'download_success' ? '✅ ' : (event === 'http_error' || level === 'error' || level === 'warn') ? '❌ ' : '';
     const line = JSON.stringify({ ts: new Date().toISOString(), level, event, data });
-    process.stdout.write(`${color}${line}${colors.reset}\n`);
+    process.stdout.write(`${color}${prefix}${line}${colors.reset}\n`);
   };
 
   const summaries = await fetchFromCsv({
