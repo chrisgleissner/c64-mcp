@@ -9,6 +9,11 @@
       "parameters": { "program": "string" }
     },
     {
+      "name": "print_text",
+      "description": "Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it",
+      "parameters": { "text": "string", "target": "string", "secondaryAddress": "number", "formFeed": "boolean" }
+    },
+    {
       "name": "upload_and_run_asm",
       "description": "Assemble 6502/6510 source to PRG and run it on the C64",
       "parameters": { "program": "string" }
@@ -128,6 +133,7 @@
     { "name": "sid_silence_all", "description": "Silence all SID voices" },
     { "name": "sid_reference", "description": "Return the SID overview document" },
     { "name": "sid_file_structure", "description": "Return the SID file structure overview" },
+    { "name": "printing_guide", "description": "Return the Commodore/Epson printing guide" },
     { "name": "rag_retrieve_basic", "description": "Retrieve BASIC references for a query", "parameters": { "q": "string", "k": "number" } },
     {
       "name": "rag_retrieve_asm",

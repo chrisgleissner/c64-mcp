@@ -29,6 +29,20 @@ export class C64Client {
     this.api = new Api(this.http);
   }
 
+  /**
+   * Generate a BASIC program that opens the printer (device 4), prints the provided text,
+   * and closes the channel. Assumes Commodore MPS (PETSCII) by default.
+   */
+  async printTextOnPrinterAndRun(options: {
+    text: string;
+    target?: "commodore" | "epson"; // default: commodore
+    secondaryAddress?: 0 | 7; // MPS only; 0 = upper/graphics, 7 = lower/upper
+    formFeed?: boolean; // if true, send FF (CHR$(12)) at end
+  }): Promise<RunBasicResult> {
+    const program = buildPrinterBasicProgram(options);
+    return this.uploadAndRunBasic(program);
+  }
+
   async uploadAndRunBasic(program: string): Promise<RunBasicResult> {
     const prg = basicToPrg(program);
     return this.runPrg(prg);
@@ -857,6 +871,72 @@ function buildPetsciiScreenBasic(opts: { text: string; borderColor?: number; bac
     `30 GETA$:IFA$<>""THENEND:REM wait for key then end`,
   ].join("\n");
   return program;
+}
+
+function buildPrinterBasicProgram(opts: {
+  text: string;
+  target?: "commodore" | "epson";
+  secondaryAddress?: 0 | 7;
+  formFeed?: boolean;
+}): string {
+  const target = opts.target ?? "commodore";
+  const saddr = typeof opts.secondaryAddress === "number" ? opts.secondaryAddress : undefined;
+  const lines: string[] = [];
+
+  // OPEN printer device (#1 to device 4 with optional secondary address)
+  if (saddr === 0 || saddr === 7) {
+    lines.push(`10 OPEN1,4,${saddr}`);
+  } else {
+    lines.push("10 OPEN1,4");
+  }
+
+  // Prepare text: split by CR/LF and emit PRINT# statements.
+  // We chunk long logical lines to avoid very long BASIC lines; join chunks with ';' to avoid extra CRs.
+  const raw = opts.text ?? "";
+  const logicalLines = raw.split(/\r\n|\r|\n/);
+
+  let ln = 20;
+  for (const logical of logicalLines) {
+    if (logical.length === 0) {
+      lines.push(`${ln} PRINT#1`);
+      ln += 10;
+      continue;
+    }
+    const chunks = chunkString(logical, 60);
+    for (let i = 0; i < chunks.length; i += 1) {
+      const chunk = escapeBasicQuotes(chunks[i]);
+      const tail = i < chunks.length - 1 ? ";" : ""; // avoid CR between chunks within the same logical line
+      lines.push(`${ln} PRINT#1,"${chunk}"${tail}`);
+      ln += 10;
+    }
+  }
+
+  if (opts.formFeed) {
+    lines.push(`${ln} PRINT#1,CHR$(12)`);
+    ln += 10;
+  }
+
+  // Minimal target-specific toggles could be inserted here in future
+  // (e.g., ESC/P mode selections for Epson). Default is raw text output.
+
+  lines.push(`${ln} CLOSE1`);
+  return lines.join("\n");
+}
+
+function chunkString(input: string, maxLen: number): string[] {
+  if (input.length <= maxLen) return [input];
+  const parts: string[] = [];
+  let i = 0;
+  while (i < input.length) {
+    parts.push(input.slice(i, i + maxLen));
+    i += maxLen;
+  }
+  return parts;
+}
+
+function escapeBasicQuotes(input: string): string {
+  // In Commodore BASIC, embed a double quote by doubling it
+  return input.replace(/"/g, '""');
 }
 
 function hex2(n: number): string {

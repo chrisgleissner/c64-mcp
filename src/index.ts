@@ -96,6 +96,20 @@ async function main() {
     return result;
   });
 
+  // Generate a BASIC program to print text to printer (device 4) and run it
+  server.post<{
+    Body: { text?: string; target?: "commodore" | "epson"; secondaryAddress?: 0 | 7; formFeed?: boolean };
+  }>("/tools/print_text", async (request, reply) => {
+    const { text, target, secondaryAddress, formFeed } = request.body ?? {};
+    if (typeof text !== "string") {
+      reply.code(400);
+      return { error: "Missing text" };
+    }
+    const result = await client.printTextOnPrinterAndRun({ text, target, secondaryAddress, formFeed });
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
   server.post<{ Body: { program: string } }>("/tools/upload_and_run_asm", async (request, reply) => {
     const { program } = request.body ?? {};
 
@@ -274,6 +288,9 @@ async function main() {
 
   // Expose SID file structure doc as a simple tool for MCP clients
   server.get("/tools/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
+
+  // Expose printing knowledge article for MCP clients
+  server.get("/tools/printing_guide", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/printing-commodore-epson.md", "utf8")) }));
 
   // Very simple generator: arpeggiate a triad on voice 1 for N steps
   server.post<{ Body: { root?: string; pattern?: string; steps?: number; tempoMs?: number; waveform?: "pulse" | "saw" | "tri" | "noise" } }>(
