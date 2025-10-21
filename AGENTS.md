@@ -65,3 +65,25 @@ curl -s -X POST http://localhost:8000/tools/reset_c64
 ### Notes
 - Some tools can affect device state (e.g. power, reboot, drive ops). Use them deliberately.
 - The server includes a local RAG over examples in `data/` and optional fetched sources; see the README for details.
+
+### Audio Feedback Loop Workflow
+The server supports an intelligent audio verification workflow for iterative music composition:
+
+1. **Compose**: Use `music_generate` or `upload_and_run_basic` to create and play SID music
+2. **Verify**: Use natural language like "check the music", "verify the song", or "does it sound right?"
+3. **Analyze**: The `analyze_audio` tool automatically detects verification requests and records/analyzes audio
+4. **Feedback**: Get detailed analysis including detected notes, pitch accuracy, and musical feedback
+5. **Iterate**: Use the feedback to refine your composition
+
+Example workflow:
+```bash
+# Compose a song
+curl -X POST -H 'Content-Type: application/json' \
+  -d '{"request":"Generate a simple C major scale melody"}' \
+  http://localhost:8000/tools/music_generate
+
+# Verify the output  
+curl -X POST -H 'Content-Type: application/json' \
+  -d '{"request":"check if the music sounds correct"}' \
+  http://localhost:8000/tools/analyze_audio
+```
