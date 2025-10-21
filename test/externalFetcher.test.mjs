@@ -28,7 +28,8 @@ function fakeRequesterFactory(pages) {
     if (!page) {
       throw new Error('404: ' + key);
     }
-    return { statusCode: page.statusCode ?? 200, headers: page.headers ?? { 'content-type': 'text/html' }, body: Buffer.from(page.body ?? '') };
+    const body = page.body instanceof Buffer ? page.body : Buffer.from(page.body ?? '');
+    return { statusCode: page.statusCode ?? 200, headers: page.headers ?? { 'content-type': 'text/html' }, body };
   };
 }
 
@@ -206,4 +207,21 @@ test('logs key events and handles failures gracefully', async () => {
   assert.ok(logs.some((e) => e.event === 'request_error'));
   assert.ok(logs.some((e) => e.event === 'download_success'));
   assert.ok(logs.some((e) => e.event === 'seed_done'));
+});
+
+test('ignores HTML masquerading as text files', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,Github blob,http://github.com/repo/blob/master/file.asm,1',
+  ]);
+  const outDir = tmpDir('html-filter');
+  const htmlBody = Buffer.from('<html><head></head><body>not source</body></html>');
+  const pages = {
+    'http://github.com/repo/blob/master/file.asm': { headers: { 'content-type': 'text/plain' }, body: htmlBody },
+    'https://raw.githubusercontent.com/repo/blob/master/file.asm': { headers: { 'content-type': 'text/plain' }, body: htmlBody },
+  };
+  const logs = [];
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: fakeRequesterFactory(pages), log: (e) => logs.push(e) });
+  assert.equal(summaries[0].downloaded, 0);
+  assert.ok(logs.some((e) => e.event === 'skip_binary_or_oversize'));
 });

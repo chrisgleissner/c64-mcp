@@ -200,6 +200,30 @@ function isBinaryContentType(ct: string | undefined): boolean {
   return true;
 }
 
+function looksLikeHtml(buffer: Buffer): boolean {
+  const text = buffer.toString('utf8');
+  const lines = text.split(/\r?\n/);
+  let inspected = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) continue;
+    inspected += 1;
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('<!doctype html') || lower.startsWith('<html') || lower.includes('<html')) {
+      return true;
+    }
+    if (inspected >= 10) break;
+  }
+  return false;
+}
+
+function looksLikePdf(buffer: Buffer): boolean {
+  if (buffer.length < 5) return false;
+  const header = buffer.subarray(0, 5).toString('ascii');
+  if (header === '%PDF-') return true;
+  return false;
+}
+
 export interface FetchSummary {
   seed: string;
   visited: number;
@@ -323,11 +347,11 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
             continue;
           }
 
-          if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct)) {
-            skipped++;
-            log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: targetHref, contentLength, contentType: ct } });
-            continue;
-          }
+        if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct) || looksLikeHtml(body) || looksLikePdf(body)) {
+          skipped++;
+          log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: targetHref, contentLength, contentType: ct } });
+          continue;
+        }
 
           const isHtml = ct?.toLowerCase().includes('html');
           if (isHtml) {
