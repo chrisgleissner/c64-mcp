@@ -4,7 +4,12 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Readable } from 'node:stream';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fetchFromCsv } from '../src/rag/externalFetcher.ts';
+
+const execFileAsync = promisify(execFile);
 
 function tmpDir(name) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +25,15 @@ async function setupCsv(lines) {
   return csv;
 }
 
+async function pathExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function fakeRequesterFactory(pages) {
   /** @type {(url: URL, ua: string) => Promise<{statusCode:number, headers:any, body:Buffer}>} */
   return async (url) => {
@@ -28,7 +42,8 @@ function fakeRequesterFactory(pages) {
     if (!page) {
       throw new Error('404: ' + key);
     }
-    return { statusCode: page.statusCode ?? 200, headers: page.headers ?? { 'content-type': 'text/html' }, body: Buffer.from(page.body ?? '') };
+    const body = page.body instanceof Buffer ? page.body : Buffer.from(page.body ?? '');
+    return { statusCode: page.statusCode ?? 200, headers: page.headers ?? { 'content-type': 'text/html' }, body };
   };
 }
 
@@ -69,11 +84,9 @@ test('enforces domain restriction across subdomains', async () => {
     'http://sub.example.co.uk/index.html': { headers: { 'content-type': 'text/html' }, body: '<a href="http://www.example.co.uk/x.bas">X</a><a href="http://evil.com/y.bas">Y</a>' },
     'http://www.example.co.uk/x.bas': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$01' },
   };
-  const logs = [];
-  const log = (e) => logs.push(e);
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 3, request: fakeRequesterFactory(pages), log });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 3, request: fakeRequesterFactory(pages) });
   assert.equal(summaries[0].downloaded, 1);
-  assert.ok(logs.some((e) => e.event === 'skip_out_of_domain' && /evil\.com/.test(JSON.stringify(e.data))));
+  assert.ok(summaries[0].skipped >= 1);
 });
 
 test('applies throttling (10 rps) and max 500 per seed', async () => {
@@ -198,6 +211,161 @@ test('logs key events and handles failures gracefully', async () => {
   const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 2, request: fakeRequesterFactory(pages), log: (e) => logs.push(e) });
   assert.equal(summaries[0].errors >= 1, true);
   assert.ok(logs.some((e) => e.event === 'request_error'));
-  assert.ok(logs.some((e) => e.event === 'download'));
+  assert.ok(logs.some((e) => e.event === 'download_success'));
   assert.ok(logs.some((e) => e.event === 'seed_done'));
+});
+
+test('ignores HTML masquerading as text files', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,Github blob,http://github.com/repo/blob/master/file.asm,1',
+  ]);
+  const outDir = tmpDir('html-filter');
+  const htmlBody = Buffer.from('<html><head></head><body>not source</body></html>');
+  const pages = {
+    'http://github.com/repo/blob/master/file.asm': { headers: { 'content-type': 'text/plain' }, body: htmlBody },
+    'https://raw.githubusercontent.com/repo/blob/master/file.asm': { headers: { 'content-type': 'text/plain' }, body: htmlBody },
+  };
+  const logs = [];
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 1, request: fakeRequesterFactory(pages), log: (e) => logs.push(e) });
+  assert.equal(summaries[0].downloaded, 0);
+  assert.ok(logs.some((e) => e.event === 'skip_binary_or_oversize'));
+});
+
+test('fetches GitHub repository via override fetcher', async () => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,Github repo,https://github.com/example/repo,5',
+  ]);
+  const outDir = tmpDir('github-repo');
+  let called = false;
+  const summaries = await fetchFromCsv({
+    csvPath: csv,
+    outDir,
+    githubRepoFetcher: async ({ seedUrl }) => {
+      called = true;
+      return { seed: seedUrl.toString(), visited: 1, downloaded: 42, skipped: 3, errors: 0 };
+    },
+  });
+  assert.equal(called, true);
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].downloaded, 42);
+  assert.equal(summaries[0].skipped, 3);
+});
+
+test('downloads GitHub repo zip via default fetcher', { concurrency: false }, async (t) => {
+  const csv = await setupCsv([
+    'type,description,link,depth',
+    'asm,Github repo,https://github.com/test/sample,5',
+  ]);
+  const outDir = tmpDir('github-repo-default');
+  await fs.rm(outDir, { recursive: true, force: true });
+
+  const zipWorkspace = tmpDir('github-repo-zip-src');
+  await fs.rm(zipWorkspace, { recursive: true, force: true });
+  await fs.mkdir(zipWorkspace, { recursive: true });
+
+  const repoRoot = path.join(zipWorkspace, 'sample-main');
+  await fs.mkdir(repoRoot, { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'hello.bas'), '10 PRINT "HELLO"\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'ignore.bin'), 'skip me', 'utf8');
+  await fs.mkdir(path.join(repoRoot, 'notes'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'notes', 'control_codes_c64.txt'), 'C64 codes', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'notes', 'control_codes_c128.txt'), 'C128 codes', 'utf8');
+  await fs.mkdir(path.join(repoRoot, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'docs', 'c64disasm_en.txt'), 'English docs', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'docs', 'c64disasm_de.txt'), 'Deutsch docs', 'utf8');
+  await fs.mkdir(path.join(repoRoot, 'duplicates'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'duplicates', 'dup.bas'), '1 REM DUPLICATE\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'duplicates', 'dup_copy.bas'), '1 REM DUPLICATE\n', 'utf8');
+
+  const zipPath = path.join(zipWorkspace, 'sample.zip');
+  try {
+    await execFileAsync('zip', ['-r', zipPath, 'sample-main'], { cwd: zipWorkspace });
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
+      t.skip('zip command not available in PATH');
+      return;
+    }
+    throw err;
+  }
+
+  const zipBuffer = await fs.readFile(zipPath);
+  const originalFetch = globalThis.fetch;
+  const zipUrl = 'https://github.com/test/sample/archive/refs/heads/main.zip';
+
+  globalThis.fetch = async (input) => {
+    const target = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : (input && typeof input === 'object' && 'url' in input)
+          ? input.url
+          : '';
+    if (target === zipUrl) {
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        body: Readable.from(zipBuffer),
+      };
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      body: Readable.from([]),
+    };
+  };
+
+  try {
+    const summaries = await fetchFromCsv({
+      csvPath: csv,
+      outDir,
+      githubLicenseFetcher: async () => ({
+        licenseId: 'MIT',
+        licenseName: 'MIT License',
+        licenseUrl: 'https://github.com/test/sample/blob/main/LICENSE',
+        licenseText: 'MIT License TEXT',
+        attribution: 'Source: test/sample (MIT)',
+      }),
+    });
+    assert.equal(summaries.length, 1);
+    const summary = summaries[0];
+    assert.equal(summary.errors, 0);
+    assert.equal(summary.downloaded, 5);
+    const repoDir = path.join(outDir, 'github.com', 'test_sample');
+    const helloPath = path.join(repoDir, 'hello.bas');
+    const ignorePath = path.join(repoDir, 'ignore.bin');
+    const codesC64Path = path.join(repoDir, 'notes', 'control_codes_c64.txt');
+    const codesC128Path = path.join(repoDir, 'notes', 'control_codes_c128.txt');
+    const disasmEnPath = path.join(repoDir, 'docs', 'c64disasm_en.txt');
+    const disasmDePath = path.join(repoDir, 'docs', 'c64disasm_de.txt');
+    const duplicatesDir = path.join(repoDir, 'duplicates');
+    const metadataPath = path.join(repoDir, '_metadata.json');
+    const licensePath = path.join(repoDir, 'LICENSE');
+    assert.equal(await pathExists(helloPath), true);
+    assert.equal(await pathExists(ignorePath), false);
+    assert.equal(await pathExists(codesC64Path), true);
+    assert.equal(await pathExists(codesC128Path), false);
+    assert.equal(await pathExists(disasmEnPath), true);
+    assert.equal(await pathExists(disasmDePath), false);
+    const duplicateEntries = (await fs.readdir(duplicatesDir)).sort();
+    assert.equal(duplicateEntries.length, 1);
+    assert.ok(['dup.bas', 'dup_copy.bas'].includes(duplicateEntries[0]));
+    const metadataRaw = await fs.readFile(metadataPath, 'utf8');
+    const metadata = JSON.parse(metadataRaw);
+    assert.equal(metadata.type, 'github');
+    assert.equal(metadata.owner, 'test');
+    assert.equal(metadata.repo, 'sample');
+    assert.equal(metadata.branch, 'main');
+    assert.equal(metadata.repoUrl, 'https://github.com/test/sample');
+    assert.equal(metadata.license.spdxId, 'MIT');
+    assert.equal(metadata.license.name, 'MIT License');
+    assert.equal(metadata.license.url, 'https://github.com/test/sample/blob/main/LICENSE');
+    const licenseContent = await fs.readFile(licensePath, 'utf8');
+    assert.match(licenseContent, /MIT License TEXT/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

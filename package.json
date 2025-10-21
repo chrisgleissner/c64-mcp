@@ -5,13 +5,13 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node --loader ts-node/esm src/index.ts",
+    "start": "node --import ./scripts/register-ts-node.mjs src/index.ts",
     "build": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
     "check": "npm run build && npm test",
     "api:generate": "swagger-typescript-api -p doc/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",
-    "rag:rebuild": "node --loader ts-node/esm scripts/rag-rebuild.mjs",
+    "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
     "rag:fetch": "node scripts/fetch-external-sources.mjs"
   },
   "keywords": [

@@ -3,7 +3,7 @@ C64 MCP - Local RAG Types
 GPL-2.0-only
 */
 
-export type RagLanguage = "basic" | "asm";
+export type RagLanguage = "basic" | "asm" | "mixed" | "hardware" | "other";
 
 export interface RagRetriever {
   retrieve(query: string, topK?: number, filterLanguage?: RagLanguage): Promise<string[]>;
@@ -16,6 +16,13 @@ export interface EmbeddingRecord {
   text: string; // full source content
   sourcePath: string; // absolute path on disk
   sourceMtimeMs: number; // for incremental updates
+  sourceUrl?: string;
+  sourceRepoUrl?: string;
+  license?: string;
+  licenseSpdxId?: string;
+  licenseName?: string;
+  licenseUrl?: string;
+  attribution?: string;
 }
 
 export interface EmbeddingIndexFile {

@@ -94,7 +94,7 @@ async function runPrgOnHardware(prg) {
 
 function printHelp() {
   console.log(`Usage:
-  node --loader ts-node/esm scripts/c64-cli.mjs <command> [options]
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs <command> [options]
 
 Commands:
   convert-basic   Convert a BASIC text file into a PRG. Options: --input <path> [--output <path>] [--run]
@@ -102,9 +102,9 @@ Commands:
   run-prg         Upload and run an existing PRG file. Options: --input <path>
 
 Examples:
-  node --loader ts-node/esm scripts/c64-cli.mjs convert-basic --input demos/hello.bas
-  node --loader ts-node/esm scripts/c64-cli.mjs run-basic --input demos/hello.bas
-  node --loader ts-node/esm scripts/c64-cli.mjs run-prg --input artifacts/demo-basic.prg
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input demos/hello.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input demos/hello.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/demo-basic.prg
 `);
 }
 
