@@ -132,9 +132,10 @@
     },
     {
       "name": "music_compile_and_play",
-      "description": "Compile a CPG (YAML/JSON) SID composition to PRG/SID and play it",
-      "parameters": { "cpg": "string", "format": "string", "output": "string", "dryRun": "boolean" }
+      "description": "Compile a SIDWAVE (.sid.yaml/.sidwave.yaml or JSON) composition to PRG/SID and play it",
+      "parameters": { "sidwave": "string", "format": "string", "output": "string", "dryRun": "boolean" }
     },
+    { "name": "sidwave_spec", "description": "Return the SIDWAVE format specification" },
     { "name": "sid_silence_all", "description": "Silence all SID voices" },
     { "name": "sid_reference", "description": "Return the SID overview document" },
     { "name": "sid_file_structure", "description": "Return the SID file structure overview" },

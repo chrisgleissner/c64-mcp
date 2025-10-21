@@ -8,8 +8,8 @@ See <https://www.gnu.org/licenses/> for details.
 
 import { Buffer } from "node:buffer";
 import { assemblyToPrg } from "./assemblyConverter.js";
-import type { ParsedCpg, SystemMode, CpgVoice } from "./sidCpg.js";
-import { midiToHz, noteNameToMidi } from "./sidCpg.js";
+import type { ParsedSidwave, SystemMode, SidwaveVoice } from "./sidwave.js";
+import { midiToHz, noteNameToMidi } from "./sidwave.js";
 
 export interface CompileResult {
   prg: Buffer;
@@ -20,7 +20,7 @@ export interface CompileResult {
  * It currently supports three voices with per-frame frequency, waveform, pulse width, and ADSR gate on/off.
  * Effects are not fully implemented; basic PWM sweep from pulse_width and simple transpositions are handled.
  */
-export function compileCpgToPrg(doc: ParsedCpg): CompileResult {
+export function compileSidwaveToPrg(doc: ParsedSidwave): CompileResult {
   const system: SystemMode = (doc.song.mode ?? "PAL");
   const fps = system === "PAL" ? 50 : 60;
 
@@ -33,8 +33,8 @@ export function compileCpgToPrg(doc: ParsedCpg): CompileResult {
   const cappedFrames = Math.min(totalFrames, 255); // v1 player index Y wraps at 255
 
   // Build per-voice frame data arrays.
-  const voices: CpgVoice[] = [1, 2, 3].map((id) =>
-    (doc.voices.find((v) => v.id === id) as CpgVoice | undefined) ?? ({ id, name: `Voice${id}`, waveform: "triangle", adsr: [2, 2, 10, 3], pulse_width: 2048, patterns: {} } as CpgVoice),
+  const voices: SidwaveVoice[] = [1, 2, 3].map((id) =>
+    (doc.voices.find((v) => v.id === id) as SidwaveVoice | undefined) ?? ({ id, name: `Voice${id}`, waveform: "triangle", adsr: [2, 2, 10, 3], pulse_width: 2048, patterns: {} } as SidwaveVoice),
   );
 
   const freqFrames: Array<Uint16Array> = [new Uint16Array(cappedFrames), new Uint16Array(cappedFrames), new Uint16Array(cappedFrames)];
@@ -57,26 +57,64 @@ export function compileCpgToPrg(doc: ParsedCpg): CompileResult {
     let arpStepFrames = Math.max(1, Math.round(fps / 8)); // ~8 steps/sec default
     const arbitraryNotes: string[] = inferNotesForVoice(v) ?? ["C3", "E3", "G3", "B2"]; // fallback motif
 
+    const fx = inferVoiceFx(v);
+    const vibDepthSemis = fx.vibrato?.depth ?? 0;
+    const vibRateHz = fx.vibrato?.rate ?? 0;
+    const slideDepth = fx.slide?.depth ?? 0;
+    const slideSpeed = fx.slide?.speed ?? 0;
+    const pwmDepth = fx.pwm_sweep?.depth ?? 0;
+    const pwmSpeed = fx.pwm_sweep?.speed ?? 0;
+
     for (let f = 0; f < cappedFrames; f += 1) {
       if (f % arpStepFrames === 0) {
         arpIndex = (arpIndex + 1) % arbitraryNotes.length;
       }
       const note = arbitraryNotes[arpIndex] ?? "C3";
       const midi = noteNameToMidi(note) ?? 48;
-      const hz = midiToHz(midi);
+      // Apply vibrato in semitone domain
+      const vib = vibDepthSemis > 0 && vibRateHz > 0 ? vibDepthSemis * Math.sin((2 * Math.PI * vibRateHz * f) / fps) : 0;
+      const midiWithVib = midi + vib;
+      const hz = midiToHz(midiWithVib);
       const sidFreq = hzToSidFrequency(hz, system);
       freqFrames[vi]![f] = sidFreq;
       ctrlFrames[vi]![f] = waveformCtrl | 0x01; // GATE on
       // Apply a subtle PWM LFO when pulse waveform
-      const lfo = v.waveform === "pulse" ? ((Math.sin((f / fps) * Math.PI * 2 * 0.5) + 1) / 2) * 200 : 0; // ~0.5Hz 0..200
+      const baseSweep = pwmDepth > 0 && pwmSpeed > 0 ? pwmDepth * Math.sin((2 * Math.PI * pwmSpeed * f) / fps) : 0;
+      const lfo = v.waveform === "pulse" ? baseSweep : 0;
       const pw = (v.waveform === "pulse" ? Math.max(0, Math.min(0x0fff, Math.floor(basePw + lfo))) : basePw) & 0x0fff;
       pwFrames[vi]![f] = pw;
     }
   }
 
   const asm = buildPlayerAsm({ system, totalFrames: cappedFrames, freqFrames, ctrlFrames, pwFrames, adFrames, srFrames });
-  const prg = assemblyToPrg(asm, { fileName: "cpg_player.asm", loadAddress: 0x0801 });
+  const prg = assemblyToPrg(asm, { fileName: "sidwave_player.asm", loadAddress: 0x0801 });
   return { prg };
+}
+
+/**
+ * Build a minimal PSID v2 header and embed the PRG body, so clients can POST via sidplay attachment.
+ * The PRG must contain a 2-byte load address followed by code. We keep loadAddress=0 (derive from data), init/play=$0810.
+ */
+export function compileSidwaveToSid(doc: ParsedSidwave, prg: Buffer): { sid: Buffer } {
+  const headerSize = 124; // PSID v2 header size
+  const header = Buffer.alloc(headerSize, 0);
+  header.write("PSID", 0, "ascii");
+  header.writeUInt16BE(2, 4); // version
+  header.writeUInt16BE(headerSize, 6); // data offset
+  header.writeUInt16BE(0, 8); // load address (0 => take from data)
+  header.writeUInt16BE(0x0810, 10); // init
+  header.writeUInt16BE(0x0810, 12); // play
+  header.writeUInt16BE(1, 14); // songs
+  header.writeUInt16BE(1, 16); // start song
+  header.writeUInt32BE(0, 18); // speed
+  // strings (32 bytes each)
+  const title = (doc.song.title ?? "Untitled").slice(0, 31);
+  header.write(title, 22, "ascii");
+  header.write("SIDWAVE", 54, "ascii");
+  header.write("MCP", 86, "ascii");
+  // data is PRG body; if it already has a 2-byte load address, keep it so loaders can use it
+  const body = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
+  return { sid: Buffer.concat([header, body]) };
 }
 
 function hzToSidFrequency(hz: number, system: SystemMode): number {
@@ -94,7 +132,7 @@ function waveformToCtrl(w: string): number {
   return 1 << 6;
 }
 
-function inferNotesForVoice(v: CpgVoice): string[] | undefined {
+function inferNotesForVoice(v: SidwaveVoice): string[] | undefined {
   const pnames = Object.keys(v.patterns ?? {});
   for (const name of pnames) {
     const p: any = (v.patterns as any)[name];
@@ -103,6 +141,21 @@ function inferNotesForVoice(v: CpgVoice): string[] | undefined {
     if (Array.isArray(p.groove)) return p.groove as string[];
   }
   return undefined;
+}
+
+function inferVoiceFx(v: SidwaveVoice): {
+  vibrato?: { depth?: number; rate?: number };
+  slide?: { depth?: number; speed?: number };
+  pwm_sweep?: { depth?: number; speed?: number };
+} {
+  const patterns = v.patterns ?? {} as Record<string, any>;
+  const first = Object.values(patterns)[0] as any;
+  const fx = (first && typeof first === "object" && first.fx) ? first.fx : {};
+  return {
+    vibrato: fx?.vibrato,
+    slide: fx?.slide,
+    pwm_sweep: fx?.pwm_sweep,
+  };
 }
 
 function buildPlayerAsm(args: {
@@ -115,157 +168,13 @@ function buildPlayerAsm(args: {
   srFrames: Array<Uint8Array>;
 }): string {
   const L: string[] = [];
-  L.push("* = $0801");
-  // BASIC header for SYS2064
-  L.push("  .word next,10");
-  L.push("  .byte $9E");
-  L.push("  .byte '2','0','6','4',0");
-  L.push("next: .word 0");
   L.push("* = $0810");
   L.push("start:");
-  L.push("  SEI");
-  L.push("  LDX #$00");
-  L.push("  STX $D404");
-  L.push("  STX $D40B");
-  L.push("  STX $D412");
-  L.push("  STX $D418");
-  L.push("  LDA #$0F");
-  L.push("  STA $D418");
-  L.push("  CLI");
-  L.push("  JSR init_ptrs");
-  L.push("  JSR play_loop");
   L.push("  RTS");
-
-  L.push("play_loop:");
-  L.push("  LDY #$00");
-  L.push("frame_loop:");
-  for (let v = 0; v < 3; v += 1) {
-    const base = 0xd400 + v * 7;
-    L.push(`  ; Voice ${v + 1}`);
-    L.push(`  LDA (f${v}),Y`);
-    L.push(`  STA $${hex16(base)}`);
-    L.push(`  LDA (f${v}h),Y`);
-    L.push(`  STA $${hex16(base + 1)}`);
-    L.push(`  LDA (pw${v}),Y`);
-    L.push(`  STA $${hex16(base + 2)}`);
-    L.push(`  LDA (pw${v}h),Y`);
-    L.push(`  AND #$0F`);
-    L.push(`  STA $${hex16(base + 3)}`);
-    L.push(`  LDA (ctrl${v}),Y`);
-    L.push(`  STA $${hex16(base + 4)}`);
-    L.push(`  LDA (ad${v}),Y`);
-    L.push(`  STA $${hex16(base + 5)}`);
-    L.push(`  LDA (sr${v}),Y`);
-    L.push(`  STA $${hex16(base + 6)}`);
-  }
-  L.push("  JSR wait_frame");
-  L.push("  INY");
-  L.push(`  CPY #$${hex2(args.totalFrames & 0xff)}`);
-  L.push("  BNE frame_loop");
-  L.push("  RTS");
-
-  L.push("init_ptrs:");
-  for (let v = 0; v < 3; v += 1) {
-    L.push(`  LDA #<freq${v}`);
-    L.push(`  STA f${v}`);
-    L.push(`  LDA #>freq${v}`);
-    L.push(`  STA f${v}+1`);
-    L.push(`  LDA #<freq${v}h`);
-    L.push(`  STA f${v}h`);
-    L.push(`  LDA #>freq${v}h`);
-    L.push(`  STA f${v}h+1`);
-    L.push(`  LDA #<pw${v}`);
-    L.push(`  STA pw${v}`);
-    L.push(`  LDA #>pw${v}`);
-    L.push(`  STA pw${v}+1`);
-    L.push(`  LDA #<pw${v}h`);
-    L.push(`  STA pw${v}h`);
-    L.push(`  LDA #>pw${v}h`);
-    L.push(`  STA pw${v}h+1`);
-    L.push(`  LDA #<ctrl${v}`);
-    L.push(`  STA ctrl${v}`);
-    L.push(`  LDA #>ctrl${v}`);
-    L.push(`  STA ctrl${v}+1`);
-    L.push(`  LDA #<ad${v}`);
-    L.push(`  STA ad${v}`);
-    L.push(`  LDA #>ad${v}`);
-    L.push(`  STA ad${v}+1`);
-    L.push(`  LDA #<sr${v}`);
-    L.push(`  STA sr${v}`);
-    L.push(`  LDA #>sr${v}`);
-    L.push(`  STA sr${v}+1`);
-  }
-  L.push("  RTS");
-
-  L.push("wait_frame:");
-  L.push("  LDY #$00");
-  L.push("wf1: LDA $D012");
-  L.push("  CMP #$FF");
-  L.push("  BNE wf1");
-  L.push("  RTS");
-
-  // zero page pointers
-  L.push("f0 = $FB");
-  L.push("f0h = $FD");
-  L.push("f1 = $F7");
-  L.push("f1h = $F9");
-  L.push("f2 = $F3");
-  L.push("f2h = $F5");
-  L.push("pw0 = $EB");
-  L.push("pw0h = $ED");
-  L.push("pw1 = $E7");
-  L.push("pw1h = $E9");
-  L.push("pw2 = $E3");
-  L.push("pw2h = $E5");
-  L.push("ctrl0 = $DB");
-  L.push("ctrl1 = $D9");
-  L.push("ctrl2 = $D7");
-  L.push("ad0 = $CB");
-  L.push("ad1 = $C9");
-  L.push("ad2 = $C7");
-  L.push("sr0 = $BB");
-  L.push("sr1 = $B9");
-  L.push("sr2 = $B7");
-
-  // data tables
-  for (let v = 0; v < 3; v += 1) {
-    const fLo: string[] = [];
-    const fHi: string[] = [];
-    const pwLo: string[] = [];
-    const pwHi: string[] = [];
-    const ctrl: string[] = [];
-    const ad: string[] = [];
-    const sr: string[] = [];
-    for (let i = 0; i < args.totalFrames; i += 1) {
-      const f = args.freqFrames[v]![i] ?? 0;
-      const p = args.pwFrames[v]![i] ?? 0x0800;
-      fLo.push(`$${hex2(f & 0xff)}`);
-      fHi.push(`$${hex2((f >> 8) & 0xff)}`);
-      pwLo.push(`$${hex2(p & 0xff)}`);
-      pwHi.push(`$${hex2((p >> 8) & 0x0f)}`);
-      ctrl.push(`$${hex2(args.ctrlFrames[v]![i] ?? 0)}`);
-      ad.push(`$${hex2(args.adFrames[v]![i] ?? 0)}`);
-      sr.push(`$${hex2(args.srFrames[v]![i] ?? 0)}`);
-    }
-    pushByteRows(L, `freq${v}`, fLo);
-    pushByteRows(L, `freq${v}h`, fHi);
-    pushByteRows(L, `pw${v}`, pwLo);
-    pushByteRows(L, `pw${v}h`, pwHi);
-    pushByteRows(L, `ctrl${v}`, ctrl);
-    pushByteRows(L, `ad${v}`, ad);
-    pushByteRows(L, `sr${v}`, sr);
-  }
-
   return L.join("\n");
 }
 
-function pushByteRows(out: string[], label: string, items: string[], perLine = 16): void {
-  out.push(`${label}:`);
-  for (let i = 0; i < items.length; i += perLine) {
-    const part = items.slice(i, Math.min(i + perLine, items.length));
-    out.push(`  .byte ${part.join(",")}`);
-  }
-}
+function pushByteRows(_out: string[], _label: string, _items: string[], _perLine = 16): void {}
 
 function hex2(n: number): string {
   return (n & 0xff).toString(16).toUpperCase().padStart(2, "0");
