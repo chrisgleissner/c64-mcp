@@ -13,6 +13,11 @@ import { midiToHz, noteNameToMidi } from "./sidwave.js";
 
 export interface CompileResult {
   prg: Buffer;
+  /**
+   * Entry address used for both init and play (single-entry player).
+   * The routine detects first-call initialisation and subsequent play calls.
+   */
+  entryAddress: number;
 }
 
 /**
@@ -43,6 +48,11 @@ export function compileSidwaveToPrg(doc: ParsedSidwave): CompileResult {
   const adFrames: Array<Uint8Array> = [new Uint8Array(cappedFrames), new Uint8Array(cappedFrames), new Uint8Array(cappedFrames)];
   const srFrames: Array<Uint8Array> = [new Uint8Array(cappedFrames), new Uint8Array(cappedFrames), new Uint8Array(cappedFrames)];
 
+  // Build frames from timeline/patterns where possible
+  const framesForVoice: Array<string[]> = [[], [], []];
+  // Precompute frames-per-bar
+  const framesPerBar = framesPerBeat * beatsPerBar;
+
   for (let vi = 0; vi < 3; vi += 1) {
     const v = voices[vi]!;
     const adsr = v.adsr ?? [2, 2, 10, 3];
@@ -53,57 +63,117 @@ export function compileSidwaveToPrg(doc: ParsedSidwave): CompileResult {
     const waveformCtrl = waveformToCtrl((v.waveform as any) ?? "pulse");
     const basePw = Math.max(0, Math.min(0x0fff, Math.floor((v.pulse_width as any) ?? 0x0800)));
 
-    let arpIndex = 0;
-    let arpStepFrames = Math.max(1, Math.round(fps / 8)); // ~8 steps/sec default
-    const arbitraryNotes: string[] = inferNotesForVoice(v) ?? ["C3", "E3", "G3", "B2"]; // fallback motif
+    // Collect a note per frame using timeline mapping (fallback to simple arp)
+    const notesForSong: string[] = [];
+    const patterns = (v.patterns ?? {}) as Record<string, any>;
+    const voiceKeyCandidates = [
+      `v${v.id}`,
+      `voice${v.id}`,
+      `${v.id}`,
+    ];
+    for (const section of doc.timeline ?? []) {
+      // Pick the first matching layer key that maps to this voice
+      let patternName: string | undefined;
+      for (const key of voiceKeyCandidates) {
+        if (section.layers && section.layers[key]) {
+          patternName = String(section.layers[key]);
+          break;
+        }
+      }
+      const bars = Math.max(1, Math.floor(section.bars ?? 1));
+      const totalFramesInSection = bars * framesPerBar;
+      const pat = (patternName ? patterns[patternName] : undefined) as any;
+      if (!pat) {
+        // Fill section with sustained default note
+        for (let i = 0; i < totalFramesInSection; i += 1) notesForSong.push("C3");
+        continue;
+      }
+      if (pat.type === "arpeggio" && Array.isArray(pat.notes) && pat.notes.length) {
+        const stepFrames = Math.max(1, Math.round((pat.frame_rate ? fps / pat.frame_rate : framesPerBeat)));
+        let idx = 0;
+        for (let f = 0; f < totalFramesInSection; f += 1) {
+          if (f % stepFrames === 0) idx = (idx + 1) % pat.notes.length;
+          notesForSong.push(String(pat.notes[idx]));
+        }
+      } else if (Array.isArray(pat.groove) && pat.groove.length) {
+        const stepFrames = framesPerBeat; // one note per beat
+        let gi = 0;
+        for (let f = 0; f < totalFramesInSection; f += 1) {
+          if (f % stepFrames === 0) gi = (gi + 1) % pat.groove.length;
+          notesForSong.push(String(pat.groove[gi]));
+        }
+      } else if (typeof pat.motif === "string" && pat.motif.trim().length > 0) {
+        const intervals = pat.motif
+          .split(/[\s,]+/)
+          .map((x: string) => Number.parseInt(x, 10))
+          .filter((n: number) => Number.isFinite(n));
+        const lengthBeats = Math.max(1, Math.floor(pat.length ?? 1));
+        const stepFrames = framesPerBeat * lengthBeats;
+        const baseNote = "C3";
+        let mi = 0;
+        for (let f = 0; f < totalFramesInSection; f += 1) {
+          if (f % stepFrames === 0) mi = (mi + 1) % Math.max(1, intervals.length);
+          const iv = intervals.length ? intervals[mi] : 0;
+          notesForSong.push(transposeNote(baseNote, iv));
+        }
+      } else {
+        // Unknown pattern shape; fill with default sustained
+        for (let i = 0; i < totalFramesInSection; i += 1) notesForSong.push("C3");
+      }
+    }
+
+    // Ensure we have at least cappedFrames entries
+    if (notesForSong.length < cappedFrames) {
+      const fallback = inferNotesForVoice(v) ?? ["C3", "E3", "G3", "B2"];
+      let i = 0;
+      while (notesForSong.length < cappedFrames) {
+        notesForSong.push(fallback[i % fallback.length]!);
+        i += 1;
+      }
+    }
 
     const fx = inferVoiceFx(v);
     const vibDepthSemis = fx.vibrato?.depth ?? 0;
     const vibRateHz = fx.vibrato?.rate ?? 0;
-    const slideDepth = fx.slide?.depth ?? 0;
-    const slideSpeed = fx.slide?.speed ?? 0;
     const pwmDepth = fx.pwm_sweep?.depth ?? 0;
     const pwmSpeed = fx.pwm_sweep?.speed ?? 0;
 
     for (let f = 0; f < cappedFrames; f += 1) {
-      if (f % arpStepFrames === 0) {
-        arpIndex = (arpIndex + 1) % arbitraryNotes.length;
-      }
-      const note = arbitraryNotes[arpIndex] ?? "C3";
+      const note = notesForSong[f] ?? notesForSong[notesForSong.length - 1] ?? "C3";
       const midi = noteNameToMidi(note) ?? 48;
-      // Apply vibrato in semitone domain
       const vib = vibDepthSemis > 0 && vibRateHz > 0 ? vibDepthSemis * Math.sin((2 * Math.PI * vibRateHz * f) / fps) : 0;
       const midiWithVib = midi + vib;
       const hz = midiToHz(midiWithVib);
       const sidFreq = hzToSidFrequency(hz, system);
       freqFrames[vi]![f] = sidFreq;
       ctrlFrames[vi]![f] = waveformCtrl | 0x01; // GATE on
-      // Apply a subtle PWM LFO when pulse waveform
       const baseSweep = pwmDepth > 0 && pwmSpeed > 0 ? pwmDepth * Math.sin((2 * Math.PI * pwmSpeed * f) / fps) : 0;
-      const lfo = v.waveform === "pulse" ? baseSweep : 0;
-      const pw = (v.waveform === "pulse" ? Math.max(0, Math.min(0x0fff, Math.floor(basePw + lfo))) : basePw) & 0x0fff;
+      const lfo = (String(v.waveform).toLowerCase().startsWith("pulse")) ? baseSweep : 0;
+      const pw = (String(v.waveform).toLowerCase().startsWith("pulse") ? Math.max(0, Math.min(0x0fff, Math.floor(basePw + lfo))) : basePw) & 0x0fff;
       pwFrames[vi]![f] = pw;
     }
   }
 
-  const asm = buildPlayerAsm({ system, totalFrames: cappedFrames, freqFrames, ctrlFrames, pwFrames, adFrames, srFrames });
+  const entryAddress = 0x0810;
+  const asm = buildPlayerAsm({ system, totalFrames: cappedFrames, freqFrames, ctrlFrames, pwFrames, adFrames, srFrames, entryAddress });
   const prg = assemblyToPrg(asm, { fileName: "sidwave_player.asm", loadAddress: 0x0801 });
-  return { prg };
+  return { prg, entryAddress };
 }
 
 /**
  * Build a minimal PSID v2 header and embed the PRG body, so clients can POST via sidplay attachment.
  * The PRG must contain a 2-byte load address followed by code. We keep loadAddress=0 (derive from data), init/play=$0810.
  */
-export function compileSidwaveToSid(doc: ParsedSidwave, prg: Buffer): { sid: Buffer } {
+export function compileSidwaveToSid(doc: ParsedSidwave, prg: Buffer, options?: { entryAddress?: number }): { sid: Buffer } {
   const headerSize = 124; // PSID v2 header size
   const header = Buffer.alloc(headerSize, 0);
   header.write("PSID", 0, "ascii");
   header.writeUInt16BE(2, 4); // version
   header.writeUInt16BE(headerSize, 6); // data offset
   header.writeUInt16BE(0, 8); // load address (0 => take from data)
-  header.writeUInt16BE(0x0810, 10); // init
-  header.writeUInt16BE(0x0810, 12); // play
+  const entry = options?.entryAddress ?? 0x0810;
+  header.writeUInt16BE(entry, 10); // init
+  header.writeUInt16BE(entry, 12); // play (single entry; routine self-dispatches)
   header.writeUInt16BE(1, 14); // songs
   header.writeUInt16BE(1, 16); // start song
   header.writeUInt32BE(0, 18); // speed
@@ -166,15 +236,101 @@ function buildPlayerAsm(args: {
   pwFrames: Array<Uint16Array>;
   adFrames: Array<Uint8Array>;
   srFrames: Array<Uint8Array>;
+  entryAddress: number;
 }): string {
   const L: string[] = [];
-  L.push("* = $0810");
-  L.push("start:");
+  const entryHex = hex16(args.entryAddress);
+  L.push(`* = $${entryHex}`);
+  L.push("; --- PSID single-entry init/play routine ---");
+  L.push("entry:");
+  L.push("  LDA inited");
+  L.push("  BNE do_play");
+  L.push("  JSR init");
   L.push("  RTS");
+  L.push("do_play:");
+  L.push("  JSR play_frame");
+  L.push("  RTS");
+  L.push("");
+  L.push("init:");
+  L.push("  LDA #$0F");
+  L.push("  STA $D418");
+  L.push("  LDA #$00");
+  L.push("  STA frame_idx");
+  L.push("  LDA #$01");
+  L.push("  STA inited");
+  L.push("  RTS");
+  L.push("");
+  L.push("play_frame:");
+  L.push("  LDY frame_idx");
+  for (let v = 0; v < 3; v += 1) {
+    const base = 0xd400 + v * 7;
+    L.push(`  ; voice ${v + 1}`);
+    L.push(`  LDA v${v + 1}_freq_lo,Y`);
+    L.push(`  STA $${hex16(base)}`);
+    L.push(`  LDA v${v + 1}_freq_hi,Y`);
+    L.push(`  STA $${hex16(base + 1)}`);
+    L.push(`  LDA v${v + 1}_pw_lo,Y`);
+    L.push(`  STA $${hex16(base + 2)}`);
+    L.push(`  LDA v${v + 1}_pw_hi,Y`);
+    L.push(`  STA $${hex16(base + 3)}`);
+    L.push(`  LDA v${v + 1}_ctrl,Y`);
+    L.push(`  STA $${hex16(base + 4)}`);
+    L.push(`  LDA v${v + 1}_ad,Y`);
+    L.push(`  STA $${hex16(base + 5)}`);
+    L.push(`  LDA v${v + 1}_sr,Y`);
+    L.push(`  STA $${hex16(base + 6)}`);
+  }
+  L.push("  INY");
+  L.push(`  CPY #$${hex2(args.totalFrames & 0xff)}`);
+  L.push("  BCC store_idx");
+  L.push("  LDY #$00");
+  L.push("store_idx:");
+  L.push("  STY frame_idx");
+  L.push("  RTS");
+  L.push("");
+  L.push("; --- Zero page state ---");
+  L.push("frame_idx = $FB");
+  L.push("inited    = $FC");
+  L.push("");
+  // Data tables
+  for (let v = 0; v < 3; v += 1) {
+    const fLo: string[] = [];
+    const fHi: string[] = [];
+    const pwLo: string[] = [];
+    const pwHi: string[] = [];
+    const ctrl: string[] = [];
+    const ad: string[] = [];
+    const sr: string[] = [];
+    for (let i = 0; i < args.totalFrames; i += 1) {
+      const f = args.freqFrames[v]![i]!;
+      fLo.push(`$${hex2(f & 0xff)}`);
+      fHi.push(`$${hex2((f >> 8) & 0xff)}`);
+      const pw = args.pwFrames[v]![i]!;
+      pwLo.push(`$${hex2(pw & 0xff)}`);
+      pwHi.push(`$${hex2((pw >> 8) & 0x0f)}`);
+      ctrl.push(`$${hex2(args.ctrlFrames[v]![i]!)}`);
+      ad.push(`$${hex2(args.adFrames[v]![i]!)}`);
+      sr.push(`$${hex2(args.srFrames[v]![i]!)}`);
+    }
+    pushByteRows(L, `v${v + 1}_freq_lo`, fLo);
+    pushByteRows(L, `v${v + 1}_freq_hi`, fHi);
+    pushByteRows(L, `v${v + 1}_pw_lo`, pwLo);
+    pushByteRows(L, `v${v + 1}_pw_hi`, pwHi);
+    pushByteRows(L, `v${v + 1}_ctrl`, ctrl);
+    pushByteRows(L, `v${v + 1}_ad`, ad);
+    pushByteRows(L, `v${v + 1}_sr`, sr);
+  }
   return L.join("\n");
 }
 
-function pushByteRows(_out: string[], _label: string, _items: string[], _perLine = 16): void {}
+function pushByteRows(out: string[], label: string, items: string[], perLine = 16): void {
+  out.push("");
+  out.push(`${label}:`);
+  for (let i = 0; i < items.length; i += perLine) {
+    const row = items.slice(i, i + perLine).join(",");
+    out.push(`  .byte ${row}`);
+  }
+}
 
 function hex2(n: number): string {
   return (n & 0xff).toString(16).toUpperCase().padStart(2, "0");
@@ -182,4 +338,21 @@ function hex2(n: number): string {
 
 function hex16(n: number): string {
   return (n & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+}
+
+function transposeNote(note: string, semitones: number): string {
+  const m = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec((note || "").trim());
+  if (!m) return note;
+  const letter = m[1]!.toUpperCase();
+  const accidental = m[2]!;
+  const octave = Number(m[3]);
+  const map: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  let semi = map[letter] ?? 0;
+  if (accidental === "#") semi += 1;
+  if (accidental === "b") semi -= 1;
+  let midi = (octave + 1) * 12 + semi + semitones;
+  const letters = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const newOct = Math.floor(midi / 12) - 1;
+  const name = letters[((midi % 12) + 12) % 12];
+  return `${name}${newOct}`;
 }
