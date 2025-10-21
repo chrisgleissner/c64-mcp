@@ -222,6 +222,30 @@ async function main() {
     return result;
   });
 
+  // Record audio from default microphone and analyze SID playback
+  server.post<{ Body: { durationSeconds?: number; expectedSidwave?: unknown } }>(
+    "/tools/record_and_analyze_audio",
+    async (request, reply) => {
+      const { durationSeconds, expectedSidwave } = request.body ?? {};
+      if (!Number.isFinite(durationSeconds as number)) {
+        reply.code(400);
+        return { error: "Missing or invalid durationSeconds" };
+      }
+      try {
+        const mod = await import("./audio/record_and_analyze_audio.js");
+        const result = await mod.recordAndAnalyzeAudio({
+          durationSeconds: Number(durationSeconds),
+          expectedSidwave,
+        });
+        return result;
+      } catch (error) {
+        request.log.error({ err: error }, "record_and_analyze_audio failed");
+        reply.code(500);
+        return { error: (error as Error).message };
+      }
+    },
+  );
+
   // Expose RAG retrieval as MCP tools for convenience
   server.post<{ Body: { q?: string; k?: number } }>("/tools/rag_retrieve_basic", async (request, reply) => {
     const { q, k } = request.body ?? {};
