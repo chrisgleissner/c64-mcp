@@ -49,7 +49,10 @@ export interface CsvRow {
 
 export async function readCsv(pathCsv: string): Promise<CsvRow[]> {
   const raw = await fs.readFile(pathCsv, 'utf8');
-  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith('#'));
   const header = lines.shift();
   if (!header) return [];
   const cols = header.split(',').map((c) => c.trim());
@@ -118,6 +121,69 @@ const CODE_EXTS = new Set([
   '.x65',
 ]);
 
+const GITHUB_HOSTS = new Set([
+  'github.com',
+  'raw.githubusercontent.com',
+  'githubusercontent.com',
+  'raw.github.com',
+  'codeload.github.com',
+]);
+
+function normalizeGithubUrl(original: URL): { url: URL; raw: boolean; changed: boolean } {
+  if (original.hostname !== 'github.com') {
+    return { url: original, raw: original.hostname === 'raw.githubusercontent.com', changed: false };
+  }
+  const segments = original.pathname.split('/').filter(Boolean);
+  const blobIdx = segments.indexOf('blob');
+  if (blobIdx > -1 && segments.length > blobIdx + 2) {
+    const [owner, repo] = segments;
+    const branch = segments[blobIdx + 1];
+    const pathParts = segments.slice(blobIdx + 2);
+    const rawUrl = new URL(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${pathParts.join('/')}`);
+    return { url: rawUrl, raw: true, changed: true };
+  }
+  return { url: original, raw: false, changed: false };
+}
+
+function isGithubFamily(hostname: string): boolean {
+  return GITHUB_HOSTS.has(hostname.toLowerCase());
+}
+
+function isAllowedDomain(seed: URL, candidate: URL): boolean {
+  if (sameRegisteredDomain(seed.toString(), candidate.toString())) {
+    return true;
+  }
+  if (isGithubFamily(seed.hostname) && isGithubFamily(candidate.hostname)) {
+    return true;
+  }
+  return false;
+}
+
+function shouldFollowLink(seed: URL, current: URL, next: URL): boolean {
+  if (!isAllowedDomain(seed, next)) {
+    return false;
+  }
+  if (isGithubFamily(next.hostname)) {
+    const pathname = next.pathname.toLowerCase();
+    if (pathname.includes('/blob/')) {
+      const ext = path.extname(pathname);
+      return CODE_EXTS.has(ext);
+    }
+    if (pathname.includes('/tree/')) {
+      return true;
+    }
+    return CODE_EXTS.has(path.extname(pathname));
+  }
+  const ext = path.extname(next.pathname.toLowerCase());
+  if (CODE_EXTS.has(ext)) {
+    return true;
+  }
+  if (ext === '.html' || ext === '.htm' || ext === '') {
+    return true;
+  }
+  return next.pathname.endsWith('/');
+}
+
 function isCodeLikeUrl(url: URL): boolean {
   const ext = path.extname(url.pathname).toLowerCase();
   if (!ext) return false;
@@ -148,7 +214,7 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
   await fs.mkdir(outDir, { recursive: true });
 
   const defaultDepth = opts.defaultDepth ?? 5;
-  const perDomainRps = opts.perDomainRps ?? 10;
+  const perDomainRps = opts.perDomainRps ?? 5;
   const maxReq = opts.maxRequestsPerSeed ?? 500;
   const concurrency = Math.max(1, opts.concurrency ?? 6);
   const maxBytes = opts.maxContentBytes ?? 2 * 1024 * 1024;
@@ -167,11 +233,12 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
 
   for (const row of rows) {
     const seed = row.link;
-    const seedUrl = parseUrlSafe(seed);
-    if (!seedUrl) {
+    const maybeSeedUrl = parseUrlSafe(seed);
+    if (!maybeSeedUrl) {
       log({ level: 'warn', event: 'seed_invalid_url', data: { seed } });
       continue;
     }
+    const seedUrl = maybeSeedUrl;
     const depth = Number.isFinite(row.depth ?? NaN) ? (row.depth as number) : defaultDepth;
     const registeredDomain = getRegisteredDomain(seedUrl.hostname);
     const domainKey = registeredDomain;
@@ -195,94 +262,105 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
         if (visited >= maxReq) return;
         const item = queue.shift();
         if (!item) return;
-        const { url, depth: d } = item;
-        const href = url.toString();
+        try {
+          const { url, depth: d } = item;
+          const originalHref = url.toString();
+          const { url: targetUrl, raw, changed } = normalizeGithubUrl(url);
+          const targetHref = targetUrl.toString();
 
-        if (seen.has(href)) continue;
-        seen.add(href);
+          if (seen.has(targetHref)) continue;
+          seen.add(targetHref);
 
-        if (!sameRegisteredDomain(seed, href)) {
-          skipped++;
-          log({ level: 'info', event: 'skip_out_of_domain', data: { seed, url: href } });
-          continue;
-        }
-
-        visited++;
-
-        // Enforce per-domain RPS
-        await limiter.consume(domainKey);
-
-        const requester = opts.request ?? httpGet;
-        const res = await withRetries(requester, url, userAgent, maxRetries, async (statusCode) => {
-          if (statusCode === 429 || (statusCode && statusCode >= 500 && statusCode < 600)) {
-            // server throttling or transient error
-            limiter.notifyThrottle(domainKey, throttleBackoffFactor);
+          if (!isAllowedDomain(seedUrl, targetUrl)) {
+            skipped++;
+            log({ level: 'info', event: 'skip_out_of_domain', data: { seed, url: targetHref, original: originalHref } });
+            continue;
           }
-        }).catch((err) => ({ error: err as Error }));
-        if ('error' in res) {
-          errors++;
-          log({ level: 'warn', event: 'request_error', data: { url: href, message: res.error.message } });
-          continue;
-        }
 
-        const { statusCode, headers, body } = res;
-        const ct = headers['content-type']?.toString();
-        const contentLength = Number(headers['content-length'] ?? 0);
+          if (changed) {
+            log({ level: 'info', event: 'normalize_github', data: { from: originalHref, to: targetHref } });
+          }
 
-        log({ level: 'info', event: 'request_ok', data: { url: href, statusCode, depth: d, discovered: 0, visited, remaining: Math.max(0, maxReq - visited) } });
+          visited++;
 
-        // Handle redirects with domain restriction
-        if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
-          const loc = headers.location.toString();
-          let redirected: URL | null = null;
-          try { redirected = new URL(loc, url); } catch {}
-          if (redirected) {
-            const toStr = redirected.toString();
-            if (sameRegisteredDomain(seed, toStr)) {
-              log({ level: 'info', event: 'redirect', data: { from: href, to: toStr } });
-              queue.unshift({ url: redirected, depth: d });
-            } else {
-              skipped++;
-              log({ level: 'info', event: 'skip_redirect_out_of_domain', data: { from: href, to: toStr } });
+          const domainKeyForRequest = getRegisteredDomain(targetUrl.hostname);
+          await limiter.consume(domainKeyForRequest);
+
+          log({ level: 'info', event: 'request_start', data: { url: targetHref, depth: d, visited, remaining: Math.max(0, maxReq - visited) } });
+
+          const requester = opts.request ?? httpGet;
+          const res = await withRetries(requester, targetUrl, userAgent, maxRetries, async (statusCode) => {
+            if (statusCode === 429 || (statusCode && statusCode >= 500 && statusCode < 600)) {
+              limiter.notifyThrottle(domainKeyForRequest, throttleBackoffFactor);
             }
+          }).catch((err) => ({ error: err as Error }));
+          if ('error' in res) {
+            errors++;
+            log({ level: 'warn', event: 'request_error', data: { url: targetHref, message: res.error.message } });
+            continue;
           }
-          continue;
-        }
 
-        if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct)) {
-          skipped++;
-          log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: href, contentLength, contentType: ct } });
-          continue;
-        }
+          const { statusCode, headers, body } = res;
+          const ct = headers['content-type']?.toString();
+          const contentLength = Number(headers['content-length'] ?? 0);
 
-        const isHtml = ct?.toLowerCase().includes('html');
-        if (isHtml) {
-          // crude link extraction: href="..." and src="..."
-          const links = extractLinks(url, body.toString('utf8'));
-          const nextDepth = d + 1;
-          if (nextDepth <= depth) {
-            for (const next of links) {
-              const u = parseUrlSafe(next);
-              if (!u) continue;
-              if (!sameRegisteredDomain(seed, u.toString())) {
+          log({ level: 'info', event: 'request_ok', data: { url: targetHref, statusCode, depth: d, discovered: 0, visited, remaining: Math.max(0, maxReq - visited), raw } });
+
+          if (statusCode && statusCode >= 300 && statusCode < 400 && headers.location) {
+            const loc = headers.location.toString();
+            let redirected: URL | null = null;
+            try { redirected = new URL(loc, targetUrl); } catch {}
+            if (redirected) {
+              const redirectUrl = redirected;
+              if (isAllowedDomain(seedUrl, redirectUrl)) {
+                log({ level: 'info', event: 'redirect', data: { from: targetHref, to: redirectUrl.toString() } });
+                queue.unshift({ url: redirectUrl, depth: d });
+              } else {
                 skipped++;
-                log({ level: 'info', event: 'skip_out_of_domain', data: { seed, url: u.toString() } });
-                continue;
+                log({ level: 'info', event: 'skip_redirect_out_of_domain', data: { from: targetHref, to: redirectUrl.toString() } });
               }
-              queue.push({ url: u, depth: nextDepth });
             }
-          } else {
-            log({ level: 'info', event: 'depth_exceeded', data: { url: href, depth: d, maxDepth: depth } });
+            continue;
           }
-          log({ level: 'info', event: 'discovered_links', data: { from: href, count: links.length, depth: nextDepth } });
-        }
 
-        if (isCodeLikeUrl(url)) {
-          const rel = path.join(perSeedOut, sanitizeForFs(url.pathname));
-          await fs.mkdir(path.dirname(rel), { recursive: true });
-          await fs.writeFile(rel, body);
-          downloaded++;
-          log({ level: 'info', event: 'download', data: { url: href, path: rel } });
+          if (contentLength > maxBytes || body.length > maxBytes || isBinaryContentType(ct)) {
+            skipped++;
+            log({ level: 'info', event: 'skip_binary_or_oversize', data: { url: targetHref, contentLength, contentType: ct } });
+            continue;
+          }
+
+          const isHtml = ct?.toLowerCase().includes('html');
+          if (isHtml) {
+            const links = extractLinks(targetUrl, body.toString('utf8'));
+            const nextDepth = d + 1;
+            if (nextDepth <= depth) {
+              for (const next of links) {
+                const parsed = parseUrlSafe(next);
+                if (!parsed) continue;
+                const linkUrl = parsed;
+                if (!shouldFollowLink(seedUrl, targetUrl, linkUrl)) {
+                  skipped++;
+                  log({ level: 'info', event: 'skip_link', data: { from: targetHref, to: linkUrl.toString() } });
+                  continue;
+                }
+                queue.push({ url: linkUrl, depth: nextDepth });
+              }
+            } else {
+              log({ level: 'info', event: 'depth_exceeded', data: { url: targetHref, depth: d, maxDepth: depth } });
+            }
+            log({ level: 'info', event: 'discovered_links', data: { from: targetHref, count: links.length, depth: nextDepth } });
+          }
+
+          if (isCodeLikeUrl(targetUrl)) {
+            const rel = path.join(perSeedOut, sanitizeForFs(targetUrl.pathname));
+            await fs.mkdir(path.dirname(rel), { recursive: true });
+            await fs.writeFile(rel, body);
+            downloaded++;
+            log({ level: 'info', event: 'download_success', data: { url: targetHref, path: rel, bytes: body.length } });
+          }
+        } catch (err) {
+          errors++;
+          log({ level: 'error', event: 'worker_exception', data: { message: err instanceof Error ? err.message : String(err) } });
         }
       }
     }
@@ -328,7 +406,11 @@ async function httpGet(url: URL, userAgent: string): Promise<{ statusCode: numbe
 }
 
 function sanitizeForFs(input: string): string {
-  return input.replace(/[^a-zA-Z0-9_.\-\/]/g, '_').replace(/^_+/, '').replace(/_+$/, '');
+  return input
+    .replace(/[^a-zA-Z0-9_.\-\/]/g, '_')
+    .replace(/^\/+/, '')
+    .replace(/^_+/, '')
+    .replace(/_+$/, '');
 }
 
 async function withRetries(

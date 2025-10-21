@@ -73,7 +73,13 @@ test('enforces domain restriction across subdomains', async () => {
   const log = (e) => logs.push(e);
   const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 3, request: fakeRequesterFactory(pages), log });
   assert.equal(summaries[0].downloaded, 1);
-  assert.ok(logs.some((e) => e.event === 'skip_out_of_domain' && /evil\.com/.test(JSON.stringify(e.data))));
+  assert.ok(
+    logs.some(
+      (e) =>
+        (e.event === 'skip_out_of_domain' || e.event === 'skip_link') &&
+        /evil\.com/.test(JSON.stringify(e.data)),
+    ),
+  );
 });
 
 test('applies throttling (10 rps) and max 500 per seed', async () => {
@@ -198,6 +204,6 @@ test('logs key events and handles failures gracefully', async () => {
   const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 2, request: fakeRequesterFactory(pages), log: (e) => logs.push(e) });
   assert.equal(summaries[0].errors >= 1, true);
   assert.ok(logs.some((e) => e.event === 'request_error'));
-  assert.ok(logs.some((e) => e.event === 'download'));
+  assert.ok(logs.some((e) => e.event === 'download_success'));
   assert.ok(logs.some((e) => e.event === 'seed_done'));
 });
