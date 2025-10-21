@@ -43,6 +43,48 @@ export class C64Client {
     return this.uploadAndRunBasic(program);
   }
 
+  /**
+   * Generate and run a Commodore MPS Bit Image Mode (BIM) program for one bitmap row,
+   * optionally repeated.
+   */
+  async printBitmapOnCommodoreAndRun(options: {
+    columns: number[];
+    repeats?: number;
+    useSubRepeat?: number; // if provided, uses BIM SUB to repeat next byte
+    secondaryAddress?: 0 | 7;
+    ensureMsb?: boolean; // default true (set bit7)
+  }): Promise<RunBasicResult> {
+    const program = buildCommodoreBitmapBasicProgram(options);
+    return this.uploadAndRunBasic(program);
+  }
+
+  /**
+   * Generate and run an Epson FX ESC/P bitmap program for one row (repeated lines).
+   */
+  async printBitmapOnEpsonAndRun(options: {
+    columns: number[];
+    mode?: "K" | "L" | "Y" | "Z" | "*";
+    density?: number; // used with '*'
+    repeats?: number;
+    timesPerLine?: number;
+  }): Promise<RunBasicResult> {
+    const program = buildEpsonBitmapBasicProgram(options);
+    return this.uploadAndRunBasic(program);
+  }
+
+  /**
+   * Generate and run a Commodore MPS DLL (custom characters) program. On emulator this
+   * is ignored but we still verify generation and transmission.
+   */
+  async defineCustomCharsOnCommodoreAndRun(options: {
+    firstChar: number; // 33..126
+    chars: Array<{ a?: 0 | 1; columns: number[] }>; // 11 columns per char
+    secondaryAddress?: 0 | 7;
+  }): Promise<RunBasicResult> {
+    const program = buildCommodoreDllBasicProgram(options);
+    return this.uploadAndRunBasic(program);
+  }
+
   async uploadAndRunBasic(program: string): Promise<RunBasicResult> {
     const prg = basicToPrg(program);
     return this.runPrg(prg);
@@ -873,7 +915,7 @@ function buildPetsciiScreenBasic(opts: { text: string; borderColor?: number; bac
   return program;
 }
 
-function buildPrinterBasicProgram(opts: {
+export function buildPrinterBasicProgram(opts: {
   text: string;
   target?: "commodore" | "epson";
   secondaryAddress?: 0 | 7;
@@ -937,6 +979,120 @@ function chunkString(input: string, maxLen: number): string[] {
 function escapeBasicQuotes(input: string): string {
   // In Commodore BASIC, embed a double quote by doubling it
   return input.replace(/"/g, '""');
+}
+
+export function buildCommodoreBitmapBasicProgram(opts: {
+  columns: number[];
+  repeats?: number;
+  useSubRepeat?: number;
+  secondaryAddress?: 0 | 7;
+  ensureMsb?: boolean;
+}): string {
+  const repeats = Math.max(1, Math.floor(opts.repeats ?? 1));
+  const saddr = typeof opts.secondaryAddress === "number" ? opts.secondaryAddress : 7;
+  const ensureMsb = opts.ensureMsb !== false;
+  const cols = (opts.columns ?? []).map((v) => {
+    const n = Math.max(0, Math.min(255, Math.floor(v)));
+    return ensureMsb ? (n | 0x80) : n;
+  });
+  const lines: string[] = [];
+  lines.push(`10 OPEN1,4,${saddr}`);
+  lines.push(`20 A$=""`);
+  lines.push(`30 FOR I=1 TO ${cols.length}`);
+  lines.push(`40 READ A:A$=A$+CHR$(A)`);
+  lines.push(`50 NEXT I`);
+  lines.push(`60 FOR J=1 TO ${repeats}`);
+  if (typeof opts.useSubRepeat === "number") {
+    const r = Math.max(0, Math.min(255, Math.floor(opts.useSubRepeat)));
+    lines.push(`70 PRINT#1,CHR$(8);CHR$(26);CHR$(${r});A$`);
+  } else {
+    lines.push(`70 PRINT#1,CHR$(8);A$`);
+  }
+  lines.push(`80 NEXT J`);
+  lines.push(`90 CLOSE1`);
+  lines.push(`100 END`);
+  let ln = 110;
+  for (let i = 0; i < cols.length; i += 8) {
+    const group = cols.slice(i, i + 8);
+    lines.push(`${ln} DATA ${group.join(",")}`);
+    ln += 10;
+  }
+  return lines.join("\n");
+}
+
+export function buildEpsonBitmapBasicProgram(opts: {
+  columns: number[];
+  mode?: "K" | "L" | "Y" | "Z" | "*";
+  density?: number;
+  repeats?: number;
+  timesPerLine?: number;
+}): string {
+  const cols = (opts.columns ?? []).map((v) => Math.max(0, Math.min(255, Math.floor(v))));
+  const len = cols.length;
+  const n = len & 0xff;
+  const m = (len >> 8) & 0xff;
+  const mode = (opts.mode ?? "K").toUpperCase() as "K" | "L" | "Y" | "Z" | "*";
+  const repeats = Math.max(1, Math.floor(opts.repeats ?? 1));
+  const timesPerLine = Math.max(1, Math.floor(opts.timesPerLine ?? 4));
+
+  function modeCode(mo: string): number | null {
+    const map: Record<string, number> = { K: 75, L: 76, Y: 89, Z: 90 };
+    return map[mo] ?? null;
+  }
+
+  const lines: string[] = [];
+  lines.push(`10 OPEN1,4`);
+  if (mode === "*") {
+    const density = Math.max(0, Math.min(6, Math.floor(opts.density ?? 0)));
+    lines.push(`20 A$=CHR$(27)+"*"+CHR$(${density})+CHR$(${n})+CHR$(${m})`);
+  } else {
+    const mc = modeCode(mode)!;
+    lines.push(`20 A$=CHR$(27)+CHR$(${mc})+CHR$(${n})+CHR$(${m})`);
+  }
+  lines.push(`30 FOR I=1 TO ${cols.length}`);
+  lines.push(`40 READ A:A$=A$+CHR$(A)`);
+  lines.push(`50 NEXT I`);
+  lines.push(`60 PRINT#1,CHR$(27);CHR$(65);CHR$(8);CHR$(10);CHR$(13)`);
+  lines.push(`70 FOR J=1 TO ${repeats}`);
+  const seg = Array.from({ length: timesPerLine }).map(() => "A$").join(";");
+  lines.push(`80 PRINT#1,${seg};CHR$(10);CHR$(13)`);
+  lines.push(`90 NEXT J`);
+  lines.push(`100 CLOSE1`);
+  lines.push(`110 END`);
+  let ln = 120;
+  for (let i = 0; i < cols.length; i += 8) {
+    const group = cols.slice(i, i + 8);
+    lines.push(`${ln} DATA ${group.join(",")}`);
+    ln += 10;
+  }
+  return lines.join("\n");
+}
+
+export function buildCommodoreDllBasicProgram(opts: {
+  firstChar: number;
+  chars: Array<{ a?: 0 | 1; columns: number[] }>;
+  secondaryAddress?: 0 | 7;
+}): string {
+  const firstChar = Math.max(33, Math.min(126, Math.floor(opts.firstChar)));
+  const numChars = Math.max(1, Math.floor(opts.chars?.length ?? 0));
+  const saddr = typeof opts.secondaryAddress === "number" ? opts.secondaryAddress : 0;
+  const t = numChars * 13 + 2;
+  const n = Math.floor(t / 256);
+  const m = t - n * 256;
+  const s = 32;
+  const a = Math.max(0, Math.min(1, Math.floor(opts.chars?.[0]?.a ?? 0)));
+  const lines: string[] = [];
+  lines.push(`10 OPEN1,4${saddr === 0 ? "" : "," + saddr}`);
+  lines.push(`20 PRINT#1,CHR$(27);"=";CHR$(${m});CHR$(${n});CHR$(${firstChar});CHR$(${s});CHR$(${a})`);
+  let ln = 30;
+  for (let idx = 0; idx < numChars; idx += 1) {
+    const cols = (opts.chars[idx]?.columns ?? []).slice(0, 11).map((v) => Math.max(0, Math.min(255, Math.floor(v))));
+    while (cols.length < 11) cols.push(0);
+    lines.push(`${ln} PRINT#1${cols.map((v) => `,CHR$(${v})`).join("")}`);
+    ln += 10;
+  }
+  lines.push(`${ln} CLOSE1`);
+  return lines.join("\n");
 }
 
 function hex2(n: number): string {
