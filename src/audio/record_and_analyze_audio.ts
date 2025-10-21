@@ -48,7 +48,10 @@ export async function recordAndAnalyzeAudio(params: RecordAndAnalyzeParams): Pro
 
   let portAudio: AnyFn;
   try {
-    portAudio = await import("naudiodon");
+    // Use non-literal specifier to avoid TS resolution during tests when module isn't present
+    const naModule = "naudiodon" as unknown as string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    portAudio = await import(naModule as any);
   } catch (e) {
     throw new Error(
       "Audio backend not available. Please install 'naudiodon' dependencies (PortAudio). No external CLI tools are required."
@@ -106,7 +109,7 @@ function convertInt16ToFloat32(buf: Buffer): Float32Array {
 
 async function analyzePcm(signal: Float32Array, sampleRate: number, expectedSidwave?: unknown): Promise<AnalysisResult> {
   let Pitchfinder: AnyFn;
-  let Meyda: AnyFn;
+  let Meyda: AnyFn | null = null;
   try {
     Pitchfinder = (await import("pitchfinder")).default ?? (await import("pitchfinder"));
   } catch (e) {
@@ -117,7 +120,8 @@ async function analyzePcm(signal: Float32Array, sampleRate: number, expectedSidw
     const m = await import("meyda");
     Meyda = (m as any).default ?? m;
   } catch (e) {
-    throw new Error("Missing dependency: meyda");
+    // Optional: fall back to manual RMS if meyda is unavailable in environment
+    Meyda = null;
   }
 
   const windowSize = 2048;
@@ -128,8 +132,7 @@ async function analyzePcm(signal: Float32Array, sampleRate: number, expectedSidw
 
   for (let i = 0; i + windowSize <= signal.length; i += hopSize) {
     const win = signal.subarray(i, i + windowSize);
-    const features = Meyda.extract(["rms"], win, { sampleRate, bufferSize: windowSize });
-    const rms = Number(features?.rms ?? 0);
+    const rms = computeRms(win, Meyda, sampleRate, windowSize);
     const minRms = 0.01; // simple noise gate
     let freq: number | null = null;
     if (rms >= minRms) {
@@ -228,6 +231,15 @@ async function analyzePcm(signal: Float32Array, sampleRate: number, expectedSidw
   };
 }
 
+// Test-only helper: bypasses microphone capture and analyzes provided PCM buffer.
+export async function analyzePcmForTest(
+  signal: Float32Array,
+  sampleRate: number,
+  expectedSidwave?: unknown,
+): Promise<AnalysisResult> {
+  return analyzePcm(signal, sampleRate, expectedSidwave);
+}
+
 function groupSegments(
   frames: Array<{ t0: number; t1: number; freq: number | null; rms: number }>,
   _sampleRate: number,
@@ -320,4 +332,18 @@ function noteNameToMidiSafe(note: string): number | undefined {
   } catch {
     return undefined;
   }
+}
+
+function computeRms(win: Float32Array, Meyda: AnyFn | null, sampleRate: number, bufferSize: number): number {
+  try {
+    if (Meyda && typeof Meyda.extract === "function") {
+      const features = Meyda.extract(["rms"], win, { sampleRate, bufferSize });
+      const val = Number(features?.rms ?? 0);
+      if (Number.isFinite(val)) return val;
+    }
+  } catch {}
+  // fallback
+  let sum = 0;
+  for (let i = 0; i < win.length; i += 1) sum += win[i]! * win[i]!;
+  return Math.sqrt(sum / Math.max(1, win.length));
 }

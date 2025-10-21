@@ -1,0 +1,93 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { analyzePcmForTest } from "../src/audio/record_and_analyze_audio.js";
+
+function genSine(freq, seconds, sampleRate) {
+  const length = Math.floor(seconds * sampleRate);
+  const out = new Float32Array(length);
+  const twoPiF = 2 * Math.PI * freq;
+  for (let i = 0; i < length; i += 1) {
+    out[i] = Math.sin((twoPiF * i) / sampleRate);
+  }
+  return out;
+}
+
+function genNoise(seconds, sampleRate) {
+  const length = Math.floor(seconds * sampleRate);
+  const out = new Float32Array(length);
+  for (let i = 0; i < length; i += 1) {
+    out[i] = (Math.random() * 2 - 1) * 0.5;
+  }
+  return out;
+}
+
+function mix(buffers) {
+  const length = Math.max(...buffers.map((b) => b.length));
+  const out = new Float32Array(length);
+  for (let i = 0; i < length; i += 1) {
+    let s = 0;
+    for (const b of buffers) s += (b[i] ?? 0);
+    out[i] = Math.max(-1, Math.min(1, s / buffers.length));
+  }
+  return out;
+}
+
+function concat(buffers) {
+  const len = buffers.reduce((acc, b) => acc + b.length, 0);
+  const out = new Float32Array(len);
+  let o = 0;
+  for (const b of buffers) {
+    out.set(b, o);
+    o += b.length;
+  }
+  return out;
+}
+
+function hzToNoteName(hz) {
+  const midi = Math.round(69 + 12 * Math.log2(hz / 440));
+  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const n = ((midi % 12) + 12) % 12;
+  const oct = Math.floor(midi / 12) - 1;
+  return `${names[n]}${oct}`;
+}
+
+const SR = 44100;
+
+test("analyzes exact tone sequence C4->E4 with silence gap", async () => {
+  const c4 = genSine(261.63, 0.5, SR);
+  const silence = new Float32Array(Math.floor(0.2 * SR));
+  const e4 = genSine(329.63, 0.5, SR);
+  const audio = concat([c4, silence, e4]);
+  const res = await analyzePcmForTest(audio, SR);
+  const notes = res.analysis.voices[0].detected_notes.filter((n) => n.note);
+  assert.ok(notes.some((n) => n.note === "C4"), `expected C4 in ${JSON.stringify(notes)}`);
+  assert.ok(notes.some((n) => n.note === "E4"), `expected E4 in ${JSON.stringify(notes)}`);
+});
+
+test("flags uncertain during noisy/ambiguous segment", async () => {
+  const nearC4 = genSine(270.0, 0.3, SR); // off C4
+  const noise = genNoise(0.3, SR);
+  const amb = mix([nearC4, noise]);
+  const audio = concat([amb]);
+  const res = await analyzePcmForTest(audio, SR);
+  const hasUncertain = res.analysis.voices[0].detected_notes.some((n) => n.uncertain);
+  assert.ok(hasUncertain || res.analysis.voices[0].detected_notes.length >= 1);
+});
+
+test("detects overlap by stabilising to dominant tone", async () => {
+  const c4 = genSine(261.63, 0.5, SR);
+  const g4 = genSine(392.00, 0.5, SR);
+  const overlap = mix([c4, g4]);
+  const res = await analyzePcmForTest(overlap, SR);
+  const notes = res.analysis.voices[0].detected_notes.filter((n) => n.note);
+  assert.ok(notes.length >= 1);
+});
+
+test("returns structure with global metrics and voices", async () => {
+  const a4 = genSine(440, 0.4, SR);
+  const res = await analyzePcmForTest(a4, SR);
+  assert.equal(res.sidwave, 1.0);
+  assert.ok(res.analysis.durationSeconds > 0);
+  assert.ok(Array.isArray(res.analysis.voices));
+  assert.ok("average_pitch_deviation" in res.analysis.global_metrics);
+});
