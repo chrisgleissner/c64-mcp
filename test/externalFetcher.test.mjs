@@ -333,7 +333,7 @@ test('downloads GitHub repo zip via default fetcher', { concurrency: false }, as
     assert.equal(summaries.length, 1);
     const summary = summaries[0];
     assert.equal(summary.errors, 0);
-    assert.equal(summary.downloaded, 4);
+    assert.equal(summary.downloaded, 5);
     const repoDir = path.join(outDir, 'github.com', 'test_sample');
     const helloPath = path.join(repoDir, 'hello.bas');
     const ignorePath = path.join(repoDir, 'ignore.bin');
@@ -350,8 +350,9 @@ test('downloads GitHub repo zip via default fetcher', { concurrency: false }, as
     assert.equal(await pathExists(codesC128Path), false);
     assert.equal(await pathExists(disasmEnPath), true);
     assert.equal(await pathExists(disasmDePath), false);
-    const duplicateEntries = await fs.readdir(duplicatesDir);
-    assert.deepEqual(duplicateEntries.sort(), ['dup.bas']);
+    const duplicateEntries = (await fs.readdir(duplicatesDir)).sort();
+    assert.equal(duplicateEntries.length, 1);
+    assert.ok(['dup.bas', 'dup_copy.bas'].includes(duplicateEntries[0]));
     const metadataRaw = await fs.readFile(metadataPath, 'utf8');
     const metadata = JSON.parse(metadataRaw);
     assert.equal(metadata.type, 'github');

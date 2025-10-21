@@ -13,13 +13,21 @@ const EXTERNAL_DIR = path.resolve("external");
 const BASIC_DATA_DIR = path.resolve("data/basic_examples");
 const ASM_DATA_DIR = path.resolve("data/assembly_examples");
 
-const EMBEDDINGS_DIR = path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
-const BASIC_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_basic.json");
-const ASM_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_asm.json");
-const MIXED_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_mixed.json");
-const HARDWARE_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_hardware.json");
-const OTHER_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_other.json");
-const INDEX_FILES = [BASIC_INDEX, ASM_INDEX, MIXED_INDEX, HARDWARE_INDEX, OTHER_INDEX];
+function resolveEmbeddingsDir(): string {
+  return path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
+}
+
+function embeddingIndexPaths() {
+  const dir = resolveEmbeddingsDir();
+  return {
+    dir,
+    basic: path.join(dir, "embeddings_basic.json"),
+    asm: path.join(dir, "embeddings_asm.json"),
+    mixed: path.join(dir, "embeddings_mixed.json"),
+    hardware: path.join(dir, "embeddings_hardware.json"),
+    other: path.join(dir, "embeddings_other.json"),
+  };
+}
 
 export async function initRag(): Promise<RagRetriever> {
   const model = new LocalMiniHashEmbedding(384);
@@ -32,7 +40,8 @@ export async function initRag(): Promise<RagRetriever> {
     }
   }
 
-  const { basic, asm, mixed, hardware, other } = await loadIndexes();
+  const embeddingsDir = resolveEmbeddingsDir();
+  const { basic, asm, mixed, hardware, other } = await loadIndexes({ embeddingsDir });
   const retriever = new LocalRagRetriever(model, { basic, asm, mixed, hardware, other });
 
   // Background watcher: reindex if source files change (checks mtimes periodically)
@@ -43,7 +52,7 @@ export async function initRag(): Promise<RagRetriever> {
       try {
         if (await needsRebuild()) {
           await buildAllIndexes({ model });
-          const updated = await loadIndexes();
+          const updated = await loadIndexes({ embeddingsDir: resolveEmbeddingsDir() });
           retriever.updateIndexes(updated);
         }
       } catch (err) {
@@ -89,7 +98,9 @@ async function dirMtimeRecursive(root: string): Promise<number> {
 }
 
 async function needsRebuild(): Promise<boolean> {
-  const indexTimes = await Promise.all(INDEX_FILES.map((file) => fileMtime(file)));
+  const paths = embeddingIndexPaths();
+  const indexFiles = [paths.basic, paths.asm, paths.mixed, paths.hardware, paths.other];
+  const indexTimes = await Promise.all(indexFiles.map((file) => fileMtime(file)));
   if (indexTimes.some((time) => time === null)) {
     return true;
   }

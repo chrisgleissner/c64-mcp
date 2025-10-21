@@ -12,9 +12,6 @@ import { EmbeddingModel } from "./embeddings.js";
 const BASIC_DIR = path.resolve("data/basic_examples");
 const ASM_DIR = path.resolve("data/assembly_examples");
 const EXTERNAL_DIR = path.resolve("external");
-const EMBEDDINGS_DIR = path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
-const BASIC_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_basic.json");
-const ASM_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_asm.json");
 const DOC_ROOT = path.resolve("doc");
 const DEFAULT_DOC_FILES = [path.join(DOC_ROOT, "6502-instructions.md")];
 const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
@@ -23,13 +20,24 @@ const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
   .filter(Boolean)
   .map((entry) => path.resolve(entry));
 const DOC_INCLUDE_FILES = Array.from(new Set([...DEFAULT_DOC_FILES, ...ENV_DOC_FILES]));
-const MIXED_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_mixed.json");
-const HARDWARE_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_hardware.json");
-const OTHER_INDEX = path.join(EMBEDDINGS_DIR, "embeddings_other.json");
-const ALL_INDEX_FILES = [BASIC_INDEX, ASM_INDEX, MIXED_INDEX, HARDWARE_INDEX, OTHER_INDEX];
+
+function resolveEmbeddingsDir(override?: string): string {
+  return path.resolve(override ?? process.env.RAG_EMBEDDINGS_DIR ?? "data");
+}
+
+function embeddingIndexPaths(dir: string) {
+  return {
+    basic: path.join(dir, "embeddings_basic.json"),
+    asm: path.join(dir, "embeddings_asm.json"),
+    mixed: path.join(dir, "embeddings_mixed.json"),
+    hardware: path.join(dir, "embeddings_hardware.json"),
+    other: path.join(dir, "embeddings_other.json"),
+  };
+}
 
 export interface BuildIndexOptions {
   model: EmbeddingModel;
+  embeddingsDir?: string;
 }
 
 export async function ensureSeedDirs(): Promise<void> {
@@ -381,9 +389,12 @@ async function writeIndex(filePath: string, index: EmbeddingIndexFile): Promise<
   await fs.writeFile(filePath, json, "utf8");
 }
 
-export async function buildAllIndexes({ model }: BuildIndexOptions): Promise<void> {
+export async function buildAllIndexes({ model, embeddingsDir: overrideDir }: BuildIndexOptions): Promise<void> {
   await ensureSeedDirs();
   repoMetadataCache.clear();
+
+  const embeddingsDir = resolveEmbeddingsDir(overrideDir);
+  const paths = embeddingIndexPaths(embeddingsDir);
 
   const docIncluded = DOC_INCLUDE_FILES.filter((file) => fsSync.existsSync(file));
 
@@ -489,11 +500,11 @@ export async function buildAllIndexes({ model }: BuildIndexOptions): Promise<voi
   }
 
   await Promise.all([
-    writeIndex(BASIC_INDEX, indexesByCategory.get("basic")!),
-    writeIndex(ASM_INDEX, indexesByCategory.get("asm")!),
-    writeIndex(MIXED_INDEX, indexesByCategory.get("mixed")!),
-    writeIndex(HARDWARE_INDEX, indexesByCategory.get("hardware")!),
-    writeIndex(OTHER_INDEX, indexesByCategory.get("other")!),
+    writeIndex(paths.basic, indexesByCategory.get("basic")!),
+    writeIndex(paths.asm, indexesByCategory.get("asm")!),
+    writeIndex(paths.mixed, indexesByCategory.get("mixed")!),
+    writeIndex(paths.hardware, indexesByCategory.get("hardware")!),
+    writeIndex(paths.other, indexesByCategory.get("other")!),
   ]);
 }
 
@@ -505,27 +516,29 @@ export interface LoadedIndexes {
   other?: EmbeddingIndexFile;
 }
 
-export async function loadIndexes(): Promise<LoadedIndexes> {
+export async function loadIndexes(opts: { embeddingsDir?: string } = {}): Promise<LoadedIndexes> {
   // Best-effort loading
   const result: LoadedIndexes = {};
+  const embeddingsDir = resolveEmbeddingsDir(opts.embeddingsDir);
+  const paths = embeddingIndexPaths(embeddingsDir);
   try {
-    const basic = JSON.parse(await fs.readFile(BASIC_INDEX, "utf8"));
+    const basic = JSON.parse(await fs.readFile(paths.basic, "utf8"));
     result.basic = basic as EmbeddingIndexFile;
   } catch {}
   try {
-    const asm = JSON.parse(await fs.readFile(ASM_INDEX, "utf8"));
+    const asm = JSON.parse(await fs.readFile(paths.asm, "utf8"));
     result.asm = asm as EmbeddingIndexFile;
   } catch {}
   try {
-    const mixed = JSON.parse(await fs.readFile(MIXED_INDEX, "utf8"));
+    const mixed = JSON.parse(await fs.readFile(paths.mixed, "utf8"));
     result.mixed = mixed as EmbeddingIndexFile;
   } catch {}
   try {
-    const hardware = JSON.parse(await fs.readFile(HARDWARE_INDEX, "utf8"));
+    const hardware = JSON.parse(await fs.readFile(paths.hardware, "utf8"));
     result.hardware = hardware as EmbeddingIndexFile;
   } catch {}
   try {
-    const other = JSON.parse(await fs.readFile(OTHER_INDEX, "utf8"));
+    const other = JSON.parse(await fs.readFile(paths.other, "utf8"));
     result.other = other as EmbeddingIndexFile;
   } catch {}
   return result;
