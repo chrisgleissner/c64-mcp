@@ -24,6 +24,8 @@ import {
 } from "./knowledge.js";
 import { initRag } from "./rag/init.js";
 import type { RagLanguage } from "./rag/types.js";
+import { parseCpg } from "./sidCpg.js";
+import { compileCpgToPrg } from "./sidCompiler.js";
 
 async function main() {
   const config = loadConfig();
@@ -343,6 +345,40 @@ async function main() {
       }
     },
   );
+
+  // Compile and run a CPG (Compressed Pattern Graph) song (YAML or JSON). Returns metadata and run details.
+  server.post<{
+    Body: { cpg?: string | object; format?: "yaml" | "json"; output?: "prg" | "sid"; dryRun?: boolean };
+  }>("/tools/music_compile_and_play", async (request, reply) => {
+    const { cpg, format, output = "prg", dryRun } = request.body ?? {};
+    if (!cpg) {
+      reply.code(400);
+      return { error: "Missing cpg (YAML or JSON)" };
+    }
+    try {
+      const doc = typeof cpg === "string" ? parseCpg(cpg) : parseCpg(cpg);
+      const compiled = compileCpgToPrg(doc);
+      let result: any = { success: true, ranOnC64: false };
+      if (!dryRun) {
+        // For now we compile to PRG with an init+play routine and run it via run_prg
+        const run = await client.runPrg(compiled.prg);
+        if (!run.success) reply.code(502);
+        result = run;
+      }
+      return {
+        success: true,
+        ranOnC64: !dryRun && Boolean((result as any).success),
+        runDetails: (result as any).details,
+        song: { title: doc.song.title, tempo: doc.song.tempo, mode: doc.song.mode, length_bars: doc.song.length_bars },
+        voices: doc.voices.map((v) => ({ id: v.id, name: v.name, waveform: v.waveform, pulse_width: v.pulse_width, adsr: v.adsr })),
+        format: output,
+      } as any;
+    } catch (error) {
+      reply.code(400);
+      const message = error instanceof Error ? error.message : String(error);
+      return { error: message };
+    }
+  });
 
   server.post("/tools/reset_c64", async (request, reply) => {
     const result = await client.reset();
