@@ -209,6 +209,89 @@ export function searchAsmQuickReference(query: string): Array<{ heading: string;
   return searchMarkdownSections(guide, query);
 }
 
+// --- VIC-II Knowledge Base (Concise but practical for graphics/sprites) ---
+
+export const VIC_II_SPEC: string = `
+# VIC-II Technical Knowledge Base (Concise, PAL/NTSC, timing-driven)
+
+## Overview
+The VIC-II (MOS 6567 NTSC / 6569 PAL) is the video interface in the Commodore 64. It handles text/bitmap graphics, sprites, colour, fine scrolling, raster IRQs, and DRAM refresh. All effects are raster and cycle-timed.
+
+## Video Standards
+- PAL 6569: ~312 raster lines, ~63 cycles/line, 50.12 Hz frame rate, CPU ~0.985 MHz.
+- NTSC 6567: ~262 raster lines, ~65 cycles/line, 59.83 Hz frame rate, CPU ~1.023 MHz.
+  - Note: Exact values vary slightly by chip revision and board. The CPU clock is derived from the VIC, hence different between PAL and NTSC.
+
+## Text and Bitmap Modes (Built-in)
+| Mode | Resolution | Cell granularity | Colours per cell | Notes |
+|------|------------|------------------|------------------|-------|
+| Text (Hi-res) | 40×25 characters (320×200 px) | 8×8 | 1 fg + bg | Default. Foreground per-character via Colour RAM; BG via $D021. |
+| Multicolour Text | 40×25 (effective 160×200 px) | 4×8 | Up to 3 + BG | Double-wide pixels horizontally; shares $D021–$D023 colours. |
+| Extended Background (ECM) | 40×25 | 8×8 | 4 BG | Top 2 bits of char code select BG from $D021–$D024. |
+| Bitmap Hi-Res | 320×200 | 8×8 | 2 per block | BMM=1, MCM=0. Colours per 8×8 from screen RAM nybbles. |
+| Bitmap Multicolour | 160×200 | 4×8 | 3 + BG | BMM=1, MCM=1. Colours per 4×8 from screen RAM nybbles. |
+
+## Special “Research” Modes (Demo-scene techniques)
+These are not official hardware modes; they exploit timing and badline behaviour to increase colour detail:
+- FLI (Flexible Line Interpreter): Forces a badline every raster line (by changing $D011 Y-scroll each line) so that colour nybbles are reloaded per line, yielding more colours per character row in bitmap or char modes. Costs: very heavy DMA (badline each line) and tight cycle budgets.
+- AFLI/IFLI (Advanced/Interlaced FLI): Variants combining hi-res and multicolour assets and/or alternating frames to increase apparent colour count at the cost of flicker and extreme timing.
+- NUFLI, SHIFLI and derivatives: Advanced compressors of colour clashes using sprite overlays plus FLI. Require multiplexing and per-line colour changes.
+These modes demand stable raster IRQs, avoiding writes during critical cycles (especially on badlines) and often sprite multiplexing.
+
+## Sprite System
+- 8 hardware sprites (0–7), nominal 24×21 px; multicolour halves horizontal resolution to 12×21 with 3 + transparent colours.
+- Control: position $D000–$D00F (+$D010 MSBs), enable $D015, multicolour $D01C, behind/priority $D01B, expand X $D01D, expand Y $D017.
+- Colour: shared $D025/$D026; per-sprite colours $D027–$D02E.
+- Data: 63 bytes/sprite (3 bytes/row × 21 rows). Sprite pointers at $07F8–$07FF hold (address/64).
+- Limit: max 8 sprites on any raster line (hardware). Exceed width with multiplexing via raster IRQ repositioning.
+
+## Raster and Timing Essentials
+- Raster register: $D012 (low 8 bits), high bit in $D011 bit 7 is NOT the high raster bit; note: $D011 bit 7=screen on/off; high raster bit is bit 7 of $D011? On C64: bit 7 of $D011 is actually the 9th raster bit when read via $D011; the same register contains vertical scroll (lower 3 bits), ECM and BMM bits.
+- Badlines: Occur when (screen enabled) AND (rasterY between first and last text row) AND ((rasterY & 7) == (Y-scroll bits in $D011)). On a badline the VIC fetches 40 character pointers, stealing about 40 cycles, leaving ~23 CPU cycles on PAL. There are 25 potential badlines for the 25 text rows per frame (when screen on).
+- Sprite DMA: Each visible sprite steals ~3 cycles per raster line while fetching its graphics. Fetch windows are fixed per sprite index; budget carefully on heavy lines. These steals are in addition to badline character fetches.
+- Per-line CPU cycles (approximate):
+  - PAL non-badline: ~63 − 3×(active sprites on that line)
+  - PAL badline: ~23 − 3×(active sprites not covered by the 40-char fetch window)
+  - NTSC has ~65 cycles per line; proportions similar. Exact overlap depends on chip revision; measure on target hardware if cycle-exact code is required.
+
+## Opening Borders (precise effect windows)
+Border visibility depends on the scroll bits and internal fetch state. The classic windows are:
+- Top/Bottom border: Toggle $D011 bit 3 (denoted RSEL/Y-Enable) around the transition into/out of the main display to trick the VIC into considering display active. Common practice is to change $D011 as the raster passes the last visible row (e.g., lines $F8–$FB on PAL) with stable-cycle IRQs.
+- Side borders: Write to $D016 (horizontal scroll) within a narrow cycle window early in a raster line of the visible area (roughly cycles 24–26 on PAL for the canonical trick) to prevent the side border from opening. Maintain matching scroll values per line to keep it open. This must be timed each line you want the side border suppressed.
+Notes: Exact cycle numbers vary slightly (PAL vs NTSC and chip revisions). Always establish a stable raster using a delay-tuned IRQ prologue and verify on real hardware.
+
+## PAL/NTSC Geometry
+- Text columns/rows: 40×25 in both PAL and NTSC when borders are normal.
+- Visible bitmap area: 320×200 (hi-res) or 160×200 (multicolour). The full frame has additional border scanlines and cycles that are not visible unless border tricks are used.
+- Frame/refresh rates: PAL ~50.12 Hz; NTSC ~59.83 Hz. Colour subcarrier and pixel clocks differ, affecting exact cycle lengths.
+
+## Useful Registers (subset)
+$D011: CTRL1 (bit7=High raster bit when reading; writing: bit7 Screen on/off), bit6 ECM, bit5 BMM, bit4 (unused), bits 0–2=Y scroll.
+$D016: CTRL2 (bit4 MCM, bits 0–2 X scroll).
+$D015: Sprite enable, $D01C: Sprite multicolour, $D01D: Sprite X expand, $D017: Sprite Y expand.
+$D020/$D021: Border/background, $D022–$D024: shared multicolours, $D025/$D026: sprite shared colours.
+$07F8–$07FF: Sprite data pointers (address/64).
+
+## Best Practices for Raster Effects
+- Do not write to $D011/$D016 during badlines unless you deliberately trigger FLI behaviour.
+- Align IRQs to known cycle counts; use a stable raster entry sequence (acknowledge $D019, delay with a tuned instruction sequence, then effect writes).
+- Budget for sprite DMA on lines with many sprites; schedule heavy updates on non-badlines.
+- Disable screen ($D011 bit7=0) temporarily to suppress badlines when maximum CPU time is needed.
+
+## References
+- Zimmers.net: VIC-II register and memory maps
+- C64 Programmer’s Reference Guide (graphics and raster chapters)
+- Codebase64: VIC-II timing tables, badline definitions, border opening write windows, and FLI/IFLI techniques
+`;
+
+export function getVicIISpec(): string {
+  return VIC_II_SPEC;
+}
+
+export function searchVicIISpec(query: string): Array<{ heading: string; content: string }> {
+  return searchMarkdownSections(VIC_II_SPEC, query);
+}
+
 function searchMarkdownSections(content: string, query: string): Array<{ heading: string; content: string }> {
   if (!query || typeof query !== "string") {
     return [];

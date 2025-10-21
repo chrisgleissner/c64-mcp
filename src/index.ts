@@ -17,6 +17,8 @@ import {
   searchBasicV2Spec,
   getAsmQuickReference,
   searchAsmQuickReference,
+  getVicIISpec,
+  searchVicIISpec,
 } from "./knowledge.js";
 import { initRag } from "./rag/init.js";
 
@@ -41,6 +43,7 @@ async function main() {
   server.get("/knowledge/memory_map", async () => ({ regions: listMemoryMap() }));
   server.get("/knowledge/symbols", async () => ({ symbols: listSymbols() }));
   server.get("/knowledge/sid_overview", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-overview.md", "utf8")) }));
+  server.get("/knowledge/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
   server.get<{ Querystring: { topic?: string } }>(
     "/tools/basic_v2_spec",
     async (request) => {
@@ -60,6 +63,19 @@ async function main() {
         return { guide: getAsmQuickReference() };
       }
       const results = searchAsmQuickReference(String(topic));
+      return { topic, results };
+    },
+  );
+
+  // VIC-II knowledge endpoints
+  server.get<{ Querystring: { topic?: string } }>(
+    "/tools/vic_ii_spec",
+    async (request) => {
+      const { topic } = request.query ?? {};
+      if (!topic) {
+        return { spec: getVicIISpec() };
+      }
+      const results = searchVicIISpec(String(topic));
       return { topic, results };
     },
   );
@@ -255,6 +271,9 @@ async function main() {
     if (!result.success) reply.code(502);
     return result;
   });
+
+  // Expose SID file structure doc as a simple tool for MCP clients
+  server.get("/tools/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
 
   // Very simple generator: arpeggiate a triad on voice 1 for N steps
   server.post<{ Body: { root?: string; pattern?: string; steps?: number; tempoMs?: number; waveform?: "pulse" | "saw" | "tri" | "noise" } }>(
@@ -486,6 +505,61 @@ async function main() {
         return { error: "Missing path or tracks" };
       }
       return client.filesCreateDnp(path, Number(tracks), { diskname });
+    },
+  );
+
+  // Graphics helpers
+  server.post<{
+    Body: {
+      sprite?: string; // hex or base64 string, or array-like
+      index?: number;
+      x?: number;
+      y?: number;
+      color?: number;
+      multicolour?: boolean;
+    };
+  }>("/tools/generate_sprite_prg", async (request, reply) => {
+    const { sprite, index, x, y, color, multicolour } = request.body ?? {};
+    if (!sprite) {
+      reply.code(400);
+      return { error: "Missing sprite (63 bytes)" };
+    }
+    let bytes: Uint8Array = new Uint8Array();
+    try {
+      if (typeof sprite === "string") {
+        try {
+          bytes = Uint8Array.from(Buffer.from(sprite, "base64"));
+        } catch {
+          const cleaned = sprite.startsWith("$") ? sprite.slice(1) : sprite;
+          bytes = Uint8Array.from(Buffer.from(cleaned.replace(/[^0-9a-fA-F]/g, ""), "hex"));
+        }
+      } else if (Array.isArray((sprite as any))) {
+        bytes = Uint8Array.from(sprite as any);
+      }
+    } catch (e) {
+      reply.code(400);
+      return { error: "Unable to parse sprite bytes" };
+    }
+    if (bytes.length !== 63) {
+      reply.code(400);
+      return { error: "Sprite must be exactly 63 bytes" };
+    }
+    const result = await client.generateAndRunSpritePrg({ spriteBytes: bytes, spriteIndex: index, x, y, color, multicolour });
+    if (!result.success) reply.code(502);
+    return result;
+  });
+
+  server.post<{ Body: { text?: string; borderColor?: number; backgroundColor?: number } }>(
+    "/tools/render_petscii_screen",
+    async (request, reply) => {
+      const { text, borderColor, backgroundColor } = request.body ?? {};
+      if (typeof text !== "string") {
+        reply.code(400);
+        return { error: "Missing text" };
+      }
+      const result = await client.renderPetsciiScreenAndRun({ text, borderColor, backgroundColor });
+      if (!result.success) reply.code(502);
+      return result;
     },
   );
 

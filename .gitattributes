@@ -1,0 +1,4 @@
+# Prefer the current branch/PR version of embeddings during merges
+# to avoid noisy diffs and conflicts
+
+data/embeddings_*.json merge=ours
