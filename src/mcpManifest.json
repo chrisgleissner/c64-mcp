@@ -133,6 +133,11 @@
     { "name": "sid_silence_all", "description": "Silence all SID voices" },
     { "name": "sid_reference", "description": "Return the SID overview document" },
     { "name": "sid_file_structure", "description": "Return the SID file structure overview" },
+    { "name": "printing_commodore_text", "description": "Return Commodore MPS text printing guide" },
+    { "name": "printing_commodore_bitmap", "description": "Return Commodore MPS bitmap/custom char guide" },
+    { "name": "printing_epson_text", "description": "Return Epson FX text printing guide" },
+    { "name": "printing_epson_bitmap", "description": "Return Epson FX bitmap guide" },
+    { "name": "printing_prompts", "description": "Return end-user printing prompt templates" },
     { "name": "printing_guide", "description": "Return the Commodore/Epson printing guide" },
     { "name": "rag_retrieve_basic", "description": "Retrieve BASIC references for a query", "parameters": { "q": "string", "k": "number" } },
     {
