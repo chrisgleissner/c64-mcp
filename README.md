@@ -268,6 +268,24 @@ curl -s -X POST http://localhost:8000/tools/reboot_c64
 
 Any endpoint listed in [`src/mcpManifest.json`](src/mcpManifest.json) can be invoked the same way by posting JSON to `/tools/<name>`.
 
+## Troubleshooting
+
+If the MCP server is not reachable or VS Code integration isn't working, see the comprehensive troubleshooting guide:
+
+**📋 [MCP Troubleshooting Guide](doc/troubleshooting-mcp.md)**
+
+Quick diagnosis commands:
+```bash
+# Check if server is running
+lsof -i :8000
+
+# Test basic connectivity  
+curl -s http://localhost:8000/tools/info
+
+# Emergency restart
+pkill -f "npm start" && PORT=8000 npm start
+```
+
 ## Development Workflow
 - Type-check with `npm run build`.
 - Run tests with `npm test` (mock) and `npm test -- --real` (hardware).
