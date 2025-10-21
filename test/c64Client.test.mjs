@@ -2,6 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { C64Client } from "../src/c64Client.js";
+import {
+  buildPrinterBasicProgram,
+  buildCommodoreBitmapBasicProgram,
+  buildEpsonBitmapBasicProgram,
+  buildCommodoreDllBasicProgram,
+} from "../src/c64Client.js";
 import { basicToPrg } from "../src/basicConverter.js";
 import { startMockC64Server } from "./mockC64Server.mjs";
 
@@ -49,6 +55,85 @@ test("C64Client against mock server", async (t) => {
     assert.equal(prg[6], 0x99);
     const finalMarker = prg.subarray(-2);
     assert.deepEqual(Array.from(finalMarker), [0x00, 0x00]);
+  });
+
+  await t.test("printTextOnPrinterAndRun generates Commodore BASIC and runs it", async () => {
+    const opts = { text: "HELLO\nWORLD", formFeed: true };
+    const prevRuns = mock.state.runCount;
+    const result = await client.printTextOnPrinterAndRun(opts);
+    assert.equal(result.success, true);
+    assert.equal(mock.state.runCount, prevRuns + 1);
+    assert.ok(mock.state.lastPrg instanceof Buffer);
+    const expectedSource = buildPrinterBasicProgram(opts);
+    const expectedPrg = basicToPrg(expectedSource);
+    assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expectedPrg));
+  });
+
+  await t.test("buildPrinterBasicProgram splits long lines and escapes quotes", () => {
+    const src = buildPrinterBasicProgram({ text: 'A"B' });
+    assert.ok(src.includes('PRINT#1,"A""B"'));
+  });
+
+  await t.test("Commodore BIM builder sets bit7 and emits DATA lines", () => {
+    const src = buildCommodoreBitmapBasicProgram({ columns: [0, 1, 2, 127], repeats: 2, secondaryAddress: 7 });
+    // Expect bit7 set => 128,129,130,255 in DATA
+    assert.ok(src.includes("DATA 128,129,130,255"));
+    assert.ok(src.includes("OPEN1,4,7"));
+    assert.ok(src.includes("PRINT#1,CHR$(8);A$"));
+  });
+
+  await t.test("Epson bitmap builder encodes length in n,m", () => {
+    const src = buildEpsonBitmapBasicProgram({ columns: Array.from({ length: 16 }).map((_, i) => i), mode: "K", repeats: 3, timesPerLine: 2 });
+    // n=16, m=0
+    assert.ok(src.includes("CHR$(27)+CHR$(75)+CHR$(16)+CHR$(0)"), src);
+    assert.ok(src.includes("PRINT#1,A$;A$;CHR$(10);CHR$(13)"));
+  });
+
+  await t.test("Commodore DLL builder computes m,n and prints p1..p11", () => {
+    const src = buildCommodoreDllBasicProgram({ firstChar: 65, chars: [{ a: 0, columns: [1,2,3,4,5,6,7,8,9,10,11] }] });
+    // t = (1*13)+2 = 15 => n=0, m=15
+    assert.ok(src.includes('CHR$(27);"=";CHR$(15);CHR$(0);CHR$(65);CHR$(32);CHR$(0)'));
+    assert.ok(src.includes('PRINT#1,CHR$(1),CHR$(2),CHR$(3),CHR$(4),CHR$(5),CHR$(6),CHR$(7),CHR$(8),CHR$(9),CHR$(10),CHR$(11)'));
+  });
+
+  await t.test("printBitmapOnCommodoreAndRun sends expected PRG", async () => {
+    const opts = { columns: [0, 1, 2, 3, 4, 5, 6, 7], repeats: 2, secondaryAddress: 7 };
+    const before = mock.state.runCount;
+    const result = await client.printBitmapOnCommodoreAndRun(opts);
+    assert.equal(result.success, true);
+    assert.equal(mock.state.runCount, before + 1);
+    const expected = basicToPrg(buildCommodoreBitmapBasicProgram(opts));
+    assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
+  });
+
+  await t.test("printBitmapOnEpsonAndRun sends expected PRG", async () => {
+    const opts = { columns: Array.from({ length: 16 }).map((_, i) => i), mode: "L", repeats: 1, timesPerLine: 1 };
+    const before = mock.state.runCount;
+    const result = await client.printBitmapOnEpsonAndRun(opts);
+    assert.equal(result.success, true);
+    assert.equal(mock.state.runCount, before + 1);
+    const expected = basicToPrg(buildEpsonBitmapBasicProgram(opts));
+    assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
+  });
+
+  await t.test("defineCustomCharsOnCommodoreAndRun sends expected PRG", async () => {
+    const opts = { firstChar: 65, chars: [{ a: 1, columns: [1,2,3,4,5,6,7,8,9,10,11] }], secondaryAddress: 0 };
+    const before = mock.state.runCount;
+    const result = await client.defineCustomCharsOnCommodoreAndRun(opts);
+    assert.equal(result.success, true);
+    assert.equal(mock.state.runCount, before + 1);
+    const expected = basicToPrg(buildCommodoreDllBasicProgram(opts));
+    assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
+  });
+
+  await t.test("printTextOnPrinterAndRun honors explicit Epson target (same BASIC by default)", async () => {
+    const opts = { text: "EPSON TEXT", target: "epson", formFeed: false };
+    const before = mock.state.runCount;
+    const result = await client.printTextOnPrinterAndRun(opts);
+    assert.equal(result.success, true);
+    assert.equal(mock.state.runCount, before + 1);
+    const expected = basicToPrg(buildPrinterBasicProgram(opts));
+    assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
   });
 
   await t.test("version and info endpoints respond", async () => {
@@ -131,9 +216,10 @@ test("C64Client against mock server", async (t) => {
 
   await t.test("runPrg uploads a raw PRG payload", async () => {
     const prg = basicToPrg('10 PRINT "RAW"');
+    const before = mock.state.runCount;
     const result = await client.runPrg(prg);
     assert.equal(result.success, true);
-    assert.equal(mock.state.runCount, 2);
+    assert.equal(mock.state.runCount, before + 1);
   });
 
   await t.test("reset returns success", async () => {
