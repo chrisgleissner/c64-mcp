@@ -12,7 +12,8 @@ jobs:
     permissions:
       contents: write
       packages: read
-    secrets: inherit
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # actionlint-disable-line expr
     steps:
       - name: Checkout (full history)
         uses: actions/checkout@v4
@@ -107,11 +108,11 @@ jobs:
       - name: Publish to npm
         working-directory: publish
         run: |
-          if [ -z "${{ secrets['NPM_TOKEN'] }}" ]; then
+          if [ -z "${NPM_TOKEN:-}" ]; then
             echo "NPM_TOKEN secret not set" >&2
             exit 1
           fi
-          npm config set //registry.npmjs.org/:_authToken "${{ secrets['NPM_TOKEN'] }}"
+          npm config set //registry.npmjs.org/:_authToken "${NPM_TOKEN}"
           npm publish --access public
 
       - name: Produce distributable tarball and gather artifacts

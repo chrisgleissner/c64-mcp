@@ -294,25 +294,48 @@ A small curated set of documentation from `doc/` is also indexed; by default thi
 
 To minimize diffs, the indexer writes files only when contents change and keeps a stable, sorted record order.
 
-#### Extending the RAG (external sources)
+#### Extending the RAG from external sources
 
-To discover new C64 sources on GitHub for inclusion in subsequent calls of `rag:fetch`:
+Extending the RAG from external sources is a three-step process: discover sources, fetch content from them, and add the content to the index.
+
+##### Discover
+
+To discover new C64 sources on GitHub, first create a `.env` file with GitHub credentials with these contents:
+```env
+GITHUB_TOKEN=<personalAccessToken>
+```
+
+The `<personalAccessToken>` can be issued at [GitHub Pesonal Access Tokens](https://github.com/settings/personal-access-tokens):
+
+- Expiration: 90 days
+- Resource owner: Your GitHub user account
+- Repository access: All repositories
+- Access type: Public repositories
+- Permissions: Metadata (Read-only), Contents (Read-only)
+
+Then run:
 
 ```bash
 npm install --save-dev dotenv-cli
 npx dotenv -e .env -- npm run rag:discover
 ```
 
-To discover and download sources available at locations defined in `src/rag/sources.csv`:
+This will extend the file `src/rag/sources.csv`.
 
-1. Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
+##### Fetch
+
+To download sources available at locations defined in `src/rag/sources.csv`:
+
+1. (Optional) Extend `src/rag/sources.csv` (columns: `type,description,link,depth`) with new sources.
 1. Fetch sources (opt-in, no network on builds/tests):
 
    ```bash
    npm run rag:fetch
    ```
 
-1. Update the RAG index:
+##### Rebuild
+
+1. Rebuild the RAG index to incorporate new or changed sources:
 
    ```bash
    # either rely on the running server's auto-reindexer (default ~15s), or
