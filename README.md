@@ -116,10 +116,10 @@ Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENT
 | Tool | Endpoint | Description |
 | --- | --- | --- |
 | `read_screen` | `GET /tools/read_screen` | Read 1KB starting at `$0400`, convert PETSCII to ASCII, and return the screen buffer. |
-| `reset_c64` | `POST /tools/reset_c64` | Trigger a soft reset via the REST API. |
-| `reboot_c64` | `POST /tools/reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
 | `read_memory` | `POST /tools/read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
 | `write_memory` | `POST /tools/write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
+| `reset_c64` | `POST /tools/reset_c64` | Trigger a soft reset via the REST API. |
+| `reboot_c64` | `POST /tools/reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
 
 ### Basic
 
