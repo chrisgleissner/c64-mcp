@@ -31,5 +31,4 @@ external/
 !generated/
 !doc/examples/
 !doc/prompts/
-!src/mcpManifest.json
-!src/mcpManifest.json
+# legacy manifest no longer shipped from src

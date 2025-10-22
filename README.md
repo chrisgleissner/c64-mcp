@@ -230,7 +230,7 @@ Add this configuration to your workspace `.vscode/settings.json`:
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "/absolute/path/to/c64-mcp/src/mcpManifest.json",
+        "manifestPath": "/absolute/path/to/c64-mcp/dist/mcp-manifest.json",
         "type": "http"
       }
     ]

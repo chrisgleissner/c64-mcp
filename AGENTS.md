@@ -10,7 +10,7 @@ This server exposes a Model Context Protocol (MCP) surface for driving a Commodo
 npm start
 ```
 
-The server listens on `http://localhost:8000` (override with `PORT`). The MCP manifest lives in your working copy at `src/mcpManifest.json`.
+The server listens on `http://localhost:8000` (override with `PORT`). The MCP manifest is generated at build and located at `dist/mcp-manifest.json`.
 
 ### Capabilities at a glance
 - **Program runners**: `upload_and_run_basic`, `upload_and_run_asm`, `upload_and_run_program`, `run_prg_file`, `load_prg_file`, `run_crt_file`, `sidplay_file`, `modplay_file`.
@@ -21,7 +21,7 @@ The server listens on `http://localhost:8000` (override with `PORT`). The MCP ma
 - **Audio analysis**: `analyze_audio` - Records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
 - **Knowledge & RAG**: `basic_v2_spec`, `asm_quick_reference`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
-Refer to `src/mcpManifest.json` for the complete tool list and parameter types.
+Refer to `dist/mcp-manifest.json` for the complete tool list and parameter types.
 
 ### Use with GitHub Copilot Chat (VS Code)
 1) Enable MCP support (Copilot Chat v1.214+): Settings → Extensions → GitHub Copilot → Chat: Experimental: MCP → enable, then restart VS Code.
@@ -34,7 +34,7 @@ Refer to `src/mcpManifest.json` for the complete tool list and parameter types.
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "/absolute/path/to/your/checkout/src/mcpManifest.json",
+        "manifestPath": "/absolute/path/to/your/checkout/dist/mcp-manifest.json",
         "type": "http"
       }
     ]
@@ -45,7 +45,7 @@ Refer to `src/mcpManifest.json` for the complete tool list and parameter types.
 3) Keep `npm start` running. In Copilot Chat, invoke tools by natural language (e.g. “Upload and run this BASIC program”, “Read the current screen”, “Write $D020=2”).
 
 ### Use with other MCP clients
-- Point the client at `http://localhost:8000` and load `src/mcpManifest.json`.
+- Point the client at `http://localhost:8000` and load `dist/mcp-manifest.json`.
 - Expose the tools you need to the LLM session; call them with JSON bodies as described in the manifest.
 
 ### HTTP examples (manual testing)

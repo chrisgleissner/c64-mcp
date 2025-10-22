@@ -38,7 +38,7 @@ You can override the configuration path with `C64MCP_CONFIG`. If the file is abs
 ## Useful npm Scripts
 
 - `npm start`: Launch the Fastify MCP server with ts-node.
-- `npm run build`: Type-check TypeScript sources (no emit).
+- `npm run build`: Type-check TypeScript sources and generate `dist/mcp-manifest.json`.
 - `npm test`: Run tests against the bundled mock server.
 - `npm test -- --real [--base-url=http://host]`: Run against hardware.
 - `npm run check`: Build + mock tests.
@@ -112,5 +112,5 @@ npm run rag:rebuild  # or rely on auto-reindex (~15s default)
 ## MCP Server Tips
 
 - Default port `8000` (override with `PORT`).
-- Tool implementations live in `src/index.ts`; mirror changes in `src/mcpManifest.json`.
+- Tool implementations live in `src/index.ts`. The MCP manifest is generated at build into `dist/mcp-manifest.json` from `@McpTool` annotations.
 - Keep REST interactions isolated in `src/c64Client.ts` for easy mocking.

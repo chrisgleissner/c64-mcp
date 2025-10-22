@@ -42,5 +42,5 @@
     "url": "https://github.com/chrisgleissner/c64-mcp"
   },
   "license": "GPL-2.0-only",
-  "manifest": "src/mcpManifest.json"
+  "manifest": "dist/mcp-manifest.json"
 }
