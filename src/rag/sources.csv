@@ -15,7 +15,7 @@ assembly,Simple ASM tutorial series (multiple examples),https://github.com/Ziagl
 assembly,Starfield demo including PRG,https://github.com/Starcross/starfield,5
 assembly,Various small assembly programs (ACME/PRG),https://github.com/cslarsen/c64-examples,5
 basic,Assorted C64 BASIC sources and PRGs,https://github.com/spiroharvey/c64,5
-basic,BASIC demo PRGs (e.g., C64 Sprite Demo.prg),https://www.zimmers.net/anonftp/pub/cbm/c64/demos/generic/poor/,2
+basic,BASIC demo PRGs,https://www.zimmers.net/anonftp/pub/cbm/c64/demos/generic/poor/,2
 basic,C64 type-in programs from Compute!/Gazette (includes .prg and .bas),https://github.com/xopowoparvo/C64-type-in-programs,5
 basic,Collection of BASIC programs (PRG + ASCII),https://github.com/robfromoz/C64-BASIC,5
 #basic,Compute!'s Gazette disks (.d64) – complete archive,https://archive.org/details/computes.gazette,1
