@@ -4,10 +4,9 @@
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "/home/chris/dev/c64/c64-mcp/dist/mcp-manifest.json",
+        "manifestPath": "dist/mcp-manifest.json",
         "type": "http"
       }
     ]
-  },
-  "kiroAgent.configureMCP": "Disabled"
+  }
 }
