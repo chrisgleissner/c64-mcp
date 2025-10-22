@@ -19,6 +19,26 @@ It exposes a focused tool surface that lets LLM agents or automation scripts upl
 - **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
 - **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
 
+
+## Example
+
+Let's compose a children song on the C64 using ChatGPT 5 and Visual Code.
+
+1. We type the prompt:
+`play a children song on the c64`.
+2. Chat GPT 5 reads our prompt and creates a song. In this case it creates a Basic program, but direct SID creation is work in progress.
+3. The LLM then uses this MCP to transfer the Basic program to the Ultimate 64 and play it.
+
+The following image shows the final output, using the [C64 Stream](https://github.com/chrisgleissner/c64stream/) OBS plugin to capture the C64 video and audio output:
+
+![duck song](./doc/img/prompts/duck_song.png)
+
+4. After the follow-up prompt `Now create a PETSCII image related to that song` the following image of ducks swimming on a pond appears:
+
+![duck petscii](./doc/img/prompts/duck_petscii.png)
+
+...and our C64 is now AI-powered!
+
 ## Installation
 
 Requires Node.js 18+ (20+ recommended) and npm.
