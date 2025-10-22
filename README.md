@@ -11,7 +11,8 @@ Local Model Context Protocol (MCP) server for driving a c64 via the official RES
 ## Highlights
 - Fastify-based MCP server running locally on port 8000.
 - TypeScript ESM modules throughout; `ts-node` powers the local development flow.
-- BASIC text → PRG converter and integrated 6502/6510 assembler with tests.
+- Let AI Write and execute Basic or Assembly on a C64.
+- Compose music or create images on a C64 using AI.
 - Configurable via `~/.c64mcp.json` (or `C64MCP_CONFIG`) so hardware details stay out of source control.
 - Built-in local RAG for Commodore 64 BASIC and 6502 assembly examples (no external services).
 - Offline-ready npm package: The published npm artifact includes all documentation under `doc/`, the MCP manifest, curated examples, and prebuilt RAG embeddings under `data/`. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings.
