@@ -12,6 +12,11 @@ import type { RagRetriever } from "./types.js";
 const EXTERNAL_DIR = path.resolve("external");
 const BASIC_DATA_DIR = path.resolve("data/basic_examples");
 const ASM_DATA_DIR = path.resolve("data/assembly_examples");
+const DOC_DIR = path.resolve("doc");
+const BOOTSTRAP_PATH = path.resolve("bootstrap.md");
+const AGENTS_PATH = path.resolve("agents.md");
+const PROMPTS_PATH = path.resolve("prompts.md");
+const CHAT_PATH = path.resolve("chat.md");
 
 function resolveEmbeddingsDir(): string {
   return path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
@@ -105,11 +110,16 @@ async function needsRebuild(): Promise<boolean> {
     return true;
   }
   const oldestIndex = Math.min(...(indexTimes as number[]));
-  const [basicDataM, asmDataM, externalM] = await Promise.all([
+  const [basicDataM, asmDataM, externalM, docsM, bootstrapM, agentsM, promptsM, chatM] = await Promise.all([
     dirMtimeRecursive(BASIC_DATA_DIR),
     dirMtimeRecursive(ASM_DATA_DIR),
     dirMtimeRecursive(EXTERNAL_DIR),
+    dirMtimeRecursive(DOC_DIR).catch(() => 0),
+    fileMtime(BOOTSTRAP_PATH).then((v) => v ?? 0),
+    fileMtime(AGENTS_PATH).then((v) => v ?? 0),
+    fileMtime(PROMPTS_PATH).then((v) => v ?? 0),
+    fileMtime(CHAT_PATH).then((v) => v ?? 0),
   ]);
-  const newestSource = Math.max(basicDataM, asmDataM, externalM);
+  const newestSource = Math.max(basicDataM, asmDataM, externalM, docsM, bootstrapM, agentsM, promptsM, chatM);
   return newestSource > oldestIndex;
 }
