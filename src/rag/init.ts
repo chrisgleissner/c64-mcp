@@ -13,10 +13,11 @@ const EXTERNAL_DIR = path.resolve("external");
 const BASIC_DATA_DIR = path.resolve("data/basic_examples");
 const ASM_DATA_DIR = path.resolve("data/assembly_examples");
 const DOC_DIR = path.resolve("doc");
-const BOOTSTRAP_PATH = path.resolve("bootstrap.md");
-const AGENTS_PATH = path.resolve("agents.md");
-const PROMPTS_PATH = path.resolve("prompts.md");
-const CHAT_PATH = path.resolve("chat.md");
+const BOOTSTRAP_PATH = path.resolve("doc/bootstrap.md");
+const AGENTS_PATH_PRIMARY = path.resolve("AGENTS.md");
+const AGENTS_PATH_FALLBACK = path.resolve("agents.md");
+const PROMPTS_DIR = path.resolve(".github/prompts");
+const CHAT_PATH = path.resolve("doc/chat.md");
 
 function resolveEmbeddingsDir(): string {
   return path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
@@ -116,8 +117,11 @@ async function needsRebuild(): Promise<boolean> {
     dirMtimeRecursive(EXTERNAL_DIR),
     dirMtimeRecursive(DOC_DIR).catch(() => 0),
     fileMtime(BOOTSTRAP_PATH).then((v) => v ?? 0),
-    fileMtime(AGENTS_PATH).then((v) => v ?? 0),
-    fileMtime(PROMPTS_PATH).then((v) => v ?? 0),
+    (async () => {
+      const p = (await fileMtime(AGENTS_PATH_PRIMARY)) ?? (await fileMtime(AGENTS_PATH_FALLBACK)) ?? 0;
+      return p;
+    })(),
+    dirMtimeRecursive(PROMPTS_DIR).catch(() => 0),
     fileMtime(CHAT_PATH).then((v) => v ?? 0),
   ]);
   const newestSource = Math.max(basicDataM, asmDataM, externalM, docsM, bootstrapM, agentsM, promptsM, chatM);

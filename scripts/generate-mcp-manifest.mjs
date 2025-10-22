@@ -103,7 +103,8 @@ async function main() {
     tools: uniqueTools,
   };
 
-  const outDir = parsed.options.outDir ? path.resolve(parsed.options.outDir) : path.join(cwd, 'dist');
+  // Write manifest to repository root for easier discovery
+  const outDir = cwd;
   await fs.mkdir(outDir, { recursive: true });
   const outPath = path.join(outDir, 'mcp-manifest.json');
   await fs.writeFile(outPath, JSON.stringify(manifest, null, 2), 'utf8');

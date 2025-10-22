@@ -13,10 +13,11 @@ const BASIC_DIR = path.resolve("data/basic_examples");
 const ASM_DIR = path.resolve("data/assembly_examples");
 const EXTERNAL_DIR = path.resolve("external");
 const DOC_ROOT = path.resolve("doc");
-const BOOTSTRAP_PATH = path.resolve("bootstrap.md");
-const AGENTS_PATH = path.resolve("agents.md");
-const PROMPTS_PATH = path.resolve("prompts.md");
-const CHAT_PATH = path.resolve("chat.md");
+const BOOTSTRAP_PATH = path.resolve("doc/bootstrap.md");
+const AGENTS_PATH_PRIMARY = path.resolve("AGENTS.md");
+const AGENTS_PATH_FALLBACK = path.resolve("agents.md");
+const PROMPTS_DIR = path.resolve(".github/prompts");
+const CHAT_PATH = path.resolve("doc/chat.md");
 // RAG_DOC_FILES env var can add extra specific files, comma-separated
 const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
   .split(",")
@@ -442,7 +443,14 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     fileSources.push({ file: docFile, root: process.cwd() });
   }
   // Include context files as single-chunk documents if present
-  const contextFiles = [BOOTSTRAP_PATH, AGENTS_PATH, PROMPTS_PATH, CHAT_PATH];
+  const agentFile = fsSync.existsSync(AGENTS_PATH_PRIMARY)
+    ? AGENTS_PATH_PRIMARY
+    : (fsSync.existsSync(AGENTS_PATH_FALLBACK) ? AGENTS_PATH_FALLBACK : null);
+  const promptFiles = await collectFiles(PROMPTS_DIR, [".md"]).catch(() => [] as string[]);
+  const contextFiles = [BOOTSTRAP_PATH, agentFile, CHAT_PATH, ...promptFiles].filter(
+    (p): p is string => typeof p === "string" && !!p,
+  );
+  const contextFileSet = new Set(contextFiles.map((p) => path.resolve(p)));
   for (const cf of contextFiles) {
     if (fsSync.existsSync(cf)) fileSources.push({ file: cf, root: process.cwd() });
   }
@@ -473,7 +481,7 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
 
     // For markdown docs under doc/, chunk by sections; for context files inject as a single small chunk
     const isMarkdown = path.extname(source.file).toLowerCase() === ".md";
-    const isContext = [BOOTSTRAP_PATH, AGENTS_PATH, PROMPTS_PATH, CHAT_PATH].some((p) => path.resolve(p) === path.resolve(source.file));
+    const isContext = contextFileSet.has(path.resolve(source.file));
     const isDocFile = isMarkdown && path.resolve(source.file).startsWith(path.resolve(DOC_ROOT) + path.sep);
 
     if (isDocFile) {

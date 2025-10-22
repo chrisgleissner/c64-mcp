@@ -7,24 +7,35 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 export interface BootstrapContext {
-  primer: string; // bootstrap.md
-  agents: string; // agents.md
-  prompts: string; // prompts.md
-  chat: string; // chat.md
+  primer: string; // doc/bootstrap.md
+  agents: string; // AGENTS.md (fallback: agents.md)
+  prompts: string; // concatenated .github/prompts/*.md
+  chat: string; // doc/chat.md
 }
 
 const ROOT = process.cwd();
-const BOOTSTRAP_PATH = path.resolve(ROOT, "bootstrap.md");
-const AGENTS_PATH = path.resolve(ROOT, "agents.md");
-const PROMPTS_PATH = path.resolve(ROOT, "prompts.md");
-const CHAT_PATH = path.resolve(ROOT, "chat.md");
+const DOC_ROOT = path.resolve(ROOT, "doc");
+const BOOTSTRAP_PATH = path.resolve(ROOT, "doc/bootstrap.md");
+const AGENTS_PATHS = [
+  path.resolve(ROOT, "AGENTS.md"),
+  path.resolve(ROOT, "agents.md"),
+];
+const PROMPTS_DIR = path.resolve(ROOT, ".github/prompts");
+const CHAT_PATH = path.resolve(ROOT, "doc/chat.md");
 
 export async function loadBootstrapContext(): Promise<BootstrapContext> {
+  const primerP = readIfExists(BOOTSTRAP_PATH);
+  const agentsP = readFirstExisting(AGENTS_PATHS);
+  const promptsP = readAllMarkdownUnder(PROMPTS_DIR).then((files) =>
+    files.map((f) => f.content).join("\n\n\n")
+  );
+  const chatP = readIfExists(CHAT_PATH);
+
   const [primer, agents, prompts, chat] = await Promise.all([
-    readIfExists(BOOTSTRAP_PATH),
-    readIfExists(AGENTS_PATH),
-    readIfExists(PROMPTS_PATH),
-    readIfExists(CHAT_PATH),
+    primerP,
+    agentsP,
+    promptsP,
+    chatP,
   ]);
   return {
     primer: primer ?? "",
@@ -42,6 +53,42 @@ async function readIfExists(file: string): Promise<string | undefined> {
       return undefined;
     }
     throw err;
+  }
+}
+
+async function readFirstExisting(paths: string[]): Promise<string | undefined> {
+  for (const p of paths) {
+    try {
+      return await fs.readFile(p, "utf8");
+    } catch (err) {
+      if (!err || typeof err !== "object" || !("code" in err) || (err as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw err;
+      }
+    }
+  }
+  return undefined;
+}
+
+async function readAllMarkdownUnder(dir: string): Promise<Array<{ file: string; content: string }>> {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const files = entries
+      .filter((e) => e.isFile() && e.name.toLowerCase().endsWith(".md"))
+      .map((e) => path.join(dir, e.name))
+      .sort((a, b) => a.localeCompare(b));
+    const contents: Array<{ file: string; content: string }> = [];
+    for (const f of files) {
+      try {
+        const text = await fs.readFile(f, "utf8");
+        // Keep provenance for downstream consumers
+        contents.push({ file: f, content: `<!-- Source: ${path.relative(ROOT, f)} -->\n${text.trim()}` });
+      } catch {
+        // skip unreadable files
+      }
+    }
+    return contents;
+  } catch {
+    return [];
   }
 }
 
@@ -90,11 +137,11 @@ export function matchPrompt(userText: string, promptsMd: string): string | undef
   const lowered = userText.toLowerCase();
   for (const sec of sections) {
     const name = sec.header.toLowerCase();
-    if ((/compose|song|melody|music|sid/).test(lowered) && name.includes("compose")) return annotated(sec.content, "prompts.md", sec.header);
-    if ((/disassemble|decode|memory|dump|range/).test(lowered) && name.includes("disassemble")) return annotated(sec.content, "prompts.md", sec.header);
-    if ((/petscii|art|image|screen/).test(lowered) && name.includes("petscii")) return annotated(sec.content, "prompts.md", sec.header);
-    if ((/print|printer|device\s*4|epson|commodore/).test(lowered) && name.includes("print")) return annotated(sec.content, "prompts.md", sec.header);
-    if ((/sprite|graphics|move/).test(lowered) && name.includes("sprite")) return annotated(sec.content, "prompts.md", sec.header);
+    if ((/compose|song|melody|music|sid/).test(lowered) && name.includes("compose")) return annotated(sec.content, ".github/prompts", sec.header);
+    if ((/disassemble|decode|memory|dump|range/).test(lowered) && name.includes("disassemble")) return annotated(sec.content, ".github/prompts", sec.header);
+    if ((/petscii|art|image|screen/).test(lowered) && name.includes("petscii")) return annotated(sec.content, ".github/prompts", sec.header);
+    if ((/print|printer|device\s*4|epson|commodore/).test(lowered) && name.includes("print")) return annotated(sec.content, ".github/prompts", sec.header);
+    if ((/sprite|graphics|move/).test(lowered) && name.includes("sprite")) return annotated(sec.content, ".github/prompts", sec.header);
   }
   return undefined;
 }
