@@ -112,9 +112,11 @@ async function main() {
   try {
     await fs.unlink(legacyPath);
   } catch (err) {
-    if (err && err.code !== 'ENOENT') {
-      console.warn(`Warning: could not remove legacy manifest at ${legacyPath}:`, err.message ?? err);
+    if (err?.code === 'ENOENT') {
+      return;
     }
+    const details = typeof err?.message === 'string' ? err.message : String(err);
+    console.warn(`Warning: could not remove legacy manifest at ${legacyPath}:`, details);
   }
 }
 

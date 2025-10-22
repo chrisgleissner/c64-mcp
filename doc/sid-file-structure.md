@@ -59,6 +59,7 @@ These versions append more detail for environment and chip configuration.
 - +7C — data start (beginning of machine code and data)
 
 Notes:
+
 - Version number loosely correlates with multi-SID usage: v2 single-SID, v3 dual-SID, v4 triple-SID.
 - PAL vs NTSC differences and SID model (6581/8580) materially affect sound; consult `flags`.
 
