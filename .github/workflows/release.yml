@@ -52,6 +52,8 @@ jobs:
           ls -1 data/embeddings_*.json
           # ensure manifest exists in src or root
           test -f src/mcpManifest.json
+          # ensure RAG source listing exists
+          test -f src/rag/sources.csv
           # ensure key docs are present
           test -d doc
           test -f agents.md || test -f AGENTS.md || true
@@ -74,9 +76,13 @@ jobs:
           if [ -d doc ]; then cp -r doc "$PUB/doc"; fi
           if [ -d data ]; then cp -r data "$PUB/data"; fi
           if [ -d dist ]; then cp -r dist "$PUB/dist"; fi
-          if [ -d generated ]; then cp -r generated "$PUB/generated"; fi
+          # Prefer compiled generated JS if available
+          if [ -d dist/generated ]; then cp -r dist/generated "$PUB/generated"; elif [ -d generated ]; then cp -r generated "$PUB/generated"; fi
+          if [ -d scripts ]; then cp -r scripts "$PUB/scripts"; fi
           mkdir -p "$PUB/src"
           if [ -f src/mcpManifest.json ]; then cp src/mcpManifest.json "$PUB/src/"; fi
+          mkdir -p "$PUB/src/rag"
+          if [ -f src/rag/sources.csv ]; then cp src/rag/sources.csv "$PUB/src/rag/"; fi
 
       - name: npm pack (dry run)
         working-directory: publish
@@ -87,10 +93,15 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           PKG_VER=$(node -p "require('./package.json').version")
+          MCP_VER=$(node -p "try{require('./mcp.json').version}catch(e){''}")
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "pkg=$PKG_VER" >> $GITHUB_OUTPUT
           if [ "$TAG" != "$PKG_VER" ]; then
             echo "Tag ($TAG) does not match package.json version ($PKG_VER)" >&2
+            exit 1
+          fi
+          if [ -n "$MCP_VER" ] && [ "$TAG" != "$MCP_VER" ]; then
+            echo "Tag ($TAG) does not match mcp.json version ($MCP_VER)" >&2
             exit 1
           fi
 
@@ -155,6 +166,7 @@ jobs:
           test -f "$NODE_DIR/mcp.json"
           test -f "$NODE_DIR/README.md"
           test -f "$NODE_DIR/src/mcpManifest.json" || test -f "$NODE_DIR/mcp.json"
+          test -f "$NODE_DIR/src/rag/sources.csv"
           # Start server briefly to ensure it loads modules; bind to localhost and exit quickly
           HOST=127.0.0.1 PORT=0 node "$NODE_DIR/dist/index.js" &
           PID=$!
