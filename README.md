@@ -109,87 +109,6 @@ npm --version
 
 Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENTS.md) for setup and examples.
 
-### Local RAG (Retrieval-Augmented Generation)
-
-This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
-
-- Programmatic use inside MCP flow: the server uses the retriever to inject relevant examples into prompts. You can also call helper endpoints to validate retrieval:
-  - `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` — returns reference snippets
-  - `POST /tools/rag_retrieve_basic` body `{ "q": "your query", "k": 3 }`
-  - `POST /tools/rag_retrieve_asm` body `{ "q": "your query", "k": 3 }`
-
-Examples:
-
-```bash
-curl -s "http://localhost:8000/rag/retrieve?q=draw%20a%20sine%20wave&k=3&lang=basic" | jq
-curl -s -X POST -H 'Content-Type: application/json' \
-  -d '{"q":"cycle border colors","k":3}' \
-  http://localhost:8000/tools/rag_retrieve_asm | jq
-```
-
-You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
-
-A small curated set of documentation from `doc/` is also indexed; by default this includes [`doc/6502-instructions.md`](doc/6502-instructions.md). To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
-
-#### RAG Rebuild Policy
-
-- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts. The test runner forces `RAG_EMBEDDINGS_DIR=artifacts/test-embeddings` so CI and local builds never touch the tracked JSON files unless you opt in.
-  - Set `RAG_REINDEX_INTERVAL_MS=0` (default) to disable periodic reindex.
-  - Omit `RAG_BUILD_ON_START`; the server will load existing indices if present and otherwise operate with empty indexes.
-- Opt-in rebuilds:
-  - Trigger a one-time on-start rebuild by exporting `RAG_BUILD_ON_START=1`.
-  - Or run `npm run rag:rebuild` explicitly to rebuild indices.
-- CI recommended settings: `RAG_REINDEX_INTERVAL_MS=0` and do not set `RAG_BUILD_ON_START`.
-
-To minimize diffs, the indexer writes files only when contents change and keeps a stable, sorted record order.
-
-#### Extending the RAG (external sources)
-
-To add internet sources in a controlled, reproducible way:
-
-1) Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
-2) Fetch (opt-in, no network on builds/tests):
-```bash
-npm run rag:fetch
-```
-3) Update the RAG index:
-```bash
-# either rely on the running server's auto-reindexer (default ~15s), or
-npm run rag:rebuild
-```
-
-Notes:
-- Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
-- If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
-
-For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
-
-## Build & Test
-- `npm run build` — type-check the TypeScript sources.
-- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
-- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
-- `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
-
-The test runner accepts the following options:
-- `--mock` (default): use the bundled mock hardware emulator.
-- `--real`: talk to physical hardware (requires reachable c64 device).
-- `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
-
-## Utility Scripts
-- `npm run c64:tool` — interactive helper that can:
-  - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
-  - convert and immediately run the generated PRG on the configured c64 device,
-  - upload an existing PRG and run it on the c64 device.
-- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml).
-- Advanced users can call the underlying CLI directly:
-  ```bash
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
-  ```
-
-Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
-
 ## Available Tools
 | Tool | Endpoint | Description |
 | --- | --- | --- |
@@ -272,6 +191,87 @@ curl -s -X POST http://localhost:8000/tools/reboot_c64
 ```
 
 Any endpoint listed in [`src/mcpManifest.json`](src/mcpManifest.json) can be invoked the same way by posting JSON to `/tools/<name>`.
+
+### Local RAG (Retrieval-Augmented Generation)
+
+This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
+
+- Programmatic use inside MCP flow: the server uses the retriever to inject relevant examples into prompts. You can also call helper endpoints to validate retrieval:
+  - `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` — returns reference snippets
+  - `POST /tools/rag_retrieve_basic` body `{ "q": "your query", "k": 3 }`
+  - `POST /tools/rag_retrieve_asm` body `{ "q": "your query", "k": 3 }`
+
+Examples:
+
+```bash
+curl -s "http://localhost:8000/rag/retrieve?q=draw%20a%20sine%20wave&k=3&lang=basic" | jq
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"q":"cycle border colors","k":3}' \
+  http://localhost:8000/tools/rag_retrieve_asm | jq
+```
+
+You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
+
+A small curated set of documentation from `doc/` is also indexed; by default this includes [`doc/6502-instructions.md`](doc/6502-instructions.md). To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
+
+#### RAG Rebuild Policy
+
+- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts. The test runner forces `RAG_EMBEDDINGS_DIR=artifacts/test-embeddings` so CI and local builds never touch the tracked JSON files unless you opt in.
+  - Set `RAG_REINDEX_INTERVAL_MS=0` (default) to disable periodic reindex.
+  - Omit `RAG_BUILD_ON_START`; the server will load existing indices if present and otherwise operate with empty indexes.
+- Opt-in rebuilds:
+  - Trigger a one-time on-start rebuild by exporting `RAG_BUILD_ON_START=1`.
+  - Or run `npm run rag:rebuild` explicitly to rebuild indices.
+- CI recommended settings: `RAG_REINDEX_INTERVAL_MS=0` and do not set `RAG_BUILD_ON_START`.
+
+To minimize diffs, the indexer writes files only when contents change and keeps a stable, sorted record order.
+
+#### Extending the RAG (external sources)
+
+To add internet sources in a controlled, reproducible way:
+
+1) Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
+2) Fetch (opt-in, no network on builds/tests):
+```bash
+npm run rag:fetch
+```
+3) Update the RAG index:
+```bash
+# either rely on the running server's auto-reindexer (default ~15s), or
+npm run rag:rebuild
+```
+
+Notes:
+- Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
+- If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
+
+For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
+
+## Build & Test
+- `npm run build` — type-check the TypeScript sources.
+- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
+- `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
+
+The test runner accepts the following options:
+- `--mock` (default): use the bundled mock hardware emulator.
+- `--real`: talk to physical hardware (requires reachable c64 device).
+- `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
+
+## Utility Scripts
+- `npm run c64:tool` — interactive helper that can:
+  - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
+  - convert and immediately run the generated PRG on the configured c64 device,
+  - upload an existing PRG and run it on the c64 device.
+- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml).
+- Advanced users can call the underlying CLI directly:
+  ```bash
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
+  ```
+
+Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
 
 ## Troubleshooting
 
