@@ -146,8 +146,6 @@ Below is an overview of the most important tools mentioned in the MCP manifest.
 | --- | --- | --- |
 | `music_compile_and_play` | TODO | Compile a SIDWAVE (`.sid.yaml` / `.sidwave.yaml` or JSON) composition to PRG/SID and play it |
 | `sid_reset` | TODO | Reset or silence SID |
-| `` |  |  |
-| `` |  |  |
 
 ### Graphics (VIC II)
 
