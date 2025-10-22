@@ -13,7 +13,8 @@
     "api:generate": "swagger-typescript-api -p doc/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",
     "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
-    "rag:fetch": "node scripts/fetch-external-sources.mjs"
+    "rag:fetch": "node scripts/fetch-external-sources.mjs",
+    "rag:discover": "node --import ./scripts/register-ts-node.mjs src/rag/discover.ts"
   },
   "keywords": [
     "c64",
@@ -33,7 +34,8 @@
     "fastify": "^4.28.1",
     "yaml": "^2.6.0",
     "meyda": "^5.6.2",
-    "pitchfinder": "^2.2.0"
+    "pitchfinder": "^2.2.0",
+    "octokit": "^4.0.2"
   },
   "optionalDependencies": {
     "naudiodon": "^2.3.6"
