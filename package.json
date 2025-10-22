@@ -55,6 +55,7 @@
     "doc/**",
     "generated/**",
     "data/**",
+    "mcp-manifest.json",
     "README.md",
     "LICENSE"
   ],

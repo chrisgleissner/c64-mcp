@@ -103,11 +103,19 @@ async function main() {
     tools: uniqueTools,
   };
 
-  const outDir = parsed.options.outDir ? path.resolve(parsed.options.outDir) : path.join(cwd, 'dist');
-  await fs.mkdir(outDir, { recursive: true });
-  const outPath = path.join(outDir, 'mcp-manifest.json');
+  const outPath = path.join(cwd, 'mcp-manifest.json');
   await fs.writeFile(outPath, JSON.stringify(manifest, null, 2), 'utf8');
   console.log(`Generated MCP manifest with ${uniqueTools.length} tool(s): ${outPath}`);
+
+  // Clean up legacy location if it exists to avoid stale copies
+  const legacyPath = path.join(cwd, 'dist', 'mcp-manifest.json');
+  try {
+    await fs.unlink(legacyPath);
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.warn(`Warning: could not remove legacy manifest at ${legacyPath}:`, err.message ?? err);
+    }
+  }
 }
 
 main().catch((err) => {

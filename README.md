@@ -77,7 +77,7 @@ node --version  # v18+ (v20+ recommended)
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
   - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
 
-**Note:** `mcp.json` is the human-maintained project configuration (entry point, env vars, metadata). The tool manifest consumed by MCP clients lives at `dist/mcp-manifest.json` and is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
+**Note:** `mcp.json` is the human-maintained project configuration (entry point, env vars, metadata). The tool manifest consumed by MCP clients lives at `mcp-manifest.json` in the repository root and is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
 
 ## Getting Started
 
@@ -133,7 +133,7 @@ Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENT
 
 ## Build & Test
 
-- `npm run build` — type-check the TypeScript sources and generate `dist/mcp-manifest.json` by scanning `@McpTool` annotations.
+- `npm run build` — type-check the TypeScript sources and generate `mcp-manifest.json` by scanning `@McpTool` annotations.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
 - `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
@@ -260,9 +260,13 @@ curl -s -X POST http://localhost:8000/tools/reboot_c64
 
 Any endpoint listed in the generated `dist/mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
 
-### Local RAG (Retrieval-Augmented Generation)
+## Local RAG
 
-This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
+This server includes a local RAG (Retrieval-Augmented Generation) subsystem that indexes sample Commodore 64 source code and hardware information from the `data` folder on startup.
+
+It maintains several compact JSON indices at `data/embeddings_*.json` which are generated using a deterministic, offline embedding model.
+
+Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
 
 - Programmatic use inside MCP flow: the server uses the retriever to inject relevant examples into prompts. You can also call helper endpoints to validate retrieval:
   - `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` — returns reference snippets
@@ -278,13 +282,15 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://localhost:8000/tools/rag_retrieve_asm | jq
 ```
 
-You can add your own `.bas`, `.asm`, `.s`, or Markdown reference notes anywhere under `data/basic_examples/` and `data/assembly_examples/`. The indexer scans subdirectories recursively and picks up changes automatically.
+You can add your data (source code, hardware information, Markdown notes, etc.) anywhere under the `data` folder. The indexer scans subdirectories recursively and picks up changes automatically.
 
-A small curated set of documentation from `doc/` is also indexed; by default this includes [`doc/6502-instructions.md`](doc/6502-instructions.md). To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
+A small curated set of documentation from `doc/` is also indexed; by default this includes [`doc/6502-instructions.md`](doc/6502-instructions.md).
 
-#### RAG Rebuild Policy
+To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
 
-- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts. The test runner forces `RAG_EMBEDDINGS_DIR=artifacts/test-embeddings` so CI and local builds never touch the tracked JSON files unless you opt in.
+### RAG Rebuild Policy
+
+- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts.The test runner forces `RAG_EMBEDDINGS_DIR=artifacts/test-embeddings` so CI and local builds never touch the tracked JSON files unless you opt in.
   - Set `RAG_REINDEX_INTERVAL_MS=0` (default) to disable periodic reindex.
   - Omit `RAG_BUILD_ON_START`; the server will load existing indices if present and otherwise operate with empty indexes.
 - Opt-in rebuilds:
@@ -294,18 +300,22 @@ A small curated set of documentation from `doc/` is also indexed; by default thi
 
 To minimize diffs, the indexer writes files only when contents change and keeps a stable, sorted record order.
 
-#### Extending the RAG from external sources
+### External Sources
 
 Extending the RAG from external sources is a three-step process: discover sources, fetch content from them, and add the content to the index.
 
-##### Discover
+#### Discover
+
+> [!NOTE]
+> This feature is experimental.
 
 To discover new C64 sources on GitHub, first create a `.env` file with GitHub credentials with these contents:
+
 ```env
 GITHUB_TOKEN=<personalAccessToken>
 ```
 
-The `<personalAccessToken>` can be issued at [GitHub Pesonal Access Tokens](https://github.com/settings/personal-access-tokens):
+The `<personalAccessToken>` can be issued at [GitHub Personal Access Tokens](https://github.com/settings/personal-access-tokens) with these values:
 
 - Expiration: 90 days
 - Resource owner: Your GitHub user account
@@ -322,7 +332,7 @@ npx dotenv -e .env -- npm run rag:discover
 
 This will extend the file `src/rag/sources.csv`.
 
-##### Fetch
+#### Fetch
 
 To download sources available at locations defined in `src/rag/sources.csv`:
 
@@ -333,7 +343,7 @@ To download sources available at locations defined in `src/rag/sources.csv`:
    npm run rag:fetch
    ```
 
-##### Rebuild
+#### Rebuild
 
 1. Rebuild the RAG index to incorporate new or changed sources:
 
@@ -342,7 +352,7 @@ To download sources available at locations defined in `src/rag/sources.csv`:
    npm run rag:rebuild
    ```
 
-Notes:
+#### Notes
 
 - Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
 - If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
