@@ -68,7 +68,6 @@ node --version  # v18+ (v20+ recommended)
 - [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the c64 REST endpoints.
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
-  - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
 
 **Note:** `mcp.json` is the human-maintained project configuration (entry point, env vars, metadata). The tool manifest consumed by MCP clients lives at `dist/mcp-manifest.json` and is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
 
