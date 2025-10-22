@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { compileSidwaveToPrg, compileSidwaveToSid } from "../src/sidwaveCompiler.js";
 import { parseSidwave } from "../src/sidwave.js";
-import { runSidToWav, ViceExecutionError } from "../src/viceRunner.js";
+import { runSidToWav, SidplayExecutionError } from "../src/sidplayRunner.js";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
@@ -93,7 +93,7 @@ function parseWavPcm16(buffer) {
   return { samples, sampleRate: fmt.sampleRate };
 }
 
-test("SIDWAVE -> SID -> WAV via VICE, then analyze", async (t) => {
+test("SIDWAVE -> SID -> WAV via sidplayfp, then analyze", async (t) => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sidwave-"));
   const sidPath = path.join(tmp, "song.sid");
   const wavPath = path.join(tmp, "song.wav");
@@ -104,7 +104,8 @@ test("SIDWAVE -> SID -> WAV via VICE, then analyze", async (t) => {
   fs.writeFileSync(sidPath, sid);
 
   try {
-    const res = await runSidToWav({ sidPath, wavPath, mode: "ntsc" });
+  const mode = (doc.mode || "ntsc").toLowerCase() === "pal" ? "pal" : "ntsc";
+  const res = await runSidToWav({ sidPath, wavPath, mode, limitCycles: 6_000_000 });
     assert.equal(res.exitCode, 0);
     assert.ok(fs.existsSync(wavPath), "WAV not created");
     const stat = fs.statSync(wavPath);
@@ -117,13 +118,13 @@ test("SIDWAVE -> SID -> WAV via VICE, then analyze", async (t) => {
     const analysis = await analyzePcmForTest(samples, sampleRate, EXAMPLE);
     assert.ok(analysis?.analysis?.voices?.[0]?.detected_notes?.length >= 1, "no notes detected in WAV analysis");
   } catch (e) {
-    if (e && typeof e === "object" && (e instanceof ViceExecutionError)) {
+    if (e && typeof e === "object" && (e instanceof SidplayExecutionError)) {
       if (e.exitCode === 127) {
-        t.skip("VICE not installed (exit 127)");
+        t.skip("sidplayfp not installed (exit 127)");
         return;
       }
       // Log diagnostics for CI analysis
-      console.error("VICE command:", e.command);
+      console.error("sidplayfp command:", e.command);
       if (e.stderrFirst) console.error("stderr(first):\n" + e.stderrFirst);
       if (e.stderrLast) console.error("stderr(last):\n" + e.stderrLast);
     }
