@@ -6,8 +6,9 @@
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](doc/developer.md)
 
-npm --version
-Local Model Context Protocol (MCP) server for driving a c64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
+Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). 
+
+It exposes a focused tool surface that lets LLM agents or automation scripts upload and run BASIC or assembly programs on the C64, read or write its RAM, control the VIC or SID, print documents, or perform a reset.
 
 ## Highlights
 
@@ -17,14 +18,6 @@ Local Model Context Protocol (MCP) server for driving a c64 via the official RES
 - **Offline-ready** npm package: The published npm artifact includes all necessary docs and RAG embeddings. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings, e.g. for use with a locally started [Ollama](https://github.com/ollama/ollama)-based LLM.
 - **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
 - **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
-
-## Use Cases
-
-- **LLM tooling integration** – expose `upload_and_run_basic`, `read_screen`, and `reset_c64` to MCP-aware agents for program synthesis experiments on real hardware.
-- **Continuous integration smoke checks** – run the mock-backed tests (`npm test`) to validate regression changes without powering on the Ultimate.
-- **Rapid BASIC iteration** – convert local `.bas` scripts to PRG, upload, and execute with `npm run c64:tool` or the underlying `c64-cli.mjs` commands.
-- **Remote debugging** – read the `$0400` screen buffer via REST and display it in your automation pipeline or logs.
-- **On-the-fly memory inspection** – use the `read_memory`/`write_memory` tools to dump or patch RAM directly from MCP workflows.
 
 ## Installation
 
@@ -81,7 +74,6 @@ Besides this `README.md` document, the project includes extensive documentation:
 - [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the c64 REST endpoints.
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
-  - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
 
 ## Getting Started
 
