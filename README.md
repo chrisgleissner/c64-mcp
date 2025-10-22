@@ -109,11 +109,15 @@ npm --version
 
 Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENTS.md) for setup and examples.
 
+## Build & Test
+- `npm run build` — type-check the TypeScript sources and generate `dist/mcp-manifest.json` by scanning `@McpTool` annotations.
+- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
+- `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
+
 ## Available Tools
 
-For a the latest avilavble tools, see [`src/mcpManifest.json`](src/mcpManifest.json). This MCP manifest is consumed by ChatGPT and other LLM clients.
-
-Below is an overview of the most important tools mentioned in the MCP manifest.
+Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`dist/mcp-manifest.json`](dist/mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
 
 
 ### Control
@@ -184,7 +188,7 @@ Add this configuration to your workspace `.vscode/settings.json`:
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "/absolute/path/to/c64-mcp/src/mcpManifest.json",
+        "manifestPath": "/absolute/path/to/c64-mcp/dist/mcp-manifest.json",
         "type": "http"
       }
     ]
@@ -204,7 +208,7 @@ Keep this running - it will log successful connectivity to your c64 device.
 
 ### 4. Use MCP Tools in Copilot Chat
 
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see [`src/mcpManifest.json`](src/mcpManifest.json).
+More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `dist/mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
 
 ## Minimal CLI interaction
 
@@ -225,7 +229,7 @@ curl -s -X POST http://localhost:8000/tools/reset_c64
 curl -s -X POST http://localhost:8000/tools/reboot_c64
 ```
 
-Any endpoint listed in [`src/mcpManifest.json`](src/mcpManifest.json) can be invoked the same way by posting JSON to `/tools/<name>`.
+Any endpoint listed in the generated `dist/mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
 
 ### Local RAG (Retrieval-Augmented Generation)
 

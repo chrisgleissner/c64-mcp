@@ -84,7 +84,7 @@ SID files do not embed duration. HVSC ships a `Songlengths.md5` database mapping
 
 ## Related API and tools
 
-- Play from device filesystem: `sidplay_file` (see `src/mcpManifest.json` and `src/index.ts`)
+- Play from device filesystem: `sidplay_file` (see generated `dist/mcp-manifest.json` and `src/index.ts`)
 - Low-level SID register programming: see `doc/sid-overview.md`
 
 References for further reading: HVSC PSID v2NG file format (spec), community resources, and project notes from implementations like SIDman.
