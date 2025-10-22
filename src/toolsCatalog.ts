@@ -8,6 +8,9 @@ export class ToolsCatalog {
   @McpTool({ name: 'read_screen', description: 'Read 1KB of screen memory from the C64' })
   read_screen() {}
 
+  @McpTool({ name: 'print_text', description: 'Generate a BASIC program to print text to device 4 and run it', parameters: { text: 'string', target: 'string', secondaryAddress: 'number', formFeed: 'boolean' } })
+  print_text() {}
+
   @McpTool({ name: 'version', description: 'Get c64 REST API version' })
   version() {}
 
@@ -37,6 +40,22 @@ export class ToolsCatalog {
 
   @McpTool({ name: 'music_compile_and_play', description: 'Compile a SIDWAVE composition to PRG/SID and play it', parameters: { sidwave: 'string', format: 'string', output: 'string', dryRun: 'boolean' } })
   music_compile_and_play() {}
+
+  @McpTool({
+    name: 'create_petscii_image',
+    description: 'Create a PETSCII character art image from text or prompts, run it on the C64, and return the BASIC program and bitmap',
+    parameters: {
+      prompt: 'string',
+      text: 'string',
+      maxWidth: 'number',
+      maxHeight: 'number',
+      borderColor: 'number',
+      backgroundColor: 'number',
+      foregroundColor: 'number',
+      dryRun: 'boolean',
+    },
+  })
+  create_petscii_image() {}
 
   @McpTool({ name: 'sidwave_spec', description: 'Return the SIDWAVE format specification' })
   sidwave_spec() {}
@@ -70,4 +89,7 @@ export class ToolsCatalog {
 
   @McpTool({ name: 'rag_retrieve_asm', description: 'Retrieve 6502/6510 assembly snippets and guidance for fast machine-code routines', parameters: { q: 'string', k: 'number' } })
   rag_retrieve_asm() {}
+
+  @McpTool({ name: 'upload_and_run_program', description: 'Upload and run program with language inference (BASIC vs ASM)', parameters: { program: 'string', lang: 'string' } })
+  upload_and_run_program() {}
 }
