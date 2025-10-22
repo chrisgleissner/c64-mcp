@@ -111,6 +111,11 @@ Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENT
 
 ## Available Tools
 
+For a the latest avilavble tools, see [`src/mcpManifest.json`](src/mcpManifest.json). This MCP manifest is consumed by ChatGPT and other LLM clients.
+
+Below is an overview of the most important tools mentioned in the MCP manifest.
+
+
 ### Control
 
 | Tool | Endpoint | Description |
@@ -133,11 +138,16 @@ Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENT
 | Tool | Endpoint | Description |
 | --- | --- | --- |
 | `asm_quick_reference` | `GET /tools/asm_quick_reference?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
+| `upload_and_run_asm` | TODO | Assemble 6502/6510 source to PRG and run it on the C64. |
 
 ### SID (Audio)
 
 | Tool | Endpoint | Description |
 | --- | --- | --- |
+| `music_compile_and_play` | TODO | Compile a SIDWAVE (`.sid.yaml` / `.sidwave.yaml` or JSON) composition to PRG/SID and play it |
+| `sid_reset` | TODO | Reset or silence SID |
+| `` |  |  |
+| `` |  |  |
 
 ### Graphics (VIC II)
 
@@ -148,7 +158,11 @@ Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENT
 | `render_petscii_screen` | `POST /tools/render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
 | `create_petscii_image` | `POST /tools/create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |
 
-See [`src/mcpManifest.json`](src/mcpManifest.json) for the MCP manifest consumed by ChatGPT and other LLM clients.
+### Printer
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `print_text` | TODO | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
 
 ## Using with GitHub Copilot in VS Code
 
