@@ -296,7 +296,14 @@ To minimize diffs, the indexer writes files only when contents change and keeps 
 
 #### Extending the RAG (external sources)
 
-To add internet sources in a controlled, reproducible way:
+To discover new C64 sources on GitHub for inclusion in subsequent calls of `rag:fetch`:
+
+```bash
+npm install --save-dev dotenv-cli
+npx dotenv -e .env -- npm run rag:discover
+```
+
+To discover and download sources available at locations defined in `src/rag/sources.csv`:
 
 1. Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
 1. Fetch sources (opt-in, no network on builds/tests):
