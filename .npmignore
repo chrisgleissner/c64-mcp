@@ -1,0 +1,35 @@
+# Exclude sources and tests from published package
+src/
+test/
+**/*.test.*
+coverage/
+.git/
+.gitignore
+.gitattributes
+.github/
+.vscode/
+*.log
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+.mcp/
+artifacts/
+external/
+
+# Keep compiled output and runtime assets
+!dist/
+!data/
+!doc/
+!README.md
+!LICENSE
+!CHANGELOG.md
+!agents.md
+!AGENTS.md
+!bootstrap.md
+!chat.md
+!prompts.md
+!generated/
+!doc/examples/
+!doc/prompts/
+!src/mcpManifest.json
+!src/mcpManifest.json
