@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { compileSidwaveToPrg, compileSidwaveToSid } from "../src/sidwaveCompiler.js";
 import { parseSidwave } from "../src/sidwave.js";
-import { spawn } from "node:child_process";
+import { runSidToWav, ViceExecutionError } from "../src/viceRunner.js";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
@@ -53,26 +53,6 @@ test("SIDWAVE: compile to PRG and SID", () => {
   assert.ok(sid.length >= 124 + 2, `Unexpected SID length: ${sid.length}`);
 });
 
-// Helper to run a shell command and capture completion
-function run(cmd, args = [], opts = {}) {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: "inherit", ...opts });
-    child.on("error", (err) => resolve({ code: 127, error: err }));
-    child.on("close", (code, signal) => resolve({ code, signal }));
-  });
-}
-
-function whichSync(bin) {
-  const envPath = process.env.PATH || "";
-  for (const dir of envPath.split(path.delimiter)) {
-    const candidate = path.join(dir, bin);
-    try {
-      if (fs.existsSync(candidate)) return candidate;
-    } catch {}
-  }
-  return null;
-}
-
 function parseWavPcm16(buffer) {
   // Very small parser for PCM16LE WAV files
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -114,26 +94,6 @@ function parseWavPcm16(buffer) {
 }
 
 test("SIDWAVE -> SID -> WAV via VICE, then analyze", async (t) => {
-  // Prefer vsid (headless). Fallback to x64sc with console flag.
-  let player = whichSync("vsid");
-  let useX64 = false;
-  if (!player) {
-    // try install vice
-    await run("bash", ["-lc", "sudo -n apt update && sudo -n apt install vice -y"], { env: process.env });
-    player = whichSync("vsid");
-  }
-  if (!player) {
-    const x = whichSync("x64sc");
-    if (x) {
-      player = x;
-      useX64 = true;
-    }
-  }
-  if (!player) {
-    t.skip("VICE player not available (vsid/x64sc)");
-    return;
-  }
-
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sidwave-"));
   const sidPath = path.join(tmp, "song.sid");
   const wavPath = path.join(tmp, "song.wav");
@@ -143,24 +103,30 @@ test("SIDWAVE -> SID -> WAV via VICE, then analyze", async (t) => {
   const { sid } = compileSidwaveToSid(doc, prg, { entryAddress });
   fs.writeFileSync(sidPath, sid);
 
-  const baseArgs = [
-    "-ntsc",
-    "-sounddev", "wav",
-    "-soundarg", `output=${wavPath}`,
-    "-soundrate", "44100",
-    "-soundbits", "16",
-    "-soundvol", "100",
-    "-limitcycles", "120000000",
-  ];
-  const args = useX64 ? ["-console", ...baseArgs, sidPath] : [...baseArgs, sidPath];
-  const res = await run(player, args, { env: process.env, cwd: tmp });
-  if (res.code !== 0 || !fs.existsSync(wavPath)) {
-    t.skip(`VICE failed or no WAV produced (code=${res.code}). Skipping WAV analysis in headless CI.`);
-    return;
-  }
+  try {
+    const res = await runSidToWav({ sidPath, wavPath, mode: "ntsc" });
+    assert.equal(res.exitCode, 0);
+    assert.ok(fs.existsSync(wavPath), "WAV not created");
+    const stat = fs.statSync(wavPath);
+    assert.ok(stat.size > 0, "WAV is empty");
+    assert.equal(res.wavInfo.sampleRate, 44100, "expected 44.1kHz sample rate");
+    assert.equal(res.wavInfo.bitsPerSample, 16, "expected 16-bit PCM");
 
-  const wavBuf = fs.readFileSync(wavPath);
-  const { samples, sampleRate } = parseWavPcm16(wavBuf);
-  const analysis = await analyzePcmForTest(samples, sampleRate, EXAMPLE);
-  assert.ok(analysis?.analysis?.voices?.[0]?.detected_notes?.length >= 1, "no notes detected in WAV analysis");
+    const wavBuf = fs.readFileSync(wavPath);
+    const { samples, sampleRate } = parseWavPcm16(wavBuf);
+    const analysis = await analyzePcmForTest(samples, sampleRate, EXAMPLE);
+    assert.ok(analysis?.analysis?.voices?.[0]?.detected_notes?.length >= 1, "no notes detected in WAV analysis");
+  } catch (e) {
+    if (e && typeof e === "object" && (e instanceof ViceExecutionError)) {
+      if (e.exitCode === 127) {
+        t.skip("VICE not installed (exit 127)");
+        return;
+      }
+      // Log diagnostics for CI analysis
+      console.error("VICE command:", e.command);
+      if (e.stderrFirst) console.error("stderr(first):\n" + e.stderrFirst);
+      if (e.stderrLast) console.error("stderr(last):\n" + e.stderrLast);
+    }
+    throw e;
+  }
 });
