@@ -11,7 +11,7 @@ Local Model Context Protocol (MCP) server for driving a c64 via the official RES
 ## Highlights
 - Fastify-based MCP server running locally on port 8000.
 - TypeScript ESM modules throughout; `ts-node` powers the local development flow.
-- Let AI Write and execute Basic or Assembly on a C64.
+- Code with AI support in Basic or Assembly on a C64.
 - Compose music or create images on a C64 using AI.
 - Configurable via `~/.c64mcp.json` (or `C64MCP_CONFIG`) so hardware details stay out of source control.
 - Built-in local RAG for Commodore 64 BASIC and 6502 assembly examples (no external services).
