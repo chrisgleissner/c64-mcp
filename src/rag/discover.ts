@@ -128,23 +128,31 @@ async function loadConfig(): Promise<DiscoverConfig> {
   return data as DiscoverConfig;
 }
 
-function buildKeywordGroup(keywords: string[]): string[] {
+function buildKeywordGroups(keywords: string[]): string[][] {
   // Split into chunks so individual queries are not too long
-  const tokens = keywords.map((k) => (k.includes(' ') ? `"${k}"` : k));
-  const groups: string[] = [];
-  const maxLen = 180; // keep well under any server-side limit
-  let current = '';
-  for (const t of tokens) {
-    const piece = current ? ` OR ${t}` : t;
-    if ((current + piece).length > maxLen) {
+  const tokens = keywords.map((k) => (/\s/.test(k) ? `"${k}"` : k));
+  const groups: string[][] = [];
+  const maxLen = 150; // keep well under GitHub query limits when combined with filters
+  let current: string[] = [];
+  let currentLen = 0;
+
+  for (const token of tokens) {
+    const addition = (current.length > 0 ? 4 : 0) + token.length; // account for " OR "
+    if (current.length > 0 && currentLen + addition > maxLen) {
       groups.push(current);
-      current = t;
+      current = [token];
+      currentLen = token.length;
     } else {
-      current += piece;
+      current.push(token);
+      currentLen += addition;
     }
   }
-  if (current) groups.push(current);
-  return groups.map((g) => `(${g})`);
+
+  if (current.length > 0) {
+    groups.push(current);
+  }
+
+  return groups;
 }
 
 function normalizeRepoUrl(htmlUrl: string): string {
@@ -243,19 +251,45 @@ async function run(): Promise<void> {
     }
     console.log(`Loaded ${repos.size} repositories from cache.`);
   } else {
-    const keywordGroups = buildKeywordGroup(cfg.keywords);
-    const targetExts = cfg.fileExtensions.map((e) => e.toLowerCase());
+    const keywordGroups = buildKeywordGroups(cfg.keywords);
+    const targetExts = cfg.fileExtensions.map((e) => e.toLowerCase()).filter((e) => e.trim().length > 0);
 
-    outer: for (const ext of targetExts) {
-      for (const group of keywordGroups) {
-        const q = `${group} extension:${ext.replace(/^\./, '')}`;
+    outer: for (const extRaw of targetExts) {
+      const ext = extRaw.replace(/^\./, '');
+      if (!ext) {
+        continue;
+      }
+      const storageExt = `.${ext}`;
+
+      const queue: string[][] = keywordGroups.map((tokens) => [...tokens]);
+      while (queue.length > 0) {
+        const tokens = queue.shift();
+        if (!tokens || tokens.length === 0) {
+          continue;
+        }
+
+    const clause = tokens.length === 1 ? tokens[0] : `(${tokens.join(' OR ')})`;
+    const q = `${clause} in:file extension:${ext}`;
         let page = 1;
+
         while (true) {
           let res;
           try {
             res = await octokit.rest.search.code({ q, per_page: 100, page });
           } catch (err: any) {
             const status = err?.status ?? err?.response?.status;
+            if (status === 422) {
+              if (tokens.length > 1) {
+                console.warn(`Query too complex for GitHub code search: "${q}". Falling back to individual keywords.`);
+                for (let i = tokens.length - 1; i >= 0; i--) {
+                  queue.unshift([tokens[i]]);
+                }
+              } else {
+                console.warn(`Skipping keyword ${tokens[0]} with extension ${storageExt}: ${err?.message ?? 'query parsing error'}`);
+              }
+              break;
+            }
+
             const headers = (err?.response?.headers ?? {}) as Record<string, string>;
             const retryAfter = Number((headers as any)['retry-after'] ?? 0);
             if (status === 403 || status === 429) {
@@ -288,10 +322,10 @@ async function run(): Promise<void> {
                 html_url: normalizeRepoUrl(repo.html_url),
                 stargazers_count: 0,
                 description: null,
-                matchedExtensions: new Set([ext]),
+                matchedExtensions: new Set([storageExt]),
               });
             } else {
-              existing.matchedExtensions.add(ext);
+              existing.matchedExtensions.add(storageExt);
             }
             if (repos.size >= cfg.maxRepos) break outer;
           }
