@@ -19,14 +19,6 @@ It exposes a focused tool surface that lets LLM agents or automation scripts upl
 - **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
 - **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
 
-## Use Cases
-
-- **LLM tooling integration** – expose `upload_and_run_basic`, `read_screen`, and `reset_c64` to MCP-aware agents for program synthesis experiments on real hardware.
-- **Continuous integration smoke checks** – run the mock-backed tests (`npm test`) to validate regression changes without powering on the Ultimate.
-- **Rapid BASIC iteration** – convert local `.bas` scripts to PRG, upload, and execute with `npm run c64:tool` or the underlying `c64-cli.mjs` commands.
-- **Remote debugging** – read the `$0400` screen buffer via REST and display it in your automation pipeline or logs.
-- **On-the-fly memory inspection** – use the `read_memory`/`write_memory` tools to dump or patch RAM directly from MCP workflows.
-
 ## Installation
 
 Requires Node.js 18+ (20+ recommended) and npm.
