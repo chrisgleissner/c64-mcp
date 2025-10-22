@@ -13,13 +13,16 @@ const BASIC_DIR = path.resolve("data/basic_examples");
 const ASM_DIR = path.resolve("data/assembly_examples");
 const EXTERNAL_DIR = path.resolve("external");
 const DOC_ROOT = path.resolve("doc");
-const DEFAULT_DOC_FILES = [path.join(DOC_ROOT, "6502-instructions.md")];
+const BOOTSTRAP_PATH = path.resolve("bootstrap.md");
+const AGENTS_PATH = path.resolve("agents.md");
+const PROMPTS_PATH = path.resolve("prompts.md");
+const CHAT_PATH = path.resolve("chat.md");
+// RAG_DOC_FILES env var can add extra specific files, comma-separated
 const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
   .split(",")
   .map((entry) => entry.trim())
   .filter(Boolean)
   .map((entry) => path.resolve(entry));
-const DOC_INCLUDE_FILES = Array.from(new Set([...DEFAULT_DOC_FILES, ...ENV_DOC_FILES]));
 
 function resolveEmbeddingsDir(override?: string): string {
   return path.resolve(override ?? process.env.RAG_EMBEDDINGS_DIR ?? "data");
@@ -246,6 +249,7 @@ interface PreparedFile {
   licenseName?: string;
   licenseUrl?: string;
   attribution?: string;
+  origin?: string; // e.g. doc/foo.md#Bar or prompts.md#Compose Song
 }
 
 const CATEGORY_LIST: RagLanguage[] = ["basic", "asm", "mixed", "hardware", "other"];
@@ -400,8 +404,22 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
   const embeddingsDir = resolveEmbeddingsDir(overrideDir);
   const paths = embeddingIndexPaths(embeddingsDir);
 
-  const docIncludedSource = docFiles ?? DOC_INCLUDE_FILES;
-  const docIncluded = docIncludedSource.filter((file) => fsSync.existsSync(file));
+  // Collect all markdown files under doc/ recursively, plus any explicitly provided RAG_DOC_FILES
+  const docCandidates: string[] = [];
+  try {
+    const mdFiles = await collectFiles(DOC_ROOT, [".md"]);
+    for (const f of mdFiles) docCandidates.push(f);
+  } catch {}
+  for (const f of ENV_DOC_FILES) docCandidates.push(f);
+  // De-duplicate
+  const seenDocs = new Set<string>();
+  const docIncluded = docCandidates.filter((f) => {
+    const exists = fsSync.existsSync(f);
+    const norm = path.resolve(f);
+    if (!exists || seenDocs.has(norm)) return false;
+    seenDocs.add(norm);
+    return true;
+  });
 
   const resolvedBasicDirs = (basicDirs ?? [BASIC_DIR]).map((dir) => path.resolve(dir));
   const resolvedAsmDirs = (asmDirs ?? [ASM_DIR]).map((dir) => path.resolve(dir));
@@ -422,6 +440,11 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
   }
   for (const docFile of docIncluded) {
     fileSources.push({ file: docFile, root: process.cwd() });
+  }
+  // Include context files as single-chunk documents if present
+  const contextFiles = [BOOTSTRAP_PATH, AGENTS_PATH, PROMPTS_PATH, CHAT_PATH];
+  for (const cf of contextFiles) {
+    if (fsSync.existsSync(cf)) fileSources.push({ file: cf, root: process.cwd() });
   }
 
   const seen = new Set<string>();
@@ -445,61 +468,76 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     const stat = await fs.stat(source.file).catch(() => null);
     if (!stat) continue;
 
-    const analysis = analyzeText(text);
-    const category = decideCategory(analysis, path.extname(source.file), source.root);
+    // Resolve provenance/metadata (GitHub origin and license) once per file
+    const provenance = await resolveProvenance(source.file);
 
-    let sourceUrl: string | undefined;
-    let sourceRepoUrl: string | undefined;
-    let licenseSpdxId: string | undefined;
-    let licenseName: string | undefined;
-    let licenseUrl: string | undefined;
-    let attribution: string | undefined;
+    // For markdown docs under doc/, chunk by sections; for context files inject as a single small chunk
+    const isMarkdown = path.extname(source.file).toLowerCase() === ".md";
+    const isContext = [BOOTSTRAP_PATH, AGENTS_PATH, PROMPTS_PATH, CHAT_PATH].some((p) => path.resolve(p) === path.resolve(source.file));
+    const isDocFile = isMarkdown && path.resolve(source.file).startsWith(path.resolve(DOC_ROOT) + path.sep);
 
-    const { metadata, repoRoot } = await resolveRepoMetadata(source.file);
-    if (metadata?.type === "github" && repoRoot) {
-      sourceRepoUrl = metadata.repoUrl;
-      const branch = metadata.branch ?? "main";
-      const repoRelative = path.relative(repoRoot, source.file);
-      if (!repoRelative.startsWith("..")) {
-        const encodedPath = repoRelative.split(path.sep).map((segment) => encodeURIComponent(segment)).join("/");
-        sourceUrl = `${metadata.repoUrl}/blob/${branch}/${encodedPath}`;
+    if (isDocFile) {
+      const chunks = chunkMarkdownSections(text, source.file);
+      for (const chunk of chunks) {
+        const analysis = analyzeText(chunk.text);
+        const category = decideCategory(analysis, path.extname(source.file), source.root);
+        preparedByCategory[category].push({
+          file: source.file,
+          root: source.root,
+          text: addProvenanceComment(chunk.text, chunk.origin),
+          mtimeMs: stat.mtimeMs,
+          sourceUrl: provenance.sourceUrl,
+          sourceRepoUrl: provenance.sourceRepoUrl,
+          license: provenance.licenseLabel,
+          licenseSpdxId: provenance.licenseSpdxId,
+          licenseName: provenance.licenseName,
+          licenseUrl: provenance.licenseUrl,
+          attribution: provenance.attribution,
+          origin: chunk.origin,
+        });
       }
-      if (metadata.license) {
-        const spdx = metadata.license.spdxId ?? undefined;
-        if (spdx && spdx !== "NOASSERTION") {
-          licenseSpdxId = spdx;
-        }
-        const nameValue = metadata.license.name ?? undefined;
-        licenseName = nameValue;
-        licenseUrl = metadata.license.url ?? undefined;
-        attribution = metadata.license.attribution ?? undefined;
-      }
+      continue;
     }
 
-    let licenseLabel: string | undefined;
-    if (metadata?.type === "github") {
-      if (licenseSpdxId) {
-        licenseLabel = licenseSpdxId;
-      } else if (licenseName) {
-        licenseLabel = licenseName;
-      } else {
-        licenseLabel = "UNKNOWN";
-      }
+    if (isContext) {
+      const origin = `${path.basename(source.file)}`;
+      const analysis = analyzeText(text);
+      const category = decideCategory(analysis, path.extname(source.file), source.root);
+      preparedByCategory[category].push({
+        file: source.file,
+        root: source.root,
+        text: addProvenanceComment(text, origin),
+        mtimeMs: stat.mtimeMs,
+        sourceUrl: provenance.sourceUrl,
+        sourceRepoUrl: provenance.sourceRepoUrl,
+        license: provenance.licenseLabel,
+        licenseSpdxId: provenance.licenseSpdxId,
+        licenseName: provenance.licenseName,
+        licenseUrl: provenance.licenseUrl,
+        attribution: provenance.attribution,
+        origin,
+      });
+      continue;
     }
 
-    preparedByCategory[category].push({
-      file: source.file,
-      root: source.root,
-      text,
-      mtimeMs: stat.mtimeMs,
-      sourceUrl,
-      sourceRepoUrl,
-      license: licenseLabel,
-      licenseSpdxId,
-      licenseName,
-      licenseUrl,
-      attribution,
-    });
+    // Default: treat as a single record (BASIC/ASM/external)
+    {
+      const analysis = analyzeText(text);
+      const category = decideCategory(analysis, path.extname(source.file), source.root);
+      preparedByCategory[category].push({
+        file: source.file,
+        root: source.root,
+        text,
+        mtimeMs: stat.mtimeMs,
+        sourceUrl: provenance.sourceUrl,
+        sourceRepoUrl: provenance.sourceRepoUrl,
+        license: provenance.licenseLabel,
+        licenseSpdxId: provenance.licenseSpdxId,
+        licenseName: provenance.licenseName,
+        licenseUrl: provenance.licenseUrl,
+        attribution: provenance.attribution,
+      });
+    }
   }
 
   const indexesByCategory = new Map<RagLanguage, EmbeddingIndexFile>();
@@ -515,6 +553,111 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     writeIndex(paths.hardware, indexesByCategory.get("hardware")!),
     writeIndex(paths.other, indexesByCategory.get("other")!),
   ]);
+}
+
+// --- Helpers ---
+
+function chunkMarkdownSections(text: string, filePath: string): Array<{ text: string; origin: string }> {
+  // Split on H2/H3 headers; keep headers with content; bound chunk size to ~1500-2500 chars
+  const lines = text.split(/\r?\n/);
+  const headerRe = /^(##{1,2})\s+(.*)$/; // matches '##' or '###'
+  const chunks: Array<{ title: string; lines: string[] }> = [];
+  let current: { title: string; lines: string[] } | null = null;
+  for (const line of lines) {
+    const m = headerRe.exec(line);
+    if (m) {
+      if (current) chunks.push(current);
+      current = { title: m[2].trim(), lines: [line] };
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      // preamble before first header
+      current = { title: "Preamble", lines: [line] };
+    }
+  }
+  if (current) chunks.push(current);
+
+  const results: Array<{ text: string; origin: string }> = [];
+  for (const c of chunks) {
+    const origin = `${toPosixRelative(process.cwd(), filePath)}#${c.title}`;
+    const content = c.lines.join("\n").trim();
+    if (content.length === 0) continue;
+    // If too large, further split by paragraphs
+    if (content.length > 2500) {
+      const paragraphs = content.split(/\n\n+/);
+      let buf: string[] = [];
+      let acc = 0;
+      for (const p of paragraphs) {
+        const toAdd = (buf.length ? "\n\n" : "") + p;
+        if (acc + toAdd.length > 1800) {
+          results.push({ text: buf.join("\n\n"), origin });
+          buf = [p];
+          acc = p.length;
+        } else {
+          buf.push(p);
+          acc += toAdd.length;
+        }
+      }
+      if (buf.length) results.push({ text: buf.join("\n\n"), origin });
+    } else {
+      results.push({ text: content, origin });
+    }
+  }
+  return results;
+}
+
+function addProvenanceComment(content: string, origin: string | undefined): string {
+  if (!origin) return content;
+  return `<!-- Source: ${origin} -->\n${content}`;
+}
+
+async function resolveProvenance(filePath: string): Promise<{
+  sourceUrl?: string;
+  sourceRepoUrl?: string;
+  licenseLabel?: string;
+  licenseSpdxId?: string;
+  licenseName?: string;
+  licenseUrl?: string;
+  attribution?: string;
+}> {
+  let sourceUrl: string | undefined;
+  let sourceRepoUrl: string | undefined;
+  let licenseSpdxId: string | undefined;
+  let licenseName: string | undefined;
+  let licenseUrl: string | undefined;
+  let attribution: string | undefined;
+
+  const { metadata, repoRoot } = await resolveRepoMetadata(filePath);
+  if (metadata?.type === "github" && repoRoot) {
+    sourceRepoUrl = metadata.repoUrl;
+    const branch = metadata.branch ?? "main";
+    const repoRelative = path.relative(repoRoot, filePath);
+    if (!repoRelative.startsWith("..")) {
+      const encodedPath = repoRelative
+        .split(path.sep)
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+      sourceUrl = `${metadata.repoUrl}/blob/${branch}/${encodedPath}`;
+    }
+    if (metadata.license) {
+      const spdx = metadata.license.spdxId ?? undefined;
+      if (spdx && spdx !== "NOASSERTION") {
+        licenseSpdxId = spdx;
+      }
+      licenseName = metadata.license.name ?? undefined;
+      licenseUrl = metadata.license.url ?? undefined;
+      attribution = metadata.license.attribution ?? undefined;
+    }
+  }
+
+  let licenseLabel: string | undefined;
+  if (metadata?.type === "github") {
+    if (licenseSpdxId) licenseLabel = licenseSpdxId;
+    else if (licenseName) licenseLabel = licenseName;
+    else licenseLabel = "UNKNOWN";
+  }
+
+  return { sourceUrl, sourceRepoUrl, licenseLabel, licenseSpdxId, licenseName, licenseUrl, attribution };
 }
 
 export interface LoadedIndexes {

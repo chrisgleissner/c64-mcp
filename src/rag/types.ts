@@ -23,6 +23,8 @@ export interface EmbeddingRecord {
   licenseName?: string;
   licenseUrl?: string;
   attribution?: string;
+  // Optional provenance for chunked docs or context layers
+  origin?: string; // e.g. "doc/sid-overview.md#Filters" or "prompts.md#Compose Song"
 }
 
 export interface EmbeddingIndexFile {
