@@ -9,12 +9,12 @@
 Local Model Context Protocol (MCP) server for driving a c64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
 
 ## Highlights
-- Fastify-based MCP server running locally on port 8000.
-- TypeScript ESM modules throughout; `ts-node` powers the local development flow.
 - Code with AI support in Basic or Assembly on a C64.
 - Compose music or create images on a C64 using AI.
+- Fastify-based MCP server running locally on port 8000.
+- TypeScript ESM modules throughout; `ts-node` powers the local development flow.
 - Configurable via `~/.c64mcp.json` (or `C64MCP_CONFIG`) so hardware details stay out of source control.
-- Built-in local RAG for Commodore 64 BASIC and 6502 assembly examples (no external services).
+- Built-in local [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) for Commodore 64 BASIC and 6502 assembly examples (no external services).
 - Offline-ready npm package: The published npm artifact includes all documentation under `doc/`, the MCP manifest, curated examples, and prebuilt RAG embeddings under `data/`. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings.
 
 ## Use Cases
