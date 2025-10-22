@@ -6,9 +6,11 @@
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](doc/developer.md)
 
+npm --version
 Local Model Context Protocol (MCP) server for driving a c64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
 
 ## Highlights
+
 - **Code** with AI support in Basic or Assembly on a C64.
 - **Compose** music or create images on a C64 using AI.
 - **Custom Knowledge Base**: Built-in local [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) for Commodore 64 BASIC and 6502 assembly examples (no external services).
@@ -16,8 +18,8 @@ Local Model Context Protocol (MCP) server for driving a c64 via the official RES
 - **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
 - **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
 
-
 ## Use Cases
+
 - **LLM tooling integration** – expose `upload_and_run_basic`, `read_screen`, and `reset_c64` to MCP-aware agents for program synthesis experiments on real hardware.
 - **Continuous integration smoke checks** – run the mock-backed tests (`npm test`) to validate regression changes without powering on the Ultimate.
 - **Rapid BASIC iteration** – convert local `.bas` scripts to PRG, upload, and execute with `npm run c64:tool` or the underlying `c64-cli.mjs` commands.
@@ -29,6 +31,7 @@ Local Model Context Protocol (MCP) server for driving a c64 via the official RES
 Requires Node.js 18+ (20+ recommended) and npm.
 
 - Linux (Ubuntu/Debian)
+
   ```bash
   sudo apt update
   sudo apt install -y curl ca-certificates
@@ -40,6 +43,7 @@ Requires Node.js 18+ (20+ recommended) and npm.
   ```
 
 - macOS
+
   ```bash
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" # if Homebrew not installed
   brew install node@20
@@ -47,6 +51,7 @@ Requires Node.js 18+ (20+ recommended) and npm.
   ```
 
 - Windows
+
   ```powershell
   # Option A: winget (Windows 10/11)
   winget install OpenJS.NodeJS.LTS
@@ -55,21 +60,29 @@ Requires Node.js 18+ (20+ recommended) and npm.
   ```
 
 Verify:
+
 ```bash
 node --version  # v18+ (v20+ recommended)
-npm --version
+
 ```
 
 ## Documentation
-- [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents.
+
+- [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
+- [`doc/context/bootstrap.md`](doc/context/bootstrap.md) — Core primer injected ahead of agent prompts.
+- `.github/prompts/*.prompt.md` — Request templates surfaced to agents (see `src/context.ts`).
 - [`doc/developer.md`](doc/developer.md) — Development environment and workflow details.
 - [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the c64 REST endpoints.
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
- - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
+  - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
+
+**Note:** `mcp.json` is the human-maintained project configuration (entry point, env vars, metadata). The tool manifest consumed by MCP clients lives at `dist/mcp-manifest.json` and is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
 
 ## Getting Started
+
 1. Clone the repository and install dependencies:
+
    ```bash
    git clone https://github.com/chrisgleissner/c64-mcp.git
    cd c64-mcp
@@ -77,31 +90,40 @@ npm --version
    ```
 
    **Audio Analysis Dependencies**: For audio feedback capabilities (automatic verification of generated SID music), the following optional dependencies are installed:
+
    - `meyda` - Audio feature extraction for frequency analysis
    - `pitchfinder` - Pitch detection algorithms
    - `naudiodon` - Audio I/O via PortAudio (requires system audio libraries)
 
    On Linux, you may need to install PortAudio development headers:
+
    ```bash
    sudo apt install libportaudio2-dev  # Ubuntu/Debian
    sudo yum install portaudio-devel    # CentOS/RHEL
    ```
 
    On macOS with Homebrew:
+
    ```bash
    brew install portaudio
    ```
 
    **Note**: Audio analysis is optional. If these dependencies fail to install, the server will still function normally but audio verification features will be unavailable.
+
 2. (Optional) Create your configuration file (a ready-made sample lives at [`doc/examples/c64mcp.sample.json`](doc/examples/c64mcp.sample.json)):
+
    ```json
    { "c64_host": "c64u" }
    ```
+
    The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. You can override the path with the `C64MCP_CONFIG` environment variable. If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
+
 3. Launch the MCP server:
+
    ```bash
    npm start
    ```
+
    The server listens on `http://localhost:8000` by default. Set `PORT` to change the port.
    The server binds to `127.0.0.1` by default for safety. Override with `HOST=127.0.0.1` if needed.
 
@@ -110,10 +132,17 @@ npm --version
 Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENTS.md) for setup and examples.
 
 ## Build & Test
+
 - `npm run build` — type-check the TypeScript sources and generate `dist/mcp-manifest.json` by scanning `@McpTool` annotations.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
 - `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
+
+The test runner accepts the following options:
+
+- `--mock` (default): use the bundled mock hardware emulator.
+- `--real`: talk to physical hardware (requires reachable C64 device).
+- `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
 
 ## Available Tools
 
@@ -170,14 +199,14 @@ Here is an overview of some of the most important tools. To see all available to
 
 GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
 
-### 1. Enable MCP in Copilot Chat
+### Step 1: Enable MCP in Copilot Chat
 
-- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in
-- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**
-- Enable the **MCP** checkbox
-- Restart VS Code
+- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in.
+- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**.
+- Enable the **MCP** checkbox.
+- Restart VS Code.
 
-### 2. Configure the C64 MCP Server
+### Step 2: Configure the C64 MCP Server
 
 Add this configuration to your workspace `.vscode/settings.json`:
 
@@ -198,15 +227,15 @@ Add this configuration to your workspace `.vscode/settings.json`:
 
 **Important:** Replace `/absolute/path/to/c64-mcp/` with the actual absolute path to your c64-mcp project directory.
 
-### 3. Start the MCP Server
+### Step 3: Start the MCP Server
 
 ```bash
 npm start
 ```
 
-Keep this running - it will log successful connectivity to your c64 device.
+Keep this running—it will log successful connectivity to your C64 device.
 
-### 4. Use MCP Tools in Copilot Chat
+### Step 4: Use MCP Tools in Copilot Chat
 
 More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `dist/mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
 
@@ -269,41 +298,36 @@ To minimize diffs, the indexer writes files only when contents change and keeps 
 
 To add internet sources in a controlled, reproducible way:
 
-1) Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
-2) Fetch (opt-in, no network on builds/tests):
-```bash
-npm run rag:fetch
-```
-3) Update the RAG index:
-```bash
-# either rely on the running server's auto-reindexer (default ~15s), or
-npm run rag:rebuild
-```
+1. Edit `src/rag/sources.csv` (columns: `type,description,link,depth`).
+1. Fetch sources (opt-in, no network on builds/tests):
+
+   ```bash
+   npm run rag:fetch
+   ```
+
+1. Update the RAG index:
+
+   ```bash
+   # either rely on the running server's auto-reindexer (default ~15s), or
+   npm run rag:rebuild
+   ```
 
 Notes:
+
 - Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
 - If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
 
 For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
 
-## Build & Test
-- `npm run build` — type-check the TypeScript sources.
-- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
-- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
-- `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
-
-The test runner accepts the following options:
-- `--mock` (default): use the bundled mock hardware emulator.
-- `--real`: talk to physical hardware (requires reachable c64 device).
-- `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
-
 ## Utility Scripts
+
 - `npm run c64:tool` — interactive helper that can:
   - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
   - convert and immediately run the generated PRG on the configured c64 device,
   - upload an existing PRG and run it on the c64 device.
 - `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml).
 - Advanced users can call the underlying CLI directly:
+
   ```bash
   node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
   node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
@@ -319,6 +343,7 @@ If the MCP server is not reachable or VS Code integration isn't working, see the
 **📋 [MCP Troubleshooting Guide](doc/troubleshooting-mcp.md)**
 
 Quick diagnosis commands:
+
 ```bash
 # Check if server is running
 lsof -i :8000
@@ -331,10 +356,12 @@ pkill -f "npm start" && PORT=8000 npm start
 ```
 
 ## Development Workflow
+
 - Type-check with `npm run build`.
 - Run tests with `npm test` (mock) and `npm test -- --real` (hardware).
 - Review [`doc/c64-rest-api.md`](doc/c64-rest-api.md) for official REST call details.
 
 ## Reference
+
 - REST API docs: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html)
 - Local references: see the [Documentation](#documentation) section above.

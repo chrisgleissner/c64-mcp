@@ -22,9 +22,9 @@ basic,Collection of BASIC programs (PRG + ASCII),https://github.com/robfromoz/C6
 #basic,Misc BASIC programs by Howard Feldman (miscprog.txt),https://www.zimmers.net/anonftp/pub/cbm/c64/utilities/miscprog.lnx.gz,1
 basic,Simple C64 BASIC and Assembly examples,https://github.com/cslarsen/c64-examples,5
 basic,Snake clone in pure C64 BASIC (snake.bas),https://github.com/StefanHolmes/C64-Snake,5
+hardware,Ultimate C64 Reference Guide,https://github.com/mist64/c64ref,5
 hardware,6502 CPU notes (text),https://raw.githubusercontent.com/androdev4u/c64rom/refs/heads/master/6502/cpu_6502.txt,1
 hardware,C64 Programmer’s Reference Guide (text dump),https://www.zimmers.net/cbmpics/cbm/c64/c64prg.txt,1
 hardware,C64 Service Manual (text),https://www.zimmers.net/cbmpics/cbm/c64/C64ServiceManual.txt,1
 hardware,Commodore 64 memory map (text),https://www.zimmers.net/anonftp/pub/cbm/maps/C64.MemoryMap.txt,1
-hardware,Ultimate C64 Reference (machine-readable maps/disassembly),https://github.com/mist64/c64ref,5
 hardware,VIC-II controller documentation (text),https://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt,1
