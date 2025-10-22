@@ -1,10 +1,14 @@
 # c64-mcp
 
+[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yml?label=release)](https://github.com/chrisgleissner/c64-mcp/actions)
+[![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
 [![Build](https://img.shields.io/badge/build-npm%20test-brightgreen)](package.json#L7)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](doc/developer.md)
 
 Local Model Context Protocol (MCP) server for driving a c64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
+
+> Offline-ready npm package: The published npm artifact includes all documentation under `doc/`, the MCP manifest, curated examples, and prebuilt RAG embeddings under `data/`. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings.
 
 ## Highlights
 - Fastify-based MCP server running locally on port 8000.
@@ -99,6 +103,7 @@ npm --version
    npm start
    ```
    The server listens on `http://localhost:8000` by default. Set `PORT` to change the port.
+   The server binds to `127.0.0.1` by default for safety. Override with `HOST=127.0.0.1` if needed.
 
 ## Agent Integration
 

@@ -32,6 +32,7 @@ async function main() {
   const baseUrl = config.baseUrl ?? `http://${config.c64_host}`;
   const client = new C64Client(baseUrl);
   const port = Number(process.env.PORT ?? 8000);
+  const host = (process.env.HOST ?? "127.0.0.1").trim() || "127.0.0.1";
 
   const server = Fastify({
     logger: {
@@ -865,8 +866,8 @@ async function main() {
   await logConnectivity(server, client, baseUrl);
 
   try {
-    await server.listen({ port, host: "0.0.0.0" });
-    server.log.info(`c64-mcp server listening on port ${port}`);
+    await server.listen({ port, host });
+    server.log.info(`c64-mcp server listening on ${host}:${port}`);
   } catch (error) {
     server.log.error(error);
     process.exit(1);

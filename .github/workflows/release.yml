@@ -3,34 +3,160 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "*.*.*"  # semantic tag without 'v' prefix
 
 jobs:
-  release:
+  build_and_publish:
+    name: Build and publish to npm
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm install
-      - run: npm run check
-      - name: Package artifacts
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies (clean)
+        run: npm ci
+
+      - name: Validate types and tests
+        run: npm run check
+
+      - name: Compile JavaScript to dist
+        run: npx tsc -p tsconfig.json
+
+      - name: Build RAG (if applicable)
         run: |
-          tar -czf c64-mcp-${GITHUB_REF_NAME}.tar.gz \
-            LICENSE \
-            README.md \
-            AGENTS.md \
-            package.json \
-            tsconfig.json \
-            src \
-            doc
+          if npm run | grep -q "build:rag"; then
+            npm run build:rag
+          fi
+
+      - name: Verify required artifacts exist
+        run: |
+          set -euo pipefail
+          echo "Verifying docs and embeddings..."
+          test -f README.md
+          test -f LICENSE
+          test -f CHANGELOG.md || true
+          test -f mcp.json
+          # embeddings may live under data/ (default) or overridden via RAG_EMBEDDINGS_DIR
+          ls -1 data/embeddings_*.json
+          # ensure manifest exists in src or root
+          test -f src/mcpManifest.json
+          # ensure key docs are present
+          test -d doc
+          test -f agents.md || test -f AGENTS.md || true
+          test -f prompts.md || true
+
+      - name: Prepare publish directory
+        run: |
+          set -euo pipefail
+          PUB=publish
+          rm -rf "$PUB" && mkdir -p "$PUB"
+          cp package.json "$PUB/"
+          cp README.md LICENSE "$PUB/"
+          if [ -f CHANGELOG.md ]; then cp CHANGELOG.md "$PUB/"; fi
+          cp mcp.json "$PUB/"
+          if [ -f agents.md ]; then cp agents.md "$PUB/"; fi
+          if [ -f AGENTS.md ]; then cp AGENTS.md "$PUB/"; fi
+          if [ -f prompts.md ]; then cp prompts.md "$PUB/"; fi
+          if [ -f bootstrap.md ]; then cp bootstrap.md "$PUB/"; fi
+          if [ -f chat.md ]; then cp chat.md "$PUB/"; fi
+          if [ -d doc ]; then cp -r doc "$PUB/doc"; fi
+          if [ -d data ]; then cp -r data "$PUB/data"; fi
+          if [ -d dist ]; then cp -r dist "$PUB/dist"; fi
+          if [ -d generated ]; then cp -r generated "$PUB/generated"; fi
+          mkdir -p "$PUB/src"
+          if [ -f src/mcpManifest.json ]; then cp src/mcpManifest.json "$PUB/src/"; fi
+
+      - name: npm pack (dry run)
+        working-directory: publish
+        run: npm pack --dry-run
+
+      - name: Check tag vs package version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "pkg=$PKG_VER" >> $GITHUB_OUTPUT
+          if [ "$TAG" != "$PKG_VER" ]; then
+            echo "Tag ($TAG) does not match package.json version ($PKG_VER)" >&2
+            exit 1
+          fi
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: publish
+        run: npm publish --access public
+
+      - name: Produce distributable tarball and gather artifacts
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VER=$(node -p "require('./package.json').version")
+          TARBALL="${PKG_NAME}-${PKG_VER}.tgz"
+          (cd publish && npm pack)
+          mkdir -p release_artifacts
+          mv "publish/$TARBALL" release_artifacts/
+          cp -r publish/doc release_artifacts/doc
+          cp -r publish/data release_artifacts/data
+          cp -r publish/generated release_artifacts/generated || true
+          cp -r publish/dist release_artifacts/dist || true
+          cp publish/mcp.json publish/README.md publish/LICENSE release_artifacts/
+          if [ -f publish/CHANGELOG.md ]; then cp publish/CHANGELOG.md release_artifacts/; fi
+          if [ -f publish/src/mcpManifest.json ]; then cp publish/src/mcpManifest.json release_artifacts/; fi
+
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          name: c64-mcp ${{ github.ref_name }}
+          name: c64-mcp ${{ steps.version.outputs.pkg }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
           files: |
-            c64-mcp-${{ github.ref_name }}.tar.gz
+            release_artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  post_publish_smoke:
+    name: Post-publish smoke test
+    needs: build_and_publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Initialize temp project
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          npm init -y >/dev/null 2>&1
+          npm install c64-mcp
+          node -e "require('child_process').spawn(process.execPath, ['--version'], { stdio: 'inherit' })"
+
+      - name: Verify package boots and assets available
+        run: |
+          set -euo pipefail
+          NODE_DIR=$(node -p "require.resolve('c64-mcp/package.json').replace(/package.json$/, '')")
+          test -d "$NODE_DIR/doc"
+          test -d "$NODE_DIR/data"
+          test -f "$NODE_DIR/mcp.json"
+          test -f "$NODE_DIR/README.md"
+          test -f "$NODE_DIR/src/mcpManifest.json" || test -f "$NODE_DIR/mcp.json"
+          # Start server briefly to ensure it loads modules; bind to localhost and exit quickly
+          HOST=127.0.0.1 PORT=0 node "$NODE_DIR/dist/index.js" &
+          PID=$!
+          sleep 2
+          kill $PID || true
