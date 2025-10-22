@@ -6,6 +6,7 @@ Licensed under the GNU General Public License v2.0 or later.
 See <https://www.gnu.org/licenses/> for details.
 */
 
+import 'reflect-metadata';
 import Fastify, { FastifyInstance } from "fastify";
 import axios from "axios";
 import { C64Client } from "./c64Client.js";
