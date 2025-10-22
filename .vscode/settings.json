@@ -4,7 +4,7 @@
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "dist/mcp-manifest.json",
+  "manifestPath": "mcp-manifest.json",
         "type": "http"
       }
     ]

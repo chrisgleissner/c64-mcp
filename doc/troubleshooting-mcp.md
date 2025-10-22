@@ -56,7 +56,7 @@ PORT=8000 npm start
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "/absolute/path/to/c64-mcp/dist/mcp-manifest.json",
+  "manifestPath": "/absolute/path/to/c64-mcp/mcp-manifest.json",
         "type": "http"
       }
     ]

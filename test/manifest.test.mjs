@@ -13,8 +13,8 @@ async function readJson(p) {
   return JSON.parse(text);
 }
 
-test('build produced dist/mcp-manifest.json with expected tools', async (t) => {
-  const manifestPath = path.join(repoRoot, 'dist', 'mcp-manifest.json');
+test('build produced mcp-manifest.json with expected tools', async (t) => {
+  const manifestPath = path.join(repoRoot, 'mcp-manifest.json');
   let manifest;
   try {
     manifest = await readJson(manifestPath);

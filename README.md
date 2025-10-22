@@ -68,6 +68,12 @@ node --version  # v18+ (v20+ recommended)
 
 ## Documentation
 
+The Agent has two main artifacts:
+
+- [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata). 
+- [`mcp-manifest.json`](mcp-manifest.json): auto-generated tool manifest consumed by MCP clients. It is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
+
+Besides this `README.md` document, the project includes extensive documentation:
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
 - [`doc/context/bootstrap.md`](doc/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 - `.github/prompts/*.prompt.md` — Request templates surfaced to agents (see `src/context.ts`).
@@ -76,8 +82,6 @@ node --version  # v18+ (v20+ recommended)
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
   - VIC-II graphics/timing spec via tool: `GET /tools/vic_ii_spec?topic=<filter>` (see Tools below)
-
-**Note:** `mcp.json` is the human-maintained project configuration (entry point, env vars, metadata). The tool manifest consumed by MCP clients lives at `mcp-manifest.json` in the repository root and is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
 
 ## Getting Started
 
@@ -146,7 +150,7 @@ The test runner accepts the following options:
 
 ## Available Tools
 
-Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`dist/mcp-manifest.json`](dist/mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
+Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`mcp-manifest.json`](mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
 
 
 ### Control
@@ -217,7 +221,7 @@ Add this configuration to your workspace `.vscode/settings.json`:
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-        "manifestPath": "/absolute/path/to/c64-mcp/dist/mcp-manifest.json",
+  "manifestPath": "/absolute/path/to/c64-mcp/mcp-manifest.json",
         "type": "http"
       }
     ]
@@ -237,7 +241,7 @@ Keep this running—it will log successful connectivity to your C64 device.
 
 ### Step 4: Use MCP Tools in Copilot Chat
 
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `dist/mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
+More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
 
 ## Minimal CLI interaction
 
@@ -258,7 +262,7 @@ curl -s -X POST http://localhost:8000/tools/reset_c64
 curl -s -X POST http://localhost:8000/tools/reboot_c64
 ```
 
-Any endpoint listed in the generated `dist/mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
+Any endpoint listed in the generated `mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
 
 ## Local RAG
 
