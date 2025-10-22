@@ -1,0 +1,40 @@
+{
+  "keywords": [
+    "Commodore 64",
+    "C64 BASIC",
+    "C64 Assembly",
+    "C64 SID",
+    "C64 Demo",
+    "Commodore64",
+    "C64 Game",
+    "C64 Tool",
+    "6502",
+    "6510",
+    "Retrocomputing",
+    "SID player",
+    "PRG file",
+    "D64",
+    "VICE emulator"
+  ],
+  "fileExtensions": [
+    ".a",
+    ".a65",
+    ".acme",
+    ".asm",
+    ".bas",
+    ".dasm",
+    ".inc",
+    ".kick",
+    ".lst",
+    ".mac",
+    ".pal",
+    ".s",
+    ".seq",
+    ".src",
+    ".txt",
+    ".x65"
+  ],
+  "minStars": 3,
+  "maxRepos": 200,
+  "defaultDepth": 2
+}
