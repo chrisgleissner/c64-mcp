@@ -110,8 +110,8 @@ function which(binary: string): string | null {
 
 function shouldUseXvfb(): boolean {
   if (process.env.FORCE_XVFB === "1") return true;
-  // GitHub Actions and most CI set CI=true
-  return process.env.CI === "true";
+  const ciValue = (process.env.CI || "").toLowerCase();
+  return ciValue === "true" || ciValue === "1" || ciValue === "yes";
 }
 
 function ensureParentDir(filePath: string): void {
@@ -124,8 +124,8 @@ function buildViceArgs(params: Required<Omit<RunSidToWavParams, "binary">> & { b
     `-${params.mode}`,
     "-sounddev", "wav",
     "-soundarg", `output=${params.wavPath}`,
+    "-soundarg", "bits=16",
     "-soundrate", "44100",
-    "-soundbits", "16",
     "-soundvol", "100",
     "-limitcycles", String(params.limitCycles),
   ];

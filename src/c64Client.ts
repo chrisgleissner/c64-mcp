@@ -13,6 +13,7 @@ import { assemblyToPrg } from "./assemblyConverter.js";
 import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
 import { Api, HttpClient } from "../generated/c64/index.js";
+import { McpTool } from "./mcpDecorators.js";
 
 export interface RunBasicResult {
   success: boolean;
@@ -93,6 +94,11 @@ export class C64Client {
     return this.uploadAndRunBasic(program);
   }
 
+  @McpTool({
+    name: "upload_and_run_basic",
+    description: "Upload and run a BASIC program on the C64",
+    parameters: { program: { type: "string", required: true } },
+  })
   async uploadAndRunBasic(program: string): Promise<RunBasicResult> {
     const prg = basicToPrg(program);
     return this.runPrg(prg);
@@ -102,6 +108,11 @@ export class C64Client {
    * Build a simple sprite PRG from raw 63-byte sprite data and position/color attributes.
    * Returns the REST result after uploading and running the generated PRG.
    */
+  @McpTool({
+    name: "generate_sprite_prg",
+    description: "Generate and run a PRG that displays a sprite from 63 raw bytes",
+    parameters: { sprite: "string", index: "number", x: "number", y: "number", color: "number", multicolour: "boolean" },
+  })
   async generateAndRunSpritePrg(options: {
     spriteBytes: Uint8Array | Buffer;
     spriteIndex?: number;
@@ -118,6 +129,11 @@ export class C64Client {
    * Build a BASIC program that draws a PETSCII screen (optionally set border/bg colours),
    * then upload and run it.
    */
+  @McpTool({
+    name: "render_petscii_screen",
+    description: "Render PETSCII text to screen with optional colours via a generated BASIC program",
+    parameters: { text: "string", borderColor: "number", backgroundColor: "number" },
+  })
   async renderPetsciiScreenAndRun(options: {
     text: string;
     borderColor?: number;
@@ -127,6 +143,11 @@ export class C64Client {
     return this.uploadAndRunBasic(program);
   }
 
+  @McpTool({
+    name: "upload_and_run_asm",
+    description: "Assemble 6502/6510 source to PRG and run it on the C64",
+    parameters: { program: { type: "string", required: true } },
+  })
   async uploadAndRunAsm(program: string): Promise<RunBasicResult> {
     const prg = assemblyToPrg(program);
     return this.runPrg(prg);
@@ -169,6 +190,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "load_prg_file", description: "Load PRG into memory (no run)", parameters: { path: "string" } })
   async loadPrgFile(path: string): Promise<RunBasicResult> {
     try {
       const response = await this.api.v1.runnersLoadPrgUpdate(":load_prg", { file: path });
@@ -178,6 +200,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "run_prg_file", description: "Run PRG from device filesystem", parameters: { path: "string" } })
   async runPrgFile(path: string): Promise<RunBasicResult> {
     try {
       const response = await this.api.v1.runnersRunPrgUpdate(":run_prg", { file: path });
@@ -187,6 +210,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "run_crt_file", description: "Run cartridge image from filesystem", parameters: { path: "string" } })
   async runCrtFile(path: string): Promise<RunBasicResult> {
     try {
       const response = await this.api.v1.runnersRunCrtUpdate(":run_crt", { file: path });
@@ -196,6 +220,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "sidplay_file", description: "Play SID from filesystem", parameters: { path: "string", songnr: "number" } })
   async sidplayFile(path: string, songnr?: number): Promise<RunBasicResult> {
     try {
       const response = await this.api.v1.runnersSidplayUpdate(":sidplay", { file: path, songnr });
@@ -205,6 +230,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "modplay_file", description: "Play MOD from filesystem", parameters: { path: "string" } })
   async modplayFile(path: string): Promise<RunBasicResult> {
     try {
       const response = await this.api.v1.runnersModplayUpdate(":modplay", { file: path });
@@ -215,10 +241,12 @@ export class C64Client {
   }
 
   async readScreen(): Promise<string> {
+    // Exposed as MCP tool: read_screen
     const bytes = await this.readMemoryRaw(0x0400, 0x1000);
     return petsciiToAscii(bytes);
   }
 
+  @McpTool({ name: "reset_c64", description: "Reset the C64 via REST API" })
   async reset(): Promise<{ success: boolean; details?: unknown }> {
     try {
       const response = await this.api.v1.machineResetUpdate(":reset");
@@ -234,6 +262,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "reboot_c64", description: "Reboot the c64 device firmware" })
   async reboot(): Promise<{ success: boolean; details?: unknown }> {
     try {
       const response = await this.api.v1.machineRebootUpdate(":reboot");
@@ -249,6 +278,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "read_memory", description: "Read bytes from main memory and return them as hex", parameters: { address: "string", length: "string" } })
   async readMemory(addressInput: string, lengthInput: string): Promise<MemoryReadResult> {
     try {
       const resolved = resolveAddressSymbol(addressInput);
@@ -277,6 +307,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "write_memory", description: "Write a hex byte sequence into main memory", parameters: { address: "string", bytes: "string" } })
   async writeMemory(addressInput: string, bytesInput: string): Promise<RunBasicResult> {
     try {
       const resolved = resolveAddressSymbol(addressInput);
@@ -323,12 +354,14 @@ export class C64Client {
 
   // --- SID/Music helpers ---
 
+  @McpTool({ name: "sid_volume", description: "Set SID master volume (0-15)", parameters: { volume: "number" } })
   async sidSetVolume(volume: number): Promise<RunBasicResult> {
     const clamped = Math.max(0, Math.min(15, Math.floor(volume)));
     const byte = Buffer.from([clamped]);
     return this.writeMemory("$D418", this.bytesToHex(byte));
   }
 
+  @McpTool({ name: "sid_reset", description: "Reset or silence SID", parameters: { hard: "boolean" } })
   async sidReset(hard = false): Promise<RunBasicResult> {
     try {
       if (hard) {
@@ -351,6 +384,22 @@ export class C64Client {
     }
   }
 
+  @McpTool({
+    name: "sid_note_on",
+    description: "Start a SID note on a voice",
+    parameters: {
+      voice: "number",
+      note: "string",
+      frequencyHz: "number",
+      system: "string",
+      waveform: "string",
+      pulseWidth: "number",
+      attack: "number",
+      decay: "number",
+      sustain: "number",
+      release: "number",
+    },
+  })
   async sidNoteOn(options: {
     voice?: 1 | 2 | 3;
     note?: string; // e.g. "A4", "C#5", "Bb3"
@@ -405,6 +454,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "sid_note_off", description: "Release a SID voice", parameters: { voice: "number" } })
   async sidNoteOff(voice: 1 | 2 | 3): Promise<RunBasicResult> {
     if (voice < 1 || voice > 3) {
       return { success: false, details: { message: "Voice must be 1..3" } };
@@ -421,6 +471,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "sid_silence_all", description: "Silence all SID voices" })
   async sidSilenceAll(): Promise<RunBasicResult> {
     return this.sidReset(false);
   }
@@ -437,6 +488,7 @@ export class C64Client {
     return res.data;
   }
 
+  @McpTool({ name: "pause", description: "Pause the machine via DMA" })
   async pause(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.machinePauseUpdate(":pause");
@@ -446,6 +498,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "resume", description: "Resume the machine from pause" })
   async resume(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.machineResumeUpdate(":resume");
@@ -455,6 +508,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "poweroff", description: "Power off the machine" })
   async poweroff(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.machinePoweroffUpdate(":poweroff");
@@ -464,6 +518,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "menu_button", description: "Toggle Ultimate menu button" })
   async menuButton(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.machineMenuButtonUpdate(":menu_button");
@@ -473,6 +528,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "debugreg_read", description: "Read the $D7FF debug register" })
   async debugregRead(): Promise<{ success: boolean; value?: string; details?: unknown }> {
     try {
       const res = await this.api.v1.machineDebugregList(":debugreg");
@@ -482,6 +538,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "debugreg_write", description: "Write the $D7FF debug register", parameters: { value: "string" } })
   async debugregWrite(value: string): Promise<{ success: boolean; value?: string; details?: unknown }> {
     try {
       const res = await this.api.v1.machineDebugregUpdate(":debugreg", { value });
@@ -491,11 +548,13 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "drives_list", description: "List internal drives and images" })
   async drivesList(): Promise<unknown> {
     const res = await this.api.v1.drivesList();
     return res.data;
   }
 
+  @McpTool({ name: "drive_mount", description: "Mount a disk image on a drive", parameters: { drive: "string", image: "string", type: "string", mode: "string" } })
   async driveMount(
     drive: string,
     imagePath: string,
@@ -509,6 +568,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "drive_remove", description: "Remove a mounted image", parameters: { drive: "string" } })
   async driveRemove(drive: string): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.drivesRemoveUpdate(drive, ":remove");
@@ -518,6 +578,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "drive_reset", description: "Reset a drive", parameters: { drive: "string" } })
   async driveReset(drive: string): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.drivesResetUpdate(drive, ":reset");
@@ -527,6 +588,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "drive_on", description: "Power on a drive", parameters: { drive: "string" } })
   async driveOn(drive: string): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.drivesOnUpdate(drive, ":on");
@@ -536,6 +598,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "drive_off", description: "Power off a drive", parameters: { drive: "string" } })
   async driveOff(drive: string): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.drivesOffUpdate(drive, ":off");
@@ -545,6 +608,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "drive_mode", description: "Set drive mode", parameters: { drive: "string", mode: "string" } })
   async driveSetMode(drive: string, mode: "1541" | "1571" | "1581"): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.drivesSetModeUpdate(drive, ":set_mode", { mode });
@@ -554,6 +618,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "stream_start", description: "Start a data stream", parameters: { stream: "string", ip: "string" } })
   async streamStart(stream: "video" | "audio" | "debug", ip: string): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.streamsStartUpdate(stream, ":start", { ip });
@@ -563,6 +628,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "stream_stop", description: "Stop a data stream", parameters: { stream: "string" } })
   async streamStop(stream: "video" | "audio" | "debug"): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.streamsStopUpdate(stream, ":stop");
@@ -572,16 +638,19 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "config_list", description: "List configuration categories" })
   async configsList(): Promise<unknown> {
     const res = await this.api.v1.configsList();
     return res.data;
   }
 
+  @McpTool({ name: "config_get", description: "Get configuration item(s)", parameters: { category: "string", item: "string" } })
   async configGet(category: string, item?: string): Promise<unknown> {
     const res = item ? await this.api.v1.configsDetail2(category, item) : await this.api.v1.configsDetail(category);
     return res.data;
   }
 
+  @McpTool({ name: "config_set", description: "Set configuration item", parameters: { category: "string", item: "string", value: "string" } })
   async configSet(category: string, item: string, value: string): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.configsUpdate(category, item, { value });
@@ -591,6 +660,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "config_batch_update", description: "Batch update configuration", parameters: { payload: "object" } })
   async configBatchUpdate(payload: Record<string, object>): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.configsCreate(payload);
@@ -600,6 +670,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "config_load_from_flash", description: "Load configuration from flash" })
   async configLoadFromFlash(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.configsLoadFromFlashUpdate(":load_from_flash");
@@ -609,6 +680,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "config_save_to_flash", description: "Save configuration to flash" })
   async configSaveToFlash(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.configsSaveToFlashUpdate(":save_to_flash");
@@ -618,6 +690,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "config_reset_to_default", description: "Reset configuration to defaults" })
   async configResetToDefault(): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.configsResetToDefaultUpdate(":reset_to_default");
@@ -627,11 +700,13 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "file_info", description: "Inspect file metadata", parameters: { path: "string" } })
   async filesInfo(path: string): Promise<unknown> {
     const res = await this.api.v1.filesInfoDetail(encodeURIComponent(path), ":info");
     return res.data;
   }
 
+  @McpTool({ name: "create_d64", description: "Create D64 image", parameters: { path: "string", tracks: "number", diskname: "string" } })
   async filesCreateD64(path: string, options?: { tracks?: 35 | 40; diskname?: string }): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.filesCreateD64Update(encodeURIComponent(path), ":create_d64", { tracks: options?.tracks, diskname: options?.diskname });
@@ -641,6 +716,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "create_d71", description: "Create D71 image", parameters: { path: "string", diskname: "string" } })
   async filesCreateD71(path: string, options?: { diskname?: string }): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.filesCreateD71Update(encodeURIComponent(path), ":create_d71", { diskname: options?.diskname });
@@ -650,6 +726,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "create_d81", description: "Create D81 image", parameters: { path: "string", diskname: "string" } })
   async filesCreateD81(path: string, options?: { diskname?: string }): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.filesCreateD81Update(encodeURIComponent(path), ":create_d81", { diskname: options?.diskname });
@@ -659,6 +736,7 @@ export class C64Client {
     }
   }
 
+  @McpTool({ name: "create_dnp", description: "Create DNP image", parameters: { path: "string", tracks: "number", diskname: "string" } })
   async filesCreateDnp(path: string, tracks: number, options?: { diskname?: string }): Promise<RunBasicResult> {
     try {
       const res = await this.api.v1.filesCreateDnpUpdate(encodeURIComponent(path), ":create_dnp", { tracks, diskname: options?.diskname });

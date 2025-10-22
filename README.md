@@ -8,14 +8,14 @@
 
 Local Model Context Protocol (MCP) server for driving a c64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It exposes a focused tool surface that lets LLM agents or automation scripts upload BASIC programs, read the video RAM buffer, and reset the machine without manual intervention.
 
-> Offline-ready npm package: The published npm artifact includes all documentation under `doc/`, the MCP manifest, curated examples, and prebuilt RAG embeddings under `data/`. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings.
-
 ## Highlights
-- Fastify-based MCP server running locally on port 8000.
-- TypeScript ESM modules throughout; `ts-node` powers the local development flow.
-- BASIC text → PRG converter and integrated 6502/6510 assembler with tests.
-- Configurable via `~/.c64mcp.json` (or `C64MCP_CONFIG`) so hardware details stay out of source control.
-- Built-in local RAG for Commodore 64 BASIC and 6502 assembly examples (no external services).
+- **Code** with AI support in Basic or Assembly on a C64.
+- **Compose** music or create images on a C64 using AI.
+- **Custom Knowledge Base**: Built-in local [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) for Commodore 64 BASIC and 6502 assembly examples (no external services).
+- **Offline-ready** npm package: The published npm artifact includes all necessary docs and RAG embeddings. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings, e.g. for use with a locally started [Ollama](https://github.com/ollama/ollama)-based LLM.
+- **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
+- **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
+
 
 ## Use Cases
 - **LLM tooling integration** – expose `upload_and_run_basic`, `read_screen`, and `reset_c64` to MCP-aware agents for program synthesis experiments on real hardware.
@@ -109,6 +109,128 @@ npm --version
 
 Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENTS.md) for setup and examples.
 
+## Build & Test
+- `npm run build` — type-check the TypeScript sources and generate `dist/mcp-manifest.json` by scanning `@McpTool` annotations.
+- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
+- `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
+
+## Available Tools
+
+Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`dist/mcp-manifest.json`](dist/mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
+
+
+### Control
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `read_screen` | `GET /tools/read_screen` | Read 1KB starting at `$0400`, convert PETSCII to ASCII, and return the screen buffer. |
+| `read_memory` | `POST /tools/read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
+| `write_memory` | `POST /tools/write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
+| `reset_c64` | `POST /tools/reset_c64` | Trigger a soft reset via the REST API. |
+| `reboot_c64` | `POST /tools/reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
+
+### Basic
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `basic_v2_spec` | `GET /tools/basic_v2_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
+| `upload_and_run_basic` | `POST /tools/upload_and_run_basic` | Convert BASIC source to PRG, upload, and execute on the C64. |
+
+### Assembly
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `asm_quick_reference` | `GET /tools/asm_quick_reference?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
+| `upload_and_run_asm` | TODO | Assemble 6502/6510 source to PRG and run it on the C64. |
+
+### SID (Audio)
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `music_compile_and_play` | TODO | Compile a SIDWAVE (`.sid.yaml` / `.sidwave.yaml` or JSON) composition to PRG/SID and play it |
+| `sid_reset` | TODO | Reset or silence SID |
+
+### Graphics (VIC II)
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `vic_ii_spec` | `GET /tools/vic_ii_spec?topic=<pattern>` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
+| `generate_sprite_prg` | `POST /tools/generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
+| `render_petscii_screen` | `POST /tools/render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
+| `create_petscii_image` | `POST /tools/create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |
+
+### Printer
+
+| Tool | Endpoint | Description |
+| --- | --- | --- |
+| `print_text` | TODO | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
+
+## Using with GitHub Copilot in VS Code
+
+GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
+
+### 1. Enable MCP in Copilot Chat
+
+- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in
+- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**
+- Enable the **MCP** checkbox
+- Restart VS Code
+
+### 2. Configure the C64 MCP Server
+
+Add this configuration to your workspace `.vscode/settings.json`:
+
+```json
+{
+  "github.copilot.chat.experimental.mcp": {
+    "servers": [
+      {
+        "name": "c64-mcp",
+        "url": "http://localhost:8000",
+        "manifestPath": "/absolute/path/to/c64-mcp/dist/mcp-manifest.json",
+        "type": "http"
+      }
+    ]
+  }
+}
+```
+
+**Important:** Replace `/absolute/path/to/c64-mcp/` with the actual absolute path to your c64-mcp project directory.
+
+### 3. Start the MCP Server
+
+```bash
+npm start
+```
+
+Keep this running - it will log successful connectivity to your c64 device.
+
+### 4. Use MCP Tools in Copilot Chat
+
+More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `dist/mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
+
+## Minimal CLI interaction
+
+If you want to exercise the MCP endpoints from a terminal, you can call them directly with `curl` (or any HTTP client). Examples:
+
+```bash
+# Upload and run HELLO WORLD
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"program": "10 PRINT \"HELLO\"\n20 GOTO 10"}' \
+  http://localhost:8000/tools/upload_and_run_basic | jq
+
+# Fetch the current screen buffer
+curl -s http://localhost:8000/tools/read_screen | jq
+
+# Reset or reboot the machine
+curl -s -X POST http://localhost:8000/tools/reset_c64
+curl -s -X POST http://localhost:8000/tools/reboot_c64
+```
+
+Any endpoint listed in the generated `dist/mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
+
 ### Local RAG (Retrieval-Augmented Generation)
 
 This server includes a local RAG subsystem that indexes sample Commodore 64 source code from `data/basic_examples/` and `data/assembly_examples/` on startup. It maintains two compact JSON indices at `data/embeddings_basic.json` and `data/embeddings_asm.json` generated using a deterministic, offline embedding model. Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data/` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
@@ -189,89 +311,6 @@ The test runner accepts the following options:
   ```
 
 Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
-
-## Available Tools
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `upload_and_run_basic` | `POST /tools/upload_and_run_basic` | Convert BASIC source to PRG, upload, and execute on the C64. |
-| `read_screen` | `GET /tools/read_screen` | Read 1KB starting at `$0400`, convert PETSCII to ASCII, and return the screen buffer. |
-| `reset_c64` | `POST /tools/reset_c64` | Trigger a soft reset via the REST API. |
-| `reboot_c64` | `POST /tools/reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
-| `read_memory` | `POST /tools/read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
-| `write_memory` | `POST /tools/write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
-| `basic_v2_spec` | `GET /tools/basic_v2_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
-| `asm_quick_reference` | `GET /tools/asm_quick_reference?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
-| `vic_ii_spec` | `GET /tools/vic_ii_spec?topic=<pattern>` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
-| `generate_sprite_prg` | `POST /tools/generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
-| `render_petscii_screen` | `POST /tools/render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
-| `create_petscii_image` | `POST /tools/create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |
-
-See [`src/mcpManifest.json`](src/mcpManifest.json) for the MCP manifest consumed by ChatGPT and other LLM clients.
-
-## Using with GitHub Copilot in VS Code
-
-GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
-
-### 1. Enable MCP in Copilot Chat
-
-- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in
-- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**
-- Enable the **MCP** checkbox
-- Restart VS Code
-
-### 2. Configure the C64 MCP Server
-
-Add this configuration to your workspace `.vscode/settings.json`:
-
-```json
-{
-  "github.copilot.chat.experimental.mcp": {
-    "servers": [
-      {
-        "name": "c64-mcp",
-        "url": "http://localhost:8000",
-        "manifestPath": "/absolute/path/to/c64-mcp/src/mcpManifest.json",
-        "type": "http"
-      }
-    ]
-  }
-}
-```
-
-**Important:** Replace `/absolute/path/to/c64-mcp/` with the actual absolute path to your c64-mcp project directory.
-
-### 3. Start the MCP Server
-
-```bash
-npm start
-```
-
-Keep this running - it will log successful connectivity to your c64 device.
-
-### 4. Use MCP Tools in Copilot Chat
-
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see [`src/mcpManifest.json`](src/mcpManifest.json).
-
-## Minimal CLI interaction
-
-If you want to exercise the MCP endpoints from a terminal, you can call them directly with `curl` (or any HTTP client). Examples:
-
-```bash
-# Upload and run HELLO WORLD
-curl -s -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"program": "10 PRINT \"HELLO\"\n20 GOTO 10"}' \
-  http://localhost:8000/tools/upload_and_run_basic | jq
-
-# Fetch the current screen buffer
-curl -s http://localhost:8000/tools/read_screen | jq
-
-# Reset or reboot the machine
-curl -s -X POST http://localhost:8000/tools/reset_c64
-curl -s -X POST http://localhost:8000/tools/reboot_c64
-```
-
-Any endpoint listed in [`src/mcpManifest.json`](src/mcpManifest.json) can be invoked the same way by posting JSON to `/tools/<name>`.
 
 ## Troubleshooting
 

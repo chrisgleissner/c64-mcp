@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "node --import ./scripts/register-ts-node.mjs src/index.ts",
-    "build": "tsc --noEmit",
+    "manifest": "node scripts/generate-mcp-manifest.mjs",
+    "build": "tsc --noEmit && npm run manifest",
     "test": "node scripts/run-tests.mjs",
     "check": "npm run build && npm test",
     "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
@@ -35,7 +36,8 @@
     "yaml": "^2.6.0",
     "meyda": "^5.6.2",
     "pitchfinder": "^2.2.0",
-    "octokit": "^4.0.2"
+    "octokit": "^4.0.2",
+    "reflect-metadata": "^0.1.13"
   },
   "optionalDependencies": {
     "naudiodon": "^2.3.6"
@@ -45,5 +47,16 @@
     "swagger-typescript-api": "^12.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
-  }
+  },
+  "files": [
+    "dist/**",
+    "src/**",
+    "scripts/**",
+    "doc/**",
+    "generated/**",
+    "data/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "prepack": "npm run manifest"
 }

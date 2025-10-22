@@ -50,8 +50,8 @@ jobs:
           test -f mcp.json
           # embeddings may live under data/ (default) or overridden via RAG_EMBEDDINGS_DIR
           ls -1 data/embeddings_*.json
-          # ensure manifest exists in src or root
-          test -f src/mcpManifest.json
+          # ensure generated manifest exists (built by npm run build)
+          test -f dist/mcp-manifest.json
           # ensure RAG source listing exists
           test -f src/rag/sources.csv
           # ensure key docs are present
@@ -79,8 +79,8 @@ jobs:
           # Prefer compiled generated JS if available
           if [ -d dist/generated ]; then cp -r dist/generated "$PUB/generated"; elif [ -d generated ]; then cp -r generated "$PUB/generated"; fi
           if [ -d scripts ]; then cp -r scripts "$PUB/scripts"; fi
-          mkdir -p "$PUB/src"
-          if [ -f src/mcpManifest.json ]; then cp src/mcpManifest.json "$PUB/src/"; fi
+          # Generated manifest is in dist
+          if [ -f dist/mcp-manifest.json ]; then mkdir -p "$PUB/dist" && cp dist/mcp-manifest.json "$PUB/dist/"; fi
           mkdir -p "$PUB/src/rag"
           if [ -f src/rag/sources.csv ]; then cp src/rag/sources.csv "$PUB/src/rag/"; fi
 
@@ -125,7 +125,7 @@ jobs:
           cp -r publish/dist release_artifacts/dist || true
           cp publish/mcp.json publish/README.md publish/LICENSE release_artifacts/
           if [ -f publish/CHANGELOG.md ]; then cp publish/CHANGELOG.md release_artifacts/; fi
-          if [ -f publish/src/mcpManifest.json ]; then cp publish/src/mcpManifest.json release_artifacts/; fi
+          if [ -f publish/dist/mcp-manifest.json ]; then cp publish/dist/mcp-manifest.json release_artifacts/; fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -165,7 +165,7 @@ jobs:
           test -d "$NODE_DIR/data"
           test -f "$NODE_DIR/mcp.json"
           test -f "$NODE_DIR/README.md"
-          test -f "$NODE_DIR/src/mcpManifest.json" || test -f "$NODE_DIR/mcp.json"
+          test -f "$NODE_DIR/dist/mcp-manifest.json" || test -f "$NODE_DIR/mcp.json"
           test -f "$NODE_DIR/src/rag/sources.csv"
           # Start server briefly to ensure it loads modules; bind to localhost and exit quickly
           HOST=127.0.0.1 PORT=0 node "$NODE_DIR/dist/index.js" &
