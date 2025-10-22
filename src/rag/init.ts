@@ -13,10 +13,11 @@ const EXTERNAL_DIR = path.resolve("external");
 const BASIC_DATA_DIR = path.resolve("data/basic_examples");
 const ASM_DATA_DIR = path.resolve("data/assembly_examples");
 const DOC_DIR = path.resolve("doc");
-const BOOTSTRAP_PATH = path.resolve("bootstrap.md");
-const AGENTS_PATH = path.resolve("agents.md");
-const PROMPTS_PATH = path.resolve("prompts.md");
-const CHAT_PATH = path.resolve("chat.md");
+const CONTEXT_DIR = path.resolve("doc/context");
+const BOOTSTRAP_PATH = path.join(CONTEXT_DIR, "bootstrap.md");
+const AGENTS_PATH = path.resolve("AGENTS.md");
+const PROMPTS_DIR = path.resolve(".github/prompts");
+const CHAT_PATH = path.join(CONTEXT_DIR, "chat.md");
 
 function resolveEmbeddingsDir(): string {
   return path.resolve(process.env.RAG_EMBEDDINGS_DIR ?? "data");
@@ -117,9 +118,24 @@ async function needsRebuild(): Promise<boolean> {
     dirMtimeRecursive(DOC_DIR).catch(() => 0),
     fileMtime(BOOTSTRAP_PATH).then((v) => v ?? 0),
     fileMtime(AGENTS_PATH).then((v) => v ?? 0),
-    fileMtime(PROMPTS_PATH).then((v) => v ?? 0),
+    promptFilesMtime().then((v) => v ?? 0),
     fileMtime(CHAT_PATH).then((v) => v ?? 0),
   ]);
   const newestSource = Math.max(basicDataM, asmDataM, externalM, docsM, bootstrapM, agentsM, promptsM, chatM);
   return newestSource > oldestIndex;
+}
+
+async function promptFilesMtime(): Promise<number> {
+  let newest = 0;
+  try {
+    const entries = await fs.readdir(PROMPTS_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".prompt.md")) continue;
+      const stat = await fs.stat(path.join(PROMPTS_DIR, entry.name)).catch(() => null);
+      if (stat && stat.mtimeMs > newest) newest = stat.mtimeMs;
+    }
+  } catch {
+    return 0;
+  }
+  return newest;
 }

@@ -1,0 +1,6 @@
+{
+  "name": "C64 Drive Manager",
+  "description": "Manage Ultimate 64 disk drives and images safely.",
+  "persona": "../prompts/drive_manager.md",
+  "temperature": 0.1
+}

@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write
       packages: read
+    secrets: inherit
     steps:
       - name: Checkout (full history)
         uses: actions/checkout@v4
@@ -56,8 +57,9 @@ jobs:
           test -f src/rag/sources.csv
           # ensure key docs are present
           test -d doc
-          test -f agents.md || test -f AGENTS.md || true
-          test -f prompts.md || true
+          test -f AGENTS.md
+          test -d .github/prompts
+          ls -1 .github/prompts/*.prompt.md
 
       - name: Prepare publish directory
         run: |
@@ -68,11 +70,8 @@ jobs:
           cp README.md LICENSE "$PUB/"
           if [ -f CHANGELOG.md ]; then cp CHANGELOG.md "$PUB/"; fi
           cp mcp.json "$PUB/"
-          if [ -f agents.md ]; then cp agents.md "$PUB/"; fi
           if [ -f AGENTS.md ]; then cp AGENTS.md "$PUB/"; fi
-          if [ -f prompts.md ]; then cp prompts.md "$PUB/"; fi
-          if [ -f bootstrap.md ]; then cp bootstrap.md "$PUB/"; fi
-          if [ -f chat.md ]; then cp chat.md "$PUB/"; fi
+          if [ -d .github/prompts ]; then mkdir -p "$PUB/.github" && cp -r .github/prompts "$PUB/.github/prompts"; fi
           if [ -d doc ]; then cp -r doc "$PUB/doc"; fi
           if [ -d data ]; then cp -r data "$PUB/data"; fi
           if [ -d dist ]; then cp -r dist "$PUB/dist"; fi
@@ -106,10 +105,14 @@ jobs:
           fi
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: publish
-        run: npm publish --access public
+        run: |
+          if [ -z "${{ secrets['NPM_TOKEN'] }}" ]; then
+            echo "NPM_TOKEN secret not set" >&2
+            exit 1
+          fi
+          npm config set //registry.npmjs.org/:_authToken "${{ secrets['NPM_TOKEN'] }}"
+          npm publish --access public
 
       - name: Produce distributable tarball and gather artifacts
         run: |

@@ -88,16 +88,86 @@ function parseCsv(content: string): ParsedRow[] {
   return rows;
 }
 
-function hexByte(value: string): number | undefined {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
+function parseDecimal(value: string | undefined): number | undefined {
+  if (!value) {
     return undefined;
   }
-  const parsed = Number.parseInt(trimmed, 16);
-  if (Number.isNaN(parsed) || parsed < 0 || parsed > 0xff) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseHex(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  let normalized = trimmed;
+  if (normalized.startsWith("$")) {
+    normalized = normalized.slice(1);
+  } else if (normalized.toLowerCase().startsWith("0x")) {
+    normalized = normalized.slice(2);
+  }
+  const parsed = Number.parseInt(normalized, 16);
+  if (Number.isNaN(parsed)) {
     return undefined;
   }
   return parsed;
+}
+
+function parseHexByte(value: string | undefined): number | undefined {
+  const parsed = parseHex(value);
+  if (parsed === undefined || parsed < 0 || parsed > 0xff) {
+    return undefined;
+  }
+  return parsed;
+}
+
+function parsePetsciiCode(row: ParsedRow): number | undefined {
+  return (
+    parseDecimal(row.petscii_code_dec)
+    ?? parseHex(row.petscii_code)
+    ?? parseDecimal(row.petscii_code)
+    ?? parseDecimal(row.petcsii_code) // legacy typo fallback
+  );
+}
+
+function parseScreenCode(row: ParsedRow): number | undefined {
+  return (
+    parseDecimal(row.screen_code_dec)
+    ?? parseHex(row.screen_code)
+    ?? parseDecimal(row.screen_code)
+  );
+}
+
+function readChargenCsv(baseDir: string): ParsedRow[] {
+  const candidates = [
+    "c64_chargen_enriched_hex.csv",
+    "c64_chargen_enriched.csv",
+    "c64_chargen.csv",
+    "chargen.csv",
+  ];
+
+  for (const fileName of candidates) {
+    try {
+      const csvPath = join(baseDir, "..", "data", fileName);
+      const csv = readFileSync(csvPath, "utf8");
+      return parseCsv(csv);
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Unable to locate a chargen CSV in data/ (checked c64_chargen_enriched_hex.csv, c64_chargen_enriched.csv, c64_chargen.csv, chargen.csv)");
 }
 
 function loadGlyphs(): void {
@@ -106,31 +176,31 @@ function loadGlyphs(): void {
   }
 
   const baseDir = dirname(fileURLToPath(import.meta.url));
-  const csvPath = join(baseDir, "..", "data", "chargen.csv");
-  const csv = readFileSync(csvPath, "utf8");
-  const rows = parseCsv(csv);
+  const rows = readChargenCsv(baseDir);
 
   for (const row of rows) {
-    const petsciiRaw = row.petscii_code ?? row.petcsii_code;
-    const screenRaw = row.screen_code;
-    const petsciiCode = Number.parseInt(String(petsciiRaw ?? "").trim(), 10);
-    const screenCode = Number.parseInt(String(screenRaw ?? "").trim(), 10);
-    if (!Number.isFinite(petsciiCode) || petsciiCode < 0) {
+    const petsciiCode = parsePetsciiCode(row);
+    const screenCode = parseScreenCode(row);
+    if (petsciiCode === undefined || petsciiCode < 0) {
       continue;
     }
-    if (!Number.isFinite(screenCode) || screenCode < 0) {
+    if (screenCode === undefined || screenCode < 0) {
       continue;
     }
 
     const bytes: number[] = [];
     for (let i = 0; i < 8; i += 1) {
-      const key = `byte${i}`;
-      const parsed = hexByte(row[key] ?? "");
+      const key = `byte${i + 1}`;
+      const legacyKey = `byte${i}`;
+      const value = row[key] ?? row[legacyKey];
+      const parsed = parseHexByte(value);
       bytes.push(parsed ?? 0);
     }
 
-    const name = row.char_name?.trim() || undefined;
-    const basicRaw = row.basic_repr?.trim();
+    const name = (row.name ?? row.char_name)?.trim() || undefined;
+    const basicRaw = [row.basic_repr, row.char, row.keyboard, row.control_code]
+      .map((value) => value?.trim())
+      .find((value) => value && value.length > 0);
     const basic = basicRaw && basicRaw.length > 0 ? basicRaw : undefined;
     const glyph: ChargenGlyph = {
       petsciiCode,

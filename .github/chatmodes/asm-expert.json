@@ -1,0 +1,6 @@
+{
+  "name": "C64 Assembly Expert",
+  "description": "Write, review, and run 6502 assembly programs on the C64 MCP server.",
+  "persona": "../prompts/c64_asm_specialist.md",
+  "temperature": 0.15
+}

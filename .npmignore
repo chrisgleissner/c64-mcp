@@ -23,12 +23,9 @@ external/
 !README.md
 !LICENSE
 !CHANGELOG.md
-!agents.md
 !AGENTS.md
-!bootstrap.md
-!chat.md
-!prompts.md
 !generated/
 !doc/examples/
 !doc/prompts/
+!.github/prompts/
 # legacy manifest no longer shipped from src

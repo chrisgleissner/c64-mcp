@@ -1,0 +1,6 @@
+{
+  "name": "C64 SID Composer",
+  "description": "Compose and refine SID music with expressive phrasing and MCP tooling.",
+  "persona": "../prompts/sid_composer.md",
+  "temperature": 0.25
+}

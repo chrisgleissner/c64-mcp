@@ -13,10 +13,11 @@ const BASIC_DIR = path.resolve("data/basic_examples");
 const ASM_DIR = path.resolve("data/assembly_examples");
 const EXTERNAL_DIR = path.resolve("external");
 const DOC_ROOT = path.resolve("doc");
-const BOOTSTRAP_PATH = path.resolve("bootstrap.md");
-const AGENTS_PATH = path.resolve("agents.md");
-const PROMPTS_PATH = path.resolve("prompts.md");
-const CHAT_PATH = path.resolve("chat.md");
+const CONTEXT_DIR = path.resolve("doc/context");
+const BOOTSTRAP_PATH = path.join(CONTEXT_DIR, "bootstrap.md");
+const AGENTS_PATH = path.resolve("AGENTS.md");
+const PROMPTS_DIR = path.resolve(".github/prompts");
+const CHAT_PATH = path.join(CONTEXT_DIR, "chat.md");
 // RAG_DOC_FILES env var can add extra specific files, comma-separated
 const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
   .split(",")
@@ -249,7 +250,7 @@ interface PreparedFile {
   licenseName?: string;
   licenseUrl?: string;
   attribution?: string;
-  origin?: string; // e.g. doc/foo.md#Bar or prompts.md#Compose Song
+  origin?: string; // e.g. doc/foo.md#Bar or .github/prompts/compose-song.prompt.md
 }
 
 const CATEGORY_LIST: RagLanguage[] = ["basic", "asm", "mixed", "hardware", "other"];
@@ -257,6 +258,18 @@ const BASIC_SCORE_THRESHOLD = 4;
 const ASM_SCORE_THRESHOLD = 4;
 const HARDWARE_SCORE_THRESHOLD = 2;
 const repoMetadataCache = new Map<string, RepoMetadata | null>();
+
+function readPromptFiles(): string[] {
+  try {
+    return fsSync
+      .readdirSync(PROMPTS_DIR, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".prompt.md"))
+      .map((entry) => path.join(PROMPTS_DIR, entry.name))
+      .sort();
+  } catch {
+    return [];
+  }
+}
 
 function analyzeText(text: string): TextAnalysis {
   const lines = text.split(/\r?\n/);
@@ -442,7 +455,9 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     fileSources.push({ file: docFile, root: process.cwd() });
   }
   // Include context files as single-chunk documents if present
-  const contextFiles = [BOOTSTRAP_PATH, AGENTS_PATH, PROMPTS_PATH, CHAT_PATH];
+  const promptFiles = readPromptFiles();
+  const contextFiles = [BOOTSTRAP_PATH, AGENTS_PATH, CHAT_PATH, ...promptFiles];
+  const contextSet = new Set(contextFiles.map((file) => path.resolve(file)));
   for (const cf of contextFiles) {
     if (fsSync.existsSync(cf)) fileSources.push({ file: cf, root: process.cwd() });
   }
@@ -473,7 +488,7 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
 
     // For markdown docs under doc/, chunk by sections; for context files inject as a single small chunk
     const isMarkdown = path.extname(source.file).toLowerCase() === ".md";
-    const isContext = [BOOTSTRAP_PATH, AGENTS_PATH, PROMPTS_PATH, CHAT_PATH].some((p) => path.resolve(p) === path.resolve(source.file));
+  const isContext = contextSet.has(path.resolve(source.file));
     const isDocFile = isMarkdown && path.resolve(source.file).startsWith(path.resolve(DOC_ROOT) + path.sep);
 
     if (isDocFile) {
@@ -500,7 +515,7 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     }
 
     if (isContext) {
-      const origin = `${path.basename(source.file)}`;
+  const origin = path.relative(process.cwd(), source.file).split(path.sep).join("/");
       const analysis = analyzeText(text);
       const category = decideCategory(analysis, path.extname(source.file), source.root);
       preparedByCategory[category].push({
