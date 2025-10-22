@@ -94,6 +94,14 @@ flowchart LR
 3. `npm test -- --real` for hardware.
 4. Update `doc/` and keep `doc/c64-openapi.yaml` in sync with code.
 
+## Release Workflow
+
+1. Create a short-lived branch (for example `release/X.Y.Z`) from the target commit.
+2. Run `npm run release:prepare -- <semver>` to bump versions (`major`, `minor`, `patch`, or explicit like `0.2.0`). This updates `package.json`, `package-lock.json`, `mcp.json`, and regenerates `mcp-manifest.json` in one shot.
+3. Review and commit the changes, then open a pull request.
+4. After the PR merges, create and push the tag (`git tag X.Y.Z && git push origin X.Y.Z`) or use the GitHub release UI; CI will now see matching versions.
+5. Perform the publish/release steps that rely on the tag (npm publish, GitHub release, etc.).
+
 ## Retrieval-Augmented Knowledge
 
 - RAG subsystem (`src/rag/*`) indexes `.bas`, `.asm`, `.s`, and Markdown files under `data/*`. Changes trigger a background re-index.

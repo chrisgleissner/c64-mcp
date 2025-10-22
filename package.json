@@ -15,7 +15,8 @@
     "c64:tool": "bash scripts/c64-tool.sh",
     "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
     "rag:fetch": "node scripts/fetch-external-sources.mjs",
-    "rag:discover": "node --import ./scripts/register-ts-node.mjs src/rag/discover.ts"
+    "rag:discover": "node --import ./scripts/register-ts-node.mjs src/rag/discover.ts",
+    "release:prepare": "node scripts/prepare-release.mjs"
   },
   "keywords": [
     "c64",
