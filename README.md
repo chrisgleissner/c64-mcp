@@ -2,15 +2,15 @@
 
 [![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
 [![Build](https://img.shields.io/badge/build-npm%20test-brightgreen)](package.json#L7)
-[![Release](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yml?branch=main&label=release)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yml)
+[![Release](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
-Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). 
+Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
 
 It exposes a focused tool surface that lets LLM agents or automation scripts upload and run BASIC or assembly programs on the C64, read or write its RAM, control the VIC or SID, print documents, or perform a reset.
 
-## Highlights
+## Highlights ✨
 
 - **Code** with AI support in Basic or Assembly on a C64.
 - **Compose** music or create images on a C64 using AI.
@@ -20,26 +20,26 @@ It exposes a focused tool surface that lets LLM agents or automation scripts upl
 - **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
 
 
-## Example
+## Example 🎬
 
 Let's compose a children song on the C64 using ChatGPT 5 and Visual Code.
 
 1. We type the prompt:
 `play a children song on the c64`.
-2. Chat GPT 5 reads our prompt and creates a song. In this case it creates a Basic program, but direct SID creation is work in progress.
-3. The LLM then uses this MCP to transfer the Basic program to the Ultimate 64 and play it.
+1. ChatGPT reads our prompt and creates a song. In this case it creates a Basic program that plays a song, but direct SID creation is work in progress.
+1. The LLM then uses this MCP to transfer the Basic program to the Ultimate 64 and play it.
 
 The following image shows the final output, using the [C64 Stream](https://github.com/chrisgleissner/c64stream/) OBS plugin to capture the C64 video and audio output:
 
 ![duck song](./doc/img/prompts/duck_song.png)
 
-4. After the follow-up prompt `Now create a PETSCII image related to that song` the following image of ducks swimming on a pond appears:
+1. After the follow-up prompt `Now create a PETSCII image related to that song` the following image of ducks swimming on a pond appears:
 
 ![duck petscii](./doc/img/prompts/duck_petscii.png)
 
 ...and our C64 is now AI-powered!
 
-## Installation
+## Installation 📦
 
 The installation consists of two steps: Installing Node.js and then installing and running the MCP server.
 
@@ -117,7 +117,7 @@ npm init -y
 npm install c64-mcp
 ```
 
-2. Configure your C64 target (optional but recommended):
+1. Configure your C64 target (optional but recommended):
 
 Create `~/.c64mcp.json` with your device host/IP:
 
@@ -125,7 +125,7 @@ Create `~/.c64mcp.json` with your device host/IP:
 { "c64_host": "c64u" }
 ```
 
-3. Start the server:
+1. Start the server:
 
 ```bash
 HOST=127.0.0.1 PORT=8000 node ./node_modules/c64-mcp/dist/index.js
@@ -148,6 +148,7 @@ git clone https://github.com/chrisgleissner/c64-mcp.git
 cd c64-mcp
 npm install
 ```
+
 1. Start the development server
 
 ```bash
@@ -197,7 +198,7 @@ You should see the version of the REST API repoted back by your C64 and relayed 
 Congratulations! You are now all set to use the MCP server with your C64 device.
 
 
-## Documentation
+## Documentation 📚
 
 The Agent has two main artifacts:
 
@@ -214,20 +215,17 @@ Besides this `README.md` document, the project includes extensive documentation:
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
 
-## Configuration
+## Configuration ⚙️
 
-   The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. 
-   
-   You can override the path with the `C64MCP_CONFIG` environment variable. 
-   
+  The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`.
+
+  You can override the path with the `C64MCP_CONFIG` environment variable.
+
    If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
 
 
-## Agent Integration
 
-Use with GitHub Copilot Chat (MCP) or other MCP clients. See [`AGENTS.md`](AGENTS.md) for setup and examples.
-
-## Build & Test
+## Build & Test 🧪
 
 - `npm run build` — type-check the TypeScript sources and generate `mcp-manifest.json` by scanning `@McpTool` annotations.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
@@ -240,7 +238,7 @@ The test runner accepts the following options:
 - `--real`: talk to physical hardware (requires reachable C64 device).
 - `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
 
-## Available Tools
+## Available Tools 🧰
 
 Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`mcp-manifest.json`](mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
 
@@ -291,7 +289,7 @@ Here is an overview of some of the most important tools. To see all available to
 | --- | --- | --- |
 | `print_text` | TODO | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
 
-## Using with GitHub Copilot in VS Code
+## Using with GitHub Copilot in VS Code �‍💻
 
 GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
 
@@ -335,7 +333,7 @@ Keep this running—it will log successful connectivity to your C64 device.
 
 More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
 
-## Minimal CLI interaction
+## Minimal CLI interaction 💻
 
 If you want to exercise the MCP endpoints from a terminal, you can call them directly with `curl` (or any HTTP client). Examples:
 
@@ -356,7 +354,7 @@ curl -s -X POST http://localhost:8000/tools/reboot_c64
 
 Any endpoint listed in the generated `mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
 
-## Local RAG
+## Local RAG 🕸️
 
 This server includes a local RAG (Retrieval-Augmented Generation) subsystem that indexes sample Commodore 64 source code and hardware information from the `data` folder on startup.
 
@@ -455,7 +453,7 @@ To download sources available at locations defined in `src/rag/sources.csv`:
 
 For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
 
-## Utility Scripts
+## Utility Scripts 🛠️
 
 - `npm run c64:tool` — interactive helper that can:
   - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
@@ -472,7 +470,7 @@ For advanced options (depth semantics, throttling/limits, adaptive rate limiting
 
 Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
 
-## Troubleshooting
+## Troubleshooting 🛟
 
 If the MCP server is not reachable or VS Code integration isn't working, see the comprehensive troubleshooting guide:
 
@@ -491,13 +489,8 @@ curl -s http://localhost:8000/tools/info
 pkill -f "npm start" && PORT=8000 npm start
 ```
 
-## Development Workflow
-
-- Type-check with `npm run build`.
-- Run tests with `npm test` (mock) and `npm test -- --real` (hardware).
-- Review [`doc/c64-rest-api.md`](doc/c64-rest-api.md) for official REST call details.
-
-## Reference
+## Developer Docs 📖
 
 - REST API docs: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html)
-- Local references: see the [Documentation](#documentation) section above.
+- Extend this project: see the [Developer Guide](doc/developer.md).
+- Local references: see the [Documentation](#documentation-) section above.
