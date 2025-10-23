@@ -6,7 +6,9 @@
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
-Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). 
+Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
+
+Note: This server supports both real hardware (C64 Ultimate and Ultimate 64) and the VICE emulator. VICE support is currently experimental.
 
 It exposes a focused tool surface that lets LLM agents or automation scripts upload and run BASIC or assembly programs on the C64, read or write its RAM, control the VIC or SID, print documents, or perform a reset.
 
@@ -216,11 +218,78 @@ Besides this `README.md` document, the project includes extensive documentation:
 
 ## Configuration
 
-   The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. 
-   
-   You can override the path with the `C64MCP_CONFIG` environment variable. 
-   
-   If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
+The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present.
+
+From this release onward, configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
+
+### C64U (real hardware)
+
+Use this section to point the server at an Ultimate 64/Commodore 64 Ultimate device. Either `hostname` or an explicit `baseUrl` can be provided.
+
+```json
+{
+  "c64u": {
+    "hostname": "c64u",
+    "baseUrl": "http://192.168.1.13"
+  }
+}
+```
+
+Notes:
+
+- If both `hostname` and `baseUrl` are set, `baseUrl` wins.
+- The legacy keys `c64_host` and `baseUrl` are still recognized for backward compatibility; they map to the same effective target.
+
+### VICE (emulator, experimental)
+
+This backend starts a fresh VICE process for each PRG run using the emulator binary. In phase one, memory/register operations are not supported; the focus is deterministic PRG execution.
+
+```json
+{
+  "vice": {
+    "exe": "/usr/bin/x64sc"
+  }
+}
+```
+
+Notes:
+
+- If `vice.exe` is not set, the server attempts to find `x64sc` (or `x64`) on your `PATH`.
+- Each program execution spawns a new VICE instance, e.g.:
+
+  ```bash
+  x64sc -autostart "program.prg" -silent -warp
+  ```
+
+### Backend selection rules
+
+Backend selection is automatic with clear logging. The following precedence applies:
+
+1. Explicit override: if `C64_MODE=c64u` or `C64_MODE=vice` is set in the environment, that backend is used.
+2. Config presence: if only one of `c64u` or `vice` is configured, it is used.
+3. Both configured: prefer `c64u` unless VICE is explicitly requested via `C64_MODE=vice`.
+4. No configuration: probe the default C64U address (`http://c64u`); if unavailable, fall back to VICE.
+
+On startup, the server logs the selected backend and reason, for example:
+
+- `Active backend: c64u (from config)`
+- `Active backend: vice (fallback – hardware unavailable)`
+
+### File locations and overrides
+
+- Primary: `~/.c64mcp.json`
+- Override path: set `C64MCP_CONFIG=/absolute/path/to/.c64mcp.json`
+- Repo-local (dev): `.c64mcp.json` at the project root
+
+### Backward compatibility
+
+Existing configurations using the legacy top-level fields still work:
+
+```json
+{ "c64_host": "c64u", "baseUrl": "http://c64u" }
+```
+
+The new per-device sections take precedence when present.
 
 
 ## Agent Integration
