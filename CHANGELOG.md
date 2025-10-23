@@ -1,10 +1,13 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
 
-The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
+## 0.2.2 - 2025-10-23
 
-## [0.2.1] - 2025-10-23
+### Chores
+
+- Extend CHANGELOG.md automatically (fc3c5a3)
+
+## 0.2.1 - 2025-10-23
 
 ### Added (0.2.1)
 
@@ -22,7 +25,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Post-publish smoke verification: run checks in the installed package directory (avoids false negatives).
 - Release badge alignment; documentation touch-ups.
 
-## [0.2.0] - 2025-10-23
+## 0.2.0 - 2025-10-23
 
 ### Added (0.2.0)
 
@@ -40,7 +43,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 - Verified build emits `dist/mcp-manifest.json` with expected tools; improved mock and real-device testing notes.
 
-## [0.1.0] - 2025-10-22
+## 0.1.0 - 2025-10-22
 
 ### Added
 

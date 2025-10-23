@@ -1,6 +1,6 @@
 {
   "name": "c64-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "tools": [
     {
