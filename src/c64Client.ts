@@ -12,8 +12,37 @@ import { basicToPrg } from "./basicConverter.js";
 import { assemblyToPrg } from "./assemblyConverter.js";
 import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
-import { Api, HttpClient } from "../generated/c64/index.js";
 import { McpTool } from "./mcpDecorators.js";
+import type { Api as GeneratedApi, HttpClient as GeneratedHttpClient } from "../generated/c64/index.js";
+
+type GeneratedModule = typeof import("../generated/c64/index.js");
+
+const generatedClient = await loadGeneratedModule();
+const { Api, HttpClient } = generatedClient;
+
+async function loadGeneratedModule(): Promise<GeneratedModule> {
+  const candidates = [
+    "./generated/c64/index.js",
+    "../generated/c64/index.js",
+  ];
+
+  for (const rel of candidates) {
+    try {
+      const url = new URL(rel, import.meta.url);
+      return (await import(url.href)) as GeneratedModule;
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException | undefined;
+      const msg = err?.message ?? "";
+      if (err?.code === "ERR_MODULE_NOT_FOUND" || msg.includes("Cannot find module")) {
+        continue;
+      }
+      // Re-throw unexpected errors (syntax/runtime inside module, etc.)
+      throw error;
+    }
+  }
+
+  throw new Error("Unable to locate generated MCP client (checked ./generated/c64/index.js and ../generated/c64/index.js)");
+}
 
 export interface RunBasicResult {
   success: boolean;
@@ -27,8 +56,8 @@ export interface MemoryReadResult {
 }
 
 export class C64Client {
-  private readonly http: HttpClient<unknown>;
-  private readonly api: Api<unknown>;
+  private readonly http: GeneratedHttpClient<unknown>;
+  private readonly api: GeneratedApi<unknown>;
 
   constructor(baseUrl: string) {
     this.http = new HttpClient({

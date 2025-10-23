@@ -8,9 +8,9 @@
     "c64-mcp": "scripts/cli.js"
   },
   "scripts": {
-    "start": "node --import ./scripts/register-ts-node.mjs src/index.ts",
+    "start": "node --import ./scripts/register-ts-node.mjs dist/index.ts",
     "manifest": "node scripts/generate-mcp-manifest.mjs",
-    "build": "tsc --noEmit && npm run manifest",
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && npm run manifest",
     "test": "node scripts/run-tests.mjs",
     "check": "npm run build && npm test",
     "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
@@ -55,10 +55,8 @@
   },
   "files": [
     "dist/**",
-    "src/**",
     "scripts/**",
     "doc/**",
-    "generated/**",
     "data/**",
     "mcp-manifest.json",
     "mcp.json",
@@ -67,5 +65,5 @@
     "README.md",
     "LICENSE"
   ],
-  "prepack": "npm run manifest"
+  "prepack": "npm run build"
 }
