@@ -1,6 +1,6 @@
 # c64-mcp
 
-[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yml?label=release)](https://github.com/chrisgleissner/c64-mcp/actions)
+[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yml?branch=main&label=release)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yml)
 [![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
 [![Build](https://img.shields.io/badge/build-npm%20test-brightgreen)](package.json#L7)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
