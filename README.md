@@ -1,10 +1,10 @@
 # c64-mcp
 
-[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yml?branch=main&label=release)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yml)
 [![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
 [![Build](https://img.shields.io/badge/build-npm%20test-brightgreen)](package.json#L7)
+[![Release](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yml?branch=main&label=release)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](doc/developer.md)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
 Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). 
 
@@ -40,6 +40,10 @@ The following image shows the final output, using the [C64 Stream](https://githu
 ...and our C64 is now AI-powered!
 
 ## Installation
+
+The installation consists of two steps: Installing Node.js and then installing and running the MCP server.
+
+### Install Node.js
 
 Requires Node.js 18+ (20+ recommended) and npm.
 
@@ -79,14 +83,129 @@ node --version  # v18+ (v20+ recommended)
 
 ```
 
+### Install and Run the MCP Server
+
+You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub.
+
+For a quick start, the first option is recommended. If you plan to contribute code or run tests, use the third option.
+
+#### Quick start (npx, zero-setup)
+
+Run the prebuilt server without creating a project. npx downloads the package and expands all bundled files on disk for this session.
+
+```bash
+HOST=127.0.0.1 PORT=8000 npx -y c64-mcp@latest
+```
+
+By default, the MCP server assumes the C64's host name is `c64u`. To change this, create `~/.c64mcp.json`:
+
+```json
+{ 
+  "c64_host": "<Hostname or IP of C64>" 
+}
+```
+
+#### Persistent install (npm)
+
+This installs the prebuilt `c64-mcp` Node package from [npm](https://www.npmjs.com/package/c64-mcp) and then runs the server. No build step required.
+
+1. Create a folder (or use an existing project) and install the package:
+
+```bash
+mkdir -p ~/c64-mcp && cd ~/c64-mcp
+npm init -y
+npm install c64-mcp
+```
+
+2. Configure your C64 target (optional but recommended):
+
+Create `~/.c64mcp.json` with your device host/IP:
+
+```json
+{ "c64_host": "c64u" }
+```
+
+3. Start the server:
+
+```bash
+HOST=127.0.0.1 PORT=8000 node ./node_modules/c64-mcp/dist/index.js
+```
+
+Notes
+
+- Works fully offline. The npm package bundles `doc/`, `data/`, `mcp.json`, and `mcp-manifest.json`.
+- All environment flags (e.g., `RAG_BUILD_ON_START=1`) apply the same as in a source checkout.
+- Using npx or a local install both place the package contents on the filesystem in expanded form.
+
+#### Install from source (GitHub)
+
+Use this path if you plan to run tests or contribute code; it runs the TypeScript sources directly.
+
+1. Clone and install dependencies
+
+```bash
+git clone https://github.com/chrisgleissner/c64-mcp.git
+cd c64-mcp
+npm install
+```
+1. Start the development server
+
+```bash
+npm start
+```
+
+The dev server runs via ts-node; for a quick type check and manifest generation, you can also run:
+
+```bash
+npm run build
+```
+
+### Health Check
+
+When your MCP server starts, it tries to connect to your C64 device and logs success or failure.
+
+A healthy start looks like this:
+
+```sh
+> c64-mcp@0.2.1 start
+> node --import ./scripts/register-ts-node.mjs src/index.ts
+
+{"level":30,"time":1761206855279,"pid":43066,"hostname":"mickey","status":200,"msg":"Connectivity check succeeded for c64 device at http://192.168.1.64"}
+
+...skipped...
+
+{"level":30,"time":1761206855344,"pid":43066,"hostname":"mickey","msg":"c64-mcp server listening on 127.0.0.1:8000"}
+```
+
+Once running, verify that the MCP server can reach your C64 device by querying the version endpoint:
+
+```bash
+curl -s http://127.0.0.1:8000/tools/version | jq
+```
+
+You should see the version of the REST API repoted back by your C64 and relayed to you via the MCP server:
+
+```json
+{
+  "details": {
+    "version": "0.1",
+    "errors": []
+  }
+}
+```
+
+Congratulations! You are now all set to use the MCP server with your C64 device.
+
+
 ## Documentation
 
 The Agent has two main artifacts:
 
-- [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata). 
+- [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata).
 - [`mcp-manifest.json`](mcp-manifest.json): auto-generated tool manifest consumed by MCP clients. It is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
 
 Besides this `README.md` document, the project includes extensive documentation:
+
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
 - [`doc/context/bootstrap.md`](doc/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 - `.github/prompts/*.prompt.md` — Request templates surfaced to agents (see `src/context.ts`).
@@ -95,53 +214,14 @@ Besides this `README.md` document, the project includes extensive documentation:
 - [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
 
-## Getting Started
+## Configuration
 
-1. Clone the repository and install dependencies:
+   The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. 
+   
+   You can override the path with the `C64MCP_CONFIG` environment variable. 
+   
+   If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
 
-   ```bash
-   git clone https://github.com/chrisgleissner/c64-mcp.git
-   cd c64-mcp
-   npm install
-   ```
-
-   **Audio Analysis Dependencies**: For audio feedback capabilities (automatic verification of generated SID music), the following optional dependencies are installed:
-
-   - `meyda` - Audio feature extraction for frequency analysis
-   - `pitchfinder` - Pitch detection algorithms
-   - `naudiodon` - Audio I/O via PortAudio (requires system audio libraries)
-
-   On Linux, you may need to install PortAudio development headers:
-
-   ```bash
-   sudo apt install libportaudio2-dev  # Ubuntu/Debian
-   sudo yum install portaudio-devel    # CentOS/RHEL
-   ```
-
-   On macOS with Homebrew:
-
-   ```bash
-   brew install portaudio
-   ```
-
-   **Note**: Audio analysis is optional. If these dependencies fail to install, the server will still function normally but audio verification features will be unavailable.
-
-2. (Optional) Create your configuration file (a ready-made sample lives at [`doc/examples/c64mcp.sample.json`](doc/examples/c64mcp.sample.json)):
-
-   ```json
-   { "c64_host": "c64u" }
-   ```
-
-   The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`. You can override the path with the `C64MCP_CONFIG` environment variable. If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
-
-3. Launch the MCP server:
-
-   ```bash
-   npm start
-   ```
-
-   The server listens on `http://localhost:8000` by default. Set `PORT` to change the port.
-   The server binds to `127.0.0.1` by default for safety. Override with `HOST=127.0.0.1` if needed.
 
 ## Agent Integration
 
