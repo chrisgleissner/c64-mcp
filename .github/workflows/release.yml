@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "*.*.*"  # semantic tag without 'v' prefix
+  release:
+    types: [published]
 
 jobs:
   build_and_publish:
@@ -106,6 +108,7 @@ jobs:
           fi
 
       - name: Publish to npm
+        if: ${{ github.event_name == 'push' }}
         working-directory: publish
         run: |
           if [ -z "${NPM_TOKEN:-}" ]; then
@@ -132,6 +135,7 @@ jobs:
           if [ -f publish/mcp-manifest.json ]; then cp publish/mcp-manifest.json release_artifacts/; fi
 
       - name: Create GitHub Release
+        if: ${{ github.event_name == 'push' }}
         uses: softprops/action-gh-release@v2
         with:
           name: c64-mcp ${{ steps.version.outputs.pkg }}
