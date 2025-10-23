@@ -139,7 +139,7 @@ Notes
 
 #### Install from source (GitHub)
 
-Use this path if you plan to run tests or contribute code; it runs the TypeScript sources directly.
+Use this path if you plan to run tests or contribute code; `npm start` automatically prefers the TypeScript sources (via ts-node) when they are available and falls back to the compiled JavaScript otherwise.
 
 1. Clone and install dependencies
 
@@ -168,8 +168,8 @@ When your MCP server starts, it tries to connect to your C64 device and logs suc
 A healthy start looks like this:
 
 ```sh
-> c64-mcp@0.2.1 start
-> node --import ./scripts/register-ts-node.mjs src/index.ts
+> c64-mcp@0.2.2 start
+> node scripts/start.mjs
 
 {"level":30,"time":1761206855279,"pid":43066,"hostname":"mickey","status":200,"msg":"Connectivity check succeeded for c64 device at http://192.168.1.64"}
 
