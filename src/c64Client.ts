@@ -12,8 +12,11 @@ import { basicToPrg } from "./basicConverter.js";
 import { assemblyToPrg } from "./assemblyConverter.js";
 import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
-import { Api, HttpClient } from "../generated/c64/index.js";
 import { McpTool } from "./mcpDecorators.js";
+import type { Api as GeneratedApi, HttpClient as GeneratedHttpClient } from "../generated/c64/index.js";
+
+type GeneratedModule = typeof import("../generated/c64/index.js");
+const { Api, HttpClient } = await import(new URL("./generated/c64/index.js", import.meta.url).href) as GeneratedModule;
 
 export interface RunBasicResult {
   success: boolean;
@@ -27,8 +30,8 @@ export interface MemoryReadResult {
 }
 
 export class C64Client {
-  private readonly http: HttpClient<unknown>;
-  private readonly api: Api<unknown>;
+  private readonly http: GeneratedHttpClient<unknown>;
+  private readonly api: GeneratedApi<unknown>;
 
   constructor(baseUrl: string) {
     this.http = new HttpClient({

@@ -86,6 +86,52 @@ jobs:
           mkdir -p "$PUB/src/rag"
           if [ -f src/rag/sources.csv ]; then cp src/rag/sources.csv "$PUB/src/rag/"; fi
 
+      - name: Verify artifacts are unique
+        env:
+          PUB: publish
+        run: |
+          set -euo pipefail
+          if [ ! -d "$PUB" ]; then
+            echo "::error::Publish directory '$PUB' not found (expected after Prepare publish directory)." >&2
+            exit 1
+          fi
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const crypto = require('crypto');
+            const pub = process.env.PUB;
+            if (!pub) {
+              console.error('PUB environment variable missing.');
+              process.exit(1);
+            }
+            const hashes = new Map();
+            const duplicates = [];
+            const walk = (dir) => {
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                  walk(fullPath);
+                } else if (entry.isFile()) {
+                  const rel = path.relative(pub, fullPath);
+                  const digest = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+                  if (hashes.has(digest)) {
+                    duplicates.push([hashes.get(digest), rel]);
+                  } else {
+                    hashes.set(digest, rel);
+                  }
+                }
+              }
+            };
+            walk(pub);
+            if (duplicates.length > 0) {
+              console.error('Duplicate artifacts detected (identical file contents):');
+              for (const [first, dup] of duplicates) {
+                console.error(' - ' + first + ' == ' + dup);
+              }
+              process.exit(1);
+            }
+          "
+
       - name: npm pack (dry run)
         working-directory: publish
         run: npm pack --dry-run

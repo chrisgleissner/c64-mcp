@@ -289,7 +289,7 @@ Here is an overview of some of the most important tools. To see all available to
 | --- | --- | --- |
 | `print_text` | TODO | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
 
-## Using with GitHub Copilot in VS Code �‍💻
+## Using with GitHub Copilot in VS Code 💻
 
 GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
 
@@ -356,7 +356,7 @@ Any endpoint listed in the generated `mcp-manifest.json` (or `src/mcpManifest.js
 
 ## Local RAG 🕸️
 
-This server includes a local RAG (Retrieval-Augmented Generation) subsystem that indexes sample Commodore 64 source code and hardware information from the `data` folder on startup.
+This server includes a local RAG ([Retrieval-Augmented Generation](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)) subsystem that indexes sample Commodore 64 source code and hardware information from the `data` folder on startup.
 
 It maintains several compact JSON indices at `data/embeddings_*.json` which are generated using a deterministic, offline embedding model.
 
