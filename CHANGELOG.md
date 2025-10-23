@@ -1,6 +1,18 @@
 # Changelog
 
 
+
+## 0.2.3 - 2025-10-23
+
+### Bug Fixes
+
+- Flexible launcher so npm start works both from source and the published package (3b0ee24)
+- load generated client from src during tests (0d78fff)
+
+### Chores
+
+- Remove duplicates from package (f1b9c23)
+
 ## 0.2.2 - 2025-10-23
 
 ### Chores

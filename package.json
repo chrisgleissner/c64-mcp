@@ -1,6 +1,6 @@
 {
   "name": "c64-mcp",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
     "c64-mcp": "scripts/cli.js"
   },
   "scripts": {
-  "start": "node scripts/start.mjs",
+    "start": "node scripts/start.mjs",
     "manifest": "node scripts/generate-mcp-manifest.mjs",
     "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && npm run manifest",
     "test": "node scripts/run-tests.mjs",
