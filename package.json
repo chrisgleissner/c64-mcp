@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
     "start": "node --import ./scripts/register-ts-node.mjs src/index.ts",
     "manifest": "node scripts/generate-mcp-manifest.mjs",
@@ -57,6 +57,9 @@
     "generated/**",
     "data/**",
     "mcp-manifest.json",
+    "mcp.json",
+    "AGENTS.md",
+    ".github/prompts/**",
     "README.md",
     "LICENSE"
   ],

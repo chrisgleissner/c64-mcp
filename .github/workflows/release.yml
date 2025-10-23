@@ -166,10 +166,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_DIR=$(node -p "require.resolve('c64-mcp/package.json').replace(/package.json$/, '')")
+          test -f "$NODE_DIR/README.md"
           test -d "$NODE_DIR/doc"
           test -d "$NODE_DIR/data"
           test -f "$NODE_DIR/mcp.json"
-          test -f "$NODE_DIR/README.md"
           test -f "$NODE_DIR/mcp-manifest.json"
           test -f "$NODE_DIR/src/rag/sources.csv"
           HOST=127.0.0.1 PORT=0 node "$NODE_DIR/dist/index.js" &
