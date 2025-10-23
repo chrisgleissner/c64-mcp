@@ -8,7 +8,7 @@
  * This keeps the published package tree leaner (single index.js location)
  * while still allowing TypeScript to compile with include patterns.
  */
-import { readdir, rename, rm, stat } from 'node:fs/promises';
+import { readdir, rename, rm, stat, mkdir, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -38,6 +38,24 @@ async function main() {
   }
 
   await rm(distSrc, { recursive: true, force: true });
+
+  // Ensure RAG static assets (CSV/JSON) are available under dist/rag for runtime tools
+  // Source-of-truth lives under src/rag/*. Copy selected assets if present.
+  const projectRoot = path.resolve('.');
+  const ragSrcDir = path.join(projectRoot, 'src', 'rag');
+  const ragDistDir = path.join(distRoot, 'rag');
+  try {
+    await mkdir(ragDistDir, { recursive: true });
+    const assets = ['sources.csv', 'discover.config.json'];
+    for (const file of assets) {
+      const srcPath = path.join(ragSrcDir, file);
+      const dstPath = path.join(ragDistDir, file);
+      try {
+        // Best-effort copy; skip if source asset does not exist.
+        await copyFile(srcPath, dstPath);
+      } catch {}
+    }
+  } catch {}
 }
 
 main().catch((error) => {

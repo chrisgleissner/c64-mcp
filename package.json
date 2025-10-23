@@ -58,6 +58,8 @@
     "scripts/**",
     "doc/**",
     "data/**",
+    "src/rag/sources.csv",
+    "src/rag/discover.config.json",
     "mcp-manifest.json",
     "mcp.json",
     "AGENTS.md",
