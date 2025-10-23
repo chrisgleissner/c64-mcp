@@ -316,7 +316,15 @@ async function spawnWithTimeout(file: string, args: string[], timeoutMs: number)
 
 export interface FacadeSelection { facade: C64Facade; selected: DeviceType; reason: string; details?: Record<string, unknown> }
 
-export async function createFacade(logger?: { info: (...a: any[]) => void }): Promise<FacadeSelection> {
+export interface FacadeOptions { preferredC64uBaseUrl?: string }
+
+export async function createFacade(logger?: { info: (...a: any[]) => void }, options?: FacadeOptions): Promise<FacadeSelection> {
+  // Caller-forced preference: use c64u with provided base URL (used by tests and server wiring)
+  if (options?.preferredC64uBaseUrl) {
+    const backend = new C64uBackend({ baseUrl: options.preferredC64uBaseUrl });
+    logger?.info?.("Active backend: c64u (forced by caller)");
+    return { facade: backend, selected: "c64u", reason: "forced by caller", details: { baseUrl: options.preferredC64uBaseUrl } };
+  }
   const cfg = readConfigFile();
   const envMode = (process.env.C64_MODE || "").toLowerCase().trim();
   const hasC64u = Boolean(cfg?.c64u);

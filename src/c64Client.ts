@@ -36,7 +36,7 @@ export class C64Client {
     this.http = new HttpClient({ baseURL: baseUrl, timeout: 10_000 });
     this.api = new Api(this.http);
     // Select backend once lazily; keep REST for hardware-specific fallbacks
-    this.facadePromise = createFacade().then((sel) => sel.facade);
+    this.facadePromise = createFacade(undefined, { preferredC64uBaseUrl: baseUrl }).then((sel) => sel.facade);
   }
 
   /**
@@ -156,6 +156,13 @@ export class C64Client {
 
   async runPrg(prg: Uint8Array | Buffer): Promise<RunBasicResult> {
     try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const payload = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
+        const response = await this.api.v1.runnersRunPrgCreate(":run_prg", payload as any, {
+          headers: { "Content-Type": "application/octet-stream" },
+        });
+        return { success: true, details: response.data };
+      }
       const facade = await this.facadePromise;
       const res = await facade.runPrg(prg);
       return { success: res.success, details: res.details };
@@ -240,6 +247,10 @@ export class C64Client {
   @McpTool({ name: "reset_c64", description: "Reset the C64 via REST API" })
   async reset(): Promise<{ success: boolean; details?: unknown }> {
     try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const response = await this.api.v1.machineResetUpdate(":reset");
+        return { success: true, details: response.data };
+      }
       const facade = await this.facadePromise;
       const res = await facade.reset();
       return { success: res.success, details: res.details };
@@ -251,6 +262,10 @@ export class C64Client {
   @McpTool({ name: "reboot_c64", description: "Reboot the c64 device firmware" })
   async reboot(): Promise<{ success: boolean; details?: unknown }> {
     try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const response = await this.api.v1.machineRebootUpdate(":reboot");
+        return { success: true, details: response.data };
+      }
       const facade = await this.facadePromise;
       const res = await facade.reboot();
       return { success: res.success, details: res.details };
@@ -466,12 +481,25 @@ export class C64Client {
 
   @McpTool({ name: "pause", description: "Pause the machine via DMA" })
   async pause(): Promise<RunBasicResult> {
-    try { const facade = await this.facadePromise; return await facade.pause(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
+    try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machinePauseUpdate(":pause");
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise;
+      return await facade.pause();
+    } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "resume", description: "Resume the machine from pause" })
   async resume(): Promise<RunBasicResult> {
-    try { const facade = await this.facadePromise; return await facade.resume(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
+    try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineResumeUpdate(":resume");
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.resume();
+    } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "poweroff", description: "Power off the machine" })
@@ -481,17 +509,35 @@ export class C64Client {
 
   @McpTool({ name: "menu_button", description: "Toggle Ultimate menu button" })
   async menuButton(): Promise<RunBasicResult> {
-    try { const facade = await this.facadePromise; return await facade.menuButton(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
+    try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineMenuButtonUpdate(":menu_button");
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.menuButton();
+    } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "debugreg_read", description: "Read the $D7FF debug register" })
   async debugregRead(): Promise<{ success: boolean; value?: string; details?: unknown }> {
-    try { const facade = await this.facadePromise; return await facade.debugregRead(); } catch (error) { return { success: false, details: this.normaliseError(error) } as any; }
+    try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineDebugregList(":debugreg");
+        return { success: true, value: (res.data as any).value, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.debugregRead();
+    } catch (error) { return { success: false, details: this.normaliseError(error) } as any; }
   }
 
   @McpTool({ name: "debugreg_write", description: "Write the $D7FF debug register", parameters: { value: "string" } })
   async debugregWrite(value: string): Promise<{ success: boolean; value?: string; details?: unknown }> {
-    try { const facade = await this.facadePromise; return await facade.debugregWrite(value); } catch (error) { return { success: false, details: this.normaliseError(error) } as any; }
+    try {
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineDebugregUpdate(":debugreg", { value });
+        return { success: true, value: (res.data as any).value, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.debugregWrite(value);
+    } catch (error) { return { success: false, details: this.normaliseError(error) } as any; }
   }
 
   @McpTool({ name: "drives_list", description: "List internal drives and images" })
@@ -657,8 +703,24 @@ export class C64Client {
    * raw binary bytes or JSON with a base64 payload.
    */
   private async readMemoryRaw(address: number, length: number): Promise<Uint8Array> {
-    const facade = await this.facadePromise;
-    return facade.readMemory(address, length);
+    const addrStr = this.formatAddress(address);
+    const response = await this.api.v1.machineReadmemList(
+      ":readmem",
+      { address: addrStr, length },
+      { format: "arraybuffer", headers: { Accept: "application/octet-stream, application/json" } as any },
+    );
+    const contentType = (response.headers?.["content-type"] ?? "").toString().toLowerCase();
+    const body = response.data as unknown;
+    if (contentType.includes("application/json")) {
+      const text = Buffer.from(body as ArrayBuffer).toString("utf8");
+      try {
+        const parsed = JSON.parse(text);
+        return this.extractBytes(parsed?.data ?? parsed);
+      } catch {
+        return this.extractBytes(text);
+      }
+    }
+    return body instanceof ArrayBuffer ? new Uint8Array(body) : this.extractBytes(body);
   }
 
   private normaliseError(error: unknown): unknown {
