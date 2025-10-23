@@ -1,0 +1,67 @@
+{
+  "name": "c64-mcp",
+  "version": "0.2.3",
+  "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
+  "entry": "dist/index.js",
+  "type": "http",
+  "defaultUrl": "http://127.0.0.1:8000",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model context protocol",
+    "openai",
+    "ultimate64",
+    "commodore64",
+    "commodore 64",
+    "c64",
+    "c64u",
+    "sid",
+    "basic",
+    "assembly",
+    "retro",
+    "retrocomputing",
+    "retrogaming",
+    "vintage computing",
+    "hardware integration",
+    "c64 development",
+    "commodore 64 ultimate",
+    "ultimate 64"
+  ],
+  "env": {
+    "PORT": {
+      "description": "HTTP port for the MCP server",
+      "default": "8000"
+    },
+    "HOST": {
+      "description": "Bind address for the HTTP server",
+      "default": "127.0.0.1"
+    },
+    "LOG_LEVEL": {
+      "description": "Fastify logger level",
+      "default": "info"
+    },
+    "C64MCP_CONFIG": {
+      "description": "Path to configuration JSON (~/.c64mcp.json by default)"
+    },
+    "RAG_EMBEDDINGS_DIR": {
+      "description": "Directory containing RAG embedding JSON files",
+      "default": "data"
+    },
+    "RAG_REINDEX_INTERVAL_MS": {
+      "description": "Periodic reindex interval in ms (0 disables)",
+      "default": "0"
+    },
+    "RAG_BUILD_ON_START": {
+      "description": "Set to 1 to rebuild embeddings on server start"
+    },
+    "RAG_DOC_FILES": {
+      "description": "Comma-separated extra docs to include in RAG"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrisgleissner/c64-mcp"
+  },
+  "license": "GPL-2.0-only",
+  "manifest": "mcp-manifest.json"
+}

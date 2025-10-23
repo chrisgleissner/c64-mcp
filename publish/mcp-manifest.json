@@ -1,0 +1,477 @@
+{
+  "name": "c64-mcp",
+  "version": "0.2.3",
+  "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
+  "tools": [
+    {
+      "name": "analyze_audio",
+      "description": "Smart audio verification tool that automatically analyzes audio when user requests to check, verify, or test music/SID playback. Responds to natural language patterns like 'check the music', 'verify the song', 'does it sound right?'",
+      "parameters": {
+        "request": "string",
+        "durationSeconds": "number",
+        "expectedSidwave": "object"
+      }
+    },
+    {
+      "name": "asm_quick_reference",
+      "description": "Get the 6502/6510 assembly quick reference or filter by topic keywords",
+      "parameters": {
+        "topic": "string"
+      }
+    },
+    {
+      "name": "basic_v2_spec",
+      "description": "Get Commodore BASIC v2 concise language spec or filtered by topic",
+      "parameters": {
+        "topic": "string"
+      }
+    },
+    {
+      "name": "config_batch_update",
+      "description": "Batch update configuration",
+      "parameters": {
+        "payload": "object"
+      }
+    },
+    {
+      "name": "config_get",
+      "description": "Get configuration item(s)",
+      "parameters": {
+        "category": "string",
+        "item": "string"
+      }
+    },
+    {
+      "name": "config_list",
+      "description": "List configuration categories"
+    },
+    {
+      "name": "config_load_from_flash",
+      "description": "Load configuration from flash"
+    },
+    {
+      "name": "config_reset_to_default",
+      "description": "Reset configuration to defaults"
+    },
+    {
+      "name": "config_save_to_flash",
+      "description": "Save configuration to flash"
+    },
+    {
+      "name": "config_set",
+      "description": "Set configuration item",
+      "parameters": {
+        "category": "string",
+        "item": "string",
+        "value": "string"
+      }
+    },
+    {
+      "name": "create_d64",
+      "description": "Create D64 image",
+      "parameters": {
+        "path": "string",
+        "tracks": "number",
+        "diskname": "string"
+      }
+    },
+    {
+      "name": "create_d71",
+      "description": "Create D71 image",
+      "parameters": {
+        "path": "string",
+        "diskname": "string"
+      }
+    },
+    {
+      "name": "create_d81",
+      "description": "Create D81 image",
+      "parameters": {
+        "path": "string",
+        "diskname": "string"
+      }
+    },
+    {
+      "name": "create_dnp",
+      "description": "Create DNP image",
+      "parameters": {
+        "path": "string",
+        "tracks": "number",
+        "diskname": "string"
+      }
+    },
+    {
+      "name": "create_petscii_image",
+      "description": "Create a PETSCII character art image from text or prompts, run it on the C64, and return the BASIC program and bitmap",
+      "parameters": {
+        "prompt": "string",
+        "text": "string",
+        "maxWidth": "number",
+        "maxHeight": "number",
+        "borderColor": "number",
+        "backgroundColor": "number",
+        "foregroundColor": "number",
+        "dryRun": "boolean"
+      }
+    },
+    {
+      "name": "debugreg_read",
+      "description": "Read the $D7FF debug register"
+    },
+    {
+      "name": "debugreg_write",
+      "description": "Write the $D7FF debug register",
+      "parameters": {
+        "value": "string"
+      }
+    },
+    {
+      "name": "drive_mode",
+      "description": "Set drive mode",
+      "parameters": {
+        "drive": "string",
+        "mode": "string"
+      }
+    },
+    {
+      "name": "drive_mount",
+      "description": "Mount a disk image on a drive",
+      "parameters": {
+        "drive": "string",
+        "image": "string",
+        "type": "string",
+        "mode": "string"
+      }
+    },
+    {
+      "name": "drive_off",
+      "description": "Power off a drive",
+      "parameters": {
+        "drive": "string"
+      }
+    },
+    {
+      "name": "drive_on",
+      "description": "Power on a drive",
+      "parameters": {
+        "drive": "string"
+      }
+    },
+    {
+      "name": "drive_remove",
+      "description": "Remove a mounted image",
+      "parameters": {
+        "drive": "string"
+      }
+    },
+    {
+      "name": "drive_reset",
+      "description": "Reset a drive",
+      "parameters": {
+        "drive": "string"
+      }
+    },
+    {
+      "name": "drives_list",
+      "description": "List internal drives and images"
+    },
+    {
+      "name": "file_info",
+      "description": "Inspect file metadata",
+      "parameters": {
+        "path": "string"
+      }
+    },
+    {
+      "name": "generate_sprite_prg",
+      "description": "Generate and run a PRG that displays a sprite from 63 raw bytes",
+      "parameters": {
+        "sprite": "string",
+        "index": "number",
+        "x": "number",
+        "y": "number",
+        "color": "number",
+        "multicolour": "boolean"
+      }
+    },
+    {
+      "name": "info",
+      "description": "Get device information"
+    },
+    {
+      "name": "load_prg_file",
+      "description": "Load PRG into memory (no run)",
+      "parameters": {
+        "path": "string"
+      }
+    },
+    {
+      "name": "menu_button",
+      "description": "Toggle Ultimate menu button"
+    },
+    {
+      "name": "modplay_file",
+      "description": "Play MOD from filesystem",
+      "parameters": {
+        "path": "string"
+      }
+    },
+    {
+      "name": "music_compile_and_play",
+      "description": "Compile a SIDWAVE composition to PRG/SID and play it",
+      "parameters": {
+        "sidwave": "string",
+        "format": "string",
+        "output": "string",
+        "dryRun": "boolean"
+      }
+    },
+    {
+      "name": "music_generate",
+      "description": "Generate and play a simple arpeggio pattern",
+      "parameters": {
+        "root": "string",
+        "pattern": "string",
+        "steps": "number",
+        "tempoMs": "number",
+        "waveform": "string"
+      }
+    },
+    {
+      "name": "pause",
+      "description": "Pause the machine via DMA"
+    },
+    {
+      "name": "poweroff",
+      "description": "Power off the machine"
+    },
+    {
+      "name": "print_text",
+      "description": "Generate a BASIC program to print text to device 4 and run it",
+      "parameters": {
+        "text": "string",
+        "target": "string",
+        "secondaryAddress": "number",
+        "formFeed": "boolean"
+      }
+    },
+    {
+      "name": "printing_commodore_bitmap",
+      "description": "Return Commodore MPS bitmap/custom char guide"
+    },
+    {
+      "name": "printing_commodore_text",
+      "description": "Return Commodore MPS text printing guide"
+    },
+    {
+      "name": "printing_epson_bitmap",
+      "description": "Return Epson FX bitmap guide"
+    },
+    {
+      "name": "printing_epson_text",
+      "description": "Return Epson FX text printing guide"
+    },
+    {
+      "name": "printing_guide",
+      "description": "Return the Commodore/Epson printing guide"
+    },
+    {
+      "name": "printing_prompts",
+      "description": "Return end-user printing prompt templates"
+    },
+    {
+      "name": "rag_retrieve_asm",
+      "description": "Retrieve 6502/6510 assembly snippets and guidance for fast machine-code routines",
+      "parameters": {
+        "q": "string",
+        "k": "number"
+      }
+    },
+    {
+      "name": "rag_retrieve_basic",
+      "description": "Retrieve BASIC references for a query",
+      "parameters": {
+        "q": "string",
+        "k": "number"
+      }
+    },
+    {
+      "name": "read_memory",
+      "description": "Read bytes from main memory and return them as hex",
+      "parameters": {
+        "address": "string",
+        "length": "string"
+      }
+    },
+    {
+      "name": "read_screen",
+      "description": "Read 1KB of screen memory from the C64"
+    },
+    {
+      "name": "reboot_c64",
+      "description": "Reboot the c64 device firmware"
+    },
+    {
+      "name": "record_and_analyze_audio",
+      "description": "Records audio from default microphone and analyzes SID playback, returning SIDWAVE-compatible pitch/frequency data",
+      "parameters": {
+        "durationSeconds": "number",
+        "expectedSidwave": "object"
+      }
+    },
+    {
+      "name": "render_petscii_screen",
+      "description": "Render PETSCII text to screen with optional colours via a generated BASIC program",
+      "parameters": {
+        "text": "string",
+        "borderColor": "number",
+        "backgroundColor": "number"
+      }
+    },
+    {
+      "name": "reset_c64",
+      "description": "Reset the C64 via REST API"
+    },
+    {
+      "name": "resume",
+      "description": "Resume the machine from pause"
+    },
+    {
+      "name": "run_crt_file",
+      "description": "Run cartridge image from filesystem",
+      "parameters": {
+        "path": "string"
+      }
+    },
+    {
+      "name": "run_prg_file",
+      "description": "Run PRG from device filesystem",
+      "parameters": {
+        "path": "string"
+      }
+    },
+    {
+      "name": "sid_file_structure",
+      "description": "Return the SID file structure overview"
+    },
+    {
+      "name": "sid_note_off",
+      "description": "Release a SID voice",
+      "parameters": {
+        "voice": "number"
+      }
+    },
+    {
+      "name": "sid_note_on",
+      "description": "Start a SID note on a voice",
+      "parameters": {
+        "voice": "number",
+        "note": "string",
+        "frequencyHz": "number",
+        "system": "string",
+        "waveform": "string",
+        "pulseWidth": "number",
+        "attack": "number",
+        "decay": "number",
+        "sustain": "number",
+        "release": "number"
+      }
+    },
+    {
+      "name": "sid_reference",
+      "description": "Return the SID overview document"
+    },
+    {
+      "name": "sid_reset",
+      "description": "Reset or silence SID",
+      "parameters": {
+        "hard": "boolean"
+      }
+    },
+    {
+      "name": "sid_silence_all",
+      "description": "Silence all SID voices"
+    },
+    {
+      "name": "sid_volume",
+      "description": "Set SID master volume (0-15)",
+      "parameters": {
+        "volume": "number"
+      }
+    },
+    {
+      "name": "sidplay_file",
+      "description": "Play SID from filesystem",
+      "parameters": {
+        "path": "string",
+        "songnr": "number"
+      }
+    },
+    {
+      "name": "sidwave_spec",
+      "description": "Return the SIDWAVE format specification"
+    },
+    {
+      "name": "stream_start",
+      "description": "Start a data stream",
+      "parameters": {
+        "stream": "string",
+        "ip": "string"
+      }
+    },
+    {
+      "name": "stream_stop",
+      "description": "Stop a data stream",
+      "parameters": {
+        "stream": "string"
+      }
+    },
+    {
+      "name": "upload_and_run_asm",
+      "description": "Assemble 6502/6510 source to PRG and run it on the C64",
+      "parameters": {
+        "program": {
+          "type": "string",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "upload_and_run_basic",
+      "description": "Upload and run a BASIC program on the C64",
+      "parameters": {
+        "program": {
+          "type": "string",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "upload_and_run_program",
+      "description": "Upload and run program with language inference (BASIC vs ASM)",
+      "parameters": {
+        "program": "string",
+        "lang": "string"
+      }
+    },
+    {
+      "name": "version",
+      "description": "Get c64 REST API version"
+    },
+    {
+      "name": "vic_ii_spec",
+      "description": "Get the VIC-II timing/graphics spec or filter by topic",
+      "parameters": {
+        "topic": "string"
+      }
+    },
+    {
+      "name": "write_memory",
+      "description": "Write a hex byte sequence into main memory",
+      "parameters": {
+        "address": "string",
+        "bytes": "string"
+      }
+    }
+  ]
+}

@@ -35,8 +35,8 @@ jobs:
       - name: Validate types and tests
         run: npm run check
 
-      - name: Compile JavaScript to dist
-        run: npx tsc -p tsconfig.json
+      - name: Build (compile + postbuild + manifest)
+        run: npm run build
 
       - name: Build RAG (if applicable)
         run: |
@@ -78,8 +78,7 @@ jobs:
           if [ -d doc ]; then cp -r doc "$PUB/doc"; fi
           if [ -d data ]; then cp -r data "$PUB/data"; fi
           if [ -d dist ]; then cp -r dist "$PUB/dist"; fi
-          # Prefer compiled generated JS if available
-          if [ -d dist/generated ]; then cp -r dist/generated "$PUB/generated"; elif [ -d generated ]; then cp -r generated "$PUB/generated"; fi
+          # Do not copy root 'generated' to avoid duplicates with dist/generated
           if [ -d scripts ]; then cp -r scripts "$PUB/scripts"; fi
           # Generated manifest lives at repository root
           if [ -f mcp-manifest.json ]; then cp mcp-manifest.json "$PUB/"; fi

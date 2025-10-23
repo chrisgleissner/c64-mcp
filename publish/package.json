@@ -1,0 +1,69 @@
+{
+  "name": "c64-mcp",
+  "version": "0.2.3",
+  "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "c64-mcp": "scripts/cli.js"
+  },
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "manifest": "node scripts/generate-mcp-manifest.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && npm run manifest",
+    "test": "node scripts/run-tests.mjs",
+    "check": "npm run build && npm test",
+    "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
+    "api:generate": "swagger-typescript-api -p doc/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
+    "c64:tool": "bash scripts/c64-tool.sh",
+    "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
+    "rag:fetch": "node scripts/fetch-external-sources.mjs",
+    "rag:discover": "node --import ./scripts/register-ts-node.mjs src/rag/discover.ts",
+    "changelog:generate": "node scripts/generate-changelog.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs"
+  },
+  "keywords": [
+    "c64",
+    "commodore-64",
+    "ultimate-64",
+    "commodore-64-ultimate",
+    "mcp-server",
+    "mcp"
+  ],
+  "author": "Christian Gleissner",
+  "license": "GPL-2.0-only",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "fastify": "^4.28.1",
+    "yaml": "^2.6.0",
+    "meyda": "^5.6.2",
+    "pitchfinder": "^2.2.0",
+    "octokit": "^4.0.2",
+    "reflect-metadata": "^0.1.13"
+  },
+  "optionalDependencies": {
+    "naudiodon": "^2.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "swagger-typescript-api": "^12.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "files": [
+    "dist/**",
+    "scripts/**",
+    "doc/**",
+    "data/**",
+    "mcp-manifest.json",
+    "mcp.json",
+    "AGENTS.md",
+    ".github/prompts/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "prepack": "npm run build"
+}
