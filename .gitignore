@@ -11,3 +11,5 @@ external/
 tmp/
 .tmp/
 test/tmp/
+publication/
+publish/
