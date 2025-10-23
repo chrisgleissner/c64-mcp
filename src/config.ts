@@ -22,7 +22,7 @@ export function loadConfig(): C64McpConfig {
   const configPath = process.env.C64MCP_CONFIG ?? `${process.env.HOME}/.c64mcp.json`;
   const repoConfigPath = join(dirname(fileURLToPath(import.meta.url)), "..", ".c64mcp.json");
 
-  let rawConfig: unknown;
+  let rawConfig: any;
   try {
     rawConfig = JSON.parse(readFileSync(configPath, "utf-8"));
   } catch (error) {
@@ -31,27 +31,26 @@ export function loadConfig(): C64McpConfig {
         rawConfig = JSON.parse(readFileSync(repoConfigPath, "utf-8"));
       } catch (fallbackError) {
         if ((fallbackError as NodeJS.ErrnoException).code === "ENOENT") {
-          cachedConfig = DEFAULT_CONFIG;
-          return cachedConfig;
+          rawConfig = {};
         }
-        throw fallbackError;
+        else throw fallbackError;
       }
     } else {
       throw error;
     }
   }
 
-  const legacyHost = typeof (rawConfig as { c64_ip?: unknown }).c64_ip === "string" ? (rawConfig as { c64_ip: string }).c64_ip : undefined;
-  const configuredHost = typeof (rawConfig as { c64_host?: unknown }).c64_host === "string" ? (rawConfig as { c64_host: string }).c64_host : undefined;
-  const host = configuredHost ?? legacyHost;
-
-  if (!host) {
-    throw new Error("Missing c64_host in config");
-  }
+  // New schema: prefer c64u.{baseUrl|hostname}; keep legacy fields as fallback
+  const c64u = rawConfig?.c64u as { baseUrl?: string; hostname?: string } | undefined;
+  const baseUrl = c64u?.baseUrl ?? (c64u?.hostname ? `http://${c64u.hostname}` : undefined) ?? rawConfig?.baseUrl;
+  const legacyHost = typeof rawConfig?.c64_ip === "string" ? rawConfig.c64_ip : undefined;
+  const configuredHost = typeof rawConfig?.c64_host === "string" ? rawConfig.c64_host : undefined;
+  const inferredHostFromBase = (() => { try { return baseUrl ? new URL(baseUrl).hostname : undefined; } catch { return undefined; } })();
+  const host = configuredHost ?? legacyHost ?? c64u?.hostname ?? inferredHostFromBase ?? DEFAULT_CONFIG.c64_host;
 
   const config: C64McpConfig = {
     c64_host: host,
-    baseUrl: (rawConfig as { baseUrl?: string }).baseUrl ?? `http://${host}`,
+    baseUrl: baseUrl ?? `http://${host}`,
   };
 
   cachedConfig = config;
