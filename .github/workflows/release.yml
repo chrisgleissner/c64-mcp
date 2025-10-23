@@ -162,6 +162,7 @@ jobs:
           node -e "require('child_process').spawn(process.execPath, ['--version'], { stdio: 'inherit' })"
 
       - name: Verify package boots and assets available
+        working-directory: /tmp/smoke
         run: |
           set -euo pipefail
           NODE_DIR=$(node -p "require.resolve('c64-mcp/package.json').replace(/package.json$/, '')")
@@ -171,7 +172,6 @@ jobs:
           test -f "$NODE_DIR/README.md"
           test -f "$NODE_DIR/mcp-manifest.json"
           test -f "$NODE_DIR/src/rag/sources.csv"
-          # Start server briefly to ensure it loads modules; bind to localhost and exit quickly
           HOST=127.0.0.1 PORT=0 node "$NODE_DIR/dist/index.js" &
           PID=$!
           sleep 2
