@@ -19,6 +19,7 @@
     "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
     "rag:fetch": "node scripts/fetch-external-sources.mjs",
     "rag:discover": "node --import ./scripts/register-ts-node.mjs src/rag/discover.ts",
+    "changelog:generate": "node scripts/generate-changelog.mjs",
     "release:prepare": "node scripts/prepare-release.mjs"
   },
   "keywords": [
