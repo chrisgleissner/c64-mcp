@@ -228,6 +228,3 @@ Pointers increase monotonically. The last line points to the terminator.
 - Final sentinel `0000` required.  
 - `ST` bits: 6 = EOF, 7 = Device not present.  
 - `RND(seed<0)` re‑initialises RNG; `RND(0)` continues sequence.
-
----  
-**Purpose:** Enables LLM‑safe, context‑efficient understanding of C64 BASIC syntax and token mapping for code generation and analysis.
