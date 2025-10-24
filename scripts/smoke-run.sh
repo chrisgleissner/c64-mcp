@@ -33,7 +33,18 @@ case "$MODE" in
     STATUS=${PIPESTATUS[0]}
     ;;
   npm)
-  timeout --signal=TERM "$DURATION" npx --yes c64-mcp 2>&1 | tee "$LOGFILE"
+    if [[ -z "$PACKAGE_DIR" ]]; then
+      echo "PACKAGE_DIR environment variable must be set for npm mode" >&2
+      exit 1
+    fi
+    if [[ ! -d "$PACKAGE_DIR" ]]; then
+      echo "PACKAGE_DIR '$PACKAGE_DIR' does not exist" >&2
+      exit 1
+    fi
+    (
+      cd "$PACKAGE_DIR" || exit 1
+      timeout --signal=TERM "$DURATION" node dist/index.js
+    ) 2>&1 | tee "$LOGFILE"
     STATUS=${PIPESTATUS[0]}
     ;;
   *)

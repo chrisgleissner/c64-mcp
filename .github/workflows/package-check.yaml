@@ -2,16 +2,156 @@ name: Verify C64-MCP Package
 
 on:
   workflow_call:
+    inputs:
+      package_source:
+        type: string
+        default: local
+        description: "Source package to validate (local|npm)"
+      package_version:
+        type: string
+        required: false
+        description: "Package version to fetch when package_source=npm"
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+    env:
+      PACKAGE_SOURCE: ${{ inputs.package_source }}
+      PACKAGE_VERSION: ${{ inputs.package_version }}
 
     steps:
-      - uses: actions/checkout@v4
-      - run: npm ci
-      - run: npm pack --dry-run
-      - run: npm run lint
-      - run: npm test
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (local source)
+        if: ${{ env.PACKAGE_SOURCE == 'local' }}
+        run: npm ci
+
+      - name: Build project (local source)
+        if: ${{ env.PACKAGE_SOURCE == 'local' }}
+        run: npm run build
+
+      - name: Run tests (local source)
+        if: ${{ env.PACKAGE_SOURCE == 'local' }}
+        run: npm test
+
+      - name: Pack package
+        id: pack
+        run: |
+          set -euo pipefail
+          if [ "${PACKAGE_SOURCE}" = "local" ]; then
+            TARBALL=$(npm pack --silent)
+          else
+            PKG="c64-mcp"
+            if [ -n "${PACKAGE_VERSION}" ]; then
+              PKG="${PKG}@${PACKAGE_VERSION}"
+            fi
+            TARBALL=$(npm pack "$PKG" --silent)
+          fi
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+
+      - name: Extract package
+        id: extract
+        run: |
+          set -euo pipefail
+          TARFILE="${{ steps.pack.outputs.tarball }}"
+          mkdir -p package_extract
+          tar -xzf "$TARFILE" -C package_extract
+          echo "pkg_dir=$(realpath package_extract/package)" >> "$GITHUB_OUTPUT"
+
+      - name: Verify packaged contents
+        run: |
+          set -euo pipefail
+          PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
+          node scripts/verify-package.mjs "$PKG_DIR"
+
+      - name: Install runtime dependencies inside package
+        run: |
+          set -euo pipefail
+          PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
+          cd "$PKG_DIR"
+          npm install --omit=dev
+
+      - name: Start mock C64 server
+        id: mock
+        run: |
+          set -euo pipefail
+          MOCK_ADDR_FILE=$(mktemp)
+          echo "MOCK_ADDR_FILE=$MOCK_ADDR_FILE" >> "$GITHUB_ENV"
+          node scripts/start-mock-c64.mjs "$MOCK_ADDR_FILE" > mock-server.log 2>&1 &
+          MOCK_PID=$!
+          echo "MOCK_PID=$MOCK_PID" >> "$GITHUB_ENV"
+          sleep 1
+          if ! [ -s "$MOCK_ADDR_FILE" ]; then
+            echo "::error::Mock server address file empty" >&2
+            cat mock-server.log || true
+            exit 1
+          fi
+          MOCK_BASE_URL=$(cat "$MOCK_ADDR_FILE")
+          echo "Mock server listening at $MOCK_BASE_URL"
+          echo "MOCK_BASE_URL=$MOCK_BASE_URL" >> "$GITHUB_ENV"
+          cat mock-server.log
+
+      - name: Run MCP server smoke test
+        id: smoke
+        env:
+          MOCK_BASE_URL: ${{ env.MOCK_BASE_URL }}
+        run: |
+          set -euo pipefail
+          PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
+          LOGFILE=$(mktemp)
+          CONFIG_FILE=$(mktemp)
+          cat <<EOF > "$CONFIG_FILE"
+          {"c64_host":"mock","baseUrl":"${MOCK_BASE_URL}"}
+          EOF
+          export C64MCP_CONFIG="$CONFIG_FILE"
+          export PACKAGE_DIR="$PKG_DIR"
+          export LOGFILE="$LOGFILE"
+          export PORT=0
+          if [ "${PACKAGE_SOURCE}" = "local" ]; then
+            bash scripts/smoke-run.sh local 5
+          else
+            bash scripts/smoke-run.sh npm 5
+          fi
+          echo "log=$LOGFILE" >> "$GITHUB_OUTPUT"
+
+      - name: Validate MCP server logs
+        run: |
+          set -euo pipefail
+          LOGFILE="${{ steps.smoke.outputs.log }}"
+          if [ -z "$LOGFILE" ] || [ ! -f "$LOGFILE" ]; then
+            echo "::error::Smoke test log missing" >&2
+            exit 1
+          fi
+          if ! grep -q "Connectivity check succeeded" "$LOGFILE"; then
+            echo "::error::Connectivity check log entry missing" >&2
+            echo "--- MCP server log ---"
+            cat "$LOGFILE"
+            echo "----------------------"
+            exit 1
+          fi
+          echo "Connectivity check confirmed in log"
+
+      - name: Stop mock C64 server
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -n "${MOCK_PID:-}" ]; then
+            kill -TERM "$MOCK_PID" 2>/dev/null || true
+            wait "$MOCK_PID" 2>/dev/null || true
+          fi
+          rm -f "${MOCK_ADDR_FILE:-}"
+          LOGFILE_OUTPUT="${{ steps.smoke.outputs.log }}"
+          if [ -n "$LOGFILE_OUTPUT" ]; then
+            rm -f "$LOGFILE_OUTPUT" || true
+          fi
+
+      - name: Upload smoke log artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log
+          path: ${{ steps.smoke.outputs.log }}
+          if-no-files-found: ignore
