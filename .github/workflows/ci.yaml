@@ -46,7 +46,7 @@ jobs:
     needs:
       - detect-changes
       - docker-image
-    if: ${{ needs.detect-changes.outputs.docker != 'true' || needs.docker-image.result == 'success' }}
+    if: ${{ always() && needs.detect-changes.result == 'success' && (needs.detect-changes.outputs.docker != 'true' || needs.docker-image.result == 'success') }}
     uses: ./.github/workflows/build-and-test.yaml
     with:
       ref: ${{ github.sha }}
@@ -57,7 +57,7 @@ jobs:
     needs:
       - detect-changes
       - docker-image
-    if: ${{ needs.detect-changes.outputs.docker != 'true' || needs.docker-image.result == 'success' }}
+    if: ${{ always() && needs.detect-changes.result == 'success' && (needs.detect-changes.outputs.docker != 'true' || needs.docker-image.result == 'success') }}
     uses: ./.github/workflows/package-check.yaml
     with:
       package_source: local
