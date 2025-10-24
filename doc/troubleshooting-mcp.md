@@ -118,6 +118,8 @@ cat .c64mcp.json
 
 **Test C64 Connectivity:**
 
+Please note that the following IP address is just given as an example.
+
 ```bash
 # Test Ultimate 64 REST API directly
 curl -s http://192.168.1.13/v1/info
