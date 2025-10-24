@@ -1,8 +1,7 @@
 # c64-mcp
 
 [![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
-[![Build](https://img.shields.io/badge/build-npm%20test-brightgreen)](package.json#L7)
-[![Release](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/release.yaml?event=release&label=release)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/release.yaml)
+[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/ci.yaml)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/ci.yaml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
