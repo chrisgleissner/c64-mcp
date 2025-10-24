@@ -68,8 +68,6 @@ jobs:
           if [ -d scripts ]; then cp -r scripts "$PUB/scripts"; fi
           # Generated manifest lives at repository root
           if [ -f mcp-manifest.json ]; then cp mcp-manifest.json "$PUB/"; fi
-          mkdir -p "$PUB/src/rag"
-          if [ -f src/rag/sources.csv ]; then cp src/rag/sources.csv "$PUB/src/rag/"; fi
 
       - name: npm pack (dry run)
         working-directory: publish

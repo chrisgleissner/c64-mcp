@@ -72,8 +72,8 @@ async function main() {
     'doc/6502-instructions.md',
     'data/embeddings_basic.json',
     'dist/index.js',
+    'dist/rag/discover.config.json',
     'dist/rag/sources.csv',
-    'src/rag/sources.csv',
   ];
 
   await assertIncludes(files, required);

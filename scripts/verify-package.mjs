@@ -43,6 +43,7 @@ function assertSpotChecks() {
     'dist/index.js',
     'dist/c64Client.js',
     'dist/rag/sources.csv',
+  'dist/rag/discover.config.json',
     'dist/generated/c64/index.js',
     'scripts/cli.js',
     'scripts/start.mjs',
