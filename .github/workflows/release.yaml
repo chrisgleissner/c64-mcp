@@ -1,22 +1,77 @@
-name: Release C64-MCP Package
+name: Release NPM Package
 
 on:
   push:
     tags:
+      - '*.*.*'
       - 'v*.*.*'
 
 jobs:
+  verify_local:
+    uses: ./.github/workflows/package-check.yaml
+    with:
+      package_source: local
+
   release:
+    needs: verify_local
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+    permissions:
+      contents: write
+      packages: read
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    outputs:
+      pkg_version: ${{ steps.version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
-      - run: npm ci
-      - run: npm run build
-      - run: npm publish --access public
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  package-check:
-    needs: release
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Determine tag version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          CLEAN="${TAG#v}"
+          echo "version=$CLEAN" >> "$GITHUB_OUTPUT"
+
+      - name: Validate package version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          CLEAN="${TAG#v}"
+          PKG_VER=$(node -p "require('./package.json').version")
+          MCP_VER=$(node -p "require('./mcp.json').version")
+          if [ "$CLEAN" != "$PKG_VER" ]; then
+            echo "Tag version $CLEAN does not match package.json version $PKG_VER" >&2
+            exit 1
+          fi
+          if [ "$CLEAN" != "$MCP_VER" ]; then
+            echo "Tag version $CLEAN does not match mcp.json version $MCP_VER" >&2
+            exit 1
+          fi
+
+      - name: Publish to npm
+        run: |
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "NPM_TOKEN secret not set" >&2
+            exit 1
+          fi
+          npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm publish --access public
+
+  verify_npm:
+    needs:
+      - release
     uses: ./.github/workflows/package-check.yaml
+    with:
+      package_source: npm
+      package_version: ${{ needs.release.outputs.pkg_version }}
