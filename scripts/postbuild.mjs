@@ -56,9 +56,46 @@ async function main() {
       } catch {}
     }
   } catch {}
+
+  // Ensure compiled generated client is available at runtime import path (../generated/*)
+  await syncGeneratedRuntimeArtifacts();
 }
 
 main().catch((error) => {
   console.error('[postbuild] Failed to normalize dist layout:', error);
   process.exitCode = 1;
 });
+
+async function syncGeneratedRuntimeArtifacts() {
+  const distGenerated = path.join(distRoot, 'generated');
+  try {
+    const stats = await stat(distGenerated);
+    if (!stats.isDirectory()) return;
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return;
+    throw err;
+  }
+
+  const projectRoot = path.resolve('.');
+  const runtimeGenerated = path.join(projectRoot, 'generated');
+
+  await copyGenerated(distGenerated, runtimeGenerated);
+  // Remove the dist/generated copy to avoid duplicate payload in packages
+  await rm(distGenerated, { recursive: true, force: true });
+}
+
+async function copyGenerated(srcDir, dstDir) {
+  await mkdir(dstDir, { recursive: true });
+  const entries = await readdir(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const from = path.join(srcDir, entry.name);
+    const to = path.join(dstDir, entry.name);
+    if (entry.isDirectory()) {
+      await copyGenerated(from, to);
+    } else if (entry.isFile()) {
+      // Preserve timestamps to avoid unnecessary rebuild churn; overwrite existing files.
+      await mkdir(path.dirname(to), { recursive: true });
+      await copyFile(from, to);
+    }
+  }
+}

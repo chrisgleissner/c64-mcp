@@ -8,8 +8,6 @@
 
 Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
 
-Note: This server supports both real hardware (C64 Ultimate and Ultimate 64) and the VICE emulator. VICE support is currently experimental.
-
 It exposes a focused tool surface that lets LLM agents or automation scripts upload and run BASIC or assembly programs on the C64, read or write its RAM, control the VIC or SID, print documents, or perform a reset.
 
 ## Highlights ✨
@@ -243,7 +241,7 @@ Provide the host (DNS name or IP, defaults to `c64u`) and a port (defaults to `8
 
 ### VICE (emulator)
 
-> [!NOTE] This is an experimental feature.
+> [!NOTE] This is an experimental feature that is currently very limited.
 
 This backend starts a fresh VICE process for each PRG run using the emulator binary. In phase one, memory/register operations are not supported; the focus is deterministic PRG execution.
 

@@ -12,3 +12,5 @@ tmp/
 .tmp/
 test/tmp/
 publish/
+generated/**/*.js
+generated/**/*.js.map

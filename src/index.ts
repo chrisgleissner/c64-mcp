@@ -1003,12 +1003,9 @@ async function logConnectivity(server: FastifyInstance, client: C64Client, baseU
 
     try {
       const memoryAddress = "$0000";
-      const expected = "$2F";
       const memoryResult = await client.readMemory(memoryAddress, "1");
       if (memoryResult.success && memoryResult.data) {
-        const matches = memoryResult.data.toUpperCase() === expected;
-        const suffix = matches ? " (matches expected $2F)" : ` (expected ${expected})`;
-        server.log.info(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}${suffix}`);
+        server.log.info(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}`);
       } else {
         server.log.warn({ details: memoryResult.details }, "Zero-page probe failed");
       }
