@@ -1,6 +1,27 @@
 name: Verify C64-MCP Package
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      # Keep in sync with ci.yaml to avoid mismatched triggers
+      - 'apt-packages.txt'
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yaml'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      # Keep in sync with ci.yaml to avoid mismatched triggers
+      - 'apt-packages.txt'
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yaml'
+  workflow_run:
+    workflows:
+      - Build and publish Docker image
+    types:
+      - completed
   workflow_call:
     inputs:
       package_source:
@@ -14,6 +35,7 @@ on:
 
 jobs:
   verify:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
@@ -27,6 +49,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Install dependencies (local source)
         if: ${{ env.PACKAGE_SOURCE == 'local' }}

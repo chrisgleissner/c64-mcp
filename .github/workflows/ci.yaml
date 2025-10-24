@@ -7,10 +7,16 @@ on:
     tags-ignore:
       - '**'
     paths-ignore:
+      # Keep in sync with package-check.yaml to avoid mismatched triggers
       - 'apt-packages.txt'
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yaml'
   pull_request:
     paths-ignore:
+      # Keep in sync with package-check.yaml to avoid mismatched triggers
       - 'apt-packages.txt'
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yaml'
   workflow_run:
     workflows:
       - Build and publish Docker image
@@ -32,7 +38,3 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
-
-  package-check:
-    needs: build
-    uses: ./.github/workflows/package-check.yaml
