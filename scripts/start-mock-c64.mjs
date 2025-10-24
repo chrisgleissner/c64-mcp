@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// CI helper: writes the mock C64 base URL (plain text) for workflow callers and blocks until killed.
 import { writeFileSync } from 'node:fs';
 import process from 'node:process';
 import path from 'node:path';
