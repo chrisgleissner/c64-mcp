@@ -9,7 +9,7 @@ on:
 
 jobs:
   package_check_local:
-    uses: ./.github/workflows/post-package-check.yml
+    uses: ./.github/workflows/package-check.yml
     with:
       package_source: local
 
@@ -133,6 +133,6 @@ jobs:
 
   post_release_check:
     needs: build_and_publish
-    uses: ./.github/workflows/post-package-check.yml
+    uses: ./.github/workflows/package-check.yml
     with:
       package_source: npm

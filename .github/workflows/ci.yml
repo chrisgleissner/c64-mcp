@@ -22,8 +22,8 @@ jobs:
       - run: npm install
       - run: npm run check
 
-  post-package-check:
+  package-check:
     needs: build
-    uses: ./.github/workflows/post-package-check.yml
+    uses: ./.github/workflows/package-check.yml
     with:
       package_source: local

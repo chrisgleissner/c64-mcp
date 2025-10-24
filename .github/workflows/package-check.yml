@@ -1,4 +1,4 @@
-name: Post Package Check
+name: Package Check
 
 on:
   workflow_call:
