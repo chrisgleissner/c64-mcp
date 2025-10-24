@@ -28,7 +28,7 @@ The server listens on `http://localhost:8000` (override with `PORT`).
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
 - **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
 - **Audio analysis**: `analyze_audio` records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
-- **Knowledge & RAG**: `basic_v2_spec`, `asm_quick_reference`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
+- **Knowledge & RAG**: `basic_spec`, `assembly_spec`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
 Refer to `mcp-manifest.json` for the complete tool list and parameter types.
 

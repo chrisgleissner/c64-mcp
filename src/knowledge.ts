@@ -68,7 +68,7 @@ export function listMemoryMap(): MemoryRegion[] {
 
 // Commodore BASIC v2 concise language specification for guidance and validation.
 // This content is intended as a knowledge base for prompts and tool help.
-export const BASIC_V2_SPEC: string = `
+export const basic_spec: string = `
 # Commodore BASIC v2 – Concise Language Specification
 
 ## When to Use REST API vs BASIC/Assembly
@@ -337,11 +337,11 @@ END, FOR, NEXT, DATA, INPUT, INPUT#, DIM, READ, LET, GOTO, RUN, IF, RESTORE, GOS
 `;
 
 export function getBasicV2Spec(): string {
-  return BASIC_V2_SPEC;
+  return basic_spec;
 }
 
 export function searchBasicV2Spec(query: string): Array<{ heading: string; content: string }> {
-  return searchMarkdownSections(BASIC_V2_SPEC, query);
+  return searchMarkdownSections(basic_spec, query);
 }
 
 const ASM_GUIDE_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../data/assembly/assembly-spec.md");
@@ -364,7 +364,7 @@ export function searchAsmQuickReference(query: string): Array<{ heading: string;
 
 // --- VIC-II Knowledge Base (Concise but practical for graphics/sprites) ---
 
-export const VIC_II_SPEC: string = `
+export const vic_spec: string = `
 # VIC-II Technical Knowledge Base (Concise, PAL/NTSC, timing-driven)
 
 ## Overview
@@ -438,11 +438,11 @@ $07F8–$07FF: Sprite data pointers (address/64).
 `;
 
 export function getVicIISpec(): string {
-  return VIC_II_SPEC;
+  return vic_spec;
 }
 
 export function searchVicIISpec(query: string): Array<{ heading: string; content: string }> {
-  return searchMarkdownSections(VIC_II_SPEC, query);
+  return searchMarkdownSections(vic_spec, query);
 }
 
 function searchMarkdownSections(content: string, query: string): Array<{ heading: string; content: string }> {

@@ -318,14 +318,14 @@ Here is an overview of some of the most important tools. To see all available to
 
 | Tool | Endpoint | Description |
 | --- | --- | --- |
-| `basic_v2_spec` | `GET /tools/basic_v2_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
+| `basic_spec` | `GET /tools/basic_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
 | `upload_and_run_basic` | `POST /tools/upload_and_run_basic` | Convert BASIC source to PRG, upload, and execute on the C64. |
 
 ### Assembly
 
 | Tool | Endpoint | Description |
 | --- | --- | --- |
-| `asm_quick_reference` | `GET /tools/asm_quick_reference?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
+| `assembly_spec` | `GET /tools/assembly_spec?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
 | `upload_and_run_asm` | TODO | Assemble 6502/6510 source to PRG and run it on the C64. |
 
 ### SID (Audio)
@@ -339,7 +339,7 @@ Here is an overview of some of the most important tools. To see all available to
 
 | Tool | Endpoint | Description |
 | --- | --- | --- |
-| `vic_ii_spec` | `GET /tools/vic_ii_spec?topic=<pattern>` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
+| `vic_spec` | `GET /tools/vic_spec?topic=<pattern>` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
 | `generate_sprite_prg` | `POST /tools/generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
 | `render_petscii_screen` | `POST /tools/render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
 | `create_petscii_image` | `POST /tools/create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |

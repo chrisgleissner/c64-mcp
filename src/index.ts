@@ -55,7 +55,7 @@ async function main() {
   server.get("/knowledge/sid_overview", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/audio/sid-spec.md", "utf8")) }));
   server.get("/knowledge/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/audio/sid-file-structure.md", "utf8")) }));
   server.get<{ Querystring: { topic?: string } }>(
-    "/tools/basic_v2_spec",
+    "/tools/basic_spec",
     async (request) => {
       const { topic } = request.query ?? {};
       if (!topic) {
@@ -66,7 +66,7 @@ async function main() {
     },
   );
   server.get<{ Querystring: { topic?: string } }>(
-    "/tools/asm_quick_reference",
+    "/tools/assembly_spec",
     async (request) => {
       const { topic } = request.query ?? {};
       if (!topic) {
@@ -79,7 +79,7 @@ async function main() {
 
   // VIC-II knowledge endpoints
   server.get<{ Querystring: { topic?: string } }>(
-    "/tools/vic_ii_spec",
+    "/tools/vic_spec",
     async (request) => {
       const { topic } = request.query ?? {};
       if (!topic) {

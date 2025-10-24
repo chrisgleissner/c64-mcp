@@ -17,14 +17,14 @@ export class ToolsCatalog {
   @McpTool({ name: 'info', description: 'Get device information', devices: 'c64u,vice' })
   info() {}
 
-  @McpTool({ name: 'basic_v2_spec', description: 'Get Commodore BASIC v2 concise language spec or filtered by topic', parameters: { topic: 'string' }, devices: 'c64u,vice' })
-  basic_v2_spec() {}
+  @McpTool({ name: 'basic_spec', description: 'Get Commodore BASIC v2 concise language spec or filtered by topic', parameters: { topic: 'string' }, devices: 'c64u,vice' })
+  basic_spec() {}
 
-  @McpTool({ name: 'asm_quick_reference', description: 'Get the 6502/6510 assembly quick reference or filter by topic keywords', parameters: { topic: 'string' }, devices: 'c64u,vice' })
-  asm_quick_reference() {}
+  @McpTool({ name: 'assembly_spec', description: 'Get the 6502/6510 assembly quick reference or filter by topic keywords', parameters: { topic: 'string' }, devices: 'c64u,vice' })
+  assembly_spec() {}
 
-  @McpTool({ name: 'vic_ii_spec', description: 'Get the VIC-II timing/graphics spec or filter by topic', parameters: { topic: 'string' }, devices: 'c64u,vice' })
-  vic_ii_spec() {}
+  @McpTool({ name: 'vic_spec', description: 'Get the VIC-II timing/graphics spec or filter by topic', parameters: { topic: 'string' }, devices: 'c64u,vice' })
+  vic_spec() {}
 
   @McpTool({ name: 'file_info', description: 'Inspect file metadata', parameters: { path: 'string' }, devices: 'c64u' })
   file_info() {}
@@ -61,8 +61,8 @@ export class ToolsCatalog {
   @McpTool({ name: 'sidwave_spec', description: 'Return the SIDWAVE format specification', devices: 'c64u,vice' })
   sidwave_spec() {}
 
-  @McpTool({ name: 'sid_reference', description: 'Return the SID overview document', devices: 'c64u,vice' })
-  sid_reference() {}
+  @McpTool({ name: 'sid_spec', description: 'Return the SID overview document', devices: 'c64u,vice' })
+  sid_spec() {}
 
   @McpTool({ name: 'sid_file_structure', description: 'Return the SID file structure overview', devices: 'c64u,vice' })
   sid_file_structure() {}

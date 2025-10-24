@@ -14,7 +14,7 @@
       "devices": "c64u,vice"
     },
     {
-      "name": "asm_quick_reference",
+      "name": "assembly_spec",
       "description": "Get the 6502/6510 assembly quick reference or filter by topic keywords",
       "parameters": {
         "topic": "string"
@@ -22,7 +22,7 @@
       "devices": "c64u,vice"
     },
     {
-      "name": "basic_v2_spec",
+      "name": "basic_spec",
       "description": "Get Commodore BASIC v2 concise language spec or filtered by topic",
       "parameters": {
         "topic": "string"
@@ -397,11 +397,6 @@
       }
     },
     {
-      "name": "sid_reference",
-      "description": "Return the SID overview document",
-      "devices": "c64u,vice"
-    },
-    {
       "name": "sid_reset",
       "description": "Reset or silence SID",
       "parameters": {
@@ -411,6 +406,11 @@
     {
       "name": "sid_silence_all",
       "description": "Silence all SID voices"
+    },
+    {
+      "name": "sid_spec",
+      "description": "Return the SID overview document",
+      "devices": "c64u,vice"
     },
     {
       "name": "sid_volume",
@@ -482,7 +482,7 @@
       "devices": "c64u,vice"
     },
     {
-      "name": "vic_ii_spec",
+      "name": "vic_spec",
       "description": "Get the VIC-II timing/graphics spec or filter by topic",
       "parameters": {
         "topic": "string"

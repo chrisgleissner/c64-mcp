@@ -150,7 +150,7 @@ npm run rag:rebuild  # or rely on auto-reindex (~15s default)
 ```
 
 - Defaults: in-domain only; adaptive rate limiting; no network during build/test.
-- See `data/assembly/assembly-spec.md` for the assembly quick reference surfaced by `asm_quick_reference` and `/rag/retrieve`.
+- See `data/assembly/assembly-spec.md` for the assembly quick reference surfaced by `assembly_spec` and `/rag/retrieve`.
 
 ## MCP Server Tips
 
