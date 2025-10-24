@@ -1,6 +1,6 @@
 {
   "name": "c64-mcp",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -60,7 +60,7 @@
     "dist/**",
     "scripts/**",
     "doc/**",
-  "data/**",
+    "data/**",
     "mcp-manifest.json",
     "mcp.json",
     "AGENTS.md",

@@ -2,6 +2,19 @@
 
 
 
+
+## 0.2.4 - 2025-10-24
+
+### Features
+
+- Add RAG asset copying and runtime resolution (1e4f500)
+
+### Chores
+
+- Remove duplicate sources.csv from package (0e36f23)
+- Removed 'post-' prefix from post-package-check.yml (8f700cd)
+- add post-package smoke checks (4a15329)
+
 ## 0.2.3 - 2025-10-23
 
 ### Bug Fixes
