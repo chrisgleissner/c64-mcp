@@ -87,7 +87,7 @@ Example:
 40 PRINT CHR$(142)
 ```
 
-## BASIC v2 – Condensed Syntax (complete core)
+## BASIC v2
 
 - Program: numbered lines; end with `END` or stop on last line.
 - Variables: A–Z (and arrays A()(numeric), A$() string); strings end with `$`.
@@ -102,7 +102,7 @@ Example:
 - Remarks: `REM text` (tokens ignored till end of line).
 - Example (print to printer device 4): `OPEN 4,4:PRINT#4,"HELLO":CLOSE 4`.
 
-## 6502/6510 Assembly – Condensed
+## 6502/6510 Assembly
 
 - Addressing modes: `#imm, zp, zp,X, zp,Y, abs, abs,X, abs,Y, (zp), (zp,X), (zp),Y, rel`.
 - Key opcodes (full set):
