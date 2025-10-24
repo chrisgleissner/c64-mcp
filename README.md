@@ -210,12 +210,12 @@ The Agent has two main artifacts:
 Besides this `README.md` document, the project includes extensive documentation:
 
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
-- [`doc/context/bootstrap.md`](doc/context/bootstrap.md) — Core primer injected ahead of agent prompts.
+- [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 - `.github/prompts/*.prompt.md` — Request templates surfaced to agents (see `src/context.ts`).
 - [`doc/developer.md`](doc/developer.md) — Development environment and workflow details.
-- [`doc/c64-rest-api.md`](doc/c64-rest-api.md) — Summary of the c64 REST endpoints.
-- [`doc/c64-basic-spec.md`](doc/c64-basic-spec.md) — BASIC tokenisation and PRG file layout.
-- [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
+- [`doc/rest/c64-rest-api.md`](doc/rest/c64-rest-api.md) — Summary of the c64 REST endpoints.
+- [`data/basic/basic-spec.md`](data/basic/basic-spec.md) — BASIC tokenisation and PRG file layout.
+- [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
 
 ## Configuration ⚙️
 
@@ -439,7 +439,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 You can add your data (source code, hardware information, Markdown notes, etc.) anywhere under the `data` folder. The indexer scans subdirectories recursively and picks up changes automatically.
 
-A small curated set of documentation from `doc/` is also indexed; by default this includes [`doc/6502-instructions.md`](doc/6502-instructions.md).
+A small curated set of documentation from `doc/` is also indexed; by default this includes [`data/assembly/assembly-spec.md`](data/assembly/assembly-spec.md).
 
 To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
 
@@ -520,7 +520,7 @@ For advanced options (depth semantics, throttling/limits, adaptive rate limiting
   - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
   - convert and immediately run the generated PRG on the configured c64 device,
   - upload an existing PRG and run it on the c64 device.
-- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/c64-openapi.yaml`](doc/c64-openapi.yaml).
+- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml).
 - Advanced users can call the underlying CLI directly:
 
   ```bash

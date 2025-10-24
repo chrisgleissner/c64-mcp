@@ -3,6 +3,7 @@
 Authoritative source: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html) for devices such as Commodore 64 Ultimate and Ultimate 64.
 
 ## Conventions
+
 - Base path: `/v1`.
 - URL format: `/v1/<route>/<path>:<command>?<arguments>`.
 - Responses are JSON unless noted and **always** include an `errors` array.
@@ -93,11 +94,13 @@ Authoritative source: [Ultimate 64 REST API](https://1541u-documentation.readthe
 | PUT | `/v1/files/{path}:create_dnp` | `tracks` (≤255), `diskname?` | Create DNP image; each track has 256 sectors (≤ ~16 MB). |
 
 ## Error Handling
+
 - `400`: malformed request (invalid parameters, body, or file attachment).
 - `403`: missing or incorrect `X-Password` when network password enforced.
 - `404`: route not present on current hardware/firmware.
 - `500`: device reported internal failure—inspect `errors` array for details.
 
 ## Assets in Repository
-- `doc/c64-openapi.yaml` captures the full API surface in OpenAPI 3.1 format for mock generation and tooling.
+
+- `doc/rest/c64-openapi.yaml` captures the full API surface in OpenAPI 3.1 format for mock generation and tooling.
 - Firmware change log: <https://1541u-documentation.readthedocs.io/en/latest/api/changelog.html>

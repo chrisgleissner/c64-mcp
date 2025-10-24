@@ -1,6 +1,7 @@
 # Commodore 64 SID (MOS 6581 / 8580) — Concise Technical Overview
 
 ## Overview
+
 - **Voices:** 3 independent oscillators  
   Each has: 16-bit frequency, waveform select (triangle / saw / pulse / noise), pulse-width, ADSR envelope, optional SYNC and RING-MOD.  
 - **Global:** Analog multimode filter (LP / BP / HP), resonance, master volume, and read-back registers for OSC3 and ENV3.  
@@ -9,7 +10,9 @@
 ---
 
 ## Register Map (base = $D400 / 54272)
+
 **Per Voice (1 – 3):**
+
 | Function | Voice 1 | Voice 2 | Voice 3 | Bits / Notes |
 |-----------|----------|----------|----------|--------------|
 | Frequency LO | $D400 | $D407 | $D40E | Low byte of 16-bit pitch increment |
@@ -21,6 +24,7 @@
 | SR | $D406 | $D40D | $D414 | Sustain/Release nibbles |
 
 **Global:**
+
 | Function | Address | Description |
 |-----------|----------|-------------|
 | Cutoff LO | $D415 | Lower 8 bits of filter cutoff |
@@ -32,9 +36,11 @@
 ---
 
 ## Note → SID Frequency
+
 ```
 FREQ = round( note_hz * 2^24 / φ2 ) >> 8   ; 16-bit register value
 ```
+
 - φ₂ = system clock  
   - PAL = 985 248 Hz  
   - NTSC = 1 022 727 Hz  
@@ -42,6 +48,7 @@ FREQ = round( note_hz * 2^24 / φ2 ) >> 8   ; 16-bit register value
 - Typical usage: lookup table per note/octave.
 
 **Example (PAL):**
+
 ```
 FREQ16 = round( (note_hz * 16777216) / 985248 ) >> 8
 ```
@@ -49,6 +56,7 @@ FREQ16 = round( (note_hz * 16777216) / 985248 ) >> 8
 ---
 
 ## Basic Play / Stop Sequence
+
 1. Set FREQ, PW, AD/SR.  
 2. Write CTRL = waveform bits | GATE (=1) → start note.  
 3. Clear GATE bit to release note.
@@ -56,6 +64,7 @@ FREQ16 = round( (note_hz * 16777216) / 985248 ) >> 8
 ---
 
 ## Waveforms & Pulse Width
+
 - **Waveform bits:** Triangle = bit 4, Saw = 5, Pulse = 6, Noise = 7.  
 - **Pulse Width:** 12-bit ($000–$FFF); $0800 ≈ 50 % duty.  
 - Combining waveform bits produces nonlinear mixed timbres.  
@@ -64,6 +73,7 @@ FREQ16 = round( (note_hz * 16777216) / 985248 ) >> 8
 ---
 
 ## Filter Block
+
 - **Cutoff:** $D415 + $D416 (11 bits).  
 - **Resonance / Routing:** $D417.  
 - **Mode / Volume:** $D418 → LP/BP/HP bits + master volume.  
@@ -72,6 +82,7 @@ FREQ16 = round( (note_hz * 16777216) / 985248 ) >> 8
 ---
 
 ## Famous Effects
+
 **Arpeggio** – Cycle chord intervals (e.g. 0,+4,+7) each tick by rewriting FREQ.  
 **Vibrato** – Small sinusoidal offset of FREQ each tick (software LFO).  
 **PWM** – Periodic variation of pulse-width for animated tone.  
@@ -83,15 +94,18 @@ FREQ16 = round( (note_hz * 16777216) / 985248 ) >> 8
 ---
 
 ## Reset Tips
+
 Write $FF then $00 to all SID registers on init to clear stale state before loading new instrument settings.
 
 ---
 
 ## Alternative Exact Frequency Formulas
+
 ```
 PAL:  x = f * (18 * 2^24) / 17734475
 NTSC: x = f * (14 * 2^24) / 14318182
 ```
+
 Equivalent to `FREQ = f * 2^24 / φ2`, then take the upper 16 bits.
 
 ---
@@ -114,6 +128,7 @@ Equivalent to `FREQ = f * 2^24 / φ2`, then take the upper 16 bits.
 ---
 
 ## Primary References (for RAG)
+
 - Oxyron SID Register Reference — bit map, frequency formulas, play sequence.  
 - Commodore 64 Programmer’s Reference (sound chapter, PDF).  
 - C64-Wiki — SID overview and filter behavior.  
@@ -123,6 +138,7 @@ Equivalent to `FREQ = f * 2^24 / φ2`, then take the upper 16 bits.
 ---
 
 ## Typical Usage Snippet (ASM)
+
 ```asm
 ; Initialize SID
 lda #$0f        ; volume = 15

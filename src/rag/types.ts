@@ -24,7 +24,7 @@ export interface EmbeddingRecord {
   licenseUrl?: string;
   attribution?: string;
   // Optional provenance for chunked docs or context layers
-  origin?: string; // e.g. "doc/sid-overview.md#Filters" or ".github/prompts/compose-song.prompt.md"
+  origin?: string; // e.g. "data/audio/sid-spec.md#Filters" or ".github/prompts/compose-song.prompt.md"
 }
 
 export interface EmbeddingIndexFile {

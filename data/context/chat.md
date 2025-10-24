@@ -23,7 +23,7 @@ Behavioral norms for assistants across personas.
 
 - When injecting templates or retrieved references, add comments like:
   <!-- Source: .github/prompts/compose-song.prompt.md | Section: Compose Song -->
-  <!-- Source: doc/sid-overview.md -->
+  <!-- Source: data/audio/sid-spec.md -->
 - Summarize which layers were used (primer/agent/prompt/policy/RAG) if it helps troubleshooting.
 
 ## Formatting

@@ -1,4 +1,3 @@
-
 # C64 MCP Bootstrap Primer
 
 Concise, complete reference for core C64 development with MCP. Keep under ~8 KB. This is injected first in every session.
@@ -9,6 +8,8 @@ Concise, complete reference for core C64 development with MCP. Keep under ~8 KB.
 - Key chips: VIC-II ($D000), SID ($D400), CIA1 ($DC00), CIA2 ($DD00).
 
 ## Memory Map (default RAM layout)
+
+Full details in `data/memory/c64-memory-map.md`.
 
 - $0000–$00FF: Zero page
 - $0100–$01FF: Stack
@@ -133,6 +134,5 @@ Example:
 
 ## Context & RAG
 
-- Layers: `doc/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `doc/context/chat.md` → RAG docs (`doc/**/*.md`).
+- Layers: `data/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `data/context/chat.md` → RAG docs (`doc/**/*.md`, `data/**/*.md`).
 - Retrieval returns relevant chunks with provenance comments for transparency.
-

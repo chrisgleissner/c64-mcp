@@ -12,7 +12,7 @@ You can play a SID file on a connected device using the REST API via the MCP too
 - Endpoint: `POST /tools/sidplay_file`
 - Body: `{ "path": "/flash/music/Example.sid", "songnr": 1 }` (optional `songnr`)
 
-Refer to `doc/c64-rest-api.md` for the underlying device endpoint and options.
+Refer to `doc/rest/c64-rest-api.md` for the underlying device endpoint and options.
 
 ## Header layout (common fields)
 
@@ -86,6 +86,6 @@ SID files do not embed duration. HVSC ships a `Songlengths.md5` database mapping
 ## Related API and tools
 
 - Play from device filesystem: `sidplay_file` (see generated `mcp-manifest.json` and `src/index.ts`)
-- Low-level SID register programming: see `doc/sid-overview.md`
+- Low-level SID register programming: see `data/audio/sid-spec.md`
 
 References for further reading: HVSC PSID v2NG file format (spec), community resources, and project notes from implementations like SIDman.

@@ -67,23 +67,23 @@ export class ToolsCatalog {
   @McpTool({ name: 'sid_file_structure', description: 'Return the SID file structure overview', devices: 'c64u,vice' })
   sid_file_structure() {}
 
-  @McpTool({ name: 'printing_commodore_text', description: 'Return Commodore MPS text printing guide', devices: 'c64u,vice' })
-  printing_commodore_text() {}
+  @McpTool({ name: 'printer_commodore_text', description: 'Return Commodore MPS text printer guide', devices: 'c64u,vice' })
+  printer_commodore_text() {}
 
-  @McpTool({ name: 'printing_commodore_bitmap', description: 'Return Commodore MPS bitmap/custom char guide', devices: 'c64u,vice' })
-  printing_commodore_bitmap() {}
+  @McpTool({ name: 'printer_commodore_bitmap', description: 'Return Commodore MPS bitmap/custom char guide', devices: 'c64u,vice' })
+  printer_commodore_bitmap() {}
 
-  @McpTool({ name: 'printing_epson_text', description: 'Return Epson FX text printing guide', devices: 'c64u,vice' })
-  printing_epson_text() {}
+  @McpTool({ name: 'printer_epson_text', description: 'Return Epson FX text printer guide', devices: 'c64u,vice' })
+  printer_epson_text() {}
 
-  @McpTool({ name: 'printing_epson_bitmap', description: 'Return Epson FX bitmap guide', devices: 'c64u,vice' })
-  printing_epson_bitmap() {}
+  @McpTool({ name: 'printer_epson_bitmap', description: 'Return Epson FX bitmap guide', devices: 'c64u,vice' })
+  printer_epson_bitmap() {}
 
-  @McpTool({ name: 'printing_prompts', description: 'Return end-user printing prompt templates', devices: 'c64u,vice' })
-  printing_prompts() {}
+  @McpTool({ name: 'printer_prompts', description: 'Return end-user printerprompt templates', devices: 'c64u,vice' })
+  printer_prompts() {}
 
-  @McpTool({ name: 'printing_guide', description: 'Return the Commodore/Epson printing guide', devices: 'c64u,vice' })
-  printing_guide() {}
+  @McpTool({ name: 'printer_guide', description: 'Return the Commodore/Epson printer guide', devices: 'c64u,vice' })
+  printer_guide() {}
 
   @McpTool({ name: 'rag_retrieve_basic', description: 'Retrieve BASIC references for a query', parameters: { q: 'string', k: 'number' }, devices: 'c64u,vice' })
   rag_retrieve_basic() {}

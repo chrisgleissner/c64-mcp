@@ -9,19 +9,15 @@
 
 ### Features
 
+- Use device facade for backend abstraction, e.g. to support Vice(1927ff1)
 - Simplify config (d62ab38)
-- Simplify config (a7db713)
 - Add mock backend support and configure c64u base URL (4b3deaa)
 - Add devices property to MCP tool options (caf9bbc)
 
 ### Bug Fixes
 
-- post-package mcp check (84e0321)
 - post-package mcp check (d91e0f4)
 
-### Refactoring
-
-- Use device facade for backend abstraction (1927ff1)
 
 ### Chores
 
@@ -118,5 +114,5 @@
 - Initial public release of c64-mcp MCP server.
 - Local RAG subsystem with prebuilt embeddings under `data/`.
 - Full tool surface for BASIC/ASM upload, screen/memory access, drives, and SID control.
-- Documentation under `doc/`, plus `AGENTS.md`, `.github/prompts/*.prompt.md`, and `doc/context/chat.md`.
+- Documentation under `doc/`, plus `AGENTS.md`, `.github/prompts/*.prompt.md`, and `data/context/chat.md`.
 - GitHub Actions release pipeline and npm packaging configuration.

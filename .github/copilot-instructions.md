@@ -13,7 +13,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
   - Local RAG over `data/` with embeddings.
   - Fastify server exposing MCP **tools** and **knowledge** endpoints.
-- Documentation sources: `README.md`, `doc/` (including SID/BASIC references), `AGENTS.md`, `.github/prompts/*.prompt.md`, and `doc/context/*.md`.
+- Documentation sources: `README.md`, `doc/` (including SID/BASIC references), `AGENTS.md`, `.github/prompts/*.prompt.md`, and `data/context/*.md`.
 
 ## Coding Standards
 
@@ -37,7 +37,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 ## Prompts & Personas
 
-- Agent context layers: `doc/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `doc/context/chat.md` → RAG fetches. Respect existing tone, persona descriptions, and instructions.
+- Agent context layers: `data/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `data/context/chat.md` → RAG fetches. Respect existing tone, persona descriptions, and instructions.
 - MCP tools reside in `src/index.ts`; regenerate the manifest after adding/modifying tool decorators.
 
 ## Review Checklist

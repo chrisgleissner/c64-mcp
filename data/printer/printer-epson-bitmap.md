@@ -3,6 +3,7 @@
 Use ASCII + ESC/P. Bitmap columns are bytes with MSB at top; 8 rows per column. Horizontal density per mode; vertical 72 dpi. Set line spacing to match rows.
 
 ### Modes
+
 - `ESC K n m d...` – Normal density (60 dpi)
 - `ESC L n m d...` – Double density, half speed (120 dpi)
 - `ESC Y n m d...` – Double density, normal speed (maps to L in Ultimate‑II)
@@ -15,9 +16,11 @@ Use ASCII + ESC/P. Bitmap columns are bytes with MSB at top; 8 rows per column. 
 `n` and `m` encode total data length: `len = n + 256*m`.
 
 Set line spacing for 8-dot rows:
+
 - `ESC A 8` (8/72") or `ESC 2` (1/6") depending on layout.
 
 ### Example (16 columns × 3 rows at 60 dpi)
+
 ```basic
 10 OPEN1,4
 20 A$=CHR$(27)+CHR$(75)+CHR$(16)+CHR$(0)
@@ -33,6 +36,7 @@ Set line spacing for 8-dot rows:
 ```
 
 ### Tips
+
 - Ensure `n,m` match data length exactly or the printer will desync.
 - Use `ESC @` to reset between jobs when experimenting.
 - In Ultimate‑II emulation, `ESC Y` behaves like `ESC L`.

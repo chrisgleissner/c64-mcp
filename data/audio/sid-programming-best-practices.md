@@ -164,7 +164,7 @@ POKE 54273,34:POKE 54274,0:POKE 54276,17:FOR I=1 TO 180:NEXT I:POKE 54276,16:FOR
 REM ... continued with varied timing for musical expression
 ```
 
-**Complete example**: See `data/basic_examples/audio/alle-meine-entchen-expressive.bas`
+**Complete example**: See `data/basic/examples/audio/alle-meine-entchen-expressive.bas`
 
 ### Timing Patterns for Different Musical Effects
 

@@ -7,10 +7,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 export interface BootstrapContext {
-  primer: string; // doc/context/bootstrap.md
+  primer: string; // data/context/bootstrap.md
   agents: string; // AGENTS.md personas section
   prompts: PromptDefinition[];
-  chat: string; // doc/context/chat.md
+  chat: string; // data/context/chat.md
 }
 
 export interface PromptDefinition {
@@ -22,10 +22,10 @@ export interface PromptDefinition {
 }
 
 const ROOT = process.cwd();
-const BOOTSTRAP_PATH = path.resolve(ROOT, "doc/context/bootstrap.md");
+const BOOTSTRAP_PATH = path.resolve(ROOT, "data/context/bootstrap.md");
 const AGENTS_PATH = path.resolve(ROOT, "AGENTS.md");
 const PROMPTS_DIR = path.resolve(ROOT, ".github/prompts");
-const CHAT_PATH = path.resolve(ROOT, "doc/context/chat.md");
+const CHAT_PATH = path.resolve(ROOT, "data/context/chat.md");
 
 export async function loadBootstrapContext(): Promise<BootstrapContext> {
   const [primer, agents, prompts, chat] = await Promise.all([

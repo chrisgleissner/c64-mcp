@@ -16,9 +16,9 @@ test/               Node test runner suites and helpers
 ```
 
 Key documentation:
-- `doc/c64-basic-spec.md` — BASIC tokenisation rules used by the converter.
-- `doc/c64-rest-api.md` — Summary of the c64 REST API.
-- `doc/c64-openapi.yaml` — Machine-readable API schema for mocking and generators.
+- `data/basic/basic-spec.md` — BASIC tokenisation rules used by the converter.
+- `doc/rest/c64-rest-api.md` — Summary of the c64 REST API.
+- `doc/rest/c64-openapi.yaml` — Machine-readable API schema for mocking and generators.
 
 ## Prerequisites
 
@@ -77,7 +77,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    OpenAPI["doc/c64-openapi.yaml"]
+  OpenAPI["doc/rest/c64-openapi.yaml"]
     Generator["npm run api:generate (swagger-typescript-api)"]
     Generated["generated/c64/index.ts"]
     Facade["src/c64Client.ts"]
@@ -96,7 +96,7 @@ flowchart LR
 1. `npm run build` to validate types.
 2. `npm test` with mock server.
 3. `npm test -- --real` for hardware.
-4. Update `doc/` and keep `doc/c64-openapi.yaml` in sync with code.
+4. Update `doc/` and keep `doc/rest/c64-openapi.yaml` in sync with code.
 
 ## Release Workflow
 
@@ -140,7 +140,7 @@ Tips:
 ## Retrieval-Augmented Knowledge
 
 - RAG subsystem (`src/rag/*`) indexes `.bas`, `.asm`, `.s`, and Markdown files under `data/*`. Changes trigger a background re-index.
-- Selected docs under `doc/` are also indexed (default: `doc/6502-instructions.md`). Extend the set by exporting `RAG_DOC_FILES=path/to/doc1.md,path/to/doc2.md` before a rebuild.
+- Selected docs under `doc/` are also indexed (default: `data/assembly/assembly-spec.md`). Extend the set by exporting `RAG_DOC_FILES=path/to/doc1.md,path/to/doc2.md` before a rebuild.
 - Set `RAG_EMBEDDINGS_DIR` to redirect the generated `embeddings_basic.json` / `embeddings_asm.json` files to another directory (the test runner uses `artifacts/test-embeddings` to avoid touching tracked files).
 - External sources: edit `src/rag/sources.csv` (`type,description,link,depth`), then:
 
@@ -150,7 +150,7 @@ npm run rag:rebuild  # or rely on auto-reindex (~15s default)
 ```
 
 - Defaults: in-domain only; adaptive rate limiting; no network during build/test.
-- See `doc/6502-instructions.md` for the assembly quick reference surfaced by `asm_quick_reference` and `/rag/retrieve`.
+- See `data/assembly/assembly-spec.md` for the assembly quick reference surfaced by `asm_quick_reference` and `/rag/retrieve`.
 
 ## MCP Server Tips
 
