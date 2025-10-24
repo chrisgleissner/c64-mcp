@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+    defaults:
+      run:
+        shell: bash
     env:
       PACKAGE_SOURCE: ${{ inputs.package_source }}
       PACKAGE_VERSION: ${{ inputs.package_version }}
@@ -149,7 +152,7 @@ jobs:
           fi
 
       - name: Upload smoke log artifact on failure
-        if: failure()
+        if: failure() && steps.smoke.outputs.log
         uses: actions/upload-artifact@v4
         with:
           name: smoke-log
