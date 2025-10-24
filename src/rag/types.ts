@@ -25,6 +25,14 @@ export interface EmbeddingRecord {
   attribution?: string;
   // Optional provenance for chunked docs or context layers
   origin?: string; // e.g. "data/audio/sid-spec.md#Filters" or ".github/prompts/compose-song.prompt.md"
+  // Optional adaptive splitter metadata (when RAG_SPLITTER=ml)
+  meta?: {
+    source_id: string;
+    section_title?: string;
+    code_lang: "basic" | "asm" | "text";
+    tags?: string[];
+    chunk_index?: number;
+  };
 }
 
 export interface EmbeddingIndexFile {

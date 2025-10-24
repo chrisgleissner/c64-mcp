@@ -6,6 +6,7 @@ GPL-2.0-only
 import fs from "node:fs/promises";
 import path from "node:path";
 import { EmbeddingIndexFile, EmbeddingRecord, RagLanguage } from "./types.js";
+import { adaptiveSplitDocument } from "./splitter.js";
 import fsSync from "node:fs";
 import { EmbeddingModel } from "./embeddings.js";
 
@@ -258,6 +259,7 @@ interface PreparedFile {
   licenseUrl?: string;
   attribution?: string;
   origin?: string; // e.g. doc/foo.md#Bar or .github/prompts/compose-song.prompt.md
+  meta?: EmbeddingRecord["meta"]; // adaptive splitter metadata if available
 }
 
 const CATEGORY_LIST: RagLanguage[] = ["basic", "asm", "mixed", "hardware", "other"];
