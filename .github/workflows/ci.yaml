@@ -32,7 +32,3 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
-
-  package-check:
-    needs: build
-    uses: ./.github/workflows/package-check.yaml

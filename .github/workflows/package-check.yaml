@@ -1,6 +1,16 @@
 name: Verify C64-MCP Package
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'apt-packages.txt'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'apt-packages.txt'
   workflow_call:
     inputs:
       package_source:
