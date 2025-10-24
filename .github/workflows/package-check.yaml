@@ -1,4 +1,4 @@
-name: Verify NPM Package
+name: Verify C64-MCP Package
 
 on:
   workflow_call:
