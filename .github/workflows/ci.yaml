@@ -35,6 +35,9 @@ jobs:
     name: Build Docker image
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.docker == 'true' }}
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/docker-build.yaml
     secrets: inherit
 
