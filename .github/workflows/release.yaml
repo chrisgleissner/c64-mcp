@@ -1,0 +1,22 @@
+name: Release MCP Package
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --access public
+
+  package-check:
+    needs: release
+    uses: ./.github/workflows/package-check.yaml

@@ -1,0 +1,34 @@
+name: Build and publish Docker image
+
+on:
+  push:
+    paths:
+      - 'Dockerfile'
+      - 'apt-packages.txt'
+      - '.github/workflows/docker-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          docker build \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            -t ghcr.io/${{ github.repository_owner }}/mcp-builder:${{ github.sha }} .
+
+      - name: Push image (latest tag too)
+        run: |
+          docker tag ghcr.io/${{ github.repository_owner }}/mcp-builder:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+          docker push ghcr.io/${{ github.repository_owner }}/mcp-builder:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/mcp-builder:latest

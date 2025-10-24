@@ -1,0 +1,7 @@
+vice
+xvfb
+sidplayfp
+curl
+git
+nodejs
+npm
