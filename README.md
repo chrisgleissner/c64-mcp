@@ -92,15 +92,18 @@ For a quick start, the first option is recommended. If you plan to contribute co
 
 Run the prebuilt server without creating a project. npx downloads the package and expands all bundled files on disk for this session.
 
-```bash
+```sh
 HOST=127.0.0.1 PORT=8000 npx -y c64-mcp@latest
 ```
 
-By default, the MCP server assumes the C64's host name is `c64u`. To change this, create `~/.c64mcp.json`:
+By default, the MCP server looks for `~/.c64mcp.json`. To target your device, create:
 
 ```json
-{ 
-  "c64_host": "<Hostname or IP of C64>" 
+{
+  "c64u": {
+    "host": "<hostname or IP>",
+    "port": 80
+  }
 }
 ```
 
@@ -118,10 +121,10 @@ npm install c64-mcp
 
 1. Configure your C64 target (optional but recommended):
 
-Create `~/.c64mcp.json` with your device host/IP:
+Create `~/.c64mcp.json` with your device settings:
 
 ```json
-{ "c64_host": "c64u" }
+{ "c64u": { "host": "c64u" } }
 ```
 
 1. Start the server:
@@ -216,9 +219,68 @@ Besides this `README.md` document, the project includes extensive documentation:
 
 ## Configuration ⚙️
 
-  The `c64_host` value can be either a hostname (e.g. `c64u`) or an IP address. Save the file as `~/.c64mcp.json`.
+The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present.
 
-  You can override the path with the `C64MCP_CONFIG` environment variable.
+Configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
+
+### C64U (real hardware)
+
+Use this section to point the server at an Commodore 64 Ultimate or Ultimate 64 device. 
+
+Provide the host (DNS name or IP, defaults to `c64u`) and a port (defaults to `80`).
+
+```json
+{
+  "c64u": {
+    "host": "c64u",
+    "port": 80
+  }
+}
+```
+
+### VICE (emulator)
+
+> [!NOTE] This is an experimental feature that is currently very limited.
+
+This backend starts a fresh VICE process for each PRG run using the emulator binary. In phase one, memory/register operations are not supported; the focus is deterministic PRG execution.
+
+```json
+{
+  "vice": {
+    "exe": "/usr/bin/x64sc"
+  }
+}
+```
+
+Notes:
+
+- If `vice.exe` is not set, the server attempts to find `x64sc` (or `x64`) on your `PATH`.
+- Each program execution spawns a new VICE instance, e.g.:
+
+  ```bash
+  x64sc -autostart "program.prg" -silent -warp
+  ```
+
+### Backend selection rules
+
+Backend selection is automatic with clear logging. The following precedence applies:
+
+1. Explicit override: if `C64_MODE=c64u` or `C64_MODE=vice` is set in the environment, that backend is used.
+2. Config presence: if only one of `c64u` or `vice` is configured, it is used.
+3. Both configured: prefer `c64u` unless VICE is explicitly requested via `C64_MODE=vice`.
+4. No configuration: probe the default C64U address (`http://c64u`); if unavailable, fall back to VICE.
+
+On startup, the server logs the selected backend and reason, for example:
+
+- `Active backend: c64u (from config)`
+- `Active backend: vice (fallback – hardware unavailable)`
+
+### File locations and overrides
+
+- Primary: `~/.c64mcp.json`
+- Override path: set `C64MCP_CONFIG=/absolute/path/to/.c64mcp.json`
+- Repo-local (dev): `.c64mcp.json` at the project root
+
 
    If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
 

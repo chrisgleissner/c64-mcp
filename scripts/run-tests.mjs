@@ -85,14 +85,8 @@ function resolveBaseUrlFromConfig() {
     if (!candidate) continue;
     try {
       const raw = JSON.parse(fs.readFileSync(candidate, "utf8"));
-      const host = typeof raw.c64_host === "string" ? raw.c64_host : undefined;
-      const baseUrl = typeof raw.baseUrl === "string" ? raw.baseUrl : undefined;
-      if (baseUrl) {
-        return baseUrl;
-      }
-      if (host) {
-        return `http://${host}`;
-      }
+      const baseUrl = resolveBaseUrlFromJson(raw);
+      if (baseUrl) return baseUrl;
     } catch (error) {
       if (error && typeof error === "object" && "code" in error) {
         if (error.code === "ENOENT") continue;
@@ -102,4 +96,96 @@ function resolveBaseUrlFromConfig() {
     }
   }
   return null;
+}
+
+function resolveBaseUrlFromJson(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const c64u = raw.c64u && typeof raw.c64u === "object" ? raw.c64u : null;
+  if (c64u) {
+    const base = normaliseBaseUrlFromString(c64u.baseUrl);
+    if (base) return base;
+
+    const hostEntry = firstDefined(
+      stringIfSet(c64u.host),
+      stringIfSet(c64u.hostname),
+    );
+
+    const parsed = parseEndpoint(hostEntry);
+    const port = firstDefined(numberIfPort(c64u.port), parsed.port, DEFAULT_PORT);
+    if (parsed.hostname) {
+      return buildBaseUrl(parsed.hostname, port);
+    }
+  }
+
+  const legacyBase = normaliseBaseUrlFromString(raw.baseUrl);
+  if (legacyBase) return legacyBase;
+
+  const legacyHost = stringIfSet(raw.c64_host) ?? stringIfSet(raw.c64_ip);
+  if (legacyHost) {
+    const parsed = parseEndpoint(legacyHost);
+    const port = firstDefined(parsed.port, DEFAULT_PORT);
+    const hostname = parsed.hostname ?? legacyHost;
+    return buildBaseUrl(hostname, port);
+  }
+
+  return null;
+}
+
+function stringIfSet(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberIfPort(value) {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 65535) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.trim());
+    if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function normaliseBaseUrlFromString(value) {
+  const input = stringIfSet(value);
+  if (!input) return null;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(input)) {
+    return `http://${input}`;
+  }
+  return input.replace(/\/+$/, "");
+}
+
+function parseEndpoint(value) {
+  const input = stringIfSet(value);
+  if (!input) return {};
+  try {
+    const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input);
+    const url = new URL(hasScheme ? input : `http://${input}`);
+    const hostname = url.hostname || undefined;
+    const port = url.port ? numberIfPort(url.port) : undefined;
+    return { hostname, port };
+  } catch {
+    return {};
+  }
+}
+
+const DEFAULT_PORT = 80;
+
+function buildBaseUrl(host, port) {
+  const normalizedPort = Number.isInteger(port) && port > 0 ? port : DEFAULT_PORT;
+  const hostPart = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+  const suffix = normalizedPort === DEFAULT_PORT ? "" : `:${normalizedPort}`;
+  return `http://${hostPart}${suffix}`;
+}
+
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  }
+  return undefined;
 }

@@ -4,9 +4,9 @@
 
 This document captures the successful approach for creating pleasant, musical SID sounds on the Commodore 64, discovered through iterative testing with the MCP server and real hardware feedback.
 
-## The Working Solution
+## Sample Programs
 
-### Final Working BASIC Program
+### Play C Major Scale with Basic
 
 ```basic
 10 POKE 54296,15:REM VOLUME

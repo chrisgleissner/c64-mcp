@@ -13,36 +13,8 @@ import { assemblyToPrg } from "./assemblyConverter.js";
 import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
 import { McpTool } from "./mcpDecorators.js";
-import type { Api as GeneratedApi, HttpClient as GeneratedHttpClient } from "../generated/c64/index.js";
-
-type GeneratedModule = typeof import("../generated/c64/index.js");
-
-const generatedClient = await loadGeneratedModule();
-const { Api, HttpClient } = generatedClient;
-
-async function loadGeneratedModule(): Promise<GeneratedModule> {
-  const candidates = [
-    "./generated/c64/index.js",
-    "../generated/c64/index.js",
-  ];
-
-  for (const rel of candidates) {
-    try {
-      const url = new URL(rel, import.meta.url);
-      return (await import(url.href)) as GeneratedModule;
-    } catch (error) {
-      const err = error as NodeJS.ErrnoException | undefined;
-      const msg = err?.message ?? "";
-      if (err?.code === "ERR_MODULE_NOT_FOUND" || msg.includes("Cannot find module")) {
-        continue;
-      }
-      // Re-throw unexpected errors (syntax/runtime inside module, etc.)
-      throw error;
-    }
-  }
-
-  throw new Error("Unable to locate generated MCP client (checked ./generated/c64/index.js and ../generated/c64/index.js)");
-}
+import { C64Facade, createFacade } from "./device.js";
+import { Api, HttpClient } from "../generated/c64/index.js";
 
 export interface RunBasicResult {
   success: boolean;
@@ -56,15 +28,15 @@ export interface MemoryReadResult {
 }
 
 export class C64Client {
-  private readonly http: GeneratedHttpClient<unknown>;
-  private readonly api: GeneratedApi<unknown>;
+  private readonly http: HttpClient<unknown>;
+  private readonly api: Api<unknown>;
+  private readonly facadePromise: Promise<C64Facade>;
 
   constructor(baseUrl: string) {
-    this.http = new HttpClient({
-      baseURL: baseUrl,
-      timeout: 10_000,
-    });
+    this.http = new HttpClient({ baseURL: baseUrl, timeout: 10_000 });
     this.api = new Api(this.http);
+    // Select backend once lazily; keep REST for hardware-specific fallbacks
+    this.facadePromise = createFacade(undefined, { preferredC64uBaseUrl: baseUrl }).then((sel) => sel.facade);
   }
 
   /**
@@ -184,36 +156,27 @@ export class C64Client {
 
   async runPrg(prg: Uint8Array | Buffer): Promise<RunBasicResult> {
     try {
-      const payload = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
-      const response = await this.api.v1.runnersRunPrgCreate(":run_prg", payload as any, {
-        headers: {
-          "Content-Type": "application/octet-stream",
-        },
-      });
-
-      return {
-        success: true,
-        details: response.data,
-      };
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const payload = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
+        const response = await this.api.v1.runnersRunPrgCreate(":run_prg", payload as any, {
+          headers: { "Content-Type": "application/octet-stream" },
+        });
+        return { success: true, details: response.data };
+      }
+      const facade = await this.facadePromise;
+      const res = await facade.runPrg(prg);
+      return { success: res.success, details: res.details };
     } catch (error) {
-      return {
-        success: false,
-        details: this.normaliseError(error),
-      };
+      return { success: false, details: this.normaliseError(error) };
     }
   }
 
   /** Upload a SID binary and instruct firmware to play it (attachment mode). */
   async sidplayAttachment(sid: Uint8Array | Buffer, options?: { songnr?: number; songlengths?: Uint8Array | Buffer }): Promise<RunBasicResult> {
     try {
-      const form: any = {
-        sid: Buffer.isBuffer(sid) ? sid : Buffer.from(sid),
-      };
-      if (options?.songlengths) {
-        form.songlengths = Buffer.isBuffer(options.songlengths) ? options.songlengths : Buffer.from(options.songlengths);
-      }
-      const response = await this.api.v1.runnersSidplayCreate(":sidplay", form as any, options?.songnr !== undefined ? { songnr: options.songnr } : undefined);
-      return { success: true, details: response.data };
+      const facade = await this.facadePromise;
+      const res = await facade.sidplayAttachment(sid, options);
+      return { success: res.success, details: res.details };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -222,8 +185,9 @@ export class C64Client {
   @McpTool({ name: "load_prg_file", description: "Load PRG into memory (no run)", parameters: { path: "string" } })
   async loadPrgFile(path: string): Promise<RunBasicResult> {
     try {
-      const response = await this.api.v1.runnersLoadPrgUpdate(":load_prg", { file: path });
-      return { success: true, details: response.data };
+      const facade = await this.facadePromise;
+      const res = await facade.loadPrgFile(path);
+      return { success: res.success, details: res.details };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -232,8 +196,9 @@ export class C64Client {
   @McpTool({ name: "run_prg_file", description: "Run PRG from device filesystem", parameters: { path: "string" } })
   async runPrgFile(path: string): Promise<RunBasicResult> {
     try {
-      const response = await this.api.v1.runnersRunPrgUpdate(":run_prg", { file: path });
-      return { success: true, details: response.data };
+      const facade = await this.facadePromise;
+      const res = await facade.runPrgFile(path);
+      return { success: res.success, details: res.details };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -242,8 +207,9 @@ export class C64Client {
   @McpTool({ name: "run_crt_file", description: "Run cartridge image from filesystem", parameters: { path: "string" } })
   async runCrtFile(path: string): Promise<RunBasicResult> {
     try {
-      const response = await this.api.v1.runnersRunCrtUpdate(":run_crt", { file: path });
-      return { success: true, details: response.data };
+      const facade = await this.facadePromise;
+      const res = await facade.runCrtFile(path);
+      return { success: res.success, details: res.details };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -252,8 +218,9 @@ export class C64Client {
   @McpTool({ name: "sidplay_file", description: "Play SID from filesystem", parameters: { path: "string", songnr: "number" } })
   async sidplayFile(path: string, songnr?: number): Promise<RunBasicResult> {
     try {
-      const response = await this.api.v1.runnersSidplayUpdate(":sidplay", { file: path, songnr });
-      return { success: true, details: response.data };
+      const facade = await this.facadePromise;
+      const res = await facade.sidplayFile(path, songnr);
+      return { success: res.success, details: res.details };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -262,8 +229,10 @@ export class C64Client {
   @McpTool({ name: "modplay_file", description: "Play MOD from filesystem", parameters: { path: "string" } })
   async modplayFile(path: string): Promise<RunBasicResult> {
     try {
-      const response = await this.api.v1.runnersModplayUpdate(":modplay", { file: path });
-      return { success: true, details: response.data };
+      const facade = await this.facadePromise;
+      if (!facade.modplayFile) throw new Error("modplay not supported by selected backend");
+      const res = await facade.modplayFile(path);
+      return { success: res.success, details: res.details };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -278,32 +247,30 @@ export class C64Client {
   @McpTool({ name: "reset_c64", description: "Reset the C64 via REST API" })
   async reset(): Promise<{ success: boolean; details?: unknown }> {
     try {
-      const response = await this.api.v1.machineResetUpdate(":reset");
-      return {
-        success: true,
-        details: response.data,
-      };
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const response = await this.api.v1.machineResetUpdate(":reset");
+        return { success: true, details: response.data };
+      }
+      const facade = await this.facadePromise;
+      const res = await facade.reset();
+      return { success: res.success, details: res.details };
     } catch (error) {
-      return {
-        success: false,
-        details: this.normaliseError(error),
-      };
+      return { success: false, details: this.normaliseError(error) };
     }
   }
 
   @McpTool({ name: "reboot_c64", description: "Reboot the c64 device firmware" })
   async reboot(): Promise<{ success: boolean; details?: unknown }> {
     try {
-      const response = await this.api.v1.machineRebootUpdate(":reboot");
-      return {
-        success: true,
-        details: response.data,
-      };
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const response = await this.api.v1.machineRebootUpdate(":reboot");
+        return { success: true, details: response.data };
+      }
+      const facade = await this.facadePromise;
+      const res = await facade.reboot();
+      return { success: res.success, details: res.details };
     } catch (error) {
-      return {
-        success: false,
-        details: this.normaliseError(error),
-      };
+      return { success: false, details: this.normaliseError(error) };
     }
   }
 
@@ -393,20 +360,19 @@ export class C64Client {
   @McpTool({ name: "sid_reset", description: "Reset or silence SID", parameters: { hard: "boolean" } })
   async sidReset(hard = false): Promise<RunBasicResult> {
     try {
+      const facade = await this.facadePromise;
       if (hard) {
-        // Write $FF to $D400-$D418, then $00 to same range
-        const span = 0x19; // inclusive range length
+        const span = 0x19;
         const ff = Buffer.alloc(span, 0xff);
         const zz = Buffer.alloc(span, 0x00);
-        const first = await this.api.v1.machineWritememUpdate(":writemem", { address: "D400", data: this.bytesToHex(ff, false) });
-        const second = await this.api.v1.machineWritememUpdate(":writemem", { address: "D400", data: this.bytesToHex(zz, false) });
-        return { success: true, details: { first: first.data, second: second.data } };
+        await facade.writeMemory(0xd400, ff);
+        await facade.writeMemory(0xd400, zz);
+        return { success: true };
       }
-      // Soft silence: clear GATE on all voices and volume to 0
-      await this.api.v1.machineWritememUpdate(":writemem", { address: "D404", data: "00" });
-      await this.api.v1.machineWritememUpdate(":writemem", { address: "D40B", data: "00" });
-      await this.api.v1.machineWritememUpdate(":writemem", { address: "D412", data: "00" });
-      await this.api.v1.machineWritememUpdate(":writemem", { address: "D418", data: "00" });
+      await facade.writeMemory(0xd404, Buffer.from([0x00]));
+      await facade.writeMemory(0xd40b, Buffer.from([0x00]));
+      await facade.writeMemory(0xd412, Buffer.from([0x00]));
+      await facade.writeMemory(0xd418, Buffer.from([0x00]));
       return { success: true };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
@@ -473,11 +439,9 @@ export class C64Client {
     const base = 0xd400 + (voice - 1) * 7;
     const bytes = Buffer.from([freqLo, freqHi, pwLo, pwHi, ctrl, ad, sr]);
     try {
-      const res = await this.api.v1.machineWritememUpdate(":writemem", {
-        address: base.toString(16).toUpperCase(),
-        data: this.bytesToHex(bytes, false),
-      });
-      return { success: true, details: res.data };
+      const facade = await this.facadePromise;
+      await facade.writeMemory(base, bytes);
+      return { success: true };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -490,11 +454,9 @@ export class C64Client {
     }
     const ctrlAddr = 0xd400 + (voice - 1) * 7 + 4;
     try {
-      const res = await this.api.v1.machineWritememUpdate(":writemem", {
-        address: ctrlAddr.toString(16).toUpperCase(),
-        data: "00",
-      });
-      return { success: true, details: res.data };
+      const facade = await this.facadePromise;
+      await facade.writeMemory(ctrlAddr, Buffer.from([0x00]));
+      return { success: true };
     } catch (error) {
       return { success: false, details: this.normaliseError(error) };
     }
@@ -520,67 +482,67 @@ export class C64Client {
   @McpTool({ name: "pause", description: "Pause the machine via DMA" })
   async pause(): Promise<RunBasicResult> {
     try {
-      const res = await this.api.v1.machinePauseUpdate(":pause");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machinePauseUpdate(":pause");
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise;
+      return await facade.pause();
+    } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "resume", description: "Resume the machine from pause" })
   async resume(): Promise<RunBasicResult> {
     try {
-      const res = await this.api.v1.machineResumeUpdate(":resume");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineResumeUpdate(":resume");
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.resume();
+    } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "poweroff", description: "Power off the machine" })
   async poweroff(): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.machinePoweroffUpdate(":poweroff");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.poweroff(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "menu_button", description: "Toggle Ultimate menu button" })
   async menuButton(): Promise<RunBasicResult> {
     try {
-      const res = await this.api.v1.machineMenuButtonUpdate(":menu_button");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineMenuButtonUpdate(":menu_button");
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.menuButton();
+    } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "debugreg_read", description: "Read the $D7FF debug register" })
   async debugregRead(): Promise<{ success: boolean; value?: string; details?: unknown }> {
     try {
-      const res = await this.api.v1.machineDebugregList(":debugreg");
-      return { success: true, value: (res.data as any).value, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineDebugregList(":debugreg");
+        return { success: true, value: (res.data as any).value, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.debugregRead();
+    } catch (error) { return { success: false, details: this.normaliseError(error) } as any; }
   }
 
   @McpTool({ name: "debugreg_write", description: "Write the $D7FF debug register", parameters: { value: "string" } })
   async debugregWrite(value: string): Promise<{ success: boolean; value?: string; details?: unknown }> {
     try {
-      const res = await this.api.v1.machineDebugregUpdate(":debugreg", { value });
-      return { success: true, value: (res.data as any).value, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.machineDebugregUpdate(":debugreg", { value });
+        return { success: true, value: (res.data as any).value, details: res.data };
+      }
+      const facade = await this.facadePromise; return await facade.debugregWrite(value);
+    } catch (error) { return { success: false, details: this.normaliseError(error) } as any; }
   }
 
   @McpTool({ name: "drives_list", description: "List internal drives and images" })
   async drivesList(): Promise<unknown> {
-    const res = await this.api.v1.drivesList();
-    return res.data;
+    const facade = await this.facadePromise; return facade.drivesList();
   }
 
   @McpTool({ name: "drive_mount", description: "Mount a disk image on a drive", parameters: { drive: "string", image: "string", type: "string", mode: "string" } })
@@ -589,190 +551,102 @@ export class C64Client {
     imagePath: string,
     options?: { type?: "d64" | "g64" | "d71" | "g71" | "d81"; mode?: "readwrite" | "readonly" | "unlinked" },
   ): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.drivesMountUpdate(drive, ":mount", { image: imagePath, type: options?.type, mode: options?.mode });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.driveMount(drive, imagePath, options); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "drive_remove", description: "Remove a mounted image", parameters: { drive: "string" } })
   async driveRemove(drive: string): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.drivesRemoveUpdate(drive, ":remove");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.driveRemove(drive); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "drive_reset", description: "Reset a drive", parameters: { drive: "string" } })
   async driveReset(drive: string): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.drivesResetUpdate(drive, ":reset");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.driveReset(drive); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "drive_on", description: "Power on a drive", parameters: { drive: "string" } })
   async driveOn(drive: string): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.drivesOnUpdate(drive, ":on");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.driveOn(drive); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "drive_off", description: "Power off a drive", parameters: { drive: "string" } })
   async driveOff(drive: string): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.drivesOffUpdate(drive, ":off");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.driveOff(drive); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "drive_mode", description: "Set drive mode", parameters: { drive: "string", mode: "string" } })
   async driveSetMode(drive: string, mode: "1541" | "1571" | "1581"): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.drivesSetModeUpdate(drive, ":set_mode", { mode });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.driveSetMode(drive, mode); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "stream_start", description: "Start a data stream", parameters: { stream: "string", ip: "string" } })
   async streamStart(stream: "video" | "audio" | "debug", ip: string): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.streamsStartUpdate(stream, ":start", { ip });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.streamStart(stream, ip); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "stream_stop", description: "Stop a data stream", parameters: { stream: "string" } })
   async streamStop(stream: "video" | "audio" | "debug"): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.streamsStopUpdate(stream, ":stop");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.streamStop(stream); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "config_list", description: "List configuration categories" })
   async configsList(): Promise<unknown> {
-    const res = await this.api.v1.configsList();
-    return res.data;
+    const facade = await this.facadePromise; return facade.configsList();
   }
 
   @McpTool({ name: "config_get", description: "Get configuration item(s)", parameters: { category: "string", item: "string" } })
   async configGet(category: string, item?: string): Promise<unknown> {
-    const res = item ? await this.api.v1.configsDetail2(category, item) : await this.api.v1.configsDetail(category);
-    return res.data;
+    const facade = await this.facadePromise; return facade.configGet(category, item);
   }
 
   @McpTool({ name: "config_set", description: "Set configuration item", parameters: { category: "string", item: "string", value: "string" } })
   async configSet(category: string, item: string, value: string): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.configsUpdate(category, item, { value });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.configSet(category, item, value); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "config_batch_update", description: "Batch update configuration", parameters: { payload: "object" } })
   async configBatchUpdate(payload: Record<string, object>): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.configsCreate(payload);
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.configBatchUpdate(payload); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "config_load_from_flash", description: "Load configuration from flash" })
   async configLoadFromFlash(): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.configsLoadFromFlashUpdate(":load_from_flash");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.configLoadFromFlash(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "config_save_to_flash", description: "Save configuration to flash" })
   async configSaveToFlash(): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.configsSaveToFlashUpdate(":save_to_flash");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.configSaveToFlash(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "config_reset_to_default", description: "Reset configuration to defaults" })
   async configResetToDefault(): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.configsResetToDefaultUpdate(":reset_to_default");
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.configResetToDefault(); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "file_info", description: "Inspect file metadata", parameters: { path: "string" } })
   async filesInfo(path: string): Promise<unknown> {
-    const res = await this.api.v1.filesInfoDetail(encodeURIComponent(path), ":info");
-    return res.data;
+    const facade = await this.facadePromise; return facade.filesInfo(path);
   }
 
   @McpTool({ name: "create_d64", description: "Create D64 image", parameters: { path: "string", tracks: "number", diskname: "string" } })
   async filesCreateD64(path: string, options?: { tracks?: 35 | 40; diskname?: string }): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.filesCreateD64Update(encodeURIComponent(path), ":create_d64", { tracks: options?.tracks, diskname: options?.diskname });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.filesCreateD64(path, options); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "create_d71", description: "Create D71 image", parameters: { path: "string", diskname: "string" } })
   async filesCreateD71(path: string, options?: { diskname?: string }): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.filesCreateD71Update(encodeURIComponent(path), ":create_d71", { diskname: options?.diskname });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.filesCreateD71(path, options); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "create_d81", description: "Create D81 image", parameters: { path: "string", diskname: "string" } })
   async filesCreateD81(path: string, options?: { diskname?: string }): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.filesCreateD81Update(encodeURIComponent(path), ":create_d81", { diskname: options?.diskname });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.filesCreateD81(path, options); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   @McpTool({ name: "create_dnp", description: "Create DNP image", parameters: { path: "string", tracks: "number", diskname: "string" } })
   async filesCreateDnp(path: string, tracks: number, options?: { diskname?: string }): Promise<RunBasicResult> {
-    try {
-      const res = await this.api.v1.filesCreateDnpUpdate(encodeURIComponent(path), ":create_dnp", { tracks, diskname: options?.diskname });
-      return { success: true, details: res.data };
-    } catch (error) {
-      return { success: false, details: this.normaliseError(error) };
-    }
+    try { const facade = await this.facadePromise; return await facade.filesCreateDnp(path, tracks, options); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
   private extractBytes(data: unknown): Uint8Array {
@@ -830,33 +704,23 @@ export class C64Client {
    */
   private async readMemoryRaw(address: number, length: number): Promise<Uint8Array> {
     const addrStr = this.formatAddress(address);
-
-    // Request as binary first while advertising we accept octet-stream.
-    // Some firmware returns JSON regardless; detect and parse if needed.
     const response = await this.api.v1.machineReadmemList(
       ":readmem",
       { address: addrStr, length },
       { format: "arraybuffer", headers: { Accept: "application/octet-stream, application/json" } as any },
     );
-
     const contentType = (response.headers?.["content-type"] ?? "").toString().toLowerCase();
     const body = response.data as unknown;
-
     if (contentType.includes("application/json")) {
-      // Parse JSON string from ArrayBuffer
       const text = Buffer.from(body as ArrayBuffer).toString("utf8");
       try {
         const parsed = JSON.parse(text);
         return this.extractBytes(parsed?.data ?? parsed);
       } catch {
-        // Fall through and try to interpret as base64/hex string
         return this.extractBytes(text);
       }
     }
-
-    // Treat response as raw bytes
-    const raw = body instanceof ArrayBuffer ? new Uint8Array(body) : this.extractBytes(body);
-    return raw;
+    return body instanceof ArrayBuffer ? new Uint8Array(body) : this.extractBytes(body);
   }
 
   private normaliseError(error: unknown): unknown {

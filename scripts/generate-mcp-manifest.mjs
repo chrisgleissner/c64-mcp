@@ -66,6 +66,14 @@ function collectToolsFromSourceFile(sf) {
             const arg = ts.isCallExpression(call) ? call.arguments[0] : undefined;
             const options = arg ? evaluateLiteral(arg) : undefined;
             if (options && options.name && options.description) {
+              // Normalize devices metadata if present
+              if (typeof options.devices === 'string') {
+                options.devices = options.devices
+                  .split(',')
+                  .map((s) => String(s || '').trim().toLowerCase())
+                  .filter((s) => s === 'c64u' || s === 'vice')
+                  .join(',');
+              }
               tools.push({ ...options });
             }
           }

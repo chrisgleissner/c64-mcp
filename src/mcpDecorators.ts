@@ -12,6 +12,8 @@ export interface McpToolOptions {
   name: string;
   description: string;
   parameters?: McpParameterSchema;
+  // Comma-separated device compatibility, lowercase: "c64u", "vice", or "c64u,vice"
+  devices?: string;
 }
 
 export interface RegisteredTool extends McpToolOptions {

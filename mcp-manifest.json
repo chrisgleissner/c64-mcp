@@ -10,21 +10,24 @@
         "request": "string",
         "durationSeconds": "number",
         "expectedSidwave": "object"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "asm_quick_reference",
       "description": "Get the 6502/6510 assembly quick reference or filter by topic keywords",
       "parameters": {
         "topic": "string"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "basic_v2_spec",
       "description": "Get Commodore BASIC v2 concise language spec or filtered by topic",
       "parameters": {
         "topic": "string"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "config_batch_update",
@@ -112,7 +115,8 @@
         "backgroundColor": "number",
         "foregroundColor": "number",
         "dryRun": "boolean"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "debugreg_read",
@@ -196,7 +200,8 @@
     },
     {
       "name": "info",
-      "description": "Get device information"
+      "description": "Get device information",
+      "devices": "c64u,vice"
     },
     {
       "name": "load_prg_file",
@@ -224,7 +229,8 @@
         "format": "string",
         "output": "string",
         "dryRun": "boolean"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "music_generate",
@@ -235,7 +241,8 @@
         "steps": "number",
         "tempoMs": "number",
         "waveform": "string"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "pause",
@@ -253,31 +260,38 @@
         "target": "string",
         "secondaryAddress": "number",
         "formFeed": "boolean"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "printing_commodore_bitmap",
-      "description": "Return Commodore MPS bitmap/custom char guide"
+      "description": "Return Commodore MPS bitmap/custom char guide",
+      "devices": "c64u,vice"
     },
     {
       "name": "printing_commodore_text",
-      "description": "Return Commodore MPS text printing guide"
+      "description": "Return Commodore MPS text printing guide",
+      "devices": "c64u,vice"
     },
     {
       "name": "printing_epson_bitmap",
-      "description": "Return Epson FX bitmap guide"
+      "description": "Return Epson FX bitmap guide",
+      "devices": "c64u,vice"
     },
     {
       "name": "printing_epson_text",
-      "description": "Return Epson FX text printing guide"
+      "description": "Return Epson FX text printing guide",
+      "devices": "c64u,vice"
     },
     {
       "name": "printing_guide",
-      "description": "Return the Commodore/Epson printing guide"
+      "description": "Return the Commodore/Epson printing guide",
+      "devices": "c64u,vice"
     },
     {
       "name": "printing_prompts",
-      "description": "Return end-user printing prompt templates"
+      "description": "Return end-user printing prompt templates",
+      "devices": "c64u,vice"
     },
     {
       "name": "rag_retrieve_asm",
@@ -285,7 +299,8 @@
       "parameters": {
         "q": "string",
         "k": "number"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "rag_retrieve_basic",
@@ -293,7 +308,8 @@
       "parameters": {
         "q": "string",
         "k": "number"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "read_memory",
@@ -305,7 +321,8 @@
     },
     {
       "name": "read_screen",
-      "description": "Read 1KB of screen memory from the C64"
+      "description": "Read 1KB of screen memory from the C64",
+      "devices": "c64u"
     },
     {
       "name": "reboot_c64",
@@ -317,7 +334,8 @@
       "parameters": {
         "durationSeconds": "number",
         "expectedSidwave": "object"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "render_petscii_screen",
@@ -352,7 +370,8 @@
     },
     {
       "name": "sid_file_structure",
-      "description": "Return the SID file structure overview"
+      "description": "Return the SID file structure overview",
+      "devices": "c64u,vice"
     },
     {
       "name": "sid_note_off",
@@ -379,7 +398,8 @@
     },
     {
       "name": "sid_reference",
-      "description": "Return the SID overview document"
+      "description": "Return the SID overview document",
+      "devices": "c64u,vice"
     },
     {
       "name": "sid_reset",
@@ -409,7 +429,8 @@
     },
     {
       "name": "sidwave_spec",
-      "description": "Return the SIDWAVE format specification"
+      "description": "Return the SIDWAVE format specification",
+      "devices": "c64u,vice"
     },
     {
       "name": "stream_start",
@@ -452,18 +473,21 @@
       "parameters": {
         "program": "string",
         "lang": "string"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "version",
-      "description": "Get c64 REST API version"
+      "description": "Get c64 REST API version",
+      "devices": "c64u,vice"
     },
     {
       "name": "vic_ii_spec",
       "description": "Get the VIC-II timing/graphics spec or filter by topic",
       "parameters": {
         "topic": "string"
-      }
+      },
+      "devices": "c64u,vice"
     },
     {
       "name": "write_memory",

@@ -27,12 +27,12 @@
     "release:prepare": "node scripts/prepare-release.mjs"
   },
   "keywords": [
+    "mcp",
+    "mcp-server",
     "c64",
     "commodore-64",
-    "ultimate-64",
     "commodore-64-ultimate",
-    "mcp-server",
-    "mcp"
+    "ultimate-64"
   ],
   "author": "Christian Gleissner",
   "license": "GPL-2.0-only",
@@ -58,6 +58,7 @@
   },
   "files": [
     "dist/**",
+    "generated/**/*.js",
     "scripts/**",
     "doc/**",
     "data/**",

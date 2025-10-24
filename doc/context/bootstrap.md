@@ -72,6 +72,20 @@ Making sound (basic):
 - Screen at $0400 (40×25); write screen codes. Colour RAM at $D800 (nybbles). Border $D020, background $D021.
 - To draw pixels: use bitmap mode and write to bitmap memory; control colours via attributes (screen/colour RAM in text, nybbles per cell in bitmap multicolour).
 
+### PETSCII String Pitfalls
+
+- PETSCII is not ASCII: characters such as the backslash map to control codes (e.g. `$1C` toggles reverse video in the default upper/graphics set). Switch to the lower/upper character set first (`CHR$(14)` or `POKE 53272,14`) or pick alternative glyphs if you need a literal `\` on screen.
+- Commodore BASIC does not interpret `\n` as a newline. When emitting multi-line art, either print each line separately or inject carriage returns explicitly with `CHR$(13)`.
+
+Example:
+
+```basic
+10 PRINT CHR$(147);CHR$(14);" /\\_/\\"
+20 PRINT " ( o.o )"
+30 PRINT "  > ^ <"
+40 PRINT CHR$(142)
+```
+
 ## BASIC v2 – Condensed Syntax (complete core)
 
 - Program: numbered lines; end with `END` or stop on last line.

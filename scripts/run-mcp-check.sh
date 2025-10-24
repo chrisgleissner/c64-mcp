@@ -45,11 +45,16 @@ if [[ -z "$BASE_URL" ]]; then
   exit 1
 fi
 
+HOST_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "$BASE_URL")
+PORT_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "$BASE_URL")
+
 # 2) Write MCP config pointing to mock
 cat >"$CFG_FILE" <<EOF
 {
-  "c64_host": "mockc64",
-  "baseUrl": "$BASE_URL"
+  "c64u": {
+    "host": "$HOST_VALUE",
+    "port": $PORT_VALUE
+  }
 }
 EOF
 export C64MCP_CONFIG="$CFG_FILE"

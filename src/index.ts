@@ -10,6 +10,7 @@ import 'reflect-metadata';
 import Fastify, { FastifyInstance } from "fastify";
 import axios from "axios";
 import { C64Client } from "./c64Client.js";
+import { createFacade } from "./device.js";
 import { loadConfig } from "./config.js";
 import { getChargenGlyphs } from "./chargen.js";
 import { createPetsciiArt, type Bitmap } from "./petsciiArt.js";
@@ -864,6 +865,13 @@ async function main() {
     return result;
   });
 
+  // Select and log backend
+  try {
+    const sel = await createFacade(server.log);
+    server.log.info({ reason: sel.reason, details: sel.details }, `Device backend selected: ${sel.selected}`);
+  } catch (e) {
+    server.log.warn({ err: e }, "Backend selection failed; proceeding with defaults");
+  }
   await logConnectivity(server, client, baseUrl);
 
   try {
@@ -981,26 +989,28 @@ function transpose(note: string, semitones: number): string {
 
 async function logConnectivity(server: FastifyInstance, client: C64Client, baseUrl: string): Promise<void> {
   try {
-    const response = await axios.get(baseUrl, { timeout: 2000 });
-    server.log.info(
-      { status: response.status },
-      `Connectivity check succeeded for c64 device at ${baseUrl}`,
-    );
+    // Best-effort hardware check; may fail under VICE backend (no REST target)
+    const response = await axios.get(baseUrl, { timeout: 2000 }).catch(() => null);
+    if (response) {
+      server.log.info(
+        { status: response.status },
+        `Connectivity check succeeded for c64 device at ${baseUrl}`,
+      );
+    } else {
+      server.log.info(`Skipping direct REST connectivity probe (no hardware REST base reachable at ${baseUrl})`);
+      return;
+    }
 
     try {
       const memoryAddress = "$0000";
-      const expected = "$2F";
       const memoryResult = await client.readMemory(memoryAddress, "1");
-
       if (memoryResult.success && memoryResult.data) {
-        const matches = memoryResult.data.toUpperCase() === expected;
-        const suffix = matches ? " (matches expected $2F)" : ` (expected ${expected})`;
-        server.log.info(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}${suffix}`);
+        server.log.info(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}`);
       } else {
         server.log.warn({ details: memoryResult.details }, "Zero-page probe failed");
       }
     } catch (memoryError) {
-      server.log.warn({ err: memoryError }, "Zero-page probe threw an error");
+      server.log.warn({ err: memoryError }, "Zero-page probe skipped or failed (may be unsupported on current backend)");
     }
   } catch (error) {
     let message = "unknown error";

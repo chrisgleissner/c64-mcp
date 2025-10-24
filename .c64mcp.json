@@ -1,4 +1,6 @@
 {
-  "c64_host": "c64u",
-  "baseUrl": "http://c64u"
+  "c64u": {
+    "host": "c64u",
+    "port": 80
+  }
 }

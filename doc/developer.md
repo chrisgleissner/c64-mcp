@@ -30,10 +30,14 @@ Key documentation:
 
 ```bash
 npm install
-cp doc/examples/c64mcp.sample.json ~/.c64mcp.json # adjust host/IP
 ```
 
-You can override the configuration path with `C64MCP_CONFIG`. If the file is absent, the runtime looks for the repository-level [`.c64mcp.json`](../.c64mcp.json) before falling back to `http://c64u`.
+Configuration resolution, first match wins:
+
+1. Load from path in `C64MCP_CONFIG` env var
+2. Load from `.c64mcp.json` in current working directory
+3. Load from `.c64mcp.json` in user home
+4. Use defaults: `HOST=c64u`, `PORT=80`
 
 ## Useful npm Scripts
 

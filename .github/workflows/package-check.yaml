@@ -123,8 +123,10 @@ jobs:
           PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
           LOGFILE=$(mktemp)
           CONFIG_FILE=$(mktemp)
+          HOST_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "${MOCK_BASE_URL}")
+          PORT_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "${MOCK_BASE_URL}")
           cat <<EOF > "$CONFIG_FILE"
-          {"c64_host":"mock","baseUrl":"${MOCK_BASE_URL}"}
+          {"c64u":{"host":"${HOST_VALUE}","port":${PORT_VALUE}}}
           EOF
           export C64MCP_CONFIG="$CONFIG_FILE"
           export PACKAGE_DIR="$PKG_DIR"
