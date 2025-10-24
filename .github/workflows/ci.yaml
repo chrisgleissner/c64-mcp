@@ -1,4 +1,4 @@
-name: Build C64-MCP
+name: Continuous Integration
 
 on:
   push:
@@ -6,35 +6,56 @@ on:
       - main
     tags-ignore:
       - '**'
-    paths-ignore:
-      # Keep in sync with package-check.yaml to avoid mismatched triggers
-      - 'apt-packages.txt'
-      - 'Dockerfile'
-      - '.github/workflows/docker-build.yaml'
   pull_request:
-    paths-ignore:
-      # Keep in sync with package-check.yaml to avoid mismatched triggers
-      - 'apt-packages.txt'
-      - 'Dockerfile'
-      - '.github/workflows/docker-build.yaml'
-  workflow_run:
-    workflows:
-      - Build and publish Docker image
-    types:
-      - completed
+    branches:
+      - main
 
 jobs:
-  build:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+  detect-changes:
+    name: Detect Docker changes
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
-
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+      - name: Filter for Docker-related paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docker:
+              - 'Dockerfile'
+              - 'apt-packages.txt'
+              - '.github/workflows/docker-build.yaml'
 
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
+  docker-image:
+    name: Build Docker image
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.docker == 'true' }}
+    uses: ./.github/workflows/docker-build.yaml
+    secrets: inherit
+
+  build-and-test:
+    name: Build and test
+    needs:
+      - detect-changes
+      - docker-image
+    if: ${{ needs.detect-changes.result == 'success' && (needs.docker-image.result == 'success' || needs.docker-image.result == 'skipped') }}
+    uses: ./.github/workflows/build-and-test.yaml
+    with:
+      ref: ${{ github.sha }}
+    secrets: inherit
+
+  package-check:
+    name: Package check
+    needs:
+      - detect-changes
+      - docker-image
+    if: ${{ needs.detect-changes.result == 'success' && (needs.docker-image.result == 'success' || needs.docker-image.result == 'skipped') }}
+    uses: ./.github/workflows/package-check.yaml
+    with:
+      package_source: local
+    secrets: inherit

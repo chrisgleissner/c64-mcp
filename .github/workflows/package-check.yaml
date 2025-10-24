@@ -1,27 +1,6 @@
-name: Verify C64-MCP Package
+name: Check NPM Package
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      # Keep in sync with ci.yaml to avoid mismatched triggers
-      - 'apt-packages.txt'
-      - 'Dockerfile'
-      - '.github/workflows/docker-build.yaml'
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      # Keep in sync with ci.yaml to avoid mismatched triggers
-      - 'apt-packages.txt'
-      - 'Dockerfile'
-      - '.github/workflows/docker-build.yaml'
-  workflow_run:
-    workflows:
-      - Build and publish Docker image
-    types:
-      - completed
   workflow_call:
     inputs:
       package_source:
@@ -32,6 +11,20 @@ on:
         type: string
         required: false
         description: "Package version to fetch when package_source=npm"
+  workflow_dispatch:
+    inputs:
+      package_source:
+        description: "Source package to validate (local|npm)"
+        required: true
+        default: local
+        type: choice
+        options:
+          - local
+          - npm
+      package_version:
+        description: "Package version when package_source=npm"
+        required: false
+        type: string
 
 jobs:
   verify:

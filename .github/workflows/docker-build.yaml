@@ -1,11 +1,7 @@
-name: Update Docker Build Image
+name: Build Docker Image
 
 on:
-  push:
-    paths:
-      - 'Dockerfile'
-      - 'apt-packages.txt'
-      - '.github/workflows/docker-build.yaml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:

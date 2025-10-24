@@ -1,4 +1,4 @@
-name: Release C64-MCP Package
+name: Release NPM Package
 
 on:
   push:
