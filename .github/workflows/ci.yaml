@@ -1,0 +1,37 @@
+name: Build C64-MCP
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '**'
+    paths-ignore:
+      - 'apt-packages.txt'
+  pull_request:
+    paths-ignore:
+      - 'apt-packages.txt'
+  workflow_run:
+    workflows:
+      - Build and publish Docker image
+    types:
+      - completed
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - run: npm ci
+      - run: npm run build
+
+  package-check:
+    needs: build
+    uses: ./.github/workflows/package-check.yaml
