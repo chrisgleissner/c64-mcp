@@ -3,7 +3,7 @@ name: Continuous Integration
 on:
   push:
     branches:
-      - '**'
+      - main
     tags-ignore:
       - '**'
   pull_request:
@@ -46,7 +46,7 @@ jobs:
     needs:
       - detect-changes
       - docker-image
-    if: ${{ needs.detect-changes.result == 'success' && (needs.docker-image.result == 'success' || needs.docker-image.result == 'skipped') }}
+    if: ${{ needs.detect-changes.outputs.docker != 'true' || needs.docker-image.result == 'success' }}
     uses: ./.github/workflows/build-and-test.yaml
     with:
       ref: ${{ github.sha }}
@@ -57,7 +57,7 @@ jobs:
     needs:
       - detect-changes
       - docker-image
-    if: ${{ needs.detect-changes.result == 'success' && (needs.docker-image.result == 'success' || needs.docker-image.result == 'skipped') }}
+    if: ${{ needs.detect-changes.outputs.docker != 'true' || needs.docker-image.result == 'success' }}
     uses: ./.github/workflows/package-check.yaml
     with:
       package_source: local
