@@ -5,6 +5,7 @@ and appends them to src/rag/sources.csv while preserving existing data.
 */
 
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import process from 'node:process';
@@ -37,8 +38,18 @@ type CacheSchema = {
 };
 
 const PROJECT_ROOT = path.resolve(path.join(__dirname, '..', '..'));
-const SOURCES_CSV = path.join(PROJECT_ROOT, 'src', 'rag', 'sources.csv');
-const CONFIG_JSON = path.join(PROJECT_ROOT, 'src', 'rag', 'discover.config.json');
+
+function resolveRagAsset(fileName: string): string {
+  // Prefer dist/rag when running from a packaged install; fall back to src/rag in repo checkouts
+  const distPath = path.join(PROJECT_ROOT, 'dist', 'rag', fileName);
+  try {
+    if (fsSync.existsSync(distPath)) return distPath;
+  } catch {}
+  return path.join(PROJECT_ROOT, 'src', 'rag', fileName);
+}
+
+const SOURCES_CSV = resolveRagAsset('sources.csv');
+const CONFIG_JSON = resolveRagAsset('discover.config.json');
 const CACHE_JSON = path.join(PROJECT_ROOT, 'data', 'discover-cache.json');
 
 const ASSEMBLY_EXTS = new Set<string>(['.asm', '.a', '.a65', '.acme', '.dasm', '.kick', '.s', '.x65']);

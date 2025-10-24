@@ -12,9 +12,9 @@ import { basicToPrg } from "./basicConverter.js";
 import { assemblyToPrg } from "./assemblyConverter.js";
 import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
-import { Api, HttpClient } from "../generated/c64/index.js";
 import { McpTool } from "./mcpDecorators.js";
 import { C64Facade, createFacade } from "./device.js";
+import { Api, HttpClient } from "../generated/c64/index.js";
 
 export interface RunBasicResult {
   success: boolean;

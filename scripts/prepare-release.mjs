@@ -48,5 +48,12 @@ await updateJsonFile('mcp.json', async (data) => ({
 // Regenerate manifest so its version matches mcp.json and tool metadata.
 run('npm run manifest');
 
+// Update CHANGELOG.md from commits since last tag using Conventional Commits subjects.
+try {
+  run(`node scripts/generate-changelog.mjs ${newVersion}`);
+} catch (e) {
+  console.warn('WARN: Failed to generate CHANGELOG.md. You can run it manually: npm run changelog:generate');
+}
+
 console.log(`Release metadata updated to ${newVersion}.`);
 console.log('Next steps: commit the changes, open a PR, and tag the merged commit.');

@@ -97,10 +97,41 @@ flowchart LR
 ## Release Workflow
 
 1. Create a short-lived branch (for example `release/X.Y.Z`) from the target commit.
-2. Run `npm run release:prepare -- <semver>` to bump versions (`major`, `minor`, `patch`, or explicit like `0.2.0`). This updates `package.json`, `package-lock.json`, `mcp.json`, and regenerates `mcp-manifest.json` in one shot.
+2. Run `npm run release:prepare -- <semver>` to bump versions (`major`, `minor`, `patch`, or explicit like `0.2.0`). This updates `package.json`, `package-lock.json`, `mcp.json`, regenerates `mcp-manifest.json`, and prepends a new section to `CHANGELOG.md` from commit messages since the last tag.
 3. Review and commit the changes, then open a pull request.
 4. After the PR merges, create and push the tag (`git tag X.Y.Z && git push origin X.Y.Z`) or use the GitHub release UI; CI will now see matching versions.
 5. Perform the publish/release steps that rely on the tag (npm publish, GitHub release, etc.).
+
+### Commit Messages and CHANGELOG Generation
+
+This repository uses a light [Conventional Commits](https://www.conventionalcommits.org) style to generate a [`CHANGELOG.md`](https://github.com/chrisgleissner/c64-mcp/blob/main/CHANGELOG.md) (in line with [Keep a Changelog](https://keepachangelog.com/) principles) automatically during `release:prepare`:
+
+- Format: `type(scope)?: subject`
+- Examples:
+  - `feat: add SID triangle-wave example`
+  - `fix(petscii): correct chargen mapping for inverted glyphs`
+  - `docs: clarify health checks (/health vs /tools/version)`
+  - `refactor: extract audio analyzer helpers`
+  - `perf: speed up RAG embedding load`
+  - `chore(ci): pin setup-node to v4`
+- Breaking changes: add a `!` after the type, e.g., `feat!: remove deprecated /tools/info fallback`.
+
+During a release prep, the script groups commits since the previous tag into sections:
+
+- Features (`feat`)
+- Bug Fixes (`fix`)
+- Performance (`perf`)
+- Refactoring (`refactor`)
+- Documentation (`docs`)
+- Tests (`test`)
+- Chores (`build`, `ci`, `chore`)
+- Other (non-conforming subjects)
+
+Tips:
+
+- Prefer concise subjects; the changelog lists the subject plus the short SHA.
+- Skip “Merge …” subjects; they are filtered automatically.
+- You can run `npm run changelog:generate` to regenerate locally; it prepends a new section for the current `package.json` version using commits since the last tag.
 
 ## Retrieval-Augmented Knowledge
 

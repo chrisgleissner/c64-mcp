@@ -10,7 +10,17 @@ async function main() {
   const tsNodeLoader = pathToFileURL(path.join(projectRoot, 'node_modules', 'ts-node', 'esm.mjs')).href;
   register(tsNodeLoader, pathToFileURL(projectRoot));
   const { fetchFromCsv } = await import('../src/rag/externalFetcher.ts');
-  const csvPath = process.env.RAG_SOURCES_CSV || path.join(projectRoot, 'src/rag/sources.csv');
+  // Resolve sources.csv from env, dist/rag, or src/rag (in that order)
+  let csvPath = process.env.RAG_SOURCES_CSV;
+  if (!csvPath) {
+    const distCsv = path.join(projectRoot, 'dist', 'rag', 'sources.csv');
+    try {
+      await import('node:fs/promises').then((fs) => fs.access(distCsv)).catch(() => { throw new Error('nope'); });
+      csvPath = distCsv;
+    } catch {
+      csvPath = path.join(projectRoot, 'src', 'rag', 'sources.csv');
+    }
+  }
   const outDir = process.env.RAG_EXTERNAL_DIR || path.join(projectRoot, 'external');
   const defaultDepth = Number(process.env.RAG_DEFAULT_DEPTH || 5);
   const perDomainRps = Number(process.env.RAG_RPS || 5);

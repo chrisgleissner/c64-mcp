@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "*.*.*"  # semantic tag without 'v' prefix
+  release:
+    types: [published]
 
 jobs:
   build_and_publish:
@@ -33,8 +35,8 @@ jobs:
       - name: Validate types and tests
         run: npm run check
 
-      - name: Compile JavaScript to dist
-        run: npx tsc -p tsconfig.json
+      - name: Build (compile + postbuild + manifest)
+        run: npm run build
 
       - name: Build RAG (if applicable)
         run: |
@@ -76,13 +78,58 @@ jobs:
           if [ -d doc ]; then cp -r doc "$PUB/doc"; fi
           if [ -d data ]; then cp -r data "$PUB/data"; fi
           if [ -d dist ]; then cp -r dist "$PUB/dist"; fi
-          # Prefer compiled generated JS if available
-          if [ -d dist/generated ]; then cp -r dist/generated "$PUB/generated"; elif [ -d generated ]; then cp -r generated "$PUB/generated"; fi
+          # Do not copy root 'generated' to avoid duplicates with dist/generated
           if [ -d scripts ]; then cp -r scripts "$PUB/scripts"; fi
           # Generated manifest lives at repository root
           if [ -f mcp-manifest.json ]; then cp mcp-manifest.json "$PUB/"; fi
           mkdir -p "$PUB/src/rag"
           if [ -f src/rag/sources.csv ]; then cp src/rag/sources.csv "$PUB/src/rag/"; fi
+
+      - name: Verify artifacts are unique
+        env:
+          PUB: publish
+        run: |
+          set -euo pipefail
+          if [ ! -d "$PUB" ]; then
+            echo "::error::Publish directory '$PUB' not found (expected after Prepare publish directory)." >&2
+            exit 1
+          fi
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const crypto = require('crypto');
+            const pub = process.env.PUB;
+            if (!pub) {
+              console.error('PUB environment variable missing.');
+              process.exit(1);
+            }
+            const hashes = new Map();
+            const duplicates = [];
+            const walk = (dir) => {
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                  walk(fullPath);
+                } else if (entry.isFile()) {
+                  const rel = path.relative(pub, fullPath);
+                  const digest = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+                  if (hashes.has(digest)) {
+                    duplicates.push([hashes.get(digest), rel]);
+                  } else {
+                    hashes.set(digest, rel);
+                  }
+                }
+              }
+            };
+            walk(pub);
+            if (duplicates.length > 0) {
+              console.error('Duplicate artifacts detected (identical file contents):');
+              for (const [first, dup] of duplicates) {
+                console.error(' - ' + first + ' == ' + dup);
+              }
+              process.exit(1);
+            }
+          "
 
       - name: npm pack (dry run)
         working-directory: publish
@@ -106,6 +153,7 @@ jobs:
           fi
 
       - name: Publish to npm
+        if: ${{ github.event_name == 'push' }}
         working-directory: publish
         run: |
           if [ -z "${NPM_TOKEN:-}" ]; then
@@ -132,6 +180,7 @@ jobs:
           if [ -f publish/mcp-manifest.json ]; then cp publish/mcp-manifest.json release_artifacts/; fi
 
       - name: Create GitHub Release
+        if: ${{ github.event_name == 'push' }}
         uses: softprops/action-gh-release@v2
         with:
           name: c64-mcp ${{ steps.version.outputs.pkg }}
