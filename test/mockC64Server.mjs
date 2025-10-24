@@ -52,6 +52,12 @@ export async function startMockC64Server() {
     // Track last request metadata
     state.lastRequest = { method, url, headers: req.headers };
 
+    if (method === "GET" && (url === "/" || url.startsWith("/?"))) {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ status: "ok", host: "mock" }));
+      return;
+    }
+
     if (method === "GET" && url === "/v1/version") {
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ version: "0.1-mock", errors: [] }));

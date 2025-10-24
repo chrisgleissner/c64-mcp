@@ -21,3 +21,9 @@ jobs:
           sudo apt-get install -y vice xvfb sidplayfp
       - run: npm install
       - run: npm run check
+
+  package-check:
+    needs: build
+    uses: ./.github/workflows/package-check.yml
+    with:
+      package_source: local

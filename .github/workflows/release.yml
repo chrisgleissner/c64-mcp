@@ -8,7 +8,13 @@ on:
     types: [published]
 
 jobs:
+  package_check_local:
+    uses: ./.github/workflows/package-check.yml
+    with:
+      package_source: local
+
   build_and_publish:
+    needs: package_check_local
     name: Build and publish to npm
     runs-on: ubuntu-latest
     permissions:
@@ -44,26 +50,6 @@ jobs:
             npm run build:rag
           fi
 
-      - name: Verify required artifacts exist
-        run: |
-          set -euo pipefail
-          echo "Verifying docs and embeddings..."
-          test -f README.md
-          test -f LICENSE
-          test -f CHANGELOG.md || true
-          test -f mcp.json
-          # embeddings may live under data/ (default) or overridden via RAG_EMBEDDINGS_DIR
-          ls -1 data/embeddings_*.json
-          # ensure generated manifest exists (built by npm run build)
-          test -f mcp-manifest.json
-          # ensure RAG source listing exists
-          test -f src/rag/sources.csv
-          # ensure key docs are present
-          test -d doc
-          test -f AGENTS.md
-          test -d .github/prompts
-          ls -1 .github/prompts/*.prompt.md
-
       - name: Prepare publish directory
         run: |
           set -euo pipefail
@@ -82,54 +68,6 @@ jobs:
           if [ -d scripts ]; then cp -r scripts "$PUB/scripts"; fi
           # Generated manifest lives at repository root
           if [ -f mcp-manifest.json ]; then cp mcp-manifest.json "$PUB/"; fi
-          mkdir -p "$PUB/src/rag"
-          if [ -f src/rag/sources.csv ]; then cp src/rag/sources.csv "$PUB/src/rag/"; fi
-
-      - name: Verify artifacts are unique
-        env:
-          PUB: publish
-        run: |
-          set -euo pipefail
-          if [ ! -d "$PUB" ]; then
-            echo "::error::Publish directory '$PUB' not found (expected after Prepare publish directory)." >&2
-            exit 1
-          fi
-          node -e "
-            const fs = require('fs');
-            const path = require('path');
-            const crypto = require('crypto');
-            const pub = process.env.PUB;
-            if (!pub) {
-              console.error('PUB environment variable missing.');
-              process.exit(1);
-            }
-            const hashes = new Map();
-            const duplicates = [];
-            const walk = (dir) => {
-              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-                const fullPath = path.join(dir, entry.name);
-                if (entry.isDirectory()) {
-                  walk(fullPath);
-                } else if (entry.isFile()) {
-                  const rel = path.relative(pub, fullPath);
-                  const digest = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
-                  if (hashes.has(digest)) {
-                    duplicates.push([hashes.get(digest), rel]);
-                  } else {
-                    hashes.set(digest, rel);
-                  }
-                }
-              }
-            };
-            walk(pub);
-            if (duplicates.length > 0) {
-              console.error('Duplicate artifacts detected (identical file contents):');
-              for (const [first, dup] of duplicates) {
-                console.error(' - ' + first + ' == ' + dup);
-              }
-              process.exit(1);
-            }
-          "
 
       - name: npm pack (dry run)
         working-directory: publish
@@ -191,37 +129,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  post_publish_smoke:
-    name: Post-publish smoke test
+  post_release_check:
     needs: build_and_publish
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-
-      - name: Initialize temp project
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/smoke && cd /tmp/smoke
-          npm init -y >/dev/null 2>&1
-          npm install c64-mcp
-          node -e "require('child_process').spawn(process.execPath, ['--version'], { stdio: 'inherit' })"
-
-      - name: Verify package boots and assets available
-        working-directory: /tmp/smoke
-        run: |
-          set -euo pipefail
-          NODE_DIR=$(node -p "require.resolve('c64-mcp/package.json').replace(/package.json$/, '')")
-          test -f "$NODE_DIR/README.md"
-          test -d "$NODE_DIR/doc"
-          test -d "$NODE_DIR/data"
-          test -f "$NODE_DIR/mcp.json"
-          test -f "$NODE_DIR/mcp-manifest.json"
-          test -f "$NODE_DIR/src/rag/sources.csv"
-          HOST=127.0.0.1 PORT=0 node "$NODE_DIR/dist/index.js" &
-          PID=$!
-          sleep 2
-          kill $PID || true
+    uses: ./.github/workflows/package-check.yml
+    with:
+      package_source: npm
