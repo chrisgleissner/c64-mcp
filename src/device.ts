@@ -66,9 +66,17 @@ export interface C64Facade {
   modplayFile?(path: string): Promise<RunResult>;
 }
 
-export interface C64uConfig { hostname?: string; baseUrl?: string }
+export interface C64uConfig {
+  host?: string;
+  hostname?: string;
+  baseUrl?: string;
+  port?: number | string;
+}
 export interface ViceConfig { exe?: string }
 export interface C64McpConfigFile { c64u?: C64uConfig; vice?: ViceConfig }
+
+const DEFAULT_C64U_HOST = "c64u";
+const DEFAULT_C64U_PORT = 80;
 
 function readConfigFile(): C64McpConfigFile | null {
   const envPath = process.env.C64MCP_CONFIG;
@@ -99,7 +107,7 @@ class C64uBackend implements C64Facade {
   private readonly api: Api<unknown>;
 
   constructor(config: C64uConfig) {
-    const baseUrl = (config.baseUrl ?? (config.hostname ? `http://${config.hostname}` : undefined)) ?? "http://c64u";
+    const baseUrl = resolveBaseUrl(config);
     this.baseUrl = baseUrl;
     const http = new HttpClient({ baseURL: baseUrl, timeout: 10_000 });
     this.api = new Api(http);
@@ -358,7 +366,7 @@ export async function createFacade(logger?: { info: (...a: any[]) => void }, opt
   }
 
   // No configuration
-  const probeBase = "http://c64u";
+  const probeBase = resolveBaseUrl({});
   try {
     const res = await axios.get(probeBase, { timeout: 1500 });
     if (res.status >= 200 && res.status < 500) {
@@ -370,4 +378,87 @@ export async function createFacade(logger?: { info: (...a: any[]) => void }, opt
   const backend = new ViceBackend(cfg?.vice ?? {});
   logger?.info?.("Active backend: vice (fallback – hardware unavailable)");
   return { facade: backend, selected: "vice", reason: "fallback (hardware unavailable)", details: { exe: (cfg?.vice?.exe || which("x64sc") || "x64sc") } };
+}
+
+function resolveBaseUrl(config: C64uConfig): string {
+  const explicit = normaliseBaseUrl(config.baseUrl);
+  if (explicit) return explicit;
+
+  const hostEntries = [configuredString(config.host), configuredString(config.hostname)];
+  for (const entry of hostEntries) {
+    if (!entry) continue;
+    const parsed = parseEndpoint(entry);
+    if (parsed.hostname) {
+      const port = firstDefined(configuredPort(config.port), parsed.port) ?? DEFAULT_C64U_PORT;
+      return buildBaseUrl(parsed.hostname, port);
+    }
+  }
+
+  return buildBaseUrl(DEFAULT_C64U_HOST, DEFAULT_C64U_PORT);
+}
+
+function configuredString(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
+  }
+  return undefined;
+}
+
+function configuredPort(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 65535) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number(trimmed);
+    if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+function normaliseBaseUrl(value?: string): string | undefined {
+  const input = configuredString(value);
+  if (!input) return undefined;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(input)) {
+    return `http://${input}`;
+  }
+  return stripTrailingSlash(input);
+}
+
+function parseEndpoint(value: string): { hostname?: string; port?: number } {
+  try {
+    const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value);
+    const url = new URL(hasScheme ? value : `http://${value}`);
+    const hostname = url.hostname || undefined;
+    const port = url.port ? configuredPort(url.port) : undefined;
+    return { hostname, port };
+  } catch {
+    return {};
+  }
+}
+
+function buildBaseUrl(host: string, port: number): string {
+  const normalizedPort = Number.isInteger(port) && port > 0 ? port : DEFAULT_C64U_PORT;
+  const hostPart = formatHost(host);
+  const suffix = normalizedPort === DEFAULT_C64U_PORT ? "" : `:${normalizedPort}`;
+  return `http://${hostPart}${suffix}`;
+}
+
+function formatHost(host: string): string {
+  return host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+}
+
+function stripTrailingSlash(input: string): string {
+  return input.replace(/\/+$/, "");
+}
+
+function firstDefined<T>(...values: Array<T | undefined>): T | undefined {
+  for (const value of values) {
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
 }

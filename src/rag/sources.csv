@@ -14,6 +14,8 @@ assembly,Sample programs using Kick Assembler,https://github.com/nealvis/c64_sam
 assembly,Simple ASM tutorial series (multiple examples),https://github.com/Ziagl/C64-Assembler,5
 assembly,Starfield demo including PRG,https://github.com/Starcross/starfield,5
 assembly,Various small assembly programs (ACME/PRG),https://github.com/cslarsen/c64-examples,5
+assembly,Machine Language for the Commodore 64,https://www.retro-commodore.eu/files/development/c64-development/Butterfield_Machine_Language_for_the_Commodore_64_and_other_Commodore_Computers.ocr.txt,1
+assembly,C64 Programmer’s Reference Guide (text dump),https://www.zimmers.net/cbmpics/cbm/c64/c64prg.txt,1
 basic,Assorted C64 BASIC sources and PRGs,https://github.com/spiroharvey/c64,5
 basic,BASIC demo PRGs,https://www.zimmers.net/anonftp/pub/cbm/c64/demos/generic/poor/,2
 basic,C64 type-in programs from Compute!/Gazette (includes .prg and .bas),https://github.com/xopowoparvo/C64-type-in-programs,5
@@ -24,7 +26,7 @@ basic,Simple C64 BASIC and Assembly examples,https://github.com/cslarsen/c64-exa
 basic,Snake clone in pure C64 BASIC (snake.bas),https://github.com/StefanHolmes/C64-Snake,5
 hardware,Ultimate C64 Reference Guide,https://github.com/mist64/c64ref,5
 hardware,6502 CPU notes (text),https://raw.githubusercontent.com/androdev4u/c64rom/refs/heads/master/6502/cpu_6502.txt,1
-hardware,C64 Programmer’s Reference Guide (text dump),https://www.zimmers.net/cbmpics/cbm/c64/c64prg.txt,1
+hardware,Mapping the C64,https://www.zimmers.net/anonftp/pub/cbm/c64/manuals/mapping-c64.txt,1
 hardware,C64 Service Manual (text),https://www.zimmers.net/cbmpics/cbm/c64/C64ServiceManual.txt,1
 hardware,Commodore 64 memory map (text),https://www.zimmers.net/anonftp/pub/cbm/maps/C64.MemoryMap.txt,1
 hardware,VIC-II controller documentation (text),https://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt,1

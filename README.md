@@ -95,7 +95,7 @@ For a quick start, the first option is recommended. If you plan to contribute co
 
 Run the prebuilt server without creating a project. npx downloads the package and expands all bundled files on disk for this session.
 
-```bash
+```sh
 HOST=127.0.0.1 PORT=8000 npx -y c64-mcp@latest
 ```
 
@@ -104,8 +104,8 @@ By default, the MCP server looks for `~/.c64mcp.json`. To target your device, cr
 ```json
 {
   "c64u": {
-    "hostname": "<hostname or IP>",
-    "baseUrl": "http://<hostname-or-ip>"
+    "host": "<hostname or IP>",
+    "port": 80
   }
 }
 ```
@@ -127,7 +127,7 @@ npm install c64-mcp
 Create `~/.c64mcp.json` with your device settings:
 
 ```json
-{ "c64u": { "hostname": "c64u" } }
+{ "c64u": { "host": "c64u" } }
 ```
 
 1. Start the server:
@@ -228,22 +228,22 @@ Configuration is split by device type. No top-level `backend` field is required;
 
 ### C64U (real hardware)
 
-Use this section to point the server at an Ultimate 64/Commodore 64 Ultimate device. Either `hostname` or an explicit `baseUrl` can be provided.
+Use this section to point the server at an Commodore 64 Ultimate or Ultimate 64 device. 
+
+Provide the host (DNS name or IP, defaults to `c64u`) and a port (defaults to `80`).
 
 ```json
 {
   "c64u": {
-    "hostname": "c64u",
-    "baseUrl": "http://192.168.1.13"
+    "host": "c64u",
+    "port": 80
   }
 }
 ```
 
-Notes:
+### VICE (emulator)
 
-- If both `hostname` and `baseUrl` are set, `baseUrl` wins.
-
-### VICE (emulator, experimental)
+> [!NOTE] This is an experimental feature.
 
 This backend starts a fresh VICE process for each PRG run using the emulator binary. In phase one, memory/register operations are not supported; the focus is deterministic PRG execution.
 

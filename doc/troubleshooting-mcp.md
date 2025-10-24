@@ -88,19 +88,29 @@ PORT=8000 npm start
 # Verify config file exists and has correct IP
 cat .c64mcp.json
 
-# Should contain:
+## Should contain:
+
+```json
 {
-  "c64_host": "c64u",
-  "baseUrl": "http://c64u"
+  "c64u": {
+    "host": "c64u"
+  }
 }
-# OR
+```
+
+**Or:**
+
+```json
 {
-  "c64_host": "192.168.1.13",
-  "baseUrl": "http://192.168.1.13"
+  "c64u": {
+    "host": "192.168.1.13",
+    "port": 80
+  }
 }
 ```
 
 **Test C64 Connectivity:**
+
 ```bash
 # Test Ultimate 64 REST API directly
 curl -s http://192.168.1.13/v1/info
@@ -113,9 +123,11 @@ ping 192.168.1.13
 ### 5. Port Conflicts
 
 **Symptoms:**
+
 - `EADDRINUSE: address already in use 0.0.0.0:8000`
 
 **Solutions:**
+
 ```bash
 # Find what's using port 8000
 lsof -i :8000
@@ -130,11 +142,13 @@ PORT=8001 npm start
 ### 6. Missing Dependencies
 
 **Symptoms:**
+
 - Server fails to start
 - TypeScript compilation errors
 - Missing modules
 
 **Solutions:**
+
 ```bash
 # Reinstall dependencies
 npm install
@@ -204,4 +218,4 @@ curl -s http://localhost:8000/tools/info
 
 ---
 
-*This guide was created after a challenging debugging session on 2025-10-21. Keep it updated with new findings.*
+*This guide was created after a challenging debugging session. Keep it updated with new findings.*
