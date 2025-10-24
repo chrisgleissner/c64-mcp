@@ -99,11 +99,14 @@ Run the prebuilt server without creating a project. npx downloads the package an
 HOST=127.0.0.1 PORT=8000 npx -y c64-mcp@latest
 ```
 
-By default, the MCP server assumes the C64's host name is `c64u`. To change this, create `~/.c64mcp.json`:
+By default, the MCP server looks for `~/.c64mcp.json`. To target your device, create:
 
 ```json
-{ 
-  "c64_host": "<Hostname or IP of C64>" 
+{
+  "c64u": {
+    "hostname": "<hostname or IP>",
+    "baseUrl": "http://<hostname-or-ip>"
+  }
 }
 ```
 
@@ -121,10 +124,10 @@ npm install c64-mcp
 
 2. Configure your C64 target (optional but recommended):
 
-Create `~/.c64mcp.json` with your device host/IP:
+Create `~/.c64mcp.json` with your device settings:
 
 ```json
-{ "c64_host": "c64u" }
+{ "c64u": { "hostname": "c64u" } }
 ```
 
 3. Start the server:
@@ -220,7 +223,7 @@ Besides this `README.md` document, the project includes extensive documentation:
 
 The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present.
 
-From this release onward, configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
+Configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
 
 ### C64U (real hardware)
 
@@ -238,7 +241,6 @@ Use this section to point the server at an Ultimate 64/Commodore 64 Ultimate dev
 Notes:
 
 - If both `hostname` and `baseUrl` are set, `baseUrl` wins.
-- The legacy keys `c64_host` and `baseUrl` are still recognized for backward compatibility; they map to the same effective target.
 
 ### VICE (emulator, experimental)
 
@@ -281,15 +283,7 @@ On startup, the server logs the selected backend and reason, for example:
 - Override path: set `C64MCP_CONFIG=/absolute/path/to/.c64mcp.json`
 - Repo-local (dev): `.c64mcp.json` at the project root
 
-### Backward compatibility
 
-Existing configurations using the legacy top-level fields still work:
-
-```json
-{ "c64_host": "c64u", "baseUrl": "http://c64u" }
-```
-
-The new per-device sections take precedence when present.
 
 
 ## Agent Integration
