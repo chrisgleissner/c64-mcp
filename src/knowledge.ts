@@ -344,7 +344,7 @@ export function searchBasicV2Spec(query: string): Array<{ heading: string; conte
   return searchMarkdownSections(BASIC_V2_SPEC, query);
 }
 
-const ASM_GUIDE_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../doc/6502-instructions.md");
+const ASM_GUIDE_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../data/assembly/assembly-spec.md");
 let cachedAsmReference: string | null = null;
 
 export function getAsmQuickReference(): string {

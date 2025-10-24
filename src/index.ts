@@ -52,8 +52,8 @@ async function main() {
   // Knowledge endpoints
   server.get("/knowledge/memory_map", async () => ({ regions: listMemoryMap() }));
   server.get("/knowledge/symbols", async () => ({ symbols: listSymbols() }));
-  server.get("/knowledge/sid_overview", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-overview.md", "utf8")) }));
-  server.get("/knowledge/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
+  server.get("/knowledge/sid_overview", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/audio/sid-spec.md", "utf8")) }));
+  server.get("/knowledge/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/audio/sid-file-structure.md", "utf8")) }));
   server.get<{ Querystring: { topic?: string } }>(
     "/tools/basic_v2_spec",
     async (request) => {
@@ -364,17 +364,17 @@ async function main() {
   });
 
   // Expose SID file structure doc as a simple tool for MCP clients
-  server.get("/tools/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/sid-file-structure.md", "utf8")) }));
+  server.get("/tools/sid_file_structure", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/audio/sid-file-structure.md", "utf8")) }));
 
-  // Expose printing knowledge article for MCP clients
-  server.get("/tools/printing_guide", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/printing-commodore-epson.md", "utf8")) }));
+  // Expose printer knowledge article for MCP clients
+  server.get("/tools/printer_guide", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/printer/printer-spec.md", "utf8")) }));
 
-  // Manufacturer-specific printing guides and prompts
-  server.get("/tools/printing_commodore_text", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/printing-commodore.md", "utf8")) }));
-  server.get("/tools/printing_commodore_bitmap", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/printing-commodore-bitmap.md", "utf8")) }));
-  server.get("/tools/printing_epson_text", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/printing-epson.md", "utf8")) }));
-  server.get("/tools/printing_epson_bitmap", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/printing-epson-bitmap.md", "utf8")) }));
-  server.get("/tools/printing_prompts", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("doc/prompts/printing-prompts.md", "utf8")) }));
+  // Manufacturer-specific printer guides and prompts
+  server.get("/tools/printer_commodore_text", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/printer/printer-commodore.md", "utf8")) }));
+  server.get("/tools/printer_commodore_bitmap", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/printer/printer-commodore-bitmap.md", "utf8")) }));
+  server.get("/tools/printer_epson_text", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/printer/printer-epson.md", "utf8")) }));
+  server.get("/tools/printer_epson_bitmap", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/printer/printer-epson-bitmap.md", "utf8")) }));
+  server.get("/tools/printer_prompts", async () => ({ guide: await import("node:fs/promises").then((fs) => fs.readFile("data/printer/printer-prompts/printer-prompts.md", "utf8")) }));
 
   // Very simple generator: arpeggiate a triad on voice 1 for N steps
   server.post<{ Body: { root?: string; pattern?: string; steps?: number; tempoMs?: number; waveform?: "pulse" | "saw" | "tri" | "noise" } }>(
@@ -464,7 +464,7 @@ async function main() {
   });
 
   // Expose the SIDWAVE format specification as a tool for clients
-  server.get("/tools/sidwave_spec", async () => ({ spec: await import("node:fs/promises").then((fs) => fs.readFile("doc/sidwave.md", "utf8")) }));
+  server.get("/tools/sidwave_spec", async () => ({ spec: await import("node:fs/promises").then((fs) => fs.readFile("data/audio/sidwave.md", "utf8")) }));
 
   server.post("/tools/reset_c64", async (request, reply) => {
     const result = await client.reset();

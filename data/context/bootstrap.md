@@ -1,4 +1,3 @@
-
 # C64 MCP Bootstrap Primer
 
 Concise, complete reference for core C64 development with MCP. Keep under ~8 KB. This is injected first in every session.
@@ -135,6 +134,5 @@ Example:
 
 ## Context & RAG
 
-- Layers: `doc/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `doc/context/chat.md` → RAG docs (`doc/**/*.md`, `data/**/*.md`).
+- Layers: `data/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `data/context/chat.md` → RAG docs (`doc/**/*.md`, `data/**/*.md`).
 - Retrieval returns relevant chunks with provenance comments for transparency.
-

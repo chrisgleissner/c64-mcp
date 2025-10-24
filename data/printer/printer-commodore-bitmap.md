@@ -3,6 +3,7 @@
 Default when printer is unspecified. Uses PETSCII and MPS emulation.
 
 ### Bit Image Mode (BIM)
+
 - **Enter BIM**: `CHR$(8)` (BIT IMG)
 - **Repeat next byte n times**: `CHR$(8);CHR$(26);CHR$(n)` (BIM IMG SUB n)
 - **Data format**: 7 rows per column. One byte per column; LSB is top; MSB (bit7) is not printed and must be set to 1. Horizontal 60 dpi; vertical 72 dpi. Max width: 480 dots per line.
@@ -10,6 +11,7 @@ Default when printer is unspecified. Uses PETSCII and MPS emulation.
 - **Exiting BIM**: BIM continues until a printable character is sent; control codes with bit7 clear (e.g., CR/LF) are executed without exiting. Use `CHR$(15)` (EN OFF) to leave BIM.
 
 Example (16 columns × 3 rows):
+
 ```basic
 10 OPEN1,4,7
 20 A$=""
@@ -24,6 +26,7 @@ Example (16 columns × 3 rows):
 ```
 
 Efficient repeats with SUB:
+
 ```basic
 10 OPEN1,4,7
 20 A$="":FOR I=1 TO 16:READ A:A$=A$+CHR$(A):NEXT
@@ -37,6 +40,7 @@ Efficient repeats with SUB:
 ```
 
 ### Custom characters (DLL)
+
 - `ESC '=' m n c s a p1..p11 ...` Down Line Loading
   - Total bytes `t = (numChars × 13) + 2`; compute `n = INT(t / 256)`, `m = t - n*256`
   - `c`: ASCII code (33..126) of first char in sequence; `s`: constant 32 (20h); `a`: needle selection (0=upper 8, 1=lower 8)
@@ -44,6 +48,7 @@ Efficient repeats with SUB:
 - Note: On Ultimate‑II MPS Printer Emulation, DLL is recognized but ignored (data skipped). On real MPS‑1230 enable DLL in printer config; RAM is limited.
 
 ### Best practices
+
 - Precompute BIM rows and ensure bit7 set (add 128 to each byte).
 - Use `CHR$(15)` to terminate BIM explicitly before text.
 - Use secondary address `7` for lower/upper PETSCII if needed.

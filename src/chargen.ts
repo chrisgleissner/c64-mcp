@@ -147,27 +147,9 @@ function parseScreenCode(row: ParsedRow): number | undefined {
 }
 
 function readChargenCsv(baseDir: string): ParsedRow[] {
-  const candidates = [
-    "c64_chargen_enriched_hex.csv",
-    "c64_chargen_enriched.csv",
-    "c64_chargen.csv",
-    "chargen.csv",
-  ];
-
-  for (const fileName of candidates) {
-    try {
-      const csvPath = join(baseDir, "..", "data", fileName);
-      const csv = readFileSync(csvPath, "utf8");
-      return parseCsv(csv);
-    } catch (error) {
-      if (error && typeof error === "object" && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error("Unable to locate a chargen CSV in data/ (checked c64_chargen_enriched_hex.csv, c64_chargen_enriched.csv, c64_chargen.csv, chargen.csv)");
+  const csvPath = join(baseDir, "..", "data", "video", "character-set.csv");
+  const csv = readFileSync(csvPath, "utf8");
+  return parseCsv(csv);
 }
 
 function loadGlyphs(): void {

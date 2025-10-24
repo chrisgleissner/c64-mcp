@@ -3,6 +3,7 @@
 Applies to Epson FX-80 compatible ESC/P printers. Use ASCII plus ESC sequences.
 
 ### Quick start (C64 BASIC)
+
 ```basic
 10 OPEN1,4
 20 PRINT#1,CHR$(27);"x";CHR$(1) : REM NLQ
@@ -13,6 +14,7 @@ Applies to Epson FX-80 compatible ESC/P printers. Use ASCII plus ESC sequences.
 ```
 
 ### Common text controls
+
 - **Double width**: `SO=CHR$(14)` ON, `DC4=CHR$(20)` OFF, or `ESC W n`
 - **Condensed**: `SI=CHR$(15)` ON, `DC2=CHR$(18)` OFF
 - **Pitch**: `ESC M` (12 cpi), `ESC P` (10 cpi)
@@ -26,4 +28,4 @@ Applies to Epson FX-80 compatible ESC/P printers. Use ASCII plus ESC sequences.
 
 Notes: Commands marked `*` in FX-80 docs are ignored by Ultimate‑II MPS Printer Emulation.
 
-See also: `printing-epson-bitmap.md` for bitmap graphics.
+See also: `printer-epson-bitmap.md` for bitmap graphics.

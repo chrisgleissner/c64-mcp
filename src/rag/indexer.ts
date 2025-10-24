@@ -9,11 +9,11 @@ import { EmbeddingIndexFile, EmbeddingRecord, RagLanguage } from "./types.js";
 import fsSync from "node:fs";
 import { EmbeddingModel } from "./embeddings.js";
 
-const BASIC_DIR = path.resolve("data/basic_examples");
-const ASM_DIR = path.resolve("data/assembly_examples");
+const BASIC_DIR = path.resolve("data/basic/examples");
+const ASM_DIR = path.resolve("data/assembly/examples");
 const EXTERNAL_DIR = path.resolve("external");
 const DOC_ROOT = path.resolve("doc");
-const CONTEXT_DIR = path.resolve("doc/context");
+const CONTEXT_DIR = path.resolve("data/context");
 const BOOTSTRAP_PATH = path.join(CONTEXT_DIR, "bootstrap.md");
 const AGENTS_PATH = path.resolve("AGENTS.md");
 const PROMPTS_DIR = path.resolve(".github/prompts");
@@ -175,6 +175,13 @@ const BASIC_KEYWORDS = [
   "LEFT$",
   "RIGHT$",
 ];
+const BASIC_KEYWORD_REGEX = BASIC_KEYWORDS.map((keyword) => {
+  const escaped = escapeRegExp(keyword);
+  if (/\w$/.test(keyword)) {
+    return new RegExp(`\\b${escaped}\\b`, "i");
+  }
+  return new RegExp(`\\b${escaped}`, "i");
+});
 
 const ASM_OPCODES = new Set([
   "ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL", "BRK", "BVC", "BVS",
@@ -292,11 +299,8 @@ function analyzeText(text: string): TextAnalysis {
     if (BASIC_DECIMAL_ADDR_RE.test(trimmed)) {
       hardwareScore += 1;
     }
-    for (const keyword of BASIC_KEYWORDS) {
-      if (upper.includes(keyword)) {
-        basicScore += 1;
-        break;
-      }
+    if (BASIC_KEYWORD_REGEX.some((regex) => regex.test(trimmed))) {
+      basicScore += 1;
     }
     if (/\bREM\b/i.test(trimmed) || /\bPRINT\b/i.test(trimmed) || /\bINPUT\b/i.test(trimmed)) {
       basicScore += 1;
@@ -340,6 +344,10 @@ function analyzeText(text: string): TextAnalysis {
     }
   }
   return { basicScore, asmScore, hardwareScore, basicLines, asmLines };
+}
+
+function escapeRegExp(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function decideCategory(analysis: TextAnalysis, ext: string, root: string): RagLanguage {

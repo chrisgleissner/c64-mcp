@@ -26,7 +26,7 @@ The server listens on `http://localhost:8000` (override with `PORT`).
 - **Screen & memory**: `read_screen`, `read_memory`, `write_memory`.
 - **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
-- **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `doc/sid-programming-best-practices.md` and the example `data/basic_examples/audio/alle-meine-entchen-expressive.bas`.
+- **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
 - **Audio analysis**: `analyze_audio` records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
 - **Knowledge & RAG**: `basic_v2_spec`, `asm_quick_reference`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
@@ -78,7 +78,7 @@ curl -s -X POST http://localhost:8000/tools/reset_c64
 
 - Some tools can affect device state (for example, power, reboot, drive operations). Use them deliberately.
 - The server includes a local RAG over examples in `data/` and optional fetched sources; see the README for details.
-- For optimal SID music results, review `doc/sid-programming-best-practices.md`, which documents successful approaches for pleasant, musical sounds.
+- For optimal SID music results, review `data/audio/sid-programming-best-practices.md`, which documents successful approaches for pleasant, musical sounds.
 
 ### Audio Feedback Loop Workflow
 
@@ -90,7 +90,7 @@ The server supports an intelligent audio verification workflow for iterative mus
 4. **Feedback**: Get detailed analysis including detected notes, pitch accuracy, and musical feedback.
 5. **Iterate**: Use the feedback to refine your composition.
 
-The workflow has been proven successful with real hardware testing. For best results, use the triangle wave approach and ADSR settings documented in `doc/sid-programming-best-practices.md`.
+The workflow has been proven successful with real hardware testing. For best results, use the triangle wave approach and ADSR settings documented in `data/audio/sid-programming-best-practices.md`.
 
 Example workflow:
 
@@ -124,11 +124,11 @@ When creating children's songs or simple melodies, the server has proven approac
 - "Write a melody that tells a story, not just plays notes"
 - "Make a song with proper phrasing and breathing"
 
-**Reference Implementation:** `data/basic_examples/audio/alle-meine-entchen-expressive.bas` demonstrates these principles in a complete traditional German children's song with proper musical phrasing.
+**Reference Implementation:** `data/basic/examples/audio/alle-meine-entchen-expressive.bas` demonstrates these principles in a complete traditional German children's song with proper musical phrasing.
 
 ## Personas
 
-Use these focused personas to seed agent context. Each section aligns with `.github/prompts/*.prompt.md` templates and the primer in `doc/context/bootstrap.md`.
+Use these focused personas to seed agent context. Each section aligns with `.github/prompts/*.prompt.md` templates and the primer in `data/context/bootstrap.md`.
 
 ### BASIC Agent
 

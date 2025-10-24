@@ -69,7 +69,7 @@ async function main() {
 
   const required = [
     'README.md',
-    'doc/6502-instructions.md',
+    'data/assembly/assembly-spec.md',
     'data/embeddings_basic.json',
     'dist/index.js',
     'dist/rag/discover.config.json',

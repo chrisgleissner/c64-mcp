@@ -264,33 +264,33 @@
       "devices": "c64u,vice"
     },
     {
-      "name": "printing_commodore_bitmap",
+      "name": "printer_commodore_bitmap",
       "description": "Return Commodore MPS bitmap/custom char guide",
       "devices": "c64u,vice"
     },
     {
-      "name": "printing_commodore_text",
-      "description": "Return Commodore MPS text printing guide",
+      "name": "printer_commodore_text",
+      "description": "Return Commodore MPS text printer guide",
       "devices": "c64u,vice"
     },
     {
-      "name": "printing_epson_bitmap",
+      "name": "printer_epson_bitmap",
       "description": "Return Epson FX bitmap guide",
       "devices": "c64u,vice"
     },
     {
-      "name": "printing_epson_text",
-      "description": "Return Epson FX text printing guide",
+      "name": "printer_epson_text",
+      "description": "Return Epson FX text printer guide",
       "devices": "c64u,vice"
     },
     {
-      "name": "printing_guide",
-      "description": "Return the Commodore/Epson printing guide",
+      "name": "printer_guide",
+      "description": "Return the Commodore/Epson printer guide",
       "devices": "c64u,vice"
     },
     {
-      "name": "printing_prompts",
-      "description": "Return end-user printing prompt templates",
+      "name": "printer_prompts",
+      "description": "Return end-user printerprompt templates",
       "devices": "c64u,vice"
     },
     {

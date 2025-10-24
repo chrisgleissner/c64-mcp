@@ -22,11 +22,13 @@ curl -s http://192.168.1.13/v1/info
 ### 1. Server Not Responding to HTTP Requests
 
 **Symptoms:**
+
 - `curl: (7) Failed to connect to localhost port 8000`
 - `Connection refused` errors
 - Server process exists but no response
 
 **Solutions:**
+
 ```bash
 # Kill any existing processes
 pkill -f "npm start" || true
@@ -44,11 +46,13 @@ PORT=8000 npm start
 ### 2. VS Code MCP Configuration Issues
 
 **Symptoms:**
+
 - VS Code Copilot Chat doesn't recognize MCP tools
 - Commands don't execute
 - No MCP server connection
 
 **HTTP MCP Configuration (Working):**
+
 ```json
 {
   "github.copilot.chat.experimental.mcp": {
@@ -65,6 +69,7 @@ PORT=8000 npm start
 ```
 
 **Key Points:**
+
 - Use **absolute paths** for `manifestPath`
 - Ensure the HTTP server is running on port 8000
 - HTTP MCP requires **manual approval** for each command
@@ -75,6 +80,7 @@ PORT=8000 npm start
 **⚠️ Known Issue:** stdout MCP integration may not work reliably for C64 hardware control.
 
 **Symptoms:**
+
 - Commands appear to execute but no C64 interaction
 - No visible output on C64 screen
 - Tools run but don't affect hardware
@@ -84,6 +90,7 @@ PORT=8000 npm start
 ### 4. C64 Hardware Connection Issues
 
 **Check C64 Configuration:**
+
 ```bash
 # Verify config file exists and has correct IP
 cat .c64mcp.json
