@@ -1,0 +1,24 @@
+name: Build and Test
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+        description: "Commit SHA or ref to check out"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test

@@ -1,6 +1,6 @@
 {
   "name": "c64-mcp",
-  "version": "0.2.3",
+  "version": "0.2.5",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -11,13 +11,14 @@
     "start": "node scripts/start.mjs",
     "manifest": "node scripts/generate-mcp-manifest.mjs",
     "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && npm run manifest",
+    "lint": "npm run check",
     "test": "node scripts/run-tests.mjs",
     "check:package": "node scripts/check-package.mjs",
     "check:run-local": "bash scripts/run-mcp-check.sh local 5",
     "check:run-npm": "bash scripts/run-mcp-check.sh npm 5",
     "check": "npm run build && npm test",
     "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
-    "api:generate": "swagger-typescript-api -p doc/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
+    "api:generate": "npx --yes swagger-typescript-api@12.0.4 -p doc/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",
     "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
     "rag:fetch": "node scripts/fetch-external-sources.mjs",
@@ -41,18 +42,17 @@
   "dependencies": {
     "axios": "^1.7.7",
     "fastify": "^4.28.1",
-    "yaml": "^2.6.0",
     "meyda": "^5.6.2",
-    "pitchfinder": "^2.2.0",
     "octokit": "^4.0.2",
-    "reflect-metadata": "^0.1.13"
+    "pitchfinder": "^2.2.0",
+    "reflect-metadata": "^0.1.13",
+    "yaml": "^2.6.0"
   },
   "optionalDependencies": {
     "naudiodon": "^2.3.6"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
-    "swagger-typescript-api": "^12.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
@@ -61,8 +61,6 @@
     "scripts/**",
     "doc/**",
     "data/**",
-    "src/rag/sources.csv",
-    "src/rag/discover.config.json",
     "mcp-manifest.json",
     "mcp.json",
     "AGENTS.md",

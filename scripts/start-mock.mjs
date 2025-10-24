@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Local smoke-test helper: writes mock server info JSON for run-mcp-check.sh and keeps it alive.
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

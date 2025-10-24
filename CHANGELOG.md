@@ -2,6 +2,35 @@
 
 
 
+
+
+## 0.2.5 - 2025-10-24
+
+### Features
+
+- Parallel Docker-based build (172c6d7)
+
+### Chores
+
+- Split package check workflow (240c06f)
+- Drop swagger-typescript-api dependency (165ac8b)
+- Document mock server helpers (3703cf9)
+- Fix package check shell (f2c94ca)
+- Harden package verification (a00ac01)
+- Renamed GitHub workflow step (47dacb8)
+
+## 0.2.4 - 2025-10-24
+
+### Features
+
+- Add RAG asset copying and runtime resolution (1e4f500)
+
+### Chores
+
+- Remove duplicate sources.csv from package (0e36f23)
+- Removed 'post-' prefix from post-package-check.yml (8f700cd)
+- add post-package smoke checks (4a15329)
+
 ## 0.2.3 - 2025-10-23
 
 ### Bug Fixes

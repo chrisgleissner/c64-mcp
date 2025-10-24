@@ -1,0 +1,64 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  detect-changes:
+    name: Detect Docker changes
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Filter for Docker-related paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docker:
+              - 'Dockerfile'
+              - 'apt-packages.txt'
+              - '.github/workflows/docker-build.yaml'
+
+  docker-image:
+    name: Build Docker image
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.docker == 'true' }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-build.yaml
+    secrets: inherit
+
+  build-and-test:
+    name: Build and test
+    needs:
+      - detect-changes
+      - docker-image
+    if: ${{ needs.detect-changes.result == 'success' && (needs.docker-image.result == 'success' || needs.docker-image.result == 'skipped') }}
+    uses: ./.github/workflows/build-and-test.yaml
+    with:
+      ref: ${{ github.sha }}
+    secrets: inherit
+
+  package-check:
+    name: Package check
+    needs:
+      - detect-changes
+      - docker-image
+    if: ${{ needs.detect-changes.result == 'success' && (needs.docker-image.result == 'success' || needs.docker-image.result == 'skipped') }}
+    uses: ./.github/workflows/package-check.yaml
+    with:
+      package_source: local
+    secrets: inherit
