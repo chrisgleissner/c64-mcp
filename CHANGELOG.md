@@ -4,6 +4,33 @@
 
 
 
+
+## 0.3.0 - 2025-10-24
+
+### Features
+
+- Simplify config (d62ab38)
+- Simplify config (a7db713)
+- Add mock backend support and configure c64u base URL (4b3deaa)
+- Add devices property to MCP tool options (caf9bbc)
+
+### Bug Fixes
+
+- post-package mcp check (84e0321)
+- post-package mcp check (d91e0f4)
+
+### Refactoring
+
+- Use device facade for backend abstraction (1927ff1)
+
+### Chores
+
+- Updated embeddings (599bfb5)
+- update sample mcp config (154ccfd)
+- Build PRs (c637c91)
+- Build PRs (5a6cf6d)
+- Run CI build on branches (58bb6d1)
+
 ## 0.2.5 - 2025-10-24
 
 ### Features
