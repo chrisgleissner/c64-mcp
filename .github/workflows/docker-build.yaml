@@ -5,7 +5,7 @@ on:
     paths:
       - 'Dockerfile'
       - 'apt-packages.txt'
-      - '.github/workflows/docker-build.yml'
+      - '.github/workflows/docker-build.yaml'
   workflow_dispatch:
 
 jobs:

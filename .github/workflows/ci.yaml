@@ -2,94 +2,32 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    tags-ignore:
+      - '**'
+    paths-ignore:
+      - 'apt-packages.txt'
   pull_request:
+    paths-ignore:
+      - 'apt-packages.txt'
+  workflow_run:
+    workflows:
+      - Build and publish Docker image
+    types:
+      - completed
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Verify Docker image is current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const https = require('https');
-
-          const token = process.env.GITHUB_TOKEN;
-          const owner = (process.env.GITHUB_REPOSITORY_OWNER || '').toLowerCase();
-          const sha = process.env.GITHUB_SHA;
-          if (!token) {
-            console.error('GITHUB_TOKEN is required to check the container image.');
-            process.exit(1);
-          }
-          if (!owner) {
-            console.error('GITHUB_REPOSITORY_OWNER is not defined.');
-            process.exit(1);
-          }
-          const request = (path, accept) => new Promise((resolve, reject) => {
-            const options = {
-              hostname: 'ghcr.io',
-              port: 443,
-              path,
-              method: 'GET',
-              headers: {
-                'User-Agent': 'c64-mcp-ci',
-                'Authorization': `Bearer ${token}`,
-                'Accept': accept
-              }
-            };
-            const req = https.request(options, res => {
-              let data = '';
-              res.on('data', chunk => data += chunk);
-              res.on('end', () => {
-                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                  try {
-                    resolve(JSON.parse(data));
-                  } catch (error) {
-                    reject(new Error(`Failed to parse JSON from ${path}: ${error.message}`));
-                  }
-                } else {
-                  reject(new Error(`HTTP ${res.statusCode} for ${path}: ${data}`));
-                }
-              });
-            });
-            req.on('error', reject);
-            req.end();
-          });
-
-          (async () => {
-            try {
-              const repoPath = `/v2/${encodeURIComponent(owner)}/mcp-builder`;
-              const manifest = await request(`${repoPath}/manifests/latest`, 'application/vnd.oci.image.manifest.v1+json');
-              const digest = manifest?.config?.digest;
-              if (!digest) {
-                throw new Error('Image config digest missing; run the Docker build workflow.');
-              }
-              const config = await request(`${repoPath}/blobs/${encodeURIComponent(digest)}`, 'application/vnd.oci.image.config.v1+json');
-              const revision = config?.config?.Labels?.['org.opencontainers.image.revision'] || '';
-              if (!revision) {
-                throw new Error('Image revision label not found; rebuild the Docker image.');
-              }
-              if (revision !== sha) {
-                console.error('❌ Docker image not rebuilt after apt-packages.txt or Dockerfile change.');
-                console.error("Please trigger the 'Docker build' workflow.");
-                console.error(`Expected ${sha} but image label is ${revision}`);
-                process.exit(1);
-              }
-              console.log('Docker image revision matches current commit.');
-            } catch (error) {
-              console.error(error.message || error);
-              process.exit(1);
-            }
-          })();
-          NODE
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - run: npm ci
       - run: npm run build
