@@ -9,20 +9,15 @@
 ### Features
 
 - Parallel Docker-based build (172c6d7)
-- Parallel Docker-based build (cbfc3fd)
-- Parallel Docker-based build (c5f78e9)
 
 ### Chores
 
-- split package check workflow (240c06f)
-- split package check workflow (3a33ab6)
-- drop swagger-typescript-api dependency (165ac8b)
-- document mock server helpers (3703cf9)
-- fix package check shell (f2c94ca)
-- harden package verification (a00ac01)
+- Split package check workflow (240c06f)
+- Drop swagger-typescript-api dependency (165ac8b)
+- Document mock server helpers (3703cf9)
+- Fix package check shell (f2c94ca)
+- Harden package verification (a00ac01)
 - Renamed GitHub workflow step (47dacb8)
-- use shared docker image (0a5bf55)
-- use shared docker image (9c6b0d8)
 
 ## 0.2.4 - 2025-10-24
 
