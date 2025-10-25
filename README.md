@@ -1,6 +1,8 @@
+![Logo](./doc/img/logo.png)
+
 # c64-mcp
 
-![C64 MCP Logo](./doc/img/logo.png)
+Your AI Bridge for the Commodore 64.
 
 [![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
 [![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/ci.yaml)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/ci.yaml)
@@ -8,22 +10,22 @@
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
 
-Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
+## About
+
+Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
 
 Exposes tools and knowledge that enable [LLM agents](https://www.promptingguide.ai/research/llm-agents) to upload and run BASIC or assembly programs, read/write RAM, control the VIC or SID, print documents, and more.
 
-## Highlights ✨
+## Features ✨
 
-- **Code** with AI support in Basic or Assembly on a C64.
-- **Compose** music or create images on a C64 using AI.
-- **Custom Knowledge Base**: Built-in local [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) for Commodore 64 BASIC and 6502 assembly examples (no external services).
-- **Offline-ready** npm package: The published npm artifact includes all necessary docs and RAG embeddings. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings, e.g. for use with a locally started [Ollama](https://github.com/ollama/ollama)-based LLM.
-- **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
+- **Code** in Basic or Assembly
+- **Compose** music
+- **Create** PETSCII drawings
+- **Custom Knowledge Base** with built-in local Retrieval-Augmented Generation ([RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)) for prompt enrichment
 
+## Examples 🎬
 
-## Example 🎬
-
-Let's compose a children song on the C64 using ChatGPT 5 and Visual Code.
+Let's compose a children song on the C64 using ChatGPT and VS Code:
 
 1. We type the prompt:
 `play a children song on the c64`.
