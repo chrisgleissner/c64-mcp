@@ -563,3 +563,250 @@ test("Machine control tools operate via MCP", async () => {
     }
   }
 });
+
+test("Drive and storage tools operate via MCP", async () => {
+  const mockServer = await startMockC64Server();
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "c64-mcp-config-"));
+  const configPath = path.join(tmpDir, "config.json");
+  fs.writeFileSync(configPath, JSON.stringify({ baseUrl: mockServer.baseUrl }), "utf8");
+
+  const connection = await createConnectedClient({
+    env: {
+      C64MCP_CONFIG: configPath,
+      C64_TEST_TARGET: "mock",
+    },
+  });
+  const { client } = connection;
+
+  try {
+    const listResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drives_list",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(listResult.metadata?.success, true, "drives_list should succeed");
+    assert.ok(listResult.metadata?.drives, "drives_list should include drive metadata");
+
+    const mountResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_mount",
+          arguments: {
+            drive: "drive8",
+            image: "/tmp/demo.d64",
+            type: "d64",
+            mode: "readwrite",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(mountResult.metadata?.success, true, "drive_mount should succeed");
+    assert.equal(mockServer.state.lastDriveOperation?.action, "mount");
+    assert.deepEqual(mockServer.state.drives.drive8.mountedImage, {
+      image: "/tmp/demo.d64",
+      type: "d64",
+      mode: "readwrite",
+    });
+
+    const modeResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_mode",
+          arguments: {
+            drive: "drive8",
+            mode: "1571",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(modeResult.metadata?.success, true, "drive_mode should succeed");
+    assert.equal(mockServer.state.drives.drive8.mode, "1571");
+
+    const onResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_on",
+          arguments: {
+            drive: "drive8",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(onResult.metadata?.success, true, "drive_on should succeed");
+    assert.equal(mockServer.state.drives.drive8.power, "on");
+
+    const offResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_off",
+          arguments: {
+            drive: "drive8",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(offResult.metadata?.success, true, "drive_off should succeed");
+    assert.equal(mockServer.state.drives.drive8.power, "off");
+
+    const resetResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_reset",
+          arguments: {
+            drive: "drive8",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(resetResult.metadata?.success, true, "drive_reset should succeed");
+    assert.equal(mockServer.state.drives.drive8.resetCount, 1);
+
+    const romResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_load_rom",
+          arguments: {
+            drive: "drive8",
+            path: "/roms/custom.rom",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(romResult.metadata?.success, true, "drive_load_rom should succeed");
+    assert.equal(mockServer.state.drives.drive8.lastRom, "/roms/custom.rom");
+
+    const removeResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "drive_remove",
+          arguments: {
+            drive: "drive8",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(removeResult.metadata?.success, true, "drive_remove should succeed");
+    assert.equal(mockServer.state.drives.drive8.mountedImage, null);
+
+    const infoResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "file_info",
+          arguments: {
+            path: "/tmp/demo.d64",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(infoResult.metadata?.success, true, "file_info should succeed");
+    assert.equal(mockServer.state.lastFileInfo, "/tmp/demo.d64");
+
+    const createD64Result = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "create_d64",
+          arguments: {
+            path: "/tmp/new.d64",
+            tracks: 35,
+            diskname: "DISK1",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(createD64Result.metadata?.success, true, "create_d64 should succeed");
+
+    const createD71Result = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "create_d71",
+          arguments: {
+            path: "/tmp/new.d71",
+            diskname: "DISK2",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(createD71Result.metadata?.success, true, "create_d71 should succeed");
+
+    const createD81Result = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "create_d81",
+          arguments: {
+            path: "/tmp/new.d81",
+            diskname: "DISK3",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(createD81Result.metadata?.success, true, "create_d81 should succeed");
+
+    const createDnpResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "create_dnp",
+          arguments: {
+            path: "/tmp/new.dnp",
+            tracks: 80,
+            diskname: "DISK4",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.equal(createDnpResult.metadata?.success, true, "create_dnp should succeed");
+    assert.equal(mockServer.state.createdImages.length, 4, "All disk creations should be tracked");
+    const createdTypes = mockServer.state.createdImages.map((entry) => entry.type).sort();
+    assert.deepEqual(createdTypes, ["d64", "d71", "d81", "dnp"], "Disk creation types should match requests");
+  } finally {
+    await connection.close();
+    await mockServer.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    const stderrOutput = connection.stderrOutput();
+    if (stderrOutput) {
+      process.stderr.write(stderrOutput);
+    }
+  }
+});

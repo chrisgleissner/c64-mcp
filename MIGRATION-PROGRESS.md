@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.13
-**Last Updated:** 2025-10-25T15:25:00+01:00
+**Current Step:** 3.14
+**Last Updated:** 2025-10-25T16:05:00+01:00
 
 ---
 
@@ -62,7 +62,7 @@
 - [x] 3.10 - Migrate write_memory tool
 - [x] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
 - [x] 3.12 - Migrate machine control & diagnostics tools
-- [ ] 3.13 - Migrate drive and disk-management tools
+- [x] 3.13 - Migrate drive and disk-management tools
 - [ ] 3.14 - Migrate SID playback and audio analysis tools
 - [ ] 3.15 - Migrate graphics and PETSCII tools
 - [ ] 3.16 - Migrate printer workflow tools

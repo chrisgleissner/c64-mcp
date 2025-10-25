@@ -1,104 +1,95 @@
-## Printing with Commodore MPS and Epson FX (C64)
+# Printing with Commodore MPS and Epson FX (C64) — Single Source of Truth
 
-A compact, practical guide for printing from a Commodore 64 to classic MPS-series (PETSCII) and Epson FX-80 (ESC/P) compatible printers, including Ultimate-II MPS Printer Emulation notes.
+**Scope:** C64 → Printer via serial device **4**. Two protocols:
 
-### Quick start (C64 BASIC)
+- **Commodore MPS** (PETSCII + MPS-801 protocol; all later MPS follow this)
+- **Epson FX (ESC/P)** (ASCII + ESC sequences; widely compatible)
 
-- **Open printer**: device `4`; optional secondary address selects PETSCII charset in MPS mode
-  - `0` = upper/graphics; `7` = lower/upper
+**Defaults & Routing:** If user/printer is unspecified → **Commodore MPS**. See `printer-prompts.md` for routing logic and prompt templates.
+
+## Quick Start (Text)
 
 ```basic
-10 OPEN1,4              : REM MPS: PETSCII upper/graphics
-20 PRINT#1,"HELLO WORLD!"
-30 CLOSE1
+10 OPEN1,4,0 : REM Commodore MPS, PETSCII upper/graphics (sa=0) 
+20 PRINT#1,"HELLO" : PRINT#1,CHR$(13);CHR$(10) : PRINT#1,CHR$(12) : CLOSE1
 ```
 
 ```basic
-10 OPEN1,4,7            : REM MPS: PETSCII lower/upper
-20 PRINT#1,CHR$(14);"DOUBLE WIDTH";CHR$(15)
-30 CLOSE1
+10 OPEN1,4     : REM Epson FX (ESC/P), ASCII
+20 PRINT#1,CHR$(27);"E";"BOLD ON";CHR$(27);"F" : PRINT#1,CHR$(12) : CLOSE1
 ```
 
-- **Line ends**: Send `CR` (13) to return carriage; `LF` (10) advances one line; `FF` (12) ejects page.
+## Printer Command Cheat Sheet — Commodore vs Epson
 
-### Character sets and protocols
+| Operation | Commodore MPS (PETSCII) | Epson FX (ESC/P ASCII) |
+|:--|:--|:--|
+| **Reset / Init** | — | `ESC @` |
+| **Carriage Return** | `CHR$(13)` | `CHR$(13)` |
+| **Line Feed** | `CHR$(10)` | `CHR$(10)` |
+| **Form Feed / Page Eject** | `CHR$(12)` | `CHR$(12)` |
+| **Horizontal Tab** | `CHR$(9)` | `CHR$(9)` |
+| **Standard Width** | `CHR$(15)` | `DC4` (`CHR$(20)`) or `ESC W 0` |
+| **Double Width** | `CHR$(14)` | `SO` (`CHR$(14)`) or `ESC W 1` |
+| **Condensed / Elite (12 cpi)** | — | `ESC M` |
+| **Pica (10 cpi)** | — | `ESC P` |
+| **Bold ON / OFF** | — | `ESC E` / `ESC F` |
+| **Italic ON / OFF** | — | `ESC 4` / `ESC 5` |
+| **Underline ON / OFF** | — | `ESC - 1` / `ESC - 0` |
+| **Reverse Video ON / OFF** | `CHR$(18)` / `CHR$(146)` | — |
+| **Set Line Spacing (n × 1/72")** | — | `ESC A n` |
+| **Set Left Margin** | — | `ESC l n` |
+| **Set Right Margin** | — | `ESC Q n` |
+| **Horizontal Position by Columns** | `CHR$(16);CHR$(n)` | `ESC $ nL nH` |
+| **Horizontal Position by Dots** | `ESC(27);CHR$(16);HP;LP` | `ESC $ nL nH` |
+| **Enter Bit Image Mode** | `CHR$(8)` | `ESC K/L/Y/Z/*/^ n m ...` |
+| **Repeat Next Data Byte (MPS only)** | `CHR$(26);CHR$(count);CHR$(byte)` | — |
+| **Exit Bit Image Mode** | `CHR$(15)` | Send any non-graphic char or `LF` |
+| **Graphics Data Format** | 7 dots/byte, **bit7 = 1** | 8 dots/byte (MSB = top) |
+| **Vertical Line Spacing (8-dot rows)** | CR + LF | `ESC A 8` |
+| **Switch Charset (upper/lower)** | Secondary Address 0 or 7 | `ESC t n` (if supported) |
+| **Reset / End Job** | `CLOSE ch` | `ESC @` + `FF` + `CLOSE ch` |
 
-- **MPS emulation (Commodore)**
-  - Data and control use PETSCII. Text from C64 `PRINT#` goes through unchanged.
-  - Secondary address on `OPEN` chooses PETSCII variant (0 or 7). You can also toggle via control codes (`CRSR UP`/`CRSR DWN`).
-- **Epson FX-80 emulation (ESC/P)**
-  - Control uses ESC/P sequences (ASCII). Text should be printable ASCII. Send ESC as `CHR$(27)` followed by command bytes.
-  - Entries marked `*` in FX-80 tables are ignored by Ultimate‑II MPS Printer Emulation.
+---
 
-### Essential controls (MPS emulation)
+**Notes**
 
-- **Double width**: `CHR$(14)` ON, `CHR$(15)` OFF (also exits Bit Image mode)
-- **Reverse video**: `CHR$(18)` ON, `CHR$(146)` OFF
-- **Double strike**: `CHR$(27);CHR$(71)` ON, `CHR$(27);CHR$(72)` OFF
-- **Bold**: `CHR$(27);CHR$(101)` ON, `CHR$(27);CHR$(102)` OFF
-- **Italic**: `CHR$(27);CHR$(52)` ON, `CHR$(27);CHR$(53)` OFF
-- **Underline**: `CHR$(27);"-";CHR$(1)` ON, `CHR$(27);"-";CHR$(0)` OFF
-- **NLQ/Draft**: `CHR$(31)` ON, `CHR$(159)` OFF; or `CHR$(27);"X";CHR$(1|0)`
-- **Horizontal tab**: `CHR$(9)`
-- **Positioning**:
-  - By character columns: `CHR$(16);CHR$(n)`
-  - By dot columns: `CHR$(27);CHR$(16);CHR$(n)`
-- **Paper control**: `LF=10`, `CR=13`, `CS=141` (CR without LF), `FF=12`, set paper height: `CHR$(27);"c";CHR$(lines)` or inches via `CHR$(27);"c";CHR$(0)` then inches
+- Always `OPEN ch,4[,sa]` → `PRINT#` → `CLOSE ch`.  
+- Add `CHR$(12)` (Form Feed) before closing to eject the page.  
+- For MPS bitmap output, remember to add **128** to each byte so bit7 = 1.  
+- For Epson, compute `(n + 256*m)` data length for each graphics line.  
+- Both support re-use of `$033C–$03FB` (Cassette Buffer) for bitmap staging in memory.
 
-Example (MPS):
+**Cross-refs:**  
+[`printer-commodore.md`](printer-commodore.md) · [`printer-commodore-bitmap.md`](printer-commodore-bitmap.md) · [`printer-epson.md`](printer-epson.md) · [`printer-epson-bitmap.md`](printer-epson-bitmap.md) · [`printer-prompts.md`](printer-prompts.md)
 
-```basic
-10 OPEN1,4,7
-20 PRINT#1,CHR$(27);CHR$(71);"DOUBLE STRIKE";CHR$(13)
-30 PRINT#1,CHR$(27);"-";CHR$(1);"UNDERLINED";CHR$(27);"-";CHR$(0)
-40 PRINT#1,CHR$(16);CHR$(20);"COL 20"
-50 PRINT#1,CHR$(12)
-60 CLOSE1
-```
+## Protocol Differences (critical)
 
-### Essential controls (Epson FX-80, ESC/P)
+- **Character set:** MPS expects **PETSCII**; Epson expects **ASCII** with ESC/P control sequences.
+- **Mode switching:** MPS uses single-byte PETSCII controls; Epson uses `ESC` (27) + command bytes.
+- **Graphics:** MPS **Bit Image Mode** (`CHR$(8)`) uses **7‑dot columns** (bit7 set=1); Epson uses `ESC K/L/Y/Z/*/^` with **8‑dot columns** and byte counts `(n,m)`.
+- **Line endings:** Send `CR` (13) and often `LF` (10). Use `FF` (12) for page eject on both.
 
-- **Double width**: `SO=14` ON (`CHR$(14)`), `DC4=20` OFF (`CHR$(20)`), or `ESC W n` (n=1 on, 0 off)
-- **Condensed**: `SI=15` ON (`CHR$(15)`), `DC2=18` OFF
-- **Pitch**: `ESC M` (12 cpi ON), `ESC P` (12 cpi OFF)
-- **Bold**: `ESC E` ON, `ESC F` OFF
-- **Italic**: `ESC 4` ON, `ESC 5` OFF
-- **Underline**: `ESC - n` (1 ON, 0 OFF)
-- **Quality**: `ESC x n` (1 NLQ, 0 Draft)
-- **Line spacing**: `ESC 0` (1/8"), `ESC 1` (7/72"), `ESC 2` (1/6"), `ESC 3 n` (n/216"), `ESC A n` (n/72")
-- **Tabs/margins**: `ESC D` (HT stops), `ESC B` (VT stops), `ESC l` (left), `ESC Q` (right)
-- **Paper motion**: `LF=10`, `CR=13`, `FF=12`, `ESC J n` (skip n/216"), `ESC j n` (reverse n/216")
-- **Reset**: `ESC @`
-- **Graphics**: `ESC K/L/Y/Z/^` select densities; `ESC ?` changes density selected by graphics commands
-- `*` **Ignored in U‑II Emulation**: Commands marked with `*` in FX-80 tables (e.g., `DC1`, `DC3`, some MSB/char-gen controls, paper sensors, etc.)
+## Commodore MPS Essentials (text)
 
-Example (Epson FX):
+- **Open:** `OPEN ch,4[,sa]` with `sa=0` (upper/graphics, default) or `sa=7` (lower/upper).
+- **Print:** `PRINT#ch, ...`; **leave channel open** for multiple lines or `CMD ch` to route `PRINT`/`LIST` to printer.
+- **Close:** `CLOSE ch` (required to free channel).
+- **Common controls:** double width `CHR$(14)` / standard `CHR$(15)`, reverse on/off `CHR$(18)`/`CHR$(146)`, position by chars `CHR$(16);CHR$(n)` or by dots `ESC(27),CHR$(16),HP,LP`.
+- **Bit Image:** enter `CHR$(8)`; **repeat** with `CHR$(26);count;byte`; **exit** with `CHR$(15)` or any printable char.
 
-```basic
-10 OPEN1,4
-20 PRINT#1,CHR$(27);"x";CHR$(1);        : REM NLQ
-30 PRINT#1,CHR$(27);"M";                 : REM 12 cpi
-40 PRINT#1,CHR$(27);"-";CHR$(1);"UNDER";CHR$(27);"-";CHR$(0)
-50 PRINT#1,CHR$(14);"WIDE";CHR$(20)
-60 PRINT#1,CHR$(12)
-70 CLOSE1
-```
+## Epson FX Essentials (ESC/P text)
 
-### Practical notes
+- **Pitch:** `ESC M` (12 cpi), `ESC P` (10 cpi). **Bold:** `ESC E`/`ESC F`. **Italic:** `ESC 4`/`ESC 5`. **Underline:** `ESC - n` (1 on, 0 off).
+- **Quality:** `ESC x n` (1=NLQ, 0=Draft). **Width:** `SO` (14) on / `DC4` (20) off or `ESC W n`.
+- **Spacing:** `ESC 0/1/2/3 n` or `ESC A n` (n/72"). **Reset:** `ESC @`.
 
-- **PETSCII vs ASCII**: MPS expects PETSCII; FX expects ASCII ESC/P. When targeting FX, avoid C64 screen codes; send control bytes explicitly via `CHR$`.
-- **CR vs LF**: Some content requires both `CR` and `LF`. If lines overprint, add `LF` after `CR`.
-- **Secondary address (MPS only)**: `OPEN1,4,0` (upper/graphics), `OPEN1,4,7` (lower/upper). Defaults to `0` if omitted.
-- **Bottom-of-page & sensors**: `ESC n/o/8/9` are often ignored in U‑II emulation; prefer explicit `FF`.
-- **Bit Image**: MPS has a Bit Image mode and exit via `CHR$(15)`; FX uses `ESC K/L/Y/Z/^` with data byte counts; structure your data exactly as per mode.
+## Graphics Summary
 
-### Troubleshooting
+- **MPS Bit Image:** 7 dots/column; **add 128** to each data byte (keep bit7=1); horizontal ≈60 dpi; vertical 72 dpi. Max ~480 dots/line. Use `CHR$(15)` to exit.
+- **Epson Bitmap:** 8 dots/column; densities per command (`K/L/Y/Z/*/^`). Byte count = `len = n + 256*m`. Set line spacing (`ESC A 8`) for 8‑dot rows.
 
-- **Wrong glyphs**: Check charset mode (MPS `0` vs `7`; FX national set via `ESC R`).
-- **No underline/bold**: Ensure you send the correct on/off pair and stay out of NLQ/Draft constraints.
-- **Stuck in a mode**: Send the OFF counterpart (e.g., `CHR$(15)` for double width image exit, `ESC @` to reset FX).
+## Emulation Notes
 
-### References
+- **C64 Ultimate MPS Emulation:** The C64 Ultimate has a printer emulation built in. It ignores some advanced MPS DLL features; ESC/P `ESC Y` may behave as `ESC L`. Prefer `FF` for eject; some paper-sensor commands are no‑ops.
 
-- Commodore MPS emulation command set and examples (PETSCII)
-- Epson FX-80 ESC/P control set (entries with `*` are ignored by Ultimate‑II MPS Printer Emulation)
+**Cross‑refs:** `printer-commodore.md`, `printer-commodore-bitmap.md`, `printer-epson.md`, `printer-epson-bitmap.md`, and `printer-prompts.md` (routing & prompt patterns).
