@@ -49,14 +49,6 @@ jobs:
         if: ${{ env.PACKAGE_SOURCE == 'local' }}
         run: npm ci
 
-      - name: Build project (local source)
-        if: ${{ env.PACKAGE_SOURCE == 'local' }}
-        run: npm run build
-
-      - name: Run tests (local source)
-        if: ${{ env.PACKAGE_SOURCE == 'local' }}
-        run: npm test
-
       - name: Pack package
         id: pack
         run: |

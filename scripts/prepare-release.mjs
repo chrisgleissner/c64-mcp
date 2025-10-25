@@ -45,8 +45,7 @@ await updateJsonFile('mcp.json', async (data) => ({
   version: newVersion,
 }));
 
-// Regenerate manifest so its version matches mcp.json and tool metadata.
-run('npm run manifest');
+// Manifest generation removed (runtime discovery via MCP stdio)
 
 // Update CHANGELOG.md from commits since last tag using Conventional Commits subjects.
 try {

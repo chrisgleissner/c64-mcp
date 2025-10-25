@@ -13,31 +13,12 @@ async function readJson(p) {
   return JSON.parse(text);
 }
 
-test('build produced mcp-manifest.json with expected tools', async (t) => {
+test('manifest.json removed: tools are discovered dynamically at runtime', async () => {
   const manifestPath = path.join(repoRoot, 'mcp-manifest.json');
-  let manifest;
+  let exists = false;
   try {
-    manifest = await readJson(manifestPath);
-  } catch (err) {
-    t.skip(`Manifest not found at ${manifestPath}. Run 'npm run build' or use 'npm run check' to build before tests.`);
-    return;
-  }
-
-  // Basic shape
-  assert.equal(typeof manifest?.name, 'string');
-  assert.ok(Array.isArray(manifest?.tools), 'tools should be an array');
-  assert.ok(manifest.tools.length > 5, 'manifest should list more than 5 tools');
-
-  const toolNames = new Set(manifest.tools.map((t) => t.name));
-
-  // Spot-check a few well-known tools (decorated in code)
-  for (const name of [
-    'upload_and_run_basic',
-    'upload_and_run_asm',
-    'read_memory',
-    'write_memory',
-    'sid_note_on',
-  ]) {
-    assert.ok(toolNames.has(name), `expected tool '${name}' to be present in manifest`);
-  }
+    await fs.stat(manifestPath);
+    exists = true;
+  } catch {}
+  assert.equal(exists, false, 'legacy mcp-manifest.json should not exist');
 });
