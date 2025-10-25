@@ -1,6 +1,8 @@
 # C64-MCP: Migration to Official TypeScript MCP SDK
 
-You are tasked with migrating the c64-mcp project from its custom HTTP-based MCP implementation to the official @modelcontextprotocol/sdk TypeScript implementation. This migration MUST be done incrementally with strict progress tracking.
+You are tasked with migrating the c64-mcp project from its custom HTTP-based MCP implementation to the official @modelcontextprotocol/sdk TypeScript implementation, see <https://github.com/modelcontextprotocol/typescript-sdk>.
+
+This migration MUST be done incrementally with strict progress tracking.
 
 ## 🚨 CRITICAL RULES
 
@@ -15,6 +17,7 @@ You are tasked with migrating the c64-mcp project from its custom HTTP-based MCP
 ## STEP 0: CREATE PROGRESS TRACKER (DO THIS FIRST!)
 
 Create `MIGRATION-PROGRESS.md` at repository root:
+
 ```markdown
 # C64-MCP Migration Progress
 
@@ -79,12 +82,16 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [ ] 5.4 - Ensure tools reference resources in descriptions
 
 ### Phase 7: Testing & Validation
-- [ ] 6.1 - Test with MCP Inspector CLI
-- [ ] 6.2 - Test with Claude Desktop
-- [ ] 6.3 - Test with VS Code Copilot Chat
-- [ ] 6.4 - Verify all 70+ tools work
-- [ ] 6.5 - Verify resources load correctly
-- [ ] 6.6 - Verify prompts execute properly
+- [ ] 6.1 - Verify all 70+ tools work
+- [ ] 6.2 - Verify resources load correctly
+- [ ] 6.3 - Verify prompts execute properly
+
+The following is to be done with human assistance - leave this unchecked and wait for explicit request from human to initial this:
+
+- [ ] 6.4 - Test with MCP Inspector CLI
+- [ ] 6.5 - Test with Claude Desktop
+- [ ] 6.6 - Test with VS Code Copilot Chat
+
 
 ### Phase 8: Cleanup
 - [ ] 7.1 - Remove src/mcpDecorators.ts
@@ -130,18 +137,21 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 ### Step 0.1: Install Official MCP SDK
 
 **Action:** Install the SDK and required types:
+
 ```bash
 npm install @modelcontextprotocol/sdk
 npm install --save-dev @types/node
 ```
 
 **Verify:**
+
 ```bash
 npm list @modelcontextprotocol/sdk
 # Should show version 0.5.0 or higher
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 0.1 - Install @modelcontextprotocol/sdk
 ```
@@ -153,6 +163,7 @@ npm list @modelcontextprotocol/sdk
 ### Step 0.2: Create MCP Server Skeleton
 
 **Action:** Create `src/mcp-server.ts`:
+
 ```typescript
 #!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -208,6 +219,7 @@ main().catch((error) => {
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 0.1 - Install @modelcontextprotocol/sdk
 - [x] 0.2 - Create src/mcp-server.ts skeleton
@@ -220,6 +232,7 @@ main().catch((error) => {
 ### Step 0.3: Update package.json Scripts
 
 **Action:** Update `package.json` to add MCP server command:
+
 ```json
 {
   "scripts": {
@@ -234,6 +247,7 @@ main().catch((error) => {
 ```
 
 **Verify:**
+
 ```bash
 npm run mcp
 # Should start server, output: "c64-mcp MCP server running on stdio"
@@ -241,6 +255,7 @@ npm run mcp
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 0.3 - Update package.json scripts
 ```
@@ -250,6 +265,7 @@ npm run mcp
 ### Step 0.4: Verify Clean State
 
 **Action:** Run a full build to ensure no TypeScript errors:
+
 ```bash
 npm run build
 ```
@@ -257,6 +273,7 @@ npm run build
 **Expected:** No TypeScript errors. Warnings are OK for now.
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 0.4 - Verify dependencies install cleanly
 
@@ -274,6 +291,7 @@ npm run build
 **Status:** Already done in Step 0.2
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 1.1 - Initialize MCP Server instance
 ```
@@ -285,6 +303,7 @@ npm run build
 **Status:** Already done in Step 0.2
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 1.2 - Set up stdio transport
 ```
@@ -296,6 +315,7 @@ npm run build
 **Action:** The SDK automatically handles server info. No action needed.
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 1.3 - Add basic server info handler
 ```
@@ -305,17 +325,20 @@ npm run build
 ### Step 1.4: Test Server Starts
 
 **Action:** Test the server works:
+
 ```bash
 npm run mcp
 ```
 
 **Expected Output:**
+
 ```
 Starting c64-mcp MCP server...
 c64-mcp MCP server running on stdio
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 1.4 - Test server starts without errors
 
@@ -329,6 +352,7 @@ c64-mcp MCP server running on stdio
 ### Step 2.1: Implement ListResourcesRequestSchema Handler
 
 **Action:** Add to `src/mcp-server.ts` after server creation:
+
 ```typescript
 // Add after: const server = new Server(...)
 
@@ -384,6 +408,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 2.1 - Implement ListResourcesRequestSchema handler
 ```
@@ -393,6 +418,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 ### Step 2.2: Implement ReadResourceRequestSchema Handler
 
 **Action:** Add to `src/mcp-server.ts`:
+
 ```typescript
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -436,6 +462,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 2.2 - Implement ReadResourceRequestSchema handler
 ```
@@ -445,6 +472,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 ### Step 2.3-2.7: Verify Individual Resources
 
 **Action:** Test each resource loads:
+
 ```bash
 # You'll need MCP Inspector for this - install if needed:
 npm install -g @modelcontextprotocol/inspector
@@ -463,6 +491,7 @@ npx @modelcontextprotocol/inspector node dist/mcp-server.js
 **Expected:** All resources return markdown content.
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 2.3 - Add c64://specs/basic resource
 - [x] 2.4 - Add c64://specs/assembly resource
@@ -478,6 +507,7 @@ npx @modelcontextprotocol/inspector node dist/mcp-server.js
 **Action:** Verify all resources work end-to-end.
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 2.8 - Test resource reading with MCP inspector
 
@@ -493,6 +523,7 @@ npx @modelcontextprotocol/inspector node dist/mcp-server.js
 ### Step 3.1: Implement ListToolsRequestSchema Handler
 
 **Action:** Add comprehensive tool list to `src/mcp-server.ts`:
+
 ```typescript
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -596,6 +627,7 @@ DO NOT guess opcodes or addressing modes!`,
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 3.1 - Implement ListToolsRequestSchema handler
 ```
@@ -605,6 +637,7 @@ DO NOT guess opcodes or addressing modes!`,
 ### Step 3.2: Implement CallToolRequestSchema Handler
 
 **Action:** Add tool routing logic:
+
 ```typescript
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
@@ -702,6 +735,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 3.2 - Implement CallToolRequestSchema handler
 ```
@@ -718,6 +752,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 4. Check off in MIGRATION-PROGRESS.md
 
 **Tool Categories to Migrate:**
+
 ```typescript
 // SID/Music tools
 case "sid_note_on":
@@ -752,6 +787,7 @@ case "config_set":
 ```
 
 **Update MIGRATION-PROGRESS.md after EACH tool:**
+
 ```markdown
 - [x] 3.3 - Migrate upload_and_run_basic tool
 - [x] 3.4 - Migrate upload_and_run_asm tool
@@ -767,6 +803,7 @@ case "config_set":
 ### Step 4.1-4.2: Implement Prompt Handlers
 
 **Action:** Add to `src/mcp-server.ts`:
+
 ```typescript
 server.setRequestHandler(ListPromptsRequestSchema, async () => {
   return {
@@ -896,6 +933,7 @@ Begin now by reading the assembly spec.`,
 ```
 
 **Update MIGRATION-PROGRESS.md:**
+
 ```markdown
 - [x] 4.1 - Implement ListPromptsRequestSchema handler
 - [x] 4.2 - Implement GetPromptRequestSchema handler
@@ -917,6 +955,7 @@ Begin now by reading the assembly spec.`,
 ## VALIDATION CHECKPOINTS
 
 After completing each phase, run:
+
 ```bash
 # Build
 npm run build
