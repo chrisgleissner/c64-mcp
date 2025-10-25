@@ -97,7 +97,6 @@
 ### Phase 6: Enhanced Tool Descriptions
 
 - [x] 5.1 - Add workflow hints to tool descriptions
-  - ✅ Added on 2025-10-25T23:40:00+01:00
 - [ ] 5.2 - Add prerequisite tool references
 - [ ] 5.3 - Add examples to tool schemas
 - [ ] 5.4 - Ensure tools reference resources in descriptions
