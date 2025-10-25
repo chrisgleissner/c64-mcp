@@ -77,7 +77,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 3.6 - Migrate upload_and_run_basic tool
 - [x] 3.7 - Migrate upload_and_run_asm tool
 - [x] 3.8 - Migrate read_screen tool
-- [ ] 3.9 - Migrate read_memory tool
+- [x] 3.9 - Migrate read_memory tool
 - [ ] 3.10 - Migrate write_memory tool
 - [ ] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
 - [ ] 3.12 - Migrate machine control & diagnostics tools
