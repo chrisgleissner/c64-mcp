@@ -182,11 +182,19 @@ export const storageModule = defineToolModule({
   tools: [
     {
       name: "drives_list",
-      description: "List Ultimate drive slots and their currently mounted images.",
+      description: "List Ultimate drive slots and their currently mounted images. Read c64://context/bootstrap for drive safety.",
       summary: "Fetches firmware drive status including mounted images, power state, and modes.",
       inputSchema: drivesListArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "status"],
+      prerequisites: [],
+      examples: [
+        {
+          name: "Enumerate drives",
+          description: "List drives and images",
+          arguments: {},
+        },
+      ],
       workflowHints: [
         "Call first when you need to orient on current drive state; summarise mounted images and power flags for the user.",
       ],
@@ -215,6 +223,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveMountArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "mount"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Mount D64",
+          description: "Mount demo.d64 on drive8",
+          arguments: { drive: "drive8", image: "/tmp/demo.d64", type: "d64", mode: "readwrite" },
+        },
+      ],
       workflowHints: [
         "Use when the user provides an image path; confirm drive slot, type, and mode in the reply.",
         "Suggest running drive_on if the slot was powered down before mounting.",
@@ -266,6 +282,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "unmount"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Eject drive8",
+          description: "Remove current image",
+          arguments: { drive: "drive8" },
+        },
+      ],
       workflowHints: [
         "Call after confirming the user wants to eject an image; tell them the slot is now empty.",
       ],
@@ -301,6 +325,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "reset"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Reset drive8",
+          description: "IEC reset",
+          arguments: { drive: "drive8" },
+        },
+      ],
       workflowHints: [
         "Use when drive firmware needs a kick after errors; mention that mounted images remain but state resets.",
       ],
@@ -336,6 +368,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "power"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Power on",
+          description: "Turn on drive8",
+          arguments: { drive: "drive8" },
+        },
+      ],
       workflowHints: [
         "Power a slot on before mounting or accessing disks; note the previous state in your response.",
       ],
@@ -372,6 +412,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "power"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Power off",
+          description: "Turn off drive8",
+          arguments: { drive: "drive8" },
+        },
+      ],
       workflowHints: [
         "Warn the user that powering off ejects the drive from C64 view; suggest unmounting images if necessary first.",
       ],
@@ -408,6 +456,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveLoadRomArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "rom"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Load ROM",
+          description: "Load custom.rom to drive8",
+          arguments: { drive: "drive8", path: "/roms/custom.rom" },
+        },
+      ],
       workflowHints: [
         "Use when the user requests custom DOS ROMs; remind them a reset may be required afterwards.",
       ],
@@ -444,6 +500,14 @@ export const storageModule = defineToolModule({
       inputSchema: driveModeArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "mode"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Set mode",
+          description: "Set drive8 to 1571",
+          arguments: { drive: "drive8", mode: "1571" },
+        },
+      ],
       workflowHints: [
         "Invoke when the user needs to switch between 1541/1571/1581 behaviours; restate the resulting mode in your reply.",
       ],
@@ -480,6 +544,14 @@ export const storageModule = defineToolModule({
       inputSchema: fileInfoArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["storage", "info"],
+      prerequisites: [],
+      examples: [
+        {
+          name: "Inspect file",
+          description: "Read info for /tmp/demo.d64",
+          arguments: { path: "/tmp/demo.d64" },
+        },
+      ],
       workflowHints: [
         "Use to inspect Ultimate filesystem paths before mounting; report size and type so the user can validate the asset.",
       ],
@@ -509,6 +581,14 @@ export const storageModule = defineToolModule({
       inputSchema: createD64ArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Create D64",
+          description: "Create /tmp/new.d64",
+          arguments: { path: "/tmp/new.d64", tracks: 35, diskname: "DISK1" },
+        },
+      ],
       workflowHints: [
         "Use when the user needs a new D64 image; confirm track count and disk name in your summary.",
       ],
@@ -553,6 +633,14 @@ export const storageModule = defineToolModule({
       inputSchema: createD71ArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Create D71",
+          description: "Create /tmp/new.d71",
+          arguments: { path: "/tmp/new.d71", diskname: "DISK2" },
+        },
+      ],
       workflowHints: [
         "Reach for this when the user wants a 1571 disk; mention track count and that the image is double-sided.",
       ],
@@ -594,6 +682,14 @@ export const storageModule = defineToolModule({
       inputSchema: createD81ArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Create D81",
+          description: "Create /tmp/new.d81",
+          arguments: { path: "/tmp/new.d81", diskname: "DISK3" },
+        },
+      ],
       workflowHints: [
         "Use when the user needs a 1581 disk; remind them about 40 track layout and optional disk name.",
       ],
@@ -635,6 +731,16 @@ export const storageModule = defineToolModule({
       inputSchema: createDnpArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      prerequisites: [
+        "drives_list"
+      ],
+      examples: [
+        {
+          name: "Create DNP",
+          description: "Create /tmp/new.dnp with 80 tracks",
+          arguments: { path: "/tmp/new.dnp", tracks: 80, diskname: "DISK4" },
+        },
+      ],
       workflowHints: [
         "Use for CMD-native DNP images; clarify track count and remind about CMD hardware compatibility.",
       ],

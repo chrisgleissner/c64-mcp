@@ -155,7 +155,7 @@ HOST=127.0.0.1 PORT=8000 node ./node_modules/c64-mcp/dist/index.js
 
 Notes
 
-- Works fully offline. The npm package bundles `doc/`, `data/`, `mcp.json`, and `mcp-manifest.json`.
+- Works fully offline. The npm package bundles `doc/`, `data/`, and `mcp.json`.
 - All environment flags (e.g., `RAG_BUILD_ON_START=1`) apply the same as in a source checkout.
 - Using npx or a local install both place the package contents on the filesystem in expanded form.
 
@@ -177,7 +177,7 @@ npm install
 npm start
 ```
 
-The dev server runs via ts-node; for a quick type check and manifest generation, you can also run:
+The dev server runs via ts-node; to build the compiled output, you can run:
 
 ```bash
 npm run build
@@ -308,7 +308,7 @@ On startup, the server logs the selected backend and reason, for example:
 
 ## Build & Test 🧪
 
-- `npm run build` — type-check the TypeScript sources and generate `mcp-manifest.json` by scanning `@McpTool` annotations.
+- `npm run build` — type-check the TypeScript sources and normalize the dist layout for packaging.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
 - `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
@@ -321,7 +321,7 @@ The test runner accepts the following options:
 
 ## Available Tools 🧰
 
-Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`mcp-manifest.json`](mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
+Here is an overview of some of the most important tools. To see all available tools, use an MCP client against the running server (tools are discovered dynamically; no static manifest required).
 
 
 ### Control
@@ -392,7 +392,6 @@ Add this configuration to your workspace `.vscode/settings.json`:
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-  "manifestPath": "/absolute/path/to/c64-mcp/mcp-manifest.json",
         "type": "http"
       }
     ]
@@ -400,7 +399,7 @@ Add this configuration to your workspace `.vscode/settings.json`:
 }
 ```
 
-**Important:** Replace `/absolute/path/to/c64-mcp/` with the actual absolute path to your c64-mcp project directory.
+You can optionally set the `manifestPath` to point at `mcp-manifest.json`, but the official SDK server surface does not require a static manifest.
 
 ### Step 3: Start the MCP Server
 
@@ -412,7 +411,7 @@ Keep this running—it will log successful connectivity to your C64 device.
 
 ### Step 4: Use MCP Tools in Copilot Chat
 
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
+More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
 
 ## Minimal CLI interaction 💻
 

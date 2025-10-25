@@ -61,10 +61,14 @@ export const streamingModule = defineToolModule({
   tools: [
     {
       name: "stream_start",
-      description: "Start an Ultimate streaming session (video/audio/debug) targeting a host:port destination.",
+      description: "Start an Ultimate streaming session (video/audio/debug) targeting a host:port destination. See c64://docs/index for usage notes.",
       summary: "Validates stream arguments and forwards the request to firmware, returning status metadata.",
       inputSchema: streamStartArgsSchema.jsonSchema,
       tags: ["stream", "start"],
+      prerequisites: [],
+      examples: [
+        { name: "Start audio", description: "Send audio to localhost:9000", arguments: { stream: "audio", target: "127.0.0.1:9000" } },
+      ],
       workflowHints: [
         "Use when the user wants to begin audio/video capture; restate the destination target so they know where to listen.",
         "Remind them to stop the stream after gathering enough data.",
@@ -104,6 +108,10 @@ export const streamingModule = defineToolModule({
       summary: "Requests the firmware to stop the specified stream and returns completion metadata.",
       inputSchema: streamStopArgsSchema.jsonSchema,
       tags: ["stream", "stop"],
+      prerequisites: ["stream_start"],
+      examples: [
+        { name: "Stop audio", description: "Stop audio stream", arguments: { stream: "audio" } },
+      ],
       workflowHints: [
         "Call after a monitoring session to release resources; confirm whether the firmware acknowledged the stop.",
       ],

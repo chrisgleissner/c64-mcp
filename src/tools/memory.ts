@@ -79,12 +79,20 @@ export const memoryModule = defineToolModule({
   tools: [
     {
       name: "read_screen",
-      description: "Read the current text screen (40x25) and return its ASCII representation.",
+      description: "Read the current text screen (40x25) and return its ASCII representation. For PETSCII details, see c64://specs/basic.",
       summary: "Fetches screen RAM, converts from PETSCII, and returns the printable output.",
       inputSchema: readScreenArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap", "c64://specs/basic"],
       relatedPrompts: ["memory-debug", "basic-program", "assembly-program"],
       tags: ["screen", "memory"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Capture screen",
+          description: "Read current 40x25 text",
+          arguments: {},
+        },
+      ],
       workflowHints: [
         "Call after running a program when the user asks to see what is on screen; echo the captured text back to them.",
       ],
@@ -110,12 +118,20 @@ export const memoryModule = defineToolModule({
     },
     {
       name: "read_memory",
-      description: "Read a range of bytes from main memory and return the data as hexadecimal.",
+      description: "Read a range of bytes from main memory and return the data as hexadecimal. Consult c64://specs/assembly and docs index.",
       summary: "Resolves symbols, reads memory, and returns a hex dump with addressing metadata.",
     inputSchema: readMemoryArgsSchema.jsonSchema,
     relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex"],
+      prerequisites: ["pause"],
+      examples: [
+        {
+          name: "Read screen memory",
+          description: "Read 8 bytes at $0400",
+          arguments: { address: "$0400", length: 8 },
+        },
+      ],
       workflowHints: [
         "Resolve symbol names before calling so you can explain the chosen address in the response.",
         "Keep reads at or below 4096 bytes; split larger requests into multiple calls if needed.",
@@ -156,12 +172,20 @@ export const memoryModule = defineToolModule({
     },
     {
       name: "write_memory",
-      description: "Write a hexadecimal byte sequence into main memory at the specified address.",
+      description: "Write a hexadecimal byte sequence into main memory at the specified address. See c64://context/bootstrap for safety rules.",
       summary: "Resolves symbols, validates hex data, and writes bytes to RAM via Ultimate firmware.",
       inputSchema: writeMemoryArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex", "write"],
+      prerequisites: ["pause", "read_memory"],
+      examples: [
+        {
+          name: "Write to screen",
+          description: "Write $AA55 at $0400",
+          arguments: { address: "$0400", bytes: "$AA55" },
+        },
+      ],
       workflowHints: [
         "Double-check with the user before writing memory and describe the exact bytes you applied.",
         "Consider reading the region first so they can compare before and after states.",

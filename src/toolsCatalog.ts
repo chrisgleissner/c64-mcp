@@ -1,3 +1,4 @@
+// Deprecated: retained for manifest generator compatibility only
 import { McpTool } from './mcpDecorators.js';
 
 // This file contains lightweight stubs decorated with @McpTool for endpoints

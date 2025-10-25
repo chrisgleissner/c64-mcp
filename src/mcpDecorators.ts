@@ -1,7 +1,7 @@
 /*
-MCP Decorators and Registry
-Use to annotate methods that should be exposed as MCP tools.
-At build time, the generator scans for @McpTool annotations and produces a manifest.
+Legacy MCP Decorator stub (deprecated)
+This file remains temporarily for compatibility with older tooling that scans for @McpTool.
+It will be removed once downstream users migrate fully to the MCP SDK stdio server.
 */
 
 import 'reflect-metadata';
