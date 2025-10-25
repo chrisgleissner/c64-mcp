@@ -50,6 +50,10 @@ if (!env.RAG_EMBEDDINGS_DIR) {
   env.RAG_EMBEDDINGS_DIR = defaultEmbeddingsDir;
 }
 
+if (!env.NODE_TEST_DISABLE_WORKER_THREADS) {
+  env.NODE_TEST_DISABLE_WORKER_THREADS = "1";
+}
+
 if (explicitBaseUrl) {
   env.C64_TEST_BASE_URL = explicitBaseUrl;
 }

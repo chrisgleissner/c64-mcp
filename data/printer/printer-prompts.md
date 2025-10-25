@@ -1,35 +1,29 @@
-## Printing Prompts and Routing
+# Printing Prompts and Routing (for LLM prompt construction)
 
-Use these prompt templates to decide the printer path and guide users.
+## Routing
 
-### Routing rule
+- Unspecified or unknown printer → **Commodore MPS** (PETSCII).
+- Mentions “Commodore”, “MPS” → use Commodore docs.
+- Mentions “Epson”, “FX”, “ESC/P” → use Epson docs.
 
-- If user does not specify printer: assume Commodore (MPS/PETSCII).
-- If user specifies "Commodore" or "MPS": use Commodore docs and commands.
-- If user specifies "Epson" or "FX": use Epson docs and ESC/P.
-- If unknown printer: default to Commodore.
+## Prompt templates
 
-### Text printing prompt
+**Text (Commodore/Epson)**
+> Print the following text on my [Commodore|Epson] printer: <text>. Ensure CR/LF and page eject.
 
-"Print the following text on my [Commodore|Epson] printer: <text>. Ensure proper line endings and page eject."
+**Bitmap (Commodore/Epson)**
+> Print this bitmap at [density]. Provide columns as bytes and desired repeats/line spacing.
 
-- Commodore: call tool `print_text` with `{ text, formFeed: true }`.
-- Epson: prepend ESC/P style if needed; still call `print_text` (text-only); for advanced mode changes, consult `printer-epson.md`.
+**Custom chars (Commodore only)**
+> Define downloadable chars (DLL) and print <text>.
 
-### Bitmap/image printer prompt
+## Tooling guidance
 
-"Print this bitmap on my [Commodore|Epson] printer at [density]." Provide data as columns (bytes) and desired repetitions.
+- Always `OPEN ch,4[,sa]` → `PRINT#` → `CLOSE ch`.
+- Add `FF` (`CHR$(12)`) at job end for eject.
+- Commodore bitmap: enter `CHR$(8)`, **repeat** with `CHR$(26)`, **exit** with `CHR$(15)`; **bit7 must be 1** in data.
+- Epson bitmap: choose `ESC K/L/Y/Z/*/^`; compute `(n,m)` length; set `ESC A 8` for 8‑dot rows.
 
-- Commodore: build BIM sequence using `CHR$(8)` and optionally `CHR$(26);CHR$(n)` repeats. See `printer-commodore-bitmap.md`.
-- Epson: choose `ESC K/L/Z/*` and compute `n,m` length; set line spacing with `ESC A`. See `printer-epson-bitmap.md`.
+## Cross‑refs
 
-### Custom character prompt (Commodore only)
-
-"Define custom characters via DLL on my real MPS-1230 and print <text>."
-
-- Compute `m,n,c,s,a,p1..p11`; send `ESC '=' ...` sequence. Note: Ultimate‑II emulator ignores DLL.
-
-### Safety checks
-
-- Always close channel with `CLOSE1`.
-- Add `FF` (form feed) at the end if a page eject is desired.
+See `printer-spec.md` (overview), `printer-commodore*.md`, `printer-epson*.md` for details.

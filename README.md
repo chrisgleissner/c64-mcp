@@ -1,27 +1,47 @@
+![Logo](./doc/img/logo.png)
+
 # c64-mcp
+
+Your AI Bridge for the Commodore 64.
 
 [![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
 [![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/ci.yaml)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/ci.yaml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
-Model Context Protocol (MCP) server for driving a Commodore 64 via the official REST API of either the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
 
-It exposes a focused tool surface that lets LLM agents or automation scripts upload and run BASIC or assembly programs on the C64, read or write its RAM, control the VIC or SID, print documents, or perform a reset.
+## About
 
-## Highlights ✨
+Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
 
-- **Code** with AI support in Basic or Assembly on a C64.
-- **Compose** music or create images on a C64 using AI.
-- **Custom Knowledge Base**: Built-in local [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) for Commodore 64 BASIC and 6502 assembly examples (no external services).
-- **Offline-ready** npm package: The published npm artifact includes all necessary docs and RAG embeddings. After `npm install c64-mcp`, the server runs locally without network access to fetch docs or embeddings, e.g. for use with a locally started [Ollama](https://github.com/ollama/ollama)-based LLM.
-- **Configurable** via `~/.c64mcp.json` (or `C64MCP_CONFIG`) to point to your C64's host name or IP address.
-- **TypeScript** ESM modules throughout: `ts-node` powers the local development flow and exposes a Fastify-based MCP server running on your local machine on port 8000.
+Exposes tools and knowledge that enable [LLM agents](https://www.promptingguide.ai/research/llm-agents) to upload and run BASIC or assembly programs, read/write RAM, control the VIC or SID, print documents, and more.
 
+## Features ✨
 
-## Example 🎬
+- **Code** in Basic or Assembly
+- **Compose** music
+- **Create** PETSCII drawings
+- **Custom Knowledge Base** with built-in local Retrieval-Augmented Generation ([RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)) for prompt enrichment
 
-Let's compose a children song on the C64 using ChatGPT 5 and Visual Code.
+## What is MCP?
+
+The **Model Context Protocol (MCP)** defines a universal, secure, and consistent way for LLM-based applications to connect with external systems and data sources.  
+
+Often called [*“the USB-C port for AI”*](https://docs.anthropic.com/en/docs/mcp), it provides a standardized interface that allows language models to access information and perform actions safely, predictably, and repeatably.
+
+Although it resembles a traditional API, MCP is designed specifically for the way LLMs think and interact. An MCP server can:
+
+- **Expose data** through **Resources** — structured information the model can draw into its working context.  
+- **Provide functionality** through **Tools** — executable actions that perform tasks or cause effects.  
+- **Offer guidance** through **Prompts** — reusable conversation patterns for complex operations.  
+
+**C64-MCP** applies this to the **Commodore 64**, serving as an **AI bridge and control deck**.  
+
+You’re the Commodore at the helm — AI assists, extending the reach of your commands into the 8-bit world.
+
+## Examples 🎬
+
+Let's compose a children song on the C64 using ChatGPT and VS Code:
 
 1. We type the prompt:
 `play a children song on the c64`.
@@ -135,7 +155,7 @@ HOST=127.0.0.1 PORT=8000 node ./node_modules/c64-mcp/dist/index.js
 
 Notes
 
-- Works fully offline. The npm package bundles `doc/`, `data/`, `mcp.json`, and `mcp-manifest.json`.
+- Works fully offline. The npm package bundles `doc/`, `data/`, and `mcp.json`.
 - All environment flags (e.g., `RAG_BUILD_ON_START=1`) apply the same as in a source checkout.
 - Using npx or a local install both place the package contents on the filesystem in expanded form.
 
@@ -157,7 +177,7 @@ npm install
 npm start
 ```
 
-The dev server runs via ts-node; for a quick type check and manifest generation, you can also run:
+The dev server runs via ts-node; to build the compiled output, you can run:
 
 ```bash
 npm run build
@@ -288,7 +308,7 @@ On startup, the server logs the selected backend and reason, for example:
 
 ## Build & Test 🧪
 
-- `npm run build` — type-check the TypeScript sources and generate `mcp-manifest.json` by scanning `@McpTool` annotations.
+- `npm run build` — type-check the TypeScript sources and normalize the dist layout for packaging.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
 - `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
@@ -301,7 +321,7 @@ The test runner accepts the following options:
 
 ## Available Tools 🧰
 
-Here is an overview of some of the most important tools. To see all available tools, have a look at the auto-generated [`mcp-manifest.json`](mcp-manifest.json) which is consumed by ChatGPT and other LLM clients.
+Here is an overview of some of the most important tools. To see all available tools, use an MCP client against the running server (tools are discovered dynamically; no static manifest required).
 
 
 ### Control
@@ -372,7 +392,6 @@ Add this configuration to your workspace `.vscode/settings.json`:
       {
         "name": "c64-mcp",
         "url": "http://localhost:8000",
-  "manifestPath": "/absolute/path/to/c64-mcp/mcp-manifest.json",
         "type": "http"
       }
     ]
@@ -380,7 +399,7 @@ Add this configuration to your workspace `.vscode/settings.json`:
 }
 ```
 
-**Important:** Replace `/absolute/path/to/c64-mcp/` with the actual absolute path to your c64-mcp project directory.
+You can optionally set the `manifestPath` to point at `mcp-manifest.json`, but the official SDK server surface does not require a static manifest.
 
 ### Step 3: Start the MCP Server
 
@@ -392,7 +411,7 @@ Keep this running—it will log successful connectivity to your C64 device.
 
 ### Step 4: Use MCP Tools in Copilot Chat
 
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, see the generated `mcp-manifest.json` (built) or the legacy [`src/mcpManifest.json`](src/mcpManifest.json).
+More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
 
 ## Minimal CLI interaction 💻
 

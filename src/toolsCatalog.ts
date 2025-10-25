@@ -1,3 +1,4 @@
+// Deprecated: retained for manifest generator compatibility only
 import { McpTool } from './mcpDecorators.js';
 
 // This file contains lightweight stubs decorated with @McpTool for endpoints
@@ -38,7 +39,7 @@ export class ToolsCatalog {
   @McpTool({ name: 'music_generate', description: 'Generate and play a simple arpeggio pattern', parameters: { root: 'string', pattern: 'string', steps: 'number', tempoMs: 'number', waveform: 'string' }, devices: 'c64u,vice' })
   music_generate() {}
 
-  @McpTool({ name: 'music_compile_and_play', description: 'Compile a SIDWAVE composition to PRG/SID and play it', parameters: { sidwave: 'string', format: 'string', output: 'string', dryRun: 'boolean' }, devices: 'c64u,vice' })
+  @McpTool({ name: 'music_compile_and_play', description: 'Compile a SIDWAVE composition to PRG/SID and play it', parameters: { sidwave: 'string', cpg: 'string', format: 'string', output: 'string', dryRun: 'boolean' }, devices: 'c64u,vice' })
   music_compile_and_play() {}
 
   @McpTool({

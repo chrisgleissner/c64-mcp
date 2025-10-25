@@ -88,7 +88,6 @@ The file `data/video/character-set.csv` contains the screen codes, PETSCII codes
 - **ROM-shadowed gaps:** VIC cannot see RAM charsets at **$1000, $1800, $9000, $9800** (ROM overlays).
 - **Accessing ROM by CPU:** set **CHAREN** (I/O port at **$01**, bit 2 = 0) to map ROM at **$D000–$DFFF** for copying to RAM.
 
-
 ## Bus Arbitration
 
 - VIC issues a read every phase-1 slot (c/g/p/s/refresh/idle access types).

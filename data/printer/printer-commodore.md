@@ -1,38 +1,28 @@
-## Commodore MPS Printing (Text)
+# Commodore MPS Printing (Text) — PETSCII + MPS Protocol
 
-Applies to Commodore MPS emulation (PETSCII). If the user doesn’t specify a printer, assume Commodore.
+**Device:** `4`  | **Secondary address (sa):** `0`=upper/graphics (default), `7`=lower/upper.  
+**Open/Print/Close:** `OPEN ch,4[,sa]` → `PRINT#ch, ...` → `CLOSE ch` (or `CMD ch` to route `PRINT`/`LIST`).
 
-### Quick start (C64 BASIC)
+## Controls (concise)
 
-```basic
-10 OPEN1,4            : REM PETSCII upper/graphics (default)
-20 PRINT#1,"HELLO WORLD!"
-30 CLOSE1
-```
+| Feature | Code (send via `PRINT#`) | Notes |
+|:--|:--|:--|
+| Standard width | `CHR$(15)` | Also exits Bit Image Mode |
+| Double width | `CHR$(14)` | Affects subsequent text |
+| Reverse video ON/OFF | `CHR$(18)` / `CHR$(146)` | Invert foreground/background |
+| Cursor mode local (graphic/business) | `CHR$(145)` / `CHR$(17)` | Temporary charset toggles until CR |
+| Carriage return / line feed / form feed | `CHR$(13)` / `CHR$(10)` / `CHR$(12)` | Use CR+LF if overprinting occurs |
+| Horizontal tab | `CHR$(9)` | Tab stops |
+| Position by columns | `CHR$(16);CHR$(n)` | `n` = column (0–79 standard) |
+| Position by dots | `CHR$(27);CHR$(16);HP;LP` | Dot address = `(HP<<8)|LP` (0–479) |
+| Bit Image Mode (enter/exit) | `CHR$(8)` / `CHR$(15)` | See bitmap doc for data rules |
 
-Lower/upper PETSCII:
+### Quick examples
 
 ```basic
 10 OPEN1,4,7
-20 PRINT#1,"Hello, lower/upper!"
-30 CLOSE1
+20 PRINT#1,CHR$(27);"-";CHR$(1);"UNDERLINED";CHR$(27);"-";CHR$(0)
+30 PRINT#1,CHR$(16);CHR$(20);"COL 20",CHR$(13);CHR$(10);CHR$(12):CLOSE1
 ```
 
-### Common text controls
-
-- **Double width**: `CHR$(14)` ON, `CHR$(15)` OFF (also exits Bit Image)
-- **Bold**: `CHR$(27);"e"` ON, `CHR$(27);"f"` OFF
-- **Double strike**: `CHR$(27);CHR$(71)` ON, `CHR$(27);CHR$(72)` OFF
-- **Italic**: `CHR$(27);"4"` ON, `CHR$(27);"5"` OFF
-- **Underline**: `CHR$(27);"-";CHR$(1|0)`
-- **Quality**: `CHR$(27);"x";CHR$(1|0)` or `CHR$(31)`/`CHR$(159)`
-- **Position**: by chars `CHR$(16);CHR$(n)`; by dots `CHR$(27);CHR$(16);CHR$(n)`
-- **Paper**: `LF=CHR$(10)`, `CR=CHR$(13)`, `FF=CHR$(12)`, `CS=CHR$(141)`
-
-### Tips
-
-- PETSCII vs ASCII: MPS uses PETSCII. Avoid screen codes when targeting Epson.
-- CR/LF: If lines overprint, add `LF` after `CR`.
-- Secondary address: `OPEN1,4,0` (upper/graphics) or `OPEN1,4,7` (lower/upper). Default `0`.
-
-See also: `printer-commodore-bitmap.md` for images and DLL custom characters.
+**See also:** `printer-commodore-bitmap.md` for images and repetition (`CHR$(26)`), and `printer-spec.md` for routing & differences.

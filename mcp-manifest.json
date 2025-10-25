@@ -234,6 +234,7 @@
       "description": "Compile a SIDWAVE composition to PRG/SID and play it",
       "parameters": {
         "sidwave": "string",
+        "cpg": "string",
         "format": "string",
         "output": "string",
         "dryRun": "boolean"

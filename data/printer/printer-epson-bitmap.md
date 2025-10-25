@@ -1,42 +1,29 @@
-## Epson FX-80 – Bitmap Graphics (ESC/P)
+# Epson FX-80 (ESC/P) — Bitmap Graphics
 
-Use ASCII + ESC/P. Bitmap columns are bytes with MSB at top; 8 rows per column. Horizontal density per mode; vertical 72 dpi. Set line spacing to match rows.
+**Data model:** 1 byte per **column**, **8 dots** (MSB=top). Send graphics command + **byte count** `(n + 256*m)` then data. Set line spacing for 8‑dot rows, e.g., `ESC A 8`.
 
-### Modes
+## Graphics commands
 
-- `ESC K n m d...` – Normal density (60 dpi)
-- `ESC L n m d...` – Double density, half speed (120 dpi)
-- `ESC Y n m d...` – Double density, normal speed (maps to L in Ultimate‑II)
-- `ESC Z n m d...` – Quadruple density, half speed (240 dpi)
-- `ESC * d n m d...` – Explicit density
-  - `d` densities: 0=60, 1=120, 2=120 (hi-speed), 3=240, 4=80, 5=72, 6=90 dpi
-- `ESC ? c d` – Change default density for command `c` in {"K","L","Y","Z"}
-- `ESC ^ d n m h1 l1 h2 l2 ...` – 9-pin strips (d in {0,1})
+| Mode | Sequence | Density (H) |
+|:--|:--|:--|
+| Normal | `ESC K n m ...data...` | ~60 dpi |
+| Double | `ESC L n m ...` | ~120 dpi |
+| Double (hi‑speed)* | `ESC Y n m ...` | ~120 dpi (maps to L on some emus) |
+| Quadruple | `ESC Z n m ...` | ~240 dpi |
+| Explicit | `ESC * d n m ...` | `d`=0:60,1:120,2:120(hi),3:240,4:80,5:72,6:90 dpi |
+| 9‑pin strips | `ESC ^ d n m h1 l1 ...` | `d` in {0,1} |
 
-`n` and `m` encode total data length: `len = n + 256*m`.
+\* Ultimate‑II may treat `Y` as `L`. Always match `n,m` to **exact** data length.
 
-Set line spacing for 8-dot rows:
-
-- `ESC A 8` (8/72") or `ESC 2` (1/6") depending on layout.
-
-### Example (16 columns × 3 rows at 60 dpi)
+### Minimal example
 
 ```basic
 10 OPEN1,4
-20 A$=CHR$(27)+CHR$(75)+CHR$(16)+CHR$(0)
-30 FOR I=1 TO 16:READ A:A$=A$+CHR$(A):NEXT
-40 PRINT#1,CHR$(27);CHR$(65);CHR$(8);CHR$(10);CHR$(13)
-50 FOR J=1 TO 3
-60 PRINT#1,A$;A$;A$;A$;CHR$(10);CHR$(13)
-70 NEXT J
-80 CLOSE1
-90 END
-100 DATA 60,66,129,129,129,66,60,24
-110 DATA 60,126,255,126,60,24,235,24
+20 A$=CHR$(27)+"K"+CHR$(16)+CHR$(0)
+30 FOR I=1 TO 16:READ B:A$=A$+CHR$(B):NEXT
+40 PRINT#1,CHR$(27);"A";CHR$(8) : REM 8/72"
+50 PRINT#1,A$;A$;A$; : PRINT#1,CHR$(12):CLOSE1
+60 DATA 60,66,129,129,129,66,60,24,60,126,255,126,60,24,235,24
 ```
 
-### Tips
-
-- Ensure `n,m` match data length exactly or the printer will desync.
-- Use `ESC @` to reset between jobs when experimenting.
-- In Ultimate‑II emulation, `ESC Y` behaves like `ESC L`.
+**Cross‑ref:** Text controls `printer-epson.md`; overview `printer-spec.md`.

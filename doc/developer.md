@@ -9,7 +9,7 @@ src/                Core server and client logic
   basicConverter.ts BASIC text → PRG encoder
   c64Client.ts      REST client for c64 devices
   config.ts         Configuration loader
-  index.ts          Fastify MCP endpoint
+  index.ts          Fastify HTTP compatibility surface (legacy)
 doc/                Reference material and specs
 scripts/            Utility CLI entry points (tests, etc.)
 test/               Node test runner suites and helpers
@@ -42,7 +42,7 @@ Configuration resolution, first match wins:
 ## Useful npm Scripts
 
 - `npm start`: Launch the Fastify MCP server with ts-node.
-- `npm run build`: Type-check TypeScript sources and generate `mcp-manifest.json`.
+- `npm run build`: Type-check TypeScript sources and normalize dist output.
 - `npm test`: Run tests against the bundled mock server.
 - `npm test -- --real [--base-url=http://host]`: Run against hardware.
 - `npm run check`: Build + mock tests.
@@ -155,5 +155,5 @@ npm run rag:rebuild  # or rely on auto-reindex (~15s default)
 ## MCP Server Tips
 
 - Default port `8000` (override with `PORT`).
-- Tool implementations live in `src/index.ts`. The MCP manifest is generated at build into `mcp-manifest.json` from `@McpTool` annotations.
+- MCP SDK stdio server lives in `src/mcp-server.ts` (preferred). HTTP remains for compatibility.
 - Keep REST interactions isolated in `src/c64Client.ts` for easy mocking.
