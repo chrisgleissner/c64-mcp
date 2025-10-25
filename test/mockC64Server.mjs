@@ -41,6 +41,8 @@ function createInitialState() {
     lastFileInfo: null,
     sidplayCount: 0,
     lastSidplay: null,
+    sidAttachmentCount: 0,
+    lastSidAttachment: null,
     modplayCount: 0,
     lastModplay: null,
     paused: false,
@@ -169,6 +171,77 @@ export async function startMockC64Server() {
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ result: "ok", bytes: prg.length }));
       return;
+    }
+
+    if (url.startsWith("/v1/runners:sidplay")) {
+      let routeUrl;
+      try {
+        routeUrl = new URL(url, "http://mock.local");
+      } catch {
+        routeUrl = null;
+      }
+
+      if (routeUrl) {
+        const songnrParam = routeUrl.searchParams.get("songnr");
+        const songnr = songnrParam === null ? null : Number.parseInt(songnrParam, 10);
+
+        if (method === "PUT") {
+          const file = routeUrl.searchParams.get("file") ?? "";
+          state.sidplayCount += 1;
+          state.lastSidplay = { file, songnr };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "sidplay", file, songnr, errors: [] }));
+          return;
+        }
+
+        if (method === "POST") {
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(chunk);
+          }
+
+          const attachment = Buffer.concat(chunks);
+          state.sidAttachmentCount += 1;
+          state.lastSidAttachment = { songnr, bytes: attachment.length };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "sidplay_attachment", bytes: attachment.length, songnr, errors: [] }));
+          return;
+        }
+      }
+    }
+
+    if (url.startsWith("/v1/runners:modplay")) {
+      let routeUrl;
+      try {
+        routeUrl = new URL(url, "http://mock.local");
+      } catch {
+        routeUrl = null;
+      }
+
+      if (routeUrl) {
+        if (method === "PUT") {
+          const file = routeUrl.searchParams.get("file") ?? "";
+          state.modplayCount += 1;
+          state.lastModplay = { file };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "modplay", file, errors: [] }));
+          return;
+        }
+
+        if (method === "POST") {
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(chunk);
+          }
+
+          const attachment = Buffer.concat(chunks);
+          state.modplayCount += 1;
+          state.lastModplay = { file: null, bytes: attachment.length };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "modplay_attachment", bytes: attachment.length, errors: [] }));
+          return;
+        }
+      }
     }
 
     if (method === "GET" && url.startsWith("/v1/machine:readmem")) {
