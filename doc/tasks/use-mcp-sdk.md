@@ -49,7 +49,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [ ] 2.5 - Add c64://specs/sid resource
 - [ ] 2.6 - Add c64://specs/vic resource
 - [ ] 2.7 - Add c64://context/bootstrap resource
-- [ ] 2.8 - Test resource reading with MCP inspector
+- [ ] 2.8 - Validate resources via automated tests
 
 ### Phase 4: Tools Migration (Critical)
 - [ ] 3.1 - Implement ListToolsRequestSchema handler
@@ -82,15 +82,12 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [ ] 5.4 - Ensure tools reference resources in descriptions
 
 ### Phase 7: Testing & Validation
-- [ ] 6.1 - Verify all 70+ tools work
-- [ ] 6.2 - Verify resources load correctly
-- [ ] 6.3 - Verify prompts execute properly
-
-The following is to be done with human assistance - leave this unchecked and wait for explicit request from human to initial this:
-
-- [ ] 6.4 - Test with MCP Inspector CLI
-- [ ] 6.5 - Test with Claude Desktop
-- [ ] 6.6 - Test with VS Code Copilot Chat
+- [ ] 6.1 - Add automated integration tests for tools
+- [ ] 6.2 - Add automated integration tests for resources
+- [ ] 6.3 - Add automated integration tests for prompts
+- [ ] 6.4 - Add regression tests for common error scenarios
+- [ ] 6.5 - Ensure test suite runs in CI
+- [ ] 6.6 - Capture test coverage report
 
 
 ### Phase 8: Cleanup

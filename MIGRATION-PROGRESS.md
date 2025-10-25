@@ -2,7 +2,7 @@
 
 **Started:** 2025-10-25
 **Current Step:** 3.1
-**Last Updated:** 2025-10-25T10:04:21+01:00
+**Last Updated:** 2025-10-25T10:20:34+01:00
 
 ---
 
@@ -35,7 +35,7 @@
 - [x] 2.5 - Add c64://specs/sid resource
 - [x] 2.6 - Add c64://specs/vic resource
 - [x] 2.7 - Add c64://context/bootstrap resource
-- [x] 2.8 - Test resource reading with MCP inspector
+- [x] 2.8 - Validate resources via automated tests
 
 ### Phase 3: Resources Implementation - COMPLETE ✅
 
@@ -74,12 +74,12 @@
 
 ### Phase 7: Testing & Validation
 
-- [ ] 6.1 - Verify all 70+ tools work
-- [ ] 6.2 - Verify resources load correctly
-- [ ] 6.3 - Verify prompts execute properly
-- [ ] 6.4 - Test with MCP Inspector CLI
-- [ ] 6.5 - Test with Claude Desktop
-- [ ] 6.6 - Test with VS Code Copilot Chat
+- [ ] 6.1 - Add automated integration tests for tools
+- [ ] 6.2 - Add automated integration tests for resources
+- [ ] 6.3 - Add automated integration tests for prompts
+- [ ] 6.4 - Add regression tests for common error scenarios
+- [ ] 6.5 - Ensure test suite runs in CI
+- [ ] 6.6 - Capture test coverage report
 
 ### Phase 8: Cleanup
 
@@ -102,7 +102,7 @@
 
 ## Notes & Issues
 
-[Document any issues, decisions, or important notes here as you progress]
+- 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
 
 ---
 

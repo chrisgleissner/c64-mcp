@@ -48,6 +48,12 @@ async function main() {
     return {
       resources: [
         {
+          uri: "c64://context/bootstrap",
+          name: "Workflow Rules & Best Practices",
+          description: "CRITICAL: Mandatory workflow rules for all C64 programming",
+          mimeType: "text/markdown",
+        },
+        {
           uri: "c64://specs/basic",
           name: "Commodore BASIC v2 Specification",
           description: "Complete BASIC v2 reference. READ THIS BEFORE generating any BASIC code!",
@@ -66,6 +72,12 @@ async function main() {
           mimeType: "text/markdown",
         },
         {
+          uri: "c64://specs/sidwave",
+          name: "SIDWAVE Music Format Specification",
+          description: "YAML/JSON music composition format for SID chip",
+          mimeType: "text/markdown",
+        },
+        {
           uri: "c64://specs/vic",
           name: "VIC-II Graphics Specification",
           description: "Video chip, sprites, raster programming, and timing",
@@ -77,18 +89,6 @@ async function main() {
           description: "Commodore MPS and Epson FX printer control",
           mimeType: "text/markdown",
         },
-        {
-          uri: "c64://context/bootstrap",
-          name: "Workflow Rules & Best Practices",
-          description: "CRITICAL: Mandatory workflow rules for all C64 programming",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/sidwave",
-          name: "SIDWAVE Music Format Specification",
-          description: "YAML/JSON music composition format for SID chip",
-          mimeType: "text/markdown",
-        },
       ],
     };
   });
@@ -97,13 +97,13 @@ async function main() {
     const uri = request.params.uri;
 
     const resourceMap: Record<string, string> = {
+      "c64://context/bootstrap": "data/context/bootstrap.md",
       "c64://specs/basic": "data/basic/basic-spec.md",
       "c64://specs/assembly": "data/assembly/assembly-spec.md",
       "c64://specs/sid": "data/audio/sid-spec.md",
+      "c64://specs/sidwave": "data/audio/sidwave.md",
       "c64://specs/vic": "data/video/vic-spec.md",
       "c64://specs/printer": "data/printer/printer-spec.md",
-      "c64://context/bootstrap": "data/context/bootstrap.md",
-      "c64://specs/sidwave": "data/audio/sidwave.md",
     };
 
     const filePath = resourceMap[uri];
