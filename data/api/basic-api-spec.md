@@ -4,6 +4,28 @@
 > Format: Markdown table (one row per routine). Addresses shown in **hex** and **decimal**. **Bold** Name = callable/public API.  
 > Conventions: A=Accumulator, X,Y=Index registers, C=Carry; Token shown where a BASIC token invokes the routine; “—” if not applicable.
 
+## Use of Low Memory ($0000–$03FF)
+
+BASIC uses the [low memory area](./memory/low-memory-map.md) for program management, variable tracking, and floating-point math, with temporary overlap of certain KERNAL variables. It shares this space with the Kernal.
+
+| Range | Purpose | Key Variables / Pointers |
+|:------|:---------|:-------------------------|
+| `$002B–$0030` | Core pointers defining BASIC memory layout | TXTTAB, VARTAB, ARYTAB |
+| `$0031–$0038` | Free-space and string pool boundaries | STREND, FREETOP, MEMSIZ |
+| `$0039–$0042` | Current/previous line context and DATA pointer | CURLIN, OLDLIN, DATPTR |
+| `$0061–$006E` | Floating point accumulators (FAC1/FAC2) | FP math workspace |
+| `$0073–$007A` | Inline copy of CHRGET/CHRGOT tokenizer entry | BASIC text reader |
+| `$0099–$009A` | Default I/O device numbers | DFLTN (input), DFLTO (output) |
+| `$0200–$0258` | Input buffer for keyboard and direct statements | INBUF |
+| `$0281–$0284` | BASIC start and end addresses after memory test | BASBOT, BASTOP |
+| `$0300–$030B` | **BASIC RAM vectors** (redirectable entry points) | e.g. LIST, NEW, RUN |
+| `$033C–$03FB` | Cassette buffer reused by BASIC LOAD/SAVE | TBUFFER |
+
+BASIC and KERNAL share portions of this map; modifying these variables directly  
+allows the relocation of program text, redefining top-of-memory, or injecting custom LOAD/SAVE behavior.
+
+## Callable Routines
+
 | Address | Decimal | Token | Name | Function | Args | Input | Output | Notes |
 |:--------|:--------|:------|:-----|:---------|:-----|:------|:-------|:------|
 | `$A000` | 40960 | — | **COLDV** | Cold start vector target (BASIC init) | — | Entry via OS after power-on | — | Prints banner/bytes free; see `$E394` |

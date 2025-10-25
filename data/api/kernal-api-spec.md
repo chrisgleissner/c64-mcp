@@ -1,8 +1,29 @@
-# C64 KERNAL API — Callable Routines Only (Jump Table & Documented Entrypoints)
+# C64 KERNAL API — Callable Routines (ROM $E000–$FFFF)
 
 > Purpose: Minimal, deduplicated interface spec for **callable** KERNAL API routines.  
 > Format: Markdown table (one row per routine). Addresses shown in **hex** and **decimal** for BASIC friendliness.  
 > Conventions: A=Accumulator, X,Y=Index registers, C=Carry; “—” means not applicable. **Bold** Name = callable/public API.
+
+## Use of Low Memory ($0000–$03FF)
+
+The KERNAL relies on the [low memory region](./memory/low-memory-map.md) for all I/O and interrupt control. It shares this space with BASIC.
+
+| Range | Purpose | Key Variables / Vectors |
+|:------|:---------|:------------------------|
+| `$0000–$0001` | 6510 I/O registers controlling memory banking and cassette motor | D6510, R6510 |
+| `$0090` | I/O **status byte** updated by KERNAL routines | STATUS |
+| `$009B–$00A2` | System clock and **TIME** variables for RDTIM/SETTIM | TI, TI$ |
+| `$00B8–$00BC` | File/device association (LFN, SA, FA) | LA, SA, FA, FNADR |
+| `$00C6` | Keyboard buffer count | NDX |
+| `$00F3–$00F6` | Vectors to color RAM and keyboard decode tables | USER, KEYTAB |
+| `$0314–$0333` | **Interrupt and I/O vectors** (modifiable by user) | CINV, CBINV, IRQ, BRK, NMI, etc. |
+| `$033C–$03FB` | **Cassette buffer** (192 bytes, reusable for ML code if no tape is used) | TBUFFER |
+| `$03FC–$03FF` | Unused bytes (safe for temporary data) | — |
+
+The KERNAL modifies `$0001` to switch ROM/RAM banks, writes device status to `$0090`,  
+and maintains IRQ/NMI linkage through `$0314–$0318`. Avoid overwriting these unless intercepting system vectors.
+
+## Callable Routines
 
 | Address | Decimal | Name | Function | Args | Input | Output | Notes |
 |:--------|:--------|:-----|:---------|:-----|:------|:-------|:------|
