@@ -1,4 +1,4 @@
-# Commodore Disk Drive Specification — 1541, 1571, 1581
+# Commodore Disk Drives — 1541, 1571, 1581
 
 **Scope:** Commodore floppy drives used with the C64/C128 via the IEC serial bus.  
 Each drive contains an internal 6502 CPU and DOS ROM implementing a self‑contained filesystem.  
@@ -6,17 +6,7 @@ Main reference drive: **1541 (DOS 2.6)**; extensions for **1571 (DOS 3.0)*
 
 ---
 
-## Drive Comparison Summary
-
-| Drive | DOS | Sides | Tracks | Sectors/Track | Capacity (bytes) | Notes |
-|:--|:--|:--|:--|:--|:--|:--|
-| **1541** | 2.6 | 1 | 35 | 17–21 | 174 848 (664 free blocks) | Standard C64 drive |
-| **1571** | 3.0 | 2 | 70 | 17–21 per side | 349 696 | Burst mode, dual BAM |
-| **1581** | 10.0 | 2 (3½″) | 80 | 40 @ 512 B | 316 416 (316 KB free) | Subdirs, partitions |
-
 ## 1541 — Disk Format and DOS 2.6
-
-Unless specified otherwise, we assume that we use a 1541 drive with DOS 2.6.
 
 **Medium:** 5¼″ single‑sided DD, 35 tracks (17–21 sectors per track).  
 **Capacity:** 174 848 B (683 × 256 B); 664 free (169 984 B).  
@@ -82,17 +72,92 @@ Tracks 40–41 exist physically but unused by DOS 2.6.
 | Memory write | `M-W addrL addrH size data` | Direct RAM write |
 | Position (REL) | `P ch recL recH pos` | Record seek |
 
-### BASIC Usage
+---
+
+## Programming Interface (BASIC & Assembly)
+
+The following applies to all drives.
+
+### Relevant BASIC / KERNAL APIs
+
+| Operation | BASIC Keyword | KERNAL Routine | Addr (hex) | Notes |
+|---|---|---|---|---|
+| Open channel | `OPEN` | `SETLFS` / `SETNAM` / `OPEN` | $FFBA / $FFBD / $FFC0 | Set device, secondary, file name |
+| Print data | `PRINT#` | `CHKOUT` / `CHROUT` | $FFC9 / $FFD2 | Write bytes to drive |
+| Read data | `GET#`, `INPUT#` | `CHKIN` / `CHRIN` | $FFC6 / $FFCF | Read bytes |
+| Close file | `CLOSE` | `CLOSE` / `CLRCHN` | $FFC3 / $FFCC | Release channel |
+| Load file | `LOAD` | `LOAD` | $FFD5 | Load PRG from disk |
+| Save file | `SAVE` | `SAVE` | $FFD8 | Write PRG to disk |
+| Read status | `PRINT STATUS` | `READST` | $FFB7 | Check error/status flags |
+
+---
+
+### BASIC Examples
 
 ```basic
-OPEN1,8,15,"N0:DISK,ID":CLOSE1
-OPEN2,8,2,"0:HELLO,SEQ,W":PRINT#2,"HELLO WORLD":CLOSE2
+REM --- PRINT DIRECTORY ---
 LOAD"$",8:LIST
+
+REM --- LOAD FILE ---
+LOAD"HELLO.PRG",8,1
+
+REM --- SAVE FILE ---
+SAVE"HELLO.PRG",8
 ```
 
-**Speed:** ~300 B/s (native), ~10 KB/s (fast‑loader).  
-**CPU:** 6502 @ 1 MHz · RAM 2 KB · ROM 16 KB.  
-**Device IDs:** 8–11 (via DIP or software).
+---
+
+### Assembly Examples
+
+#### Print Directory
+
+```asm
+    lda #<dir
+    ldx #>dir
+    ldy #len
+    jsr $ffbd   ; SETNAM
+    lda #1      ; logical
+    ldx #8      ; device
+    ldy #0      ; secondary
+    jsr $ffba   ; SETLFS
+    jsr $ffd5   ; LOAD (LOAD"$",8)
+dir: .text "$"
+len = *-dir
+```
+
+#### Load File
+
+```asm
+    lda #<name
+    ldx #>name
+    ldy #len
+    jsr $ffbd
+    lda #0      ; LFN=0
+    ldx #8      ; device
+    ldy #1      ; SA=1
+    jsr $ffba
+    lda #0
+    jsr $ffd5   ; LOAD (A=0=load)
+name: .text "HELLO.PRG"
+len = *-name
+```
+
+#### Save File
+
+```asm
+    lda #<name
+    ldx #>name
+    ldy #len
+    jsr $ffbd
+    lda #0
+    ldx #8
+    ldy #1
+    jsr $ffba
+    lda #0
+    jsr $ffd8   ; SAVE
+name: .text "HELLO.PRG"
+len = *-name
+```
 
 ---
 
@@ -122,7 +187,7 @@ Supports subdirectories and partitions. Compatible with C64 and 
 ### Command Summary
 
 | Action | Command | Example |
-|:--|:--|:--|
+|---|---|---|
 | Format disk | `N0:NAME,ID` | `OPEN15,8,15,"N0:WORK,01"` |
 | Create directory | `MD:NAME` | `PRINT#15,"MD:DATA"` |
 | Change directory | `CD:NAME` | `PRINT#15,"CD:DATA"` |
@@ -134,6 +199,16 @@ Supports subdirectories and partitions. Compatible with C64 and 
 - MS‑DOS‑like directory tree and BAM per partition.  
 - Geometry: 80 × 40 × 512 B = 1.6 MB raw (≈800 KB used).  
 - DOS 10 implements subdir navigation and hierarchical file lookup.
+
+---
+
+## Drive Comparison Summary
+
+| Drive | DOS | Sides | Tracks | Sectors/Track | Capacity (bytes) | Notes |
+|:--|:--|:--|:--|:--|:--|:--|
+| **1541** | 2.6 | 1 | 35 | 17–21 | 174 848 (664 free blocks) | Standard C64 drive |
+| **1571** | 3.0 | 2 | 70 | 17–21 per side | 349 696 | Burst mode, dual BAM |
+| **1581** | 10.0 | 2 (3½″) | 80 | 40 @ 512 B | 316 416 (316 KB free) | Subdirs, partitions |
 
 ---
 
