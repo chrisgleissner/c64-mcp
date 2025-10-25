@@ -492,7 +492,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://docs/printer/epson-text",
           "c64://docs/printer/epson-bitmap",
         ],
-        tools: ["print_text", "printer_guide", "printer_prompts"],
+        tools: ["print_text"],
         tags: ["printer"],
       },
       arguments: [
@@ -516,12 +516,12 @@ export function createPromptRegistry(): PromptRegistry {
       selectTools: (args) => {
         const printerType = args.printerType as PrinterType | undefined;
         if (printerType === "commodore") {
-          return ["printer_commodore_text", "printer_commodore_bitmap"];
+          return ["print_text", "print_bitmap_commodore", "define_printer_chars"];
         }
         if (printerType === "epson") {
-          return ["printer_epson_text", "printer_epson_bitmap"];
+          return ["print_text", "print_bitmap_epson"];
         }
-        return ["printer_commodore_text", "printer_epson_text"];
+        return ["print_text", "print_bitmap_commodore", "print_bitmap_epson", "define_printer_chars"];
       },
       buildMessages: (args) => {
         const printerType = args.printerType as PrinterType | undefined;

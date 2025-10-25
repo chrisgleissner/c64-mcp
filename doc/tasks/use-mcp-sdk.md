@@ -101,7 +101,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 4.6 - Create "sid-music" prompt
 - [x] 4.7 - Create "graphics-demo" prompt
 - [x] 4.8 - Add "printer-job" and "memory-debug" prompts
-- [ ] 4.9 - Test prompts work with automated checks
+- [x] 4.9 - Test prompts work with automated checks
 
 ### Phase 6: Enhanced Tool Descriptions
 - [ ] 5.1 - Add workflow hints to tool descriptions

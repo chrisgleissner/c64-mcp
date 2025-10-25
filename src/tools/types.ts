@@ -71,6 +71,7 @@ export interface ToolDefinition {
   readonly relatedResources?: readonly string[];
   readonly relatedPrompts?: readonly string[];
   readonly tags?: readonly string[];
+  readonly workflowHints?: readonly string[];
   readonly execute: (args: unknown, ctx: ToolExecutionContext) => Promise<ToolRunResult>;
 }
 
@@ -86,6 +87,8 @@ export interface ToolDescriptor {
     readonly prompts: readonly string[];
     readonly examples?: readonly ToolExample[];
     readonly tags: readonly string[];
+    readonly workflowHints?: readonly string[];
+    readonly prerequisites?: readonly string[];
   };
 }
 
@@ -96,6 +99,8 @@ export interface ToolModuleConfig {
   readonly prompts?: readonly string[];
   readonly defaultLifecycle?: ToolLifecycle;
   readonly defaultTags?: readonly string[];
+  readonly workflowHints?: readonly string[];
+  readonly prerequisites?: readonly string[];
   readonly tools: readonly ToolDefinition[];
 }
 
