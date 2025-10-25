@@ -12,6 +12,8 @@ function assertDescriptorMetadata(metadata) {
   assert.ok(Array.isArray(metadata.resources), "metadata.resources should be array");
   assert.ok(Array.isArray(metadata.prompts), "metadata.prompts should be array");
   assert.ok(Array.isArray(metadata.tags), "metadata.tags should be array");
+  assert.ok(Array.isArray(metadata.platforms), "metadata.platforms should be array");
+  assert.ok(metadata.platforms.length > 0, "metadata.platforms should not be empty");
   if (metadata.examples !== undefined) {
     assert.ok(Array.isArray(metadata.examples), "metadata.examples should be array when present");
   }
@@ -62,6 +64,7 @@ export function registerMcpServerToolsTests(withSharedMcpClient) {
         assert.deepEqual(listed.metadata.resources, descriptor.metadata.resources);
         assert.deepEqual(listed.metadata.prompts, descriptor.metadata.prompts);
         assert.deepEqual(listed.metadata.tags, descriptor.metadata.tags);
+  assert.deepEqual(listed.metadata.platforms, descriptor.metadata.platforms);
 
         if (descriptor.metadata.workflowHints) {
           assert.deepEqual(listed.metadata.workflowHints, descriptor.metadata.workflowHints);

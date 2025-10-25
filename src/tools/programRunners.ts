@@ -105,6 +105,7 @@ export const programRunnersModule = defineToolModule({
         "Invoke right after you generate BASIC source so it runs on the C64 without extra user steps.",
         "Ensure the program includes line numbers and uppercase keywords before calling the tool.",
       ],
+      supportedPlatforms: ["c64u", "vice"] as const,
       async execute(args, ctx) {
         try {
           const parsed = uploadBasicArgsSchema.parse(args);
@@ -143,6 +144,7 @@ export const programRunnersModule = defineToolModule({
         "Use when the user requests to run new 6502 code; surface any assembler diagnostics in your reply.",
         "Mention the entry routine or important addresses after execution so the user can continue debugging.",
       ],
+      supportedPlatforms: ["c64u", "vice"] as const,
       async execute(args, ctx) {
         try {
           const parsed = uploadAsmArgsSchema.parse(args);
@@ -226,6 +228,7 @@ export const programRunnersModule = defineToolModule({
         "Call when the user provides a PRG path and expects immediate execution without compiling.",
         "Mention that firmware issues a RUN so the user knows the machine state changed.",
       ],
+    supportedPlatforms: ["c64u", "vice"] as const,
       async execute(args, ctx) {
         try {
           const parsed = prgFileArgsSchema.parse(args ?? {});

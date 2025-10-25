@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { programRunnersModule } from "../src/tools/programRunners.js";
+import { ToolUnsupportedPlatformError } from "../src/tools/errors.js";
 
 function createLogger() {
   return {
@@ -34,6 +35,49 @@ test("run_prg_file executes via client", async () => {
   assert.equal(result.metadata.path, "//USB0/demo.prg");
   assert.deepEqual(result.metadata.details, { prgLength: 4096 });
   assert.deepEqual(calls, ["//USB0/demo.prg"]);
+});
+
+test("upload_and_run_basic is available on vice", async () => {
+  const calls = [];
+  const ctx = {
+    client: {
+      async uploadAndRunBasic(program) {
+        calls.push(program);
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+    platform: { id: "vice", features: [], limitedFeatures: [] },
+    setPlatform: () => ({ id: "vice", features: [], limitedFeatures: [] }),
+  };
+
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_basic",
+    { program: '10 PRINT "HELLO"\n20 END' },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.ok(result.content[0].text.includes("BASIC program uploaded"));
+  assert.equal(calls.length, 1);
+});
+
+test("load_prg_file rejects vice platform", async () => {
+  const ctx = {
+    client: {
+      async loadPrgFile() {
+        throw new Error("should not execute on unsupported platform");
+      },
+    },
+    logger: createLogger(),
+    platform: { id: "vice", features: [], limitedFeatures: [] },
+    setPlatform: () => ({ id: "vice", features: [], limitedFeatures: [] }),
+  };
+
+  await assert.rejects(
+    () => programRunnersModule.invoke("load_prg_file", { path: "//USB0/demo.prg" }, ctx),
+    ToolUnsupportedPlatformError,
+  );
 });
 
 test("load_prg_file validates path", async () => {
