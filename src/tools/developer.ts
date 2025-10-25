@@ -130,6 +130,20 @@ const configBatchSchema: Schema<Record<string, Record<string, PrimitiveValue>>> 
   },
 };
 
+const debugWriteArgsSchema = objectSchema({
+  description: "Write a hex byte into the Ultimate debug register ($D7FF).",
+  properties: {
+    value: stringSchema({
+      description: "Hex value (00-FF) to write to the debug register.",
+      minLength: 1,
+      maxLength: 2,
+      pattern: /^[0-9A-Fa-f]{1,2}$/,
+    }),
+  },
+  required: ["value"],
+  additionalProperties: false,
+});
+
 export const developerModule = defineToolModule({
   domain: "developer",
   summary: "Configuration management, diagnostics, and helper utilities for advanced workflows.",
@@ -366,6 +380,122 @@ export const developerModule = defineToolModule({
 
           return textResult("Configuration reset to defaults.", {
             success: true,
+            details: toRecord(result.details) ?? null,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "version",
+      description: "Retrieve Ultimate firmware and API version information.",
+      summary: "Calls the firmware version endpoint and returns the structured payload.",
+      inputSchema: noArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["diagnostics", "version"],
+      async execute(args, ctx) {
+        try {
+          noArgsSchema.parse(args ?? {});
+          ctx.logger.info("Fetching firmware version");
+
+          const details = await ctx.client.version();
+          return jsonResult(details, {
+            success: true,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "info",
+      description: "Retrieve Ultimate hardware information and status.",
+      summary: "Returns the raw diagnostics payload reported by the firmware info endpoint.",
+      inputSchema: noArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["diagnostics", "info"],
+      async execute(args, ctx) {
+        try {
+          noArgsSchema.parse(args ?? {});
+          ctx.logger.info("Fetching hardware info");
+
+          const details = await ctx.client.info();
+          return jsonResult(details, {
+            success: true,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "debugreg_read",
+      description: "Read the Ultimate debug register ($D7FF).",
+      summary: "Returns the current hex value stored in the debug register.",
+      inputSchema: noArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["debug"],
+      async execute(args, ctx) {
+        try {
+          noArgsSchema.parse(args ?? {});
+          ctx.logger.info("Reading debug register");
+
+          const result = await ctx.client.debugregRead();
+          if (!result.success) {
+            throw new ToolExecutionError("C64 firmware reported failure while reading debug register", {
+              details: toRecord(result.details),
+            });
+          }
+
+          const details = toRecord(result.details) ?? {};
+          const value = typeof result.value === "string" ? result.value.toUpperCase() : null;
+
+          return textResult(`Debug register value: ${value ?? "(unknown)"}.`, {
+            success: true,
+            value,
+            details,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "debugreg_write",
+      description: "Write a value into the Ultimate debug register ($D7FF).",
+      summary: "Validates the hex input and forwards it to the firmware.",
+      inputSchema: debugWriteArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["debug"],
+      async execute(args, ctx) {
+        try {
+          const parsed = debugWriteArgsSchema.parse(args ?? {});
+          const value = parsed.value.toUpperCase();
+          ctx.logger.info("Writing debug register", { value });
+
+          const result = await ctx.client.debugregWrite(value);
+          if (!result.success) {
+            throw new ToolExecutionError("C64 firmware reported failure while writing debug register", {
+              details: toRecord(result.details),
+            });
+          }
+
+          return textResult(`Debug register written with ${value}.`, {
+            success: true,
+            value,
             details: toRecord(result.details) ?? null,
           });
         } catch (error) {

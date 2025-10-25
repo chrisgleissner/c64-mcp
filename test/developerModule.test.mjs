@@ -104,3 +104,53 @@ test("config_reset_to_default succeeds", async () => {
   assert.equal(result.metadata.success, true);
   assert.deepEqual(result.metadata.details, { rebootRequired: true });
 });
+
+test("debugreg_read returns uppercase value", async () => {
+  const ctx = {
+    client: {
+      async debugregRead() {
+        return { success: true, value: "1a", details: { raw: "1a" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("debugreg_read", {}, ctx);
+
+  assert.equal(result.content[0].type, "text");
+  assert.equal(result.metadata.success, true);
+  assert.equal(result.metadata.value, "1A");
+  assert.deepEqual(result.metadata.details, { raw: "1a" });
+});
+
+test("debugreg_write validates input", async () => {
+  const ctx = {
+    client: {
+      async debugregWrite() {
+        throw new Error("should not run");
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("debugreg_write", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata.error.kind, "validation");
+});
+
+test("version returns firmware payload", async () => {
+  const ctx = {
+    client: {
+      async version() {
+        return { version: "1.2.3" };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("version", {}, ctx);
+
+  assert.equal(result.content[0].type, "json");
+  assert.deepEqual(result.content[0].data, { version: "1.2.3" });
+});

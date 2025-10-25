@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.20
-**Last Updated:** 2025-10-25T19:05:00+01:00
+**Current Step:** 3.22
+**Last Updated:** 2025-10-25T19:45:00+01:00
 
 
 ## Process Guidelines
@@ -78,8 +78,8 @@
 - [x] 3.17 - Migrate RAG retrieval tools
 - [x] 3.18 - Migrate program loaders & file utilities
 - [x] 3.19 - Migrate configuration management tools
-- [ ] 3.20 - Migrate debug & developer tools
-- [ ] 3.21 - Migrate streaming tools
+- [x] 3.20 - Migrate debug & developer tools
+- [x] 3.21 - Migrate streaming tools
 - [ ] 3.22 - Test each tool works via MCP protocol
 
 ### Phase 5: Prompts Implementation
@@ -152,6 +152,7 @@
 - 2025-10-25T18:10:00+01:00: Migrated RAG retrieval tools into dedicated module with schema validation, MCP wiring, and unit tests.
 - 2025-10-25T18:40:00+01:00: Migrated program loader tools for PRG/CRT execution with shared schemas, error handling, and unit tests.
 - 2025-10-25T19:05:00+01:00: Migrated configuration management tools with normalized schemas, firmware error handling, and dedicated unit tests.
+- 2025-10-25T19:45:00+01:00: Migrated debug register tooling into developer module, finalized streaming module, added unit coverage, and regenerated manifest.
 
 ---
 

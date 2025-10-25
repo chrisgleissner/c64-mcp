@@ -1,8 +1,5 @@
 import { defineToolModule } from "./types.js";
-import {
-  objectSchema,
-  stringSchema,
-} from "./schema.js";
+import { objectSchema } from "./schema.js";
 import { textResult } from "./responses.js";
 import {
   ToolError,
@@ -44,21 +41,6 @@ const poweroffArgsSchema = createNoArgsSchema("No arguments required to power of
 const menuButtonArgsSchema = createNoArgsSchema("No arguments required to toggle the Ultimate menu button.");
 const versionArgsSchema = createNoArgsSchema("Fetch the firmware/API version information.");
 const infoArgsSchema = createNoArgsSchema("Fetch hardware information and health details.");
-const debugReadArgsSchema = createNoArgsSchema("No arguments required to read the debug register.");
-
-const debugWriteArgsSchema = objectSchema({
-  description: "Write a hex byte into the Ultimate debug register ($D7FF).",
-  properties: {
-    value: stringSchema({
-      description: "Hex value (00-FF) to write to the debug register.",
-      minLength: 1,
-      maxLength: 2,
-      pattern: /^[0-9A-Fa-f]{1,2}$/,
-    }),
-  },
-  required: ["value"],
-  additionalProperties: false,
-});
 
 export const machineControlModule = defineToolModule({
   domain: "machine",
@@ -297,74 +279,6 @@ export const machineControlModule = defineToolModule({
           const details = await ctx.client.info();
           return textResult("Retrieved Ultimate hardware information.", {
             success: true,
-            details,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
-      },
-    },
-    {
-      name: "debugreg_read",
-      description: "Read the Ultimate debug register ($D7FF).",
-      summary: "Returns the current hex value stored in the debug register.",
-      inputSchema: debugReadArgsSchema.jsonSchema,
-      tags: ["debug"],
-      async execute(args, ctx) {
-        try {
-          debugReadArgsSchema.parse(args ?? {});
-          ctx.logger.info("Reading Ultimate debug register");
-
-          const result = await ctx.client.debugregRead();
-          if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while reading debug register", {
-              details: normaliseFailure(result.details),
-            });
-          }
-
-          const details = toRecord(result.details) ?? {};
-          const value = typeof result.value === "string" ? result.value.toUpperCase() : null;
-
-          return textResult(`Debug register value: ${value ?? "(unknown)"}.`, {
-            success: true,
-            value,
-            details,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
-      },
-    },
-    {
-      name: "debugreg_write",
-      description: "Write a value into the Ultimate debug register ($D7FF).",
-      summary: "Validates hex input and forwards it to the firmware.",
-      inputSchema: debugWriteArgsSchema.jsonSchema,
-      tags: ["debug"],
-      async execute(args, ctx) {
-        try {
-          const parsed = debugWriteArgsSchema.parse(args ?? {});
-          const value = parsed.value.toUpperCase();
-          ctx.logger.info("Writing Ultimate debug register", { value });
-
-          const result = await ctx.client.debugregWrite(value);
-          if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while writing debug register", {
-              details: normaliseFailure(result.details),
-            });
-          }
-
-          const details = toRecord(result.details) ?? {};
-
-          return textResult(`Debug register written with ${value}.`, {
-            success: true,
-            value,
             details,
           });
         } catch (error) {
