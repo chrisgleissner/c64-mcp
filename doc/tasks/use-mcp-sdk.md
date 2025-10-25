@@ -156,7 +156,7 @@ npm list @modelcontextprotocol/sdk
 - [x] 0.1 - Install @modelcontextprotocol/sdk
 ```
 
-**Do NOT proceed to 0.2 until 0.1 is checked ✅**
+Do NOT proceed to 0.2 until 0.1 is checked ✅
 
 ---
 
@@ -225,7 +225,7 @@ main().catch((error) => {
 - [x] 0.2 - Create src/mcp-server.ts skeleton
 ```
 
-**Do NOT proceed to 0.3 until 0.2 is checked ✅**
+Do NOT proceed to 0.3 until 0.2 is checked ✅
 
 ---
 
@@ -332,7 +332,7 @@ npm run mcp
 
 **Expected Output:**
 
-```
+```text
 Starting c64-mcp MCP server...
 c64-mcp MCP server running on stdio
 ```
@@ -469,26 +469,19 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 ---
 
-### Step 2.3-2.7: Verify Individual Resources
+### Step 2.3-2.7: Verify Individual Resources Automatically
 
-**Action:** Test each resource loads:
+**Action:** Add automated TypeScript tests (under `test/`) that start the built MCP server, issue `ListResources` and `ReadResource` requests, and assert that each URI above returns non-empty markdown content. Reuse the helper infrastructure from existing tests (mock server, config loaders, etc.) and ensure the tests run with `npm test`.
 
-```bash
-# You'll need MCP Inspector for this - install if needed:
-npm install -g @modelcontextprotocol/inspector
+**Expected:** Tests cover:
 
-# Run server in inspector:
-npx @modelcontextprotocol/inspector node dist/mcp-server.js
-
-# In inspector UI, test reading each resource:
-# - c64://specs/basic
-# - c64://specs/assembly
-# - c64://specs/sid
-# - c64://specs/vic
-# - c64://context/bootstrap
-```
-
-**Expected:** All resources return markdown content.
+- `c64://specs/basic`
+- `c64://specs/assembly`
+- `c64://specs/sid`
+- `c64://specs/vic`
+- `c64://specs/printer`
+- `c64://context/bootstrap`
+- `c64://specs/sidwave`
 
 **Update MIGRATION-PROGRESS.md:**
 
@@ -504,12 +497,12 @@ npx @modelcontextprotocol/inspector node dist/mcp-server.js
 
 ### Step 2.8: Test Resource Reading
 
-**Action:** Verify all resources work end-to-end.
+**Action:** Ensure the new resource tests run in CI by executing `npm test` locally and confirming the suite passes.
 
 **Update MIGRATION-PROGRESS.md:**
 
 ```markdown
-- [x] 2.8 - Test resource reading with MCP inspector
+- [x] 2.8 - Validate resources via automated tests
 
 ### Phase 3: Resources Implementation - COMPLETE ✅
 ```
@@ -957,14 +950,14 @@ Begin now by reading the assembly spec.`,
 After completing each phase, run:
 
 ```bash
-# Build
+# Build TypeScript output
 npm run build
 
-# Test MCP server
-npm run mcp
+# Execute automated test suite (includes MCP interactions)
+npm test
 
-# Verify in MCP Inspector
-npx @modelcontextprotocol/inspector node dist/mcp-server.js
+# Spot-check stdio launch
+npm run mcp
 ```
 
 **Do NOT proceed to next phase until current phase is ✅ complete!**
@@ -979,24 +972,36 @@ When ALL checkboxes are ✅:
 2. ✅ All tools work via MCP protocol
 3. ✅ All resources load correctly
 4. ✅ Prompts execute successfully
-5. ✅ Old decorator system removed
-6. ✅ `mcp-manifest.json` deleted
-7. ✅ Documentation updated
-8. ✅ `MIGRATION-PROGRESS.md` - Complete record
+5. ✅ Comprehensive automated tests cover resources, tools, and prompts
+6. ✅ Old decorator system removed
+7. ✅ `mcp-manifest.json` deleted
+8. ✅ Documentation updated
+9. ✅ `MIGRATION-PROGRESS.md` - Complete record
 
 ---
 
 ## SUCCESS CRITERIA
 
 - [ ] Server starts without errors
+- [ ] Automated tests exercise List/Call tools, resources, and prompts
 - [ ] All 70+ tools callable via MCP
 - [ ] All 7 resources readable
 - [ ] All 3+ prompts work
-- [ ] Works with Claude Desktop
-- [ ] Works with VS Code Copilot
 - [ ] No broken functionality from before migration
 - [ ] Old custom system completely removed
 
 ---
 
 **Remember: Update MIGRATION-PROGRESS.md after EVERY step. Never skip ahead.**
+
+---
+
+### Optional Manual Verification (MCP Inspector)
+
+If a human reviewer wants an additional manual check later, launch the MCP Inspector against the compiled server:
+
+```bash
+npx @modelcontextprotocol/inspector node dist/mcp-server.js
+```
+
+This step is optional and only for post-test spot checks.
