@@ -127,10 +127,10 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 
 
 ### Phase 8: Cleanup
-- [ ] 7.1 - Remove src/mcpDecorators.ts
-- [ ] 7.2 - Remove scripts/generate-manifest.mjs
-- [ ] 7.3 - Remove mcp-manifest.json
-- [ ] 7.4 - Remove toolsCatalog.ts (if no longer needed)
+- [x] 7.1 - Remove src/mcpDecorators.ts
+- [x] 7.2 - Remove scripts/generate-manifest.mjs
+- [x] 7.3 - Remove mcp-manifest.json
+- [x] 7.4 - Remove toolsCatalog.ts (if no longer needed)
 - [ ] 7.5 - Update README.md with new setup instructions
 - [ ] 7.6 - Update .vscode/settings.json
 - [ ] 7.7 - Archive old HTTP server to src/http-server.ts.backup

@@ -195,7 +195,7 @@ Congratulations! You are now all set to use the MCP server with your C64 device.
 The Agent has two main artifacts:
 
 - [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata).
-- [`mcp-manifest.json`](mcp-manifest.json): auto-generated tool manifest consumed by MCP clients. It is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
+  (No manifest file required; MCP clients discover tools at runtime over stdio.)
 
 Besides this `README.md` document, the project includes extensive documentation:
 
@@ -370,7 +370,7 @@ Add this configuration to your workspace `.vscode/settings.json` (stdio transpor
 }
 ```
 
-You can optionally set the `manifestPath` to point at `mcp-manifest.json`, but the official SDK server surface does not require a static manifest.
+MCP clients discover tools dynamically at runtime; no manifest file is required.
 
 ### Step 3: Start the MCP Server
 
@@ -398,7 +398,7 @@ Example curl call (when HTTP server is enabled):
 curl -s http://localhost:8000/tools/info | jq
 ```
 
-Any endpoint listed in the generated `mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
+When using the optional HTTP server, endpoints live under `/tools/*`.
 
 ## Local RAG 🕸️
 
