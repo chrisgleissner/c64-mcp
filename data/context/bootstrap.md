@@ -1,6 +1,6 @@
 # C64 MCP Bootstrap Primer
 
-Concise, complete reference for core C64 development with MCP. Keep under ~8 KB. This is injected first in every session.
+High-level overview for C64 development. For more details, see linked documents. 
 
 ## Device & Services
 
@@ -25,7 +25,9 @@ Bank control (6510 at $0001):
 
 - Bits: 0 LORAM, 1 HIRAM, 2 CHAREN. Typical full RAM: %0000_0011 → clear for RAM, set for ROM.
 
-## VIC-II Essentials ($D000–$D02E)
+## Video (VIC-II)
+
+The VIC-II chip handles graphics and sprites. Fore more information see `data/video/vic-spec.md`.
 
 - Sprites: X ($D000..$D00E even), Y ($D001..$D00F odd), X MSBs $D010.
 - Control: $D011 (bit 7: 25th row; bit 6: RST8; bit 5: bitmap on; bits 0–2: vertical scroll).
@@ -47,7 +49,44 @@ Bitmap setup (typical):
 - Screen map at $0400 ($D018 bits 1–3 = 1), bitmap at $2000 ($D018 bits 4–7 = 8).
 - Enable bitmap: set $D011 bit 5; optional multicolour: set $D016 bit 5.
 
-## SID Essentials ($D400–$D418)
+### PETSCII, Screen & Colors
+
+- Screen at $0400 (40×25); write screen codes. Colour RAM at $D800 (nybbles). Border $D020, background $D021.
+- To draw pixels: use bitmap mode and write to bitmap memory; control colours via attributes (screen/colour RAM in text, nybbles per cell in bitmap multicolour).
+
+### PETSCII String Pitfalls
+
+- PETSCII is not ASCII: characters such as the backslash map to control codes (e.g. `$1C` toggles reverse video in the default upper/graphics set). Switch to the lower/upper character set first (`CHR$(14)` or `POKE 53272,14`) or pick alternative glyphs if you need a literal `\` on screen.
+- Commodore BASIC does not interpret `\n` as a newline. When emitting multi-line art, either print each line separately or inject carriage returns explicitly with `CHR$(13)`.
+
+Example:
+
+```basic
+10 PRINT CHR$(147);CHR$(14);" /\\_/\\"
+20 PRINT " ( o.o )"
+30 PRINT "  > ^ <"
+40 PRINT CHR$(142)
+```
+
+## Raster IRQ Setup
+
+Use this to trigger code at a specific raster line, e.g. for split-screen effects, multiplexing sprites, or scrolling in the border without screen tear.
+
+1. Disable interrupts: `SEI`.
+2. Set raster line `$D012`, configure `$D011` bit 7 accordingly.
+3. Set IRQ vector `$0314/$0315` to handler.
+4. Enable IRQ in `$D01A` and global `CLI`.
+5. In handler: do work (e.g., change colours/sprites), then `LDA $D019`/`STA $D019` to clear and `RTI`.
+
+## Image & Sprites
+
+- Bitmap (hi-res): set `$D011` bit 5=1, `$D016` bit 5=0; point `$D018` to screen/bitmap; write bits into bitmap memory.
+- Multicolour bitmap: also set `$D016` bit 5=1; use `$D022–$D024` and colour RAM per cell.
+- Sprites: define 63-byte patterns; set sprite pointers at $07F8–$07FF; position with `$D000–$D00F`, enable with `$D015`.
+
+## Audio (SID)
+
+The SID chip handles audio synthesis. For more information see `data/audio/sid-spec.md`.
 
 Per voice (1..3; base offsets +0x07 per voice):
 
@@ -68,26 +107,9 @@ Making sound (basic):
 4. Set waveform + GATE in CONTROL ($D404).
 5. Set master volume at $D418.
 
-## PETSCII, Screen & Colors
+## BASIC
 
-- Screen at $0400 (40×25); write screen codes. Colour RAM at $D800 (nybbles). Border $D020, background $D021.
-- To draw pixels: use bitmap mode and write to bitmap memory; control colours via attributes (screen/colour RAM in text, nybbles per cell in bitmap multicolour).
-
-### PETSCII String Pitfalls
-
-- PETSCII is not ASCII: characters such as the backslash map to control codes (e.g. `$1C` toggles reverse video in the default upper/graphics set). Switch to the lower/upper character set first (`CHR$(14)` or `POKE 53272,14`) or pick alternative glyphs if you need a literal `\` on screen.
-- Commodore BASIC does not interpret `\n` as a newline. When emitting multi-line art, either print each line separately or inject carriage returns explicitly with `CHR$(13)`.
-
-Example:
-
-```basic
-10 PRINT CHR$(147);CHR$(14);" /\\_/\\"
-20 PRINT " ( o.o )"
-30 PRINT "  > ^ <"
-40 PRINT CHR$(142)
-```
-
-## BASIC v2
+Basic is used for simple programs and quick prototyping. It is very slow compared to assembly. For more information see `data/basic/basic-spec.md`.
 
 - Program: numbered lines; end with `END` or stop on last line.
 - Variables: A–Z (and arrays A()(numeric), A$() string); strings end with `$`.
@@ -104,6 +126,8 @@ Example:
 
 ## 6502/6510 Assembly
 
+Assembly is used for maximum performance and control. For more information see `data/asssembly/assembly-spec.md`.
+
 - Addressing modes: `#imm, zp, zp,X, zp,Y, abs, abs,X, abs,Y, (zp), (zp,X), (zp),Y, rel`.
 - Key opcodes (full set):
   - Load/Store: `LDA LDX LDY` / `STA STX STY`.
@@ -117,20 +141,6 @@ Example:
 - Directives (assembler used here): `.org/*=`, `.byte`, `.word`, `.text/.ascii`, `ds` (fill), labels `name:`.
 - Interrupts: set IRQ vector at $0314/$0315 to your routine; acknowledge VIC-II IRQ by writing back bit to $D019.
 - Example (border flash): write to `$D020` inside raster IRQ (`$D012`/`$D011`), mask `$D01A`, acknowledge `$D019`.
-
-## Raster IRQ Setup (minimal)
-
-1. Disable interrupts: `SEI`.
-2. Set raster line `$D012`, configure `$D011` bit 7 accordingly.
-3. Set IRQ vector `$0314/$0315` to handler.
-4. Enable IRQ in `$D01A` and global `CLI`.
-5. In handler: do work (e.g., change colours/sprites), then `LDA $D019`/`STA $D019` to clear and `RTI`.
-
-## Image & Sprite Quick Start
-
-- Bitmap (hi-res): set `$D011` bit 5=1, `$D016` bit 5=0; point `$D018` to screen/bitmap; write bits into bitmap memory.
-- Multicolour bitmap: also set `$D016` bit 5=1; use `$D022–$D024` and colour RAM per cell.
-- Sprites: define 63-byte patterns; set sprite pointers at $07F8–$07FF; position with `$D000–$D00F`, enable with `$D015`.
 
 ## Context & RAG
 
