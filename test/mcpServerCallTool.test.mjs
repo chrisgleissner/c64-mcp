@@ -297,3 +297,124 @@ test("write_memory tool writes bytes to mock C64", async () => {
     }
   }
 });
+
+test("SID control tools operate via MCP", async () => {
+  const mockServer = await startMockC64Server();
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "c64-mcp-config-"));
+  const configPath = path.join(tmpDir, "config.json");
+  fs.writeFileSync(configPath, JSON.stringify({ baseUrl: mockServer.baseUrl }), "utf8");
+
+  const connection = await createConnectedClient({
+    env: {
+      C64MCP_CONFIG: configPath,
+      C64_TEST_TARGET: "mock",
+    },
+  });
+  const { client } = connection;
+
+  try {
+    const volumeResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "sid_volume",
+          arguments: {
+            volume: 12,
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(volumeResult.metadata?.success, "sid_volume should succeed");
+    assert.equal(volumeResult.metadata.appliedVolume, 12);
+    assert.equal(mockServer.state.lastWrite?.address, 0xd418);
+    assert.equal(mockServer.state.lastWrite?.bytes[0], 12);
+
+    const noteOnResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "sid_note_on",
+          arguments: {
+            voice: 2,
+            note: "C4",
+            waveform: "tri",
+            pulseWidth: 0x0400,
+            attack: 2,
+            decay: 5,
+            sustain: 8,
+            release: 4,
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(noteOnResult.metadata?.success, "sid_note_on should succeed");
+    assert.equal(noteOnResult.metadata.voice, 2);
+    assert.equal(mockServer.state.lastWrite?.address, 0xd407);
+    assert.equal(mockServer.state.lastWrite?.bytes.length, 7);
+
+    const noteOffResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "sid_note_off",
+          arguments: {
+            voice: 2,
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(noteOffResult.metadata?.success, "sid_note_off should succeed");
+    assert.equal(noteOffResult.metadata.voice, 2);
+    assert.equal(mockServer.state.lastWrite?.address, 0xd40b);
+    assert.equal(mockServer.state.lastWrite?.bytes[0], 0x00);
+
+    const silenceResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "sid_silence_all",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(silenceResult.metadata?.success, "sid_silence_all should succeed");
+    assert.equal(mockServer.state.lastWrite?.address, 0xd418);
+    assert.equal(mockServer.state.lastWrite?.bytes[0], 0x00);
+
+    const resetResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "sid_reset",
+          arguments: {
+            hard: true,
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(resetResult.metadata?.success, "sid_reset should succeed");
+    assert.equal(resetResult.metadata.mode, "hard");
+    assert.equal(mockServer.state.lastWrite?.address, 0xd400);
+    assert.equal(mockServer.state.lastWrite?.bytes.length, 0x19);
+    assert.ok(mockServer.state.lastWrite?.bytes.every((byte) => byte === 0x00));
+  } finally {
+    await connection.close();
+    await mockServer.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    const stderrOutput = connection.stderrOutput();
+    if (stderrOutput) {
+      process.stderr.write(stderrOutput);
+    }
+  }
+});

@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.11
-**Last Updated:** 2025-10-25T14:25:00+01:00
+**Current Step:** 3.12
+**Last Updated:** 2025-10-25T14:55:00+01:00
 
 ---
 
@@ -60,7 +60,7 @@
 - [x] 3.8 - Migrate read_screen tool
 - [x] 3.9 - Migrate read_memory tool
 - [x] 3.10 - Migrate write_memory tool
-- [ ] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
+- [x] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
 - [ ] 3.12 - Migrate machine control & diagnostics tools
 - [ ] 3.13 - Migrate drive and disk-management tools
 - [ ] 3.14 - Migrate SID playback and audio analysis tools
@@ -135,6 +135,7 @@
 - 2025-10-25T13:32:00+01:00: Migrated read_screen into memory module with argument validation, structured response metadata, and MCP integration coverage.
 - 2025-10-25T13:55:00+01:00: Migrated read_memory into memory module with numeric validation, symbol support, and hex-dump MCP integration coverage.
 - 2025-10-25T14:25:00+01:00: Migrated write_memory into memory module with schema validation, address metadata normalization, and MCP integration coverage.
+- 2025-10-25T14:55:00+01:00: Migrated SID control tools into audio module with parameter schemas, logging, and MCP integration coverage.
 
 ---
 
