@@ -73,7 +73,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [ ] 3.2 - Implement centralized tool registry with enriched metadata
 - [x] 3.3 - Define shared parameter/result schemas & error helpers
 - [x] 3.4 - Implement ListToolsRequestSchema handler
-- [ ] 3.5 - Implement CallToolRequestSchema handler
+- [x] 3.5 - Implement CallToolRequestSchema handler
 - [ ] 3.6 - Migrate upload_and_run_basic tool
 - [ ] 3.7 - Migrate upload_and_run_asm tool
 - [ ] 3.8 - Migrate read_screen tool

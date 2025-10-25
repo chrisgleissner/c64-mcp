@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.5
-**Last Updated:** 2025-10-25T11:55:00+01:00
+**Current Step:** 3.6
+**Last Updated:** 2025-10-25T12:20:00+01:00
 
 ---
 
@@ -54,7 +54,7 @@
 - [x] 3.2 - Implement centralized tool registry with enriched metadata
 - [x] 3.3 - Define shared parameter/result schemas & error helpers
 - [x] 3.4 - Implement ListToolsRequestSchema handler
-- [ ] 3.5 - Implement CallToolRequestSchema handler
+- [x] 3.5 - Implement CallToolRequestSchema handler
 - [ ] 3.6 - Migrate upload_and_run_basic tool
 - [ ] 3.7 - Migrate upload_and_run_asm tool
 - [ ] 3.8 - Migrate read_screen tool
@@ -129,6 +129,7 @@
 - 2025-10-25T11:00:01+01:00: Built centralized tool registry wiring all modules with duplicate detection.
 - 2025-10-25T11:35:00+01:00: Added reusable validation schemas, result helpers, and error translations with unit coverage for Step 3.3.
 - 2025-10-25T11:55:00+01:00: Wired ListTools handler to registry and added MCP integration tests for tool listings.
+- 2025-10-25T12:20:00+01:00: Routed CallTool through the registry with console-backed logging, standardized error responses, and new integration coverage.
 
 ---
 

@@ -18,6 +18,8 @@ import {
   readKnowledgeResource,
 } from "./rag/knowledgeIndex.js";
 import { toolRegistry } from "./tools/registry.js";
+import { unknownErrorResult } from "./tools/errors.js";
+import type { ToolLogger, ToolRunResult } from "./tools/types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,6 +33,8 @@ async function main() {
   
   // Initialize C64 client (reuse existing)
   const client = new C64Client(baseUrl);
+
+  const toolLogger = createToolLogger();
 
   // Create MCP server
   const server = new Server(
@@ -78,6 +82,35 @@ async function main() {
     };
   });
 
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name } = request.params;
+    const args = request.params.arguments ?? {};
+    const startedAt = Date.now();
+
+    toolLogger.debug(`Invoking tool ${name}`, {
+      hasArguments: args && typeof args === "object" && Object.keys(args).length > 0,
+    });
+
+    try {
+      const result = await toolRegistry.invoke(name, args, {
+        client,
+        logger: toolLogger,
+      });
+
+      toolLogger.debug(`Tool ${name} completed`, {
+        durationMs: Date.now() - startedAt,
+      });
+
+      return toCallToolResult(result);
+    } catch (error) {
+      toolLogger.error(`Tool ${name} failed`, {
+        durationMs: Date.now() - startedAt,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return toCallToolResult(unknownErrorResult(error));
+    }
+  });
+
   // TODO: Add handlers in subsequent steps
 
   // Connect via stdio
@@ -85,6 +118,47 @@ async function main() {
   await server.connect(transport);
   
   console.error("c64-mcp MCP server running on stdio");
+}
+
+function toCallToolResult(result: ToolRunResult): {
+  content: ToolRunResult["content"];
+  metadata?: ToolRunResult["metadata"];
+} {
+  if (result.metadata !== undefined) {
+    return { content: result.content, metadata: result.metadata };
+  }
+  return { content: result.content };
+}
+
+function createToolLogger(): ToolLogger {
+  const log = (level: "debug" | "info" | "warn" | "error", message: string, details?: Record<string, unknown>) => {
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
+
+    const method = (console[level] as ((...args: unknown[]) => void) | undefined) ?? console.log;
+    const payload = details && Object.keys(details).length > 0 ? details : undefined;
+    if (payload) {
+      method(`[tools] ${message}`, payload);
+    } else {
+      method(`[tools] ${message}`);
+    }
+  };
+
+  return {
+    debug(message, details) {
+      log("debug", message, details);
+    },
+    info(message, details) {
+      log("info", message, details);
+    },
+    warn(message, details) {
+      log("warn", message, details);
+    },
+    error(message, details) {
+      log("error", message, details);
+    },
+  };
 }
 
 main().catch((error) => {
