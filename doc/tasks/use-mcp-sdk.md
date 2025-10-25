@@ -88,9 +88,9 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 3.17 - Migrate RAG retrieval tools
 - [x] 3.18 - Migrate program loaders & file utilities
 - [x] 3.19 - Migrate configuration management tools
-- [ ] 3.20 - Migrate debug & developer tools
-- [ ] 3.21 - Migrate streaming tools
-- [ ] 3.22 - Test each tool works via MCP protocol
+- [x] 3.20 - Migrate debug & developer tools
+- [x] 3.21 - Migrate streaming tools
+- [x] 3.22 - Test each tool works via MCP protocol
 
 ### Phase 5: Prompts Implementation
 - [ ] 4.1 - Design prompt taxonomy & default context injection

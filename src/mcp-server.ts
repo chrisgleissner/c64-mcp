@@ -125,12 +125,23 @@ async function main() {
 
 function toCallToolResult(result: ToolRunResult): {
   content: ToolRunResult["content"];
+  structuredContent?: ToolRunResult["structuredContent"];
   metadata?: ToolRunResult["metadata"];
 } {
-  if (result.metadata !== undefined) {
-    return { content: result.content, metadata: result.metadata };
+  const base: {
+    content: ToolRunResult["content"];
+    structuredContent?: ToolRunResult["structuredContent"];
+    metadata?: ToolRunResult["metadata"];
+  } = { content: result.content };
+
+  if (result.structuredContent !== undefined) {
+    base.structuredContent = result.structuredContent;
   }
-  return { content: result.content };
+  if (result.metadata !== undefined) {
+    base.metadata = result.metadata;
+  }
+
+  return base;
 }
 
 function createToolLogger(): ToolLogger {

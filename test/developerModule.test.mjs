@@ -23,8 +23,14 @@ test("config_list returns categories", async () => {
 
   const result = await developerModule.invoke("config_list", {}, ctx);
 
-  assert.equal(result.content[0].type, "json");
-  assert.deepEqual(result.content[0].data, { categories: ["Audio", "Video"] });
+  assert.equal(result.content[0].type, "text");
+  assert.deepEqual(JSON.parse(result.content[0].text), {
+    categories: ["Audio", "Video"],
+  });
+  assert.equal(result.structuredContent.type, "json");
+  assert.deepEqual(result.structuredContent.data, {
+    categories: ["Audio", "Video"],
+  });
   assert.equal(result.metadata.success, true);
   assert.equal(result.metadata.categoryCount, 2);
 });
@@ -47,8 +53,14 @@ test("config_get forwards category and item", async () => {
     ctx,
   );
 
-  assert.equal(result.content[0].type, "json");
-  assert.deepEqual(result.content[0].data, { value: { Volume: "10" } });
+  assert.equal(result.content[0].type, "text");
+  assert.deepEqual(JSON.parse(result.content[0].text), {
+    value: { Volume: "10" },
+  });
+  assert.equal(result.structuredContent.type, "json");
+  assert.deepEqual(result.structuredContent.data, {
+    value: { Volume: "10" },
+  });
   assert.deepEqual(calls, [{ category: "Audio", item: "Volume" }]);
 });
 
@@ -151,6 +163,8 @@ test("version returns firmware payload", async () => {
 
   const result = await developerModule.invoke("version", {}, ctx);
 
-  assert.equal(result.content[0].type, "json");
-  assert.deepEqual(result.content[0].data, { version: "1.2.3" });
+  assert.equal(result.content[0].type, "text");
+  assert.deepEqual(JSON.parse(result.content[0].text), { version: "1.2.3" });
+  assert.equal(result.structuredContent?.type, "json");
+  assert.deepEqual(result.structuredContent?.data, { version: "1.2.3" });
 });

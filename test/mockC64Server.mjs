@@ -26,6 +26,41 @@ function normaliseHexString(input) {
   return input.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
 }
 
+function createDefaultConfigs() {
+  return {
+    Audio: {
+      Volume: "6",
+      Balance: "center",
+    },
+    Video: {
+      Mode: "PAL",
+    },
+  };
+}
+
+async function readRequestBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  }
+  if (chunks.length === 0) {
+    return Buffer.alloc(0);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function readJson(req) {
+  try {
+    const body = await readRequestBody(req);
+    if (body.length === 0) {
+      return {};
+    }
+    return JSON.parse(body.toString("utf8"));
+  } catch {
+    return {};
+  }
+}
+
 function createInitialState() {
   return {
     lastPrg: null,
@@ -47,6 +82,15 @@ function createInitialState() {
     lastModplay: null,
     paused: false,
     debugreg: "00",
+    configs: createDefaultConfigs(),
+    flashSnapshot: null,
+    lastConfigAction: null,
+    streams: {
+      video: { active: false, target: null },
+      audio: { active: false, target: null },
+      debug: { active: false, target: null },
+    },
+    lastStreamAction: null,
   };
 }
 
@@ -310,6 +354,134 @@ export async function startMockC64Server() {
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ result: "wrote", address, length: bytes.length }));
       return;
+    }
+
+    if (method === "GET" && url === "/v1/configs") {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ categories: Object.keys(state.configs), configs: state.configs }));
+      return;
+    }
+
+    if (method === "POST" && url === "/v1/configs") {
+      const payload = await readJson(req);
+      if (payload && typeof payload === "object") {
+        for (const [category, items] of Object.entries(payload)) {
+          if (!state.configs[category]) {
+            state.configs[category] = {};
+          }
+          if (items && typeof items === "object") {
+            for (const [item, value] of Object.entries(items)) {
+              state.configs[category][item] = String(value);
+            }
+          }
+        }
+      }
+      state.lastConfigAction = { action: "batch_update", payload };
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ result: "batch_update", categories: Object.keys(payload ?? {}) }));
+      return;
+    }
+
+    if (url.startsWith("/v1/configs:")) {
+      const routeUrl = new URL(url, "http://mock.local");
+      const action = routeUrl.pathname.slice("/v1/configs:".length);
+
+      if (method === "PUT" && action === "load_from_flash") {
+        if (state.flashSnapshot) {
+          state.configs = JSON.parse(JSON.stringify(state.flashSnapshot));
+        }
+        state.lastConfigAction = { action: "load_from_flash" };
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ result: "loaded", restored: Boolean(state.flashSnapshot) }));
+        return;
+      }
+
+      if (method === "PUT" && action === "save_to_flash") {
+        state.flashSnapshot = JSON.parse(JSON.stringify(state.configs));
+        state.lastConfigAction = { action: "save_to_flash" };
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ result: "saved" }));
+        return;
+      }
+
+      if (method === "PUT" && action === "reset_to_default") {
+        state.configs = createDefaultConfigs();
+        state.lastConfigAction = { action: "reset_to_default" };
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ result: "reset" }));
+        return;
+      }
+    }
+
+    if (url.startsWith("/v1/configs/")) {
+      const routeUrl = new URL(url, "http://mock.local");
+      const segments = routeUrl.pathname.split("/").filter(Boolean).slice(2); // remove v1 + configs
+
+      if (segments.length === 1) {
+        const [category] = segments;
+
+        if (method === "GET") {
+          const categoryData = state.configs[category] ?? {};
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(categoryData));
+          return;
+        }
+      }
+
+      if (segments.length === 2) {
+        const [category, item] = segments;
+        if (method === "GET") {
+          const categoryData = state.configs[category] ?? {};
+          const value = categoryData[item];
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ value }));
+          return;
+        }
+
+        if (method === "PUT") {
+          const queryValue = routeUrl.searchParams.get("value");
+          const body = await readJson(req);
+          const value = queryValue ?? body?.value ?? "";
+          if (!state.configs[category]) {
+            state.configs[category] = {};
+          }
+          state.configs[category][item] = String(value);
+          state.lastConfigAction = { action: "set", category, item, value: String(value) };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "updated", category, item, value: String(value) }));
+          return;
+        }
+      }
+    }
+
+    if (url.startsWith("/v1/streams/")) {
+      const routeUrl = new URL(url, "http://mock.local");
+      const match = /^\/v1\/streams\/([^:]+):(start|stop)$/.exec(routeUrl.pathname);
+      if (match) {
+        const stream = decodeURIComponent(match[1]);
+        const action = match[2];
+        if (!state.streams[stream]) {
+          state.streams[stream] = { active: false, target: null };
+        }
+
+        if (action === "start" && method === "PUT") {
+          const body = await readJson(req);
+          const target = routeUrl.searchParams.get("ip") ?? routeUrl.searchParams.get("target") ?? body?.ip ?? body?.target ?? null;
+          state.streams[stream] = { active: true, target };
+          state.lastStreamAction = { action: "start", stream, target };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "started", stream, target }));
+          return;
+        }
+
+        if (action === "stop" && method === "PUT") {
+          state.streams[stream] = { active: false, target: null };
+          state.lastStreamAction = { action: "stop", stream };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ result: "stopped", stream }));
+          return;
+        }
+      }
     }
 
     if (url.startsWith("/v1/drives/")) {

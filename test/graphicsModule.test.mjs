@@ -102,11 +102,13 @@ test("create_petscii_image generates art and uploads program", async () => {
     ctx,
   );
 
-  assert.equal(result.content[0].type, "json");
+  assert.equal(result.content[0].type, "text");
   assert.equal(result.metadata.ranOnC64, true);
   assert.equal(result.metadata.dryRun, false);
   assert.equal(uploads.length, 1);
-  const payload = result.content[0].data;
+  const payload = JSON.parse(result.content[0].text);
+  assert.equal(result.structuredContent?.type, "json");
+  assert.deepEqual(result.structuredContent?.data, payload);
   assert.ok(typeof payload.program === "string" && payload.program.length > 0);
   assert.equal(payload.success, true);
   assert.equal(payload.ranOnC64, true);
@@ -130,10 +132,12 @@ test("create_petscii_image dry run skips upload", async () => {
     ctx,
   );
 
-  assert.equal(result.content[0].type, "json");
+  assert.equal(result.content[0].type, "text");
   assert.equal(result.metadata.dryRun, true);
   assert.equal(result.metadata.ranOnC64, false);
-  const payload = result.content[0].data;
+  const payload = JSON.parse(result.content[0].text);
+  assert.equal(result.structuredContent?.type, "json");
+  assert.deepEqual(result.structuredContent?.data, payload);
   assert.equal(payload.ranOnC64, false);
   assert.equal(payload.success, true);
 });

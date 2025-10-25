@@ -26,6 +26,13 @@ function toRecord(details: unknown): Record<string, unknown> | undefined {
   return { value: details };
 }
 
+function withStructuredJson(
+  payload: Record<string, unknown>,
+  metadata?: Record<string, unknown>,
+) {
+  return jsonResult(payload, metadata ? { ...metadata, details: payload, raw: payload } : { details: payload, raw: payload });
+}
+
 const noArgsSchema = objectSchema<Record<string, never>>({
   description: "This tool does not require any arguments.",
   properties: {},
@@ -169,7 +176,7 @@ export const developerModule = defineToolModule({
           const details = await ctx.client.configsList();
           const payload = normalizeCategoryListing(details);
 
-          return jsonResult(payload, {
+          return withStructuredJson(payload, {
             success: true,
             categoryCount: Array.isArray(payload.categories)
               ? payload.categories.length
@@ -199,7 +206,7 @@ export const developerModule = defineToolModule({
           });
 
           const details = await ctx.client.configGet(parsed.category, parsed.item);
-          return jsonResult({ value: details }, {
+          return withStructuredJson({ value: details }, {
             success: true,
             category: parsed.category,
             item: parsed.item ?? null,
@@ -403,8 +410,9 @@ export const developerModule = defineToolModule({
           ctx.logger.info("Fetching firmware version");
 
           const details = await ctx.client.version();
-          return jsonResult(details, {
+          return withStructuredJson(toRecord(details) ?? {}, {
             success: true,
+            details: toRecord(details) ?? {},
           });
         } catch (error) {
           if (error instanceof ToolError) {
@@ -427,8 +435,9 @@ export const developerModule = defineToolModule({
           ctx.logger.info("Fetching hardware info");
 
           const details = await ctx.client.info();
-          return jsonResult(details, {
+          return withStructuredJson(toRecord(details) ?? {}, {
             success: true,
+            details: toRecord(details) ?? {},
           });
         } catch (error) {
           if (error instanceof ToolError) {

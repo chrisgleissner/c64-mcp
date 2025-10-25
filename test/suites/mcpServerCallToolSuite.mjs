@@ -394,6 +394,168 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
+  test("Developer configuration tools operate via MCP", async () => {
+    await withSharedMcpClient(async ({ client, mockServer }) => {
+      const listResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_list",
+            arguments: {},
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(listResult.metadata?.success, true, "config_list should succeed");
+  const listContent = getTextContent(listResult);
+  assert.ok(listContent, "config_list should return text content");
+  const categories = JSON.parse(listContent.text)?.categories ?? [];
+      assert.ok(Array.isArray(categories), "config_list should return categories array");
+      assert.ok(categories.includes("Audio"));
+  assert.equal(listResult.structuredContent?.type, "json");
+  assert.deepEqual(listResult.structuredContent?.data?.categories, categories);
+
+      const getItemResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_get",
+            arguments: {
+              category: "Audio",
+              item: "Volume",
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(getItemResult.metadata?.success, true, "config_get should succeed");
+      assert.equal(getItemResult.metadata?.category, "Audio");
+      assert.equal(getItemResult.metadata?.item, "Volume");
+
+      const setResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_set",
+            arguments: {
+              category: "Audio",
+              item: "Volume",
+              value: 11,
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(setResult.metadata?.success, true, "config_set should succeed");
+      assert.equal(mockServer.state.configs.Audio.Volume, "11");
+
+      const batchResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_batch_update",
+            arguments: {
+              Audio: {
+                Balance: "left",
+              },
+              Video: {
+                Mode: "NTSC",
+              },
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(batchResult.metadata?.success, true, "config_batch_update should succeed");
+      assert.equal(mockServer.state.configs.Audio.Balance, "left");
+      assert.equal(mockServer.state.configs.Video.Mode, "NTSC");
+
+      const saveResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_save_to_flash",
+            arguments: {},
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(saveResult.metadata?.success, true, "config_save_to_flash should succeed");
+      assert.ok(mockServer.state.flashSnapshot, "flash snapshot should be captured after save");
+
+      const resetResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_reset_to_default",
+            arguments: {},
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(resetResult.metadata?.success, true, "config_reset_to_default should succeed");
+      assert.equal(mockServer.state.configs.Audio.Volume, "6", "reset should restore default volume");
+
+      const loadResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "config_load_from_flash",
+            arguments: {},
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(loadResult.metadata?.success, true, "config_load_from_flash should succeed");
+      assert.equal(mockServer.state.configs.Video.Mode, "NTSC", "load should restore saved snapshot");
+    });
+  });
+
+  test("Streaming tools operate via MCP", async () => {
+    await withSharedMcpClient(async ({ client, mockServer }) => {
+      const startResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "stream_start",
+            arguments: {
+              stream: "audio",
+              target: "127.0.0.1:9000",
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(startResult.metadata?.success, true, "stream_start should succeed");
+      assert.equal(mockServer.state.streams.audio.active, true);
+      assert.equal(mockServer.state.streams.audio.target, "127.0.0.1:9000");
+
+      const stopResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "stream_stop",
+            arguments: {
+              stream: "audio",
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(stopResult.metadata?.success, true, "stream_stop should succeed");
+      assert.equal(mockServer.state.streams.audio.active, false);
+    });
+  });
+
   test("Drive and storage tools operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const listResult = await client.request(

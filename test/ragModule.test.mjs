@@ -26,8 +26,11 @@ test("rag_retrieve_basic returns refs", async () => {
 
   const result = await ragModule.invoke("rag_retrieve_basic", { q: "hello world" }, ctx);
 
-  assert.equal(result.content[0].type, "json");
-  assert.deepEqual(result.content[0].data, { refs: ["10 PRINT \"HELLO\""] });
+  assert.equal(result.content[0].type, "text");
+  const payload = JSON.parse(result.content[0].text);
+  assert.deepEqual(payload, { refs: ["10 PRINT \"HELLO\""] });
+  assert.equal(result.structuredContent?.type, "json");
+  assert.deepEqual(result.structuredContent?.data, payload);
   assert.equal(result.metadata.success, true);
   assert.equal(result.metadata.language, "basic");
   assert.equal(result.metadata.limit, 3);

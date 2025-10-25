@@ -49,17 +49,14 @@ export interface ToolResponseContentText {
   readonly text: string;
 }
 
-export interface ToolResponseContentJson {
-  readonly type: "json";
-  readonly data: unknown;
-}
-
-export type ToolResponseContent =
-  | ToolResponseContentText
-  | ToolResponseContentJson;
+export type ToolResponseContent = ToolResponseContentText;
 
 export interface ToolRunResult {
   readonly content: readonly ToolResponseContent[];
+  readonly structuredContent?: {
+    readonly type: "json";
+    readonly data: unknown;
+  };
   readonly metadata?: Record<string, unknown>;
   readonly isError?: boolean;
 }

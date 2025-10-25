@@ -39,8 +39,6 @@ const pauseArgsSchema = createNoArgsSchema("No arguments required to pause the m
 const resumeArgsSchema = createNoArgsSchema("No arguments required to resume the machine after a pause.");
 const poweroffArgsSchema = createNoArgsSchema("No arguments required to power off the machine.");
 const menuButtonArgsSchema = createNoArgsSchema("No arguments required to toggle the Ultimate menu button.");
-const versionArgsSchema = createNoArgsSchema("Fetch the firmware/API version information.");
-const infoArgsSchema = createNoArgsSchema("Fetch hardware information and health details.");
 
 export const machineControlModule = defineToolModule({
   domain: "machine",
@@ -230,54 +228,6 @@ export const machineControlModule = defineToolModule({
           const details = toRecord(result.details) ?? {};
 
           return textResult("Menu button command sent.", {
-            success: true,
-            details,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
-      },
-    },
-    {
-      name: "version",
-      description: "Retrieve firmware and API version information.",
-      summary: "Calls the Ultimate REST API version endpoint and returns the JSON payload.",
-      inputSchema: versionArgsSchema.jsonSchema,
-      tags: ["diagnostics"],
-      async execute(args, ctx) {
-        try {
-          versionArgsSchema.parse(args ?? {});
-          ctx.logger.info("Fetching Ultimate firmware version");
-
-          const details = await ctx.client.version();
-          return textResult("Retrieved Ultimate firmware version information.", {
-            success: true,
-            details,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
-      },
-    },
-    {
-      name: "info",
-      description: "Retrieve hardware information and status from the Ultimate.",
-      summary: "Calls the Ultimate REST API info endpoint for diagnostics data.",
-      inputSchema: infoArgsSchema.jsonSchema,
-      tags: ["diagnostics"],
-      async execute(args, ctx) {
-        try {
-          infoArgsSchema.parse(args ?? {});
-          ctx.logger.info("Fetching Ultimate hardware info");
-
-          const details = await ctx.client.info();
-          return textResult("Retrieved Ultimate hardware information.", {
             success: true,
             details,
           });
