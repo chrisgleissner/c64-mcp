@@ -26,8 +26,8 @@ function normaliseHexString(input) {
   return input.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
 }
 
-export async function startMockC64Server() {
-  const state = {
+function createInitialState() {
+  return {
     lastPrg: null,
     runCount: 0,
     resets: 0,
@@ -39,10 +39,24 @@ export async function startMockC64Server() {
     lastDriveOperation: null,
     createdImages: [],
     lastFileInfo: null,
+    sidplayCount: 0,
+    lastSidplay: null,
+    modplayCount: 0,
+    lastModplay: null,
+    paused: false,
+    debugreg: "00",
   };
+}
+
+function seedReadyPrompt(state) {
+  state.memory.set(Buffer.from([0x12, 0x52, 0x45, 0x41, 0x44, 0x59, 0x2E, 0x0D]), 0x0400);
+}
+
+export async function startMockC64Server() {
+  const state = createInitialState();
 
   // seed memory with READY prompt at $0400 and support PETSCII mapper used by petsciiToAscii
-  state.memory.set(Buffer.from([0x12, 0x52, 0x45, 0x41, 0x44, 0x59, 0x2E, 0x0D]), 0x0400);
+  seedReadyPrompt(state);
 
   function ensureDriveState(id) {
     if (!state.drives[id]) {
@@ -58,6 +72,13 @@ export async function startMockC64Server() {
   }
 
   ensureDriveState("drive8");
+
+  function resetState() {
+    const fresh = createInitialState();
+    Object.assign(state, fresh);
+    seedReadyPrompt(state);
+    ensureDriveState("drive8");
+  }
 
   const server = createServer(async (req, res) => {
     const { method, url } = req;
@@ -374,5 +395,6 @@ export async function startMockC64Server() {
       server.close();
       await once(server, "close");
     },
+    reset: resetState,
   };
 }

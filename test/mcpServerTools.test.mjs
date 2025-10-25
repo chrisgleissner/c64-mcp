@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import process from "node:process";
 import { ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import { createConnectedClient } from "./helpers/mcpTestClient.mjs";
+import { withSharedMcpClient, registerHarnessSuite } from "./helpers/mcpTestHarness.mjs";
+
+registerHarnessSuite();
 import { toolRegistry } from "../src/tools/registry.js";
 
 function assertDescriptorMetadata(metadata) {
@@ -20,10 +21,7 @@ function assertDescriptorMetadata(metadata) {
 }
 
 test("MCP server exposes tool descriptors from registry", async () => {
-  const connection = await createConnectedClient();
-  const { client } = connection;
-
-  try {
+  await withSharedMcpClient(async ({ client }) => {
     const listResult = await client.request(
       { method: "tools/list", params: {} },
       ListToolsResultSchema,
@@ -70,11 +68,5 @@ test("MCP server exposes tool descriptors from registry", async () => {
         );
       }
     }
-  } finally {
-    await connection.close();
-    const stderrOutput = connection.stderrOutput();
-    if (stderrOutput) {
-      process.stderr.write(stderrOutput);
-    }
-  }
+  });
 });
