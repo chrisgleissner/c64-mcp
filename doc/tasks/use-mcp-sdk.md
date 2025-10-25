@@ -12,6 +12,14 @@ This migration MUST be done incrementally with strict progress tracking.
 4. **Preserve functionality** - All existing tools must work after migration
 5. **No manifest files** - The SDK uses dynamic discovery, remove mcp-manifest.json
 
+## Guiding Objectives
+
+- Build a single MCP server surface that presents C64 capabilities through cohesive, domain-focused modules (machine control, media, storage, graphics, knowledge, developer tooling).
+- Model each tool with clear intent, strict parameter typing, informative descriptions, and rich examples so LLM clients can select the right capability without guesswork.
+- Proactively enrich the LLM session with curated C64 knowledge, workflow rules, and starter prompts so it can assist users without manual searching.
+- Maximize maintainability by centralizing shared behaviours: authentication, transport, error handling, logging, and compatibility helpers for the Ultimate hardware REST API.
+- Keep the migration auditable: every addition must have automated verification and be reflected in the progress tracker and changelog.
+
 ---
 
 ## STEP 0: CREATE PROGRESS TRACKER (DO THIS FIRST!)
@@ -49,31 +57,51 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [ ] 2.5 - Add c64://specs/sid resource
 - [ ] 2.6 - Add c64://specs/vic resource
 - [ ] 2.7 - Add c64://context/bootstrap resource
-- [ ] 2.8 - Validate resources via automated tests
+- [ ] 2.8 - Add c64://specs/printer resource
+- [ ] 2.9 - Add c64://docs/sid/file-structure resource
+- [ ] 2.10 - Add c64://docs/printer/guide resource
+- [ ] 2.11 - Add c64://docs/printer/commodore-text resource
+- [ ] 2.12 - Add c64://docs/printer/commodore-bitmap resource
+- [ ] 2.13 - Add c64://docs/printer/epson-text resource
+- [ ] 2.14 - Add c64://docs/printer/epson-bitmap resource
+- [ ] 2.15 - Add c64://docs/printer/prompts resource
+- [ ] 2.16 - Validate resources via automated tests
+- [ ] 2.17 - Create consolidated knowledge bundles & index resource metadata
 
 ### Phase 4: Tools Migration (Critical)
-- [ ] 3.1 - Implement ListToolsRequestSchema handler
-- [ ] 3.2 - Implement CallToolRequestSchema handler
-- [ ] 3.3 - Migrate upload_and_run_basic tool
-- [ ] 3.4 - Migrate upload_and_run_asm tool
-- [ ] 3.5 - Migrate read_screen tool
-- [ ] 3.6 - Migrate read_memory tool
-- [ ] 3.7 - Migrate write_memory tool
-- [ ] 3.8 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
-- [ ] 3.9 - Migrate reset/reboot tools
-- [ ] 3.10 - Migrate drive management tools
-- [ ] 3.11 - Migrate music tools (music_compile_and_play, etc.)
-- [ ] 3.12 - Migrate graphics tools (create_petscii_image, etc.)
-- [ ] 3.13 - Test each tool works via MCP protocol
+- [ ] 3.1 - Design domain-specific tool modules & lifecycle hooks
+- [ ] 3.2 - Implement centralized tool registry with enriched metadata
+- [ ] 3.3 - Define shared parameter/result schemas & error helpers
+- [ ] 3.4 - Implement ListToolsRequestSchema handler
+- [ ] 3.5 - Implement CallToolRequestSchema handler
+- [ ] 3.6 - Migrate upload_and_run_basic tool
+- [ ] 3.7 - Migrate upload_and_run_asm tool
+- [ ] 3.8 - Migrate read_screen tool
+- [ ] 3.9 - Migrate read_memory tool
+- [ ] 3.10 - Migrate write_memory tool
+- [ ] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
+- [ ] 3.12 - Migrate machine control & diagnostics tools
+- [ ] 3.13 - Migrate drive and disk-management tools
+- [ ] 3.14 - Migrate SID playback and audio analysis tools
+- [ ] 3.15 - Migrate graphics and PETSCII tools
+- [ ] 3.16 - Migrate printer workflow tools
+- [ ] 3.17 - Migrate RAG retrieval tools
+- [ ] 3.18 - Migrate program loaders & file utilities
+- [ ] 3.19 - Migrate configuration management tools
+- [ ] 3.20 - Migrate debug & developer tools
+- [ ] 3.21 - Migrate streaming tools
+- [ ] 3.22 - Test each tool works via MCP protocol
 
 ### Phase 5: Prompts Implementation
-- [ ] 4.1 - Implement ListPromptsRequestSchema handler
-- [ ] 4.2 - Implement GetPromptRequestSchema handler
-- [ ] 4.3 - Create "basic-program" prompt
-- [ ] 4.4 - Create "assembly-program" prompt
-- [ ] 4.5 - Create "sid-music" prompt
-- [ ] 4.6 - Create "graphics-demo" prompt
-- [ ] 4.7 - Test prompts work
+- [ ] 4.1 - Design prompt taxonomy & default context injection
+- [ ] 4.2 - Implement ListPromptsRequestSchema handler
+- [ ] 4.3 - Implement GetPromptRequestSchema handler
+- [ ] 4.4 - Create "basic-program" prompt
+- [ ] 4.5 - Create "assembly-program" prompt
+- [ ] 4.6 - Create "sid-music" prompt
+- [ ] 4.7 - Create "graphics-demo" prompt
+- [ ] 4.8 - Add "printer-job" and "memory-debug" prompts
+- [ ] 4.9 - Test prompts work with automated checks
 
 ### Phase 6: Enhanced Tool Descriptions
 - [ ] 5.1 - Add workflow hints to tool descriptions
@@ -358,6 +386,12 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
     resources: [
       {
+        uri: "c64://context/bootstrap",
+        name: "Workflow Rules & Best Practices",
+        description: "CRITICAL: Mandatory workflow rules for all C64 programming",
+        mimeType: "text/markdown",
+      },
+      {
         uri: "c64://specs/basic",
         name: "Commodore BASIC v2 Specification",
         description: "Complete BASIC v2 reference. READ THIS BEFORE generating any BASIC code!",
@@ -376,6 +410,12 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
         mimeType: "text/markdown",
       },
       {
+        uri: "c64://specs/sidwave",
+        name: "SIDWAVE Music Format Specification",
+        description: "YAML/JSON music composition format for SID chip",
+        mimeType: "text/markdown",
+      },
+      {
         uri: "c64://specs/vic",
         name: "VIC-II Graphics Specification",
         description: "Video chip, sprites, raster programming, and timing",
@@ -388,17 +428,48 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
         mimeType: "text/markdown",
       },
       {
-        uri: "c64://context/bootstrap",
-        name: "Workflow Rules & Best Practices",
-        description: "CRITICAL: Mandatory workflow rules for all C64 programming",
+        uri: "c64://docs/sid/file-structure",
+        name: "SID File Structure Reference",
+        description: "Breakdown of the SID file format layout and metadata",
         mimeType: "text/markdown",
       },
       {
-        uri: "c64://specs/sidwave",
-        name: "SIDWAVE Music Format Specification",
-        description: "YAML/JSON music composition format for SID chip",
+        uri: "c64://docs/printer/guide",
+        name: "Printer Workflow Guide",
+        description: "Unified quick reference for Commodore and Epson printers",
         mimeType: "text/markdown",
       },
+      {
+        uri: "c64://docs/printer/commodore-text",
+        name: "Commodore Printer Text Guide",
+        description: "Device 4 character printing reference for Commodore MPS printers",
+        mimeType: "text/markdown",
+      },
+      {
+        uri: "c64://docs/printer/commodore-bitmap",
+        name: "Commodore Printer Bitmap Guide",
+        description: "Bitmap and custom character printing workflow for Commodore printers",
+        mimeType: "text/markdown",
+      },
+      {
+        uri: "c64://docs/printer/epson-text",
+        name: "Epson Printer Text Guide",
+        description: "Text control sequences for Epson FX-compatible printers",
+        mimeType: "text/markdown",
+      },
+      {
+        uri: "c64://docs/printer/epson-bitmap",
+        name: "Epson Printer Bitmap Guide",
+        description: "Bitmap printing and graphics control for Epson FX printers",
+        mimeType: "text/markdown",
+      },
+      {
+        uri: "c64://docs/printer/prompts",
+        name: "Printer Prompt Templates",
+        description: "Template prompts and workflow guidance for printer jobs",
+        mimeType: "text/markdown",
+      },
+      // Add c64://docs/index in Step 2.17 once the knowledge bundle is generated.
     ],
   };
 });
@@ -429,13 +500,21 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const uri = request.params.uri;
 
   const resourceMap: Record<string, string> = {
+    "c64://context/bootstrap": "data/context/bootstrap.md",
     "c64://specs/basic": "data/basic/basic-spec.md",
     "c64://specs/assembly": "data/assembly/assembly-spec.md",
     "c64://specs/sid": "data/audio/sid-spec.md",
+    "c64://specs/sidwave": "data/audio/sidwave.md",
     "c64://specs/vic": "data/video/vic-spec.md",
     "c64://specs/printer": "data/printer/printer-spec.md",
-    "c64://context/bootstrap": "data/context/bootstrap.md",
-    "c64://specs/sidwave": "data/audio/sidwave.md",
+    "c64://docs/sid/file-structure": "data/audio/sid-file-structure.md",
+    "c64://docs/printer/guide": "data/printer/printer-spec.md",
+    "c64://docs/printer/commodore-text": "data/printer/printer-commodore.md",
+    "c64://docs/printer/commodore-bitmap": "data/printer/printer-commodore-bitmap.md",
+    "c64://docs/printer/epson-text": "data/printer/printer-epson.md",
+    "c64://docs/printer/epson-bitmap": "data/printer/printer-epson-bitmap.md",
+    "c64://docs/printer/prompts": "data/printer/printer-prompts.md",
+    // Add "c64://docs/index": "generated/knowledge-index.md" in Step 2.17 when the bundle is created.
   };
 
   const filePath = resourceMap[uri];
@@ -455,7 +534,6 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       },
     ],
   };
-});
 ```
 
 **Update MIGRATION-PROGRESS.md:**
@@ -479,6 +557,14 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 - `c64://specs/printer`
 - `c64://context/bootstrap`
 - `c64://specs/sidwave`
+- `c64://docs/sid/file-structure`
+- `c64://docs/printer/guide`
+- `c64://docs/printer/commodore-text`
+- `c64://docs/printer/commodore-bitmap`
+- `c64://docs/printer/epson-text`
+- `c64://docs/printer/epson-bitmap`
+- `c64://docs/printer/prompts`
+- (After Step 2.17) `c64://docs/index`
 
 **Update MIGRATION-PROGRESS.md:**
 
@@ -500,6 +586,24 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 ```markdown
 - [x] 2.8 - Validate resources via automated tests
+```
+
+**STOP HERE. Commit changes. Review. Continue in next phase.**
+
+### Step 2.17: Create Knowledge Bundles & Index Metadata
+
+**Action:** Elevate the resource surface so LLM clients gain immediate awareness of what to read and when.
+
+- Create a `knowledgeBundles` module (for example `src/rag/knowledgeIndex.ts`) that groups resources by domain: workflow rules, language specs, audio, graphics, peripherals, troubleshooting.
+- Update the ListResources handler to attach `metadata` for each item (e.g., `{ domain: "audio", priority: "critical", prompts: ["sid-music"], summary: "..." }`). Use this to signal reading order and related tools/prompts.
+- Add an aggregated `c64://docs/index` resource generated from the bundle that explains how to approach the C64, linking to every URI with short summaries.
+- Ensure the new index references printer docs, SID references, and any future guides so an LLM can ingest one resource and understand the ecosystem.
+- Extend resource tests to assert metadata presence and verify the index renders all URIs.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 2.17 - Create consolidated knowledge bundles & index resource metadata
 
 ### Phase 3: Resources Implementation - COMPLETE ✅
 ```
@@ -510,229 +614,118 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 ## PHASE 4: TOOLS MIGRATION (CRITICAL)
 
-### Step 3.1: Implement ListToolsRequestSchema Handler
+Before writing any handlers, design the tool surface so it is maintainable and easy for an LLM to reason about.
+
+### Step 3.1: Design Domain-Specific Tool Modules & Lifecycle Hooks
+
+**Action:** Shape the new MCP server around cohesive tool domains.
+
+- Create dedicated modules under `src/tools/` (for example `machineControl.ts`, `storage.ts`, `audio.ts`, `graphics.ts`, `printer.ts`, `rag.ts`, `developer.ts`). Each module should export a typed interface describing its tools and provide lifecycle helpers that translate between MCP calls and the existing `C64Client` methods.
+- Ensure every module exposes `describeTools()` (metadata for ListTools) and `callTool()` (invocation) so the registry can delegate cleanly.
+- Capture pre/post hooks for instrumentation (logging request payloads, timing REST API calls) inside the modules rather than scattering across the switch statement.
+- Document the mapping from legacy decorator-based tools to the new module structure inside the module or a shared manifest so future contributors understand the migration.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 3.1 - Design domain-specific tool modules & lifecycle hooks
+```
+
+---
+
+### Step 3.2: Implement Centralized Tool Registry with Enriched Metadata
+
+**Action:** Introduce a single registry that wires the modules into the MCP SDK.
+
+- Create `src/tools/registry.ts` that imports every domain module and aggregates their `describeTools()` output.
+- Add derived metadata for each tool: `domain`, `requires`, `relatedResources`, `relatedPrompts`, `returns`, and `safety`. Use this to enrich `ListTools` responses so an LLM can pick the right capability quickly.
+- Ensure registry enforces unique tool names and provides a lookup map for fast `CallTool` routing.
+- Provide helper functions to generate examples/snippets so the metadata stays centralized rather than duplicated in handlers.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 3.2 - Implement centralized tool registry with enriched metadata
+```
+
+---
+
+### Step 3.3: Define Shared Parameter/Result Schemas & Error Helpers
+
+**Action:** Standardize the way inputs and outputs are validated.
+
+- Introduce a lightweight schema layer (Zod or custom validators) that each tool reuses to validate parameters before calling the Ultimate REST API.
+- Add shared result helpers that wrap successful responses in consistent MCP content payloads (plain text for human-readable responses, structured JSON when appropriate).
+- Centralize error translation so REST failures become descriptive MCP errors with actionable remediation steps for the LLM.
+- Update domain modules to leverage these helpers; include unit tests for validation and error handling edge cases.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 3.3 - Define shared parameter/result schemas & error helpers
+```
+
+---
+
+### Step 3.4: Implement ListToolsRequestSchema Handler
 
 **Action:** Add comprehensive tool list to `src/mcp-server.ts`:
 
 ```typescript
+import { toolRegistry } from "./tools/registry.js";
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [
-      // CODE GENERATION TOOLS (CRITICAL)
-      {
-        name: "upload_and_run_basic",
-        description: `Upload and run a Commodore BASIC v2 program on the C64.
-
-⚠️ MANDATORY WORKFLOW:
-1. Read c64://specs/basic resource FIRST to verify syntax
-2. Optionally read c64://context/bootstrap for workflow rules
-3. Generate program using verified BASIC v2 tokens
-4. Call this tool to upload and execute
-5. Call read_screen to verify output
-
-DO NOT generate BASIC code from memory - syntax is strict!`,
-        inputSchema: {
-          type: "object",
-          properties: {
-            program: {
-              type: "string",
-              description: 'Complete BASIC program with line numbers. Example: "10 PRINT \\"HELLO\\"\\n20 GOTO 10"',
-            },
-          },
-          required: ["program"],
-        },
-      },
-      {
-        name: "upload_and_run_asm",
-        description: `Assemble 6502/6510 code and run on C64.
-
-⚠️ MANDATORY WORKFLOW:
-1. Read c64://specs/assembly FIRST for instruction set
-2. Read c64://specs/sid if using audio
-3. Read c64://specs/vic if using graphics
-4. Generate code with verified opcodes
-5. Call this tool to assemble and execute
-
-DO NOT guess opcodes or addressing modes!`,
-        inputSchema: {
-          type: "object",
-          properties: {
-            program: {
-              type: "string",
-              description: 'Assembly source with ORG directive. Example: "* = $0810\\nLDA #$00\\nRTS"',
-            },
-          },
-          required: ["program"],
-        },
-      },
-      {
-        name: "read_screen",
-        description: "Read 1KB of C64 screen memory ($0400-$07E7) and return as ASCII text. Use to verify program output.",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      },
-      {
-        name: "read_memory",
-        description: "Read bytes from C64 main memory at specified address. Useful for debugging and verification.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            address: {
-              type: "string",
-              description: "Address in hex ($XXXX), binary (%...), or decimal. Examples: $D020, 53280, %1111111100000000",
-            },
-            length: {
-              type: "string",
-              description: "Number of bytes to read (hex, bin, or decimal)",
-            },
-          },
-          required: ["address", "length"],
-        },
-      },
-      {
-        name: "write_memory",
-        description: "Write bytes directly to C64 memory. Use for direct hardware manipulation.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            address: {
-              type: "string",
-              description: "Target address ($XXXX format preferred)",
-            },
-            bytes: {
-              type: "string",
-              description: "Hex byte sequence, e.g., '$010203' or '010203'",
-            },
-          },
-          required: ["address", "bytes"],
-        },
-      },
-      // Add remaining 60+ tools here following same pattern
-      // ... (see full implementation below)
-    ],
+    tools: toolRegistry.list(),
   };
 });
 ```
 
+Ensure each registry entry includes:
+
+- Rich descriptions that reference prerequisite resources/prompts.
+- Examples payloads in `metadata.examples` for LLM fine-tuning.
+- Safety guidance (e.g., warns when tool is destructive) and recommended verification steps.
+
 **Update MIGRATION-PROGRESS.md:**
 
 ```markdown
-- [x] 3.1 - Implement ListToolsRequestSchema handler
+- [x] 3.4 - Implement ListToolsRequestSchema handler
 ```
 
 ---
 
-### Step 3.2: Implement CallToolRequestSchema Handler
+### Step 3.5: Implement CallToolRequestSchema Handler
 
 **Action:** Add tool routing logic:
 
 ```typescript
+import { toolRegistry } from "./tools/registry.js";
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-
-  try {
-    switch (name) {
-      case "upload_and_run_basic": {
-        const program = args?.program as string;
-        if (!program) throw new Error("program parameter required");
-        const result = await client.uploadAndRunBasic(program);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "upload_and_run_asm": {
-        const program = args?.program as string;
-        if (!program) throw new Error("program parameter required");
-        const result = await client.uploadAndRunAsm(program);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "read_screen": {
-        const screen = await client.readScreen();
-        return {
-          content: [
-            {
-              type: "text",
-              text: screen,
-            },
-          ],
-        };
-      }
-
-      case "read_memory": {
-        const address = args?.address as string;
-        const length = args?.length as string;
-        if (!address || !length) throw new Error("address and length required");
-        const result = await client.readMemory(address, length);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "write_memory": {
-        const address = args?.address as string;
-        const bytes = args?.bytes as string;
-        if (!address || !bytes) throw new Error("address and bytes required");
-        const result = await client.writeMemory(address, bytes);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      // Add remaining tool cases...
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({ success: false, error: message }, null, 2),
-        },
-      ],
-      isError: true,
-    };
-  }
+  return await toolRegistry.invoke(name, args ?? {}, {
+    client,
+    logger,
+  });
 });
 ```
+
+`toolRegistry.invoke` should:
+
+- Validate arguments using the shared schemas before touching hardware.
+- Inject workflow metadata into errors so the LLM knows which resource/prompt to consult.
+- Emit structured logs (tool name, duration, C64 REST endpoints hit) so failures are traceable.
 
 **Update MIGRATION-PROGRESS.md:**
 
 ```markdown
-- [x] 3.2 - Implement CallToolRequestSchema handler
+- [x] 3.5 - Implement CallToolRequestSchema handler
 ```
 
 ---
 
-### Steps 3.3-3.13: Migrate Remaining Tools
+### Steps 3.6-3.22: Migrate Remaining Tools
 
 **For each tool category:**
 
@@ -744,43 +737,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 **Tool Categories to Migrate:**
 
 ```typescript
-// SID/Music tools
-case "sid_note_on":
-case "sid_note_off":
-case "sid_volume":
-case "sid_reset":
-case "music_compile_and_play":
-case "music_generate":
+// audio.ts
+export const audioTools = defineDomainTools("audio", [
+  tool({
+    name: "sid_note_on",
+    description: "Trigger a SID voice at a specific frequency with ADSR envelope",
+    schema: sidNoteSchema,
+    run: async (input, ctx) => ctx.client.sid.noteOn(input),
+  }),
+  tool({ name: "music_generate", description: "...", run: musicGenerate }),
+  // ...
+]);
 
-// Graphics tools  
-case "create_petscii_image":
-case "generate_sprite_prg":
-case "render_petscii_screen":
+// machineControl.ts
+export const machineControlTools = defineDomainTools("machine", [
+  tool({ name: "reset_c64", run: ({ mode }, ctx) => ctx.client.reset(mode) }),
+  tool({ name: "info", run: async (_, ctx) => ctx.client.info() }),
+  // ...
+]);
 
-// System tools
-case "reset_c64":
-case "reboot_c64":
-case "pause":
-case "resume":
-case "poweroff":
+// storage.ts
+export const storageTools = defineDomainTools("storage", [
+  tool({ name: "drive_mount", run: driveMount }),
+  tool({ name: "create_d64", run: createDiskImage }),
+  // ...
+]);
 
-// Drive tools
-case "drive_mount":
-case "drive_remove":
-case "drives_list":
-// ... etc
+// Continue for printer, graphics, rag, developer, streaming domains.
 
-// Config tools
-case "config_get":
-case "config_set":
-// ... etc
+toolRegistry.register(audioTools, machineControlTools, storageTools, /* ... */);
 ```
 
 **Update MIGRATION-PROGRESS.md after EACH tool:**
 
 ```markdown
-- [x] 3.3 - Migrate upload_and_run_basic tool
-- [x] 3.4 - Migrate upload_and_run_asm tool
+- [x] 3.6 - Migrate upload_and_run_basic tool
+- [x] 3.7 - Migrate upload_and_run_asm tool
 [continue for all 70+ tools]
 ```
 
@@ -790,146 +782,100 @@ case "config_set":
 
 ## PHASE 5: PROMPTS IMPLEMENTATION
 
-### Step 4.1-4.2: Implement Prompt Handlers
+### Step 4.1: Design Prompt Taxonomy & Default Context Injection
 
-**Action:** Add to `src/mcp-server.ts`:
+**Action:** Plan how prompts will teach the LLM about the hardware.
 
-```typescript
-server.setRequestHandler(ListPromptsRequestSchema, async () => {
-  return {
-    prompts: [
-      {
-        name: "basic-program",
-        description: "Generate a Commodore BASIC v2 program with proper workflow",
-        arguments: [
-          {
-            name: "task",
-            description: "What should the program do?",
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "assembly-program",
-        description: "Generate 6502/6510 assembly with spec verification",
-        arguments: [
-          {
-            name: "task",
-            description: "What should the program do?",
-            required: true,
-          },
-          {
-            name: "hardware",
-            description: "Hardware to use (sid, vic, both, none)",
-            required: false,
-          },
-        ],
-      },
-      {
-        name: "sid-music",
-        description: "Create SID chip music composition",
-        arguments: [
-          {
-            name: "style",
-            description: "Music style (e.g., 'chiptune', 'classical', 'game music')",
-            required: true,
-          },
-          {
-            name: "tempo",
-            description: "BPM (default 120)",
-            required: false,
-          },
-        ],
-      },
-    ],
-  };
-});
-
-server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  if (name === "basic-program") {
-    const task = args?.task as string;
-    return {
-      description: "Guided BASIC program generation workflow",
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text: `Create a Commodore 64 BASIC v2 program: ${task}
-
-⚠️ MANDATORY WORKFLOW - Follow these steps exactly:
-
-1. Read c64://specs/basic resource to understand BASIC v2 syntax
-2. Read c64://context/bootstrap for workflow rules
-3. Review the syntax carefully - BASIC v2 is strict!
-4. Generate your program using ONLY verified tokens
-5. Call upload_and_run_basic with your code
-6. Call read_screen to verify the output
-
-CRITICAL REMINDERS:
-- Line numbers required (10, 20, 30...)
-- Use PETSCII character codes where needed
-- No ELSE statement in BASIC v2!
-- Strings use double quotes only
-- GOTO/GOSUB use line numbers, not labels
-
-Begin now by reading the specs.`,
-          },
-        },
-      ],
-    };
-  }
-
-  if (name === "assembly-program") {
-    const task = args?.task as string;
-    const hardware = args?.hardware as string;
-    return {
-      description: "Guided assembly programming workflow",
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text: `Create 6502/6510 assembly code: ${task}
-${hardware ? `Hardware: ${hardware}` : ""}
-
-⚠️ MANDATORY WORKFLOW - Follow these steps exactly:
-
-1. Read c64://specs/assembly for 6502 instruction set
-${hardware?.includes("sid") ? "2. Read c64://specs/sid for SID registers\n" : ""}${hardware?.includes("vic") ? "2. Read c64://specs/vic for VIC-II programming\n" : ""}3. Verify ALL opcodes against the spec
-4. Use correct addressing modes
-5. Include ORG directive (e.g., * = $0810)
-6. Generate your assembly code
-7. Call upload_and_run_asm
-8. Verify with read_memory if needed
-
-CRITICAL REMINDERS:
-- All opcodes MUST be valid 6502 instructions
-- Use correct addressing mode syntax
-- Memory addresses in $XXXX format
-- Don't guess - verify everything!
-
-Begin now by reading the assembly spec.`,
-          },
-        },
-      ],
-    };
-  }
-
-  throw new Error(`Unknown prompt: ${name}`);
-});
-```
+- Define prompt families that mirror the tool domains: BASIC agent, Assembly agent, SID composer, Graphics artist, Printer operator, Memory debugger, Drive manager.
+- For each family, list the resources and tools that should be preloaded into the LLM context before it attempts a task.
+- Decide on reusable prompt templates (`promptSegments`) that can be composed (e.g., intro workflow, verification checklist, error recovery hints).
+- Capture these designs in `doc/prompts/README` (or similar) so future authors follow the same voice and safety guidance.
 
 **Update MIGRATION-PROGRESS.md:**
 
 ```markdown
-- [x] 4.1 - Implement ListPromptsRequestSchema handler
-- [x] 4.2 - Implement GetPromptRequestSchema handler
-- [x] 4.3 - Create "basic-program" prompt
-- [x] 4.4 - Create "assembly-program" prompt
-- [x] 4.5 - Create "sid-music" prompt
+- [x] 4.1 - Design prompt taxonomy & default context injection
+```
+
+---
+
+### Step 4.2: Implement ListPromptsRequestSchema Handler
+
+**Action:** Add to `src/mcp-server.ts`:
+
+```typescript
+import { promptRegistry } from "./prompts/registry.js";
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  return {
+    prompts: promptRegistry.list(),
+  };
+});
+```
+
+Each prompt description should highlight:
+
+- Which tools/resources to consult before acting.
+- Expected outputs and verification steps (e.g., "Compile, run, inspect screen").
+- Safety notes that prevent destructive commands unless the user confirms intent.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 4.2 - Implement ListPromptsRequestSchema handler
+```
+
+---
+
+### Step 4.3: Implement GetPromptRequestSchema Handler
+
+**Action:** Delegate prompt resolution to the registry and surface reusable message templates.
+
+```typescript
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+  return promptRegistry.resolve(name, args ?? {});
+});
+```
+
+`promptRegistry.resolve` should:
+
+- Merge the designed `promptSegments` (intro, checklist, verification) into final messages.
+- Automatically inject references to required resources and tools.
+- Support dynamic arguments (e.g., `hardware` flag for assembly prompt) without duplicating strings.
+- Throw descriptive errors when a prompt is unknown or missing required arguments.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 4.3 - Implement GetPromptRequestSchema handler
+```
+
+### Steps 4.4-4.8: Author Prompt Packs
+
+**Action:** Use the taxonomy from Step 4.1 to deliver high-signal prompts.
+
+- `basic-program`: Focus on PETSCII nuances, line numbering, and mandatory post-run verification (read screen, check memory). Inject summaries from `c64://specs/basic` and `c64://context/bootstrap` via metadata.
+- `assembly-program`: Provide branching segments depending on requested hardware (`sid`, `vic`, `cia`). Include register tables from resources and remind about zero-page usage and IRQ safety.
+- `sid-music`: Reference `c64://specs/sid`, `c64://docs/sid/file-structure`, and audio best practices. Encourage use of `analyze_audio` tool for feedback loops.
+- `graphics-demo`: Link to VIC-II docs, PETSCII resources, and sprite helpers. Highlight raster timing cautions.
+- `printer-job` & `memory-debug`: Align with printer guides and memory map resources, describing safety checks (e.g., avoid clobbering important addresses).
+
+For each prompt, add unit tests (or snapshot tests) asserting that the resolved prompt contains:
+
+- Required workflow instructions.
+- References to the correct resources and tools.
+- Safety callouts tailored to the domain.
+
+**Update MIGRATION-PROGRESS.md:**
+
+```markdown
+- [x] 4.4 - Create "basic-program" prompt
+- [x] 4.5 - Create "assembly-program" prompt
+- [x] 4.6 - Create "sid-music" prompt
+- [x] 4.7 - Create "graphics-demo" prompt
+- [x] 4.8 - Add "printer-job" and "memory-debug" prompts
+- [x] 4.9 - Test prompts work with automated checks
 ```
 
 ---

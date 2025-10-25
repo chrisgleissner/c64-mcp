@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.1
-**Last Updated:** 2025-10-25T10:20:34+01:00
+**Current Step:** 2.9
+**Last Updated:** 2025-10-25T10:42:52+01:00
 
 ---
 
@@ -35,35 +35,53 @@
 - [x] 2.5 - Add c64://specs/sid resource
 - [x] 2.6 - Add c64://specs/vic resource
 - [x] 2.7 - Add c64://context/bootstrap resource
-- [x] 2.8 - Validate resources via automated tests
-
-### Phase 3: Resources Implementation - COMPLETE ✅
+- [x] 2.8 - Add c64://specs/printer resource
+- [ ] 2.9 - Add c64://docs/sid/file-structure resource
+- [ ] 2.10 - Add c64://docs/printer/guide resource
+- [ ] 2.11 - Add c64://docs/printer/commodore-text resource
+- [ ] 2.12 - Add c64://docs/printer/commodore-bitmap resource
+- [ ] 2.13 - Add c64://docs/printer/epson-text resource
+- [ ] 2.14 - Add c64://docs/printer/epson-bitmap resource
+- [ ] 2.15 - Add c64://docs/printer/prompts resource
+- [ ] 2.16 - Validate resources via automated tests
+- [ ] 2.17 - Create consolidated knowledge bundles & index resource metadata
 
 ### Phase 4: Tools Migration (Critical)
 
-- [ ] 3.1 - Implement ListToolsRequestSchema handler
-- [ ] 3.2 - Implement CallToolRequestSchema handler
-- [ ] 3.3 - Migrate upload_and_run_basic tool
-- [ ] 3.4 - Migrate upload_and_run_asm tool
-- [ ] 3.5 - Migrate read_screen tool
-- [ ] 3.6 - Migrate read_memory tool
-- [ ] 3.7 - Migrate write_memory tool
-- [ ] 3.8 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
-- [ ] 3.9 - Migrate reset/reboot tools
-- [ ] 3.10 - Migrate drive management tools
-- [ ] 3.11 - Migrate music tools (music_compile_and_play, etc.)
-- [ ] 3.12 - Migrate graphics tools (create_petscii_image, etc.)
-- [ ] 3.13 - Test each tool works via MCP protocol
+- [ ] 3.1 - Design domain-specific tool modules & lifecycle hooks
+- [ ] 3.2 - Implement centralized tool registry with enriched metadata
+- [ ] 3.3 - Define shared parameter/result schemas & error helpers
+- [ ] 3.4 - Implement ListToolsRequestSchema handler
+- [ ] 3.5 - Implement CallToolRequestSchema handler
+- [ ] 3.6 - Migrate upload_and_run_basic tool
+- [ ] 3.7 - Migrate upload_and_run_asm tool
+- [ ] 3.8 - Migrate read_screen tool
+- [ ] 3.9 - Migrate read_memory tool
+- [ ] 3.10 - Migrate write_memory tool
+- [ ] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
+- [ ] 3.12 - Migrate machine control & diagnostics tools
+- [ ] 3.13 - Migrate drive and disk-management tools
+- [ ] 3.14 - Migrate SID playback and audio analysis tools
+- [ ] 3.15 - Migrate graphics and PETSCII tools
+- [ ] 3.16 - Migrate printer workflow tools
+- [ ] 3.17 - Migrate RAG retrieval tools
+- [ ] 3.18 - Migrate program loaders & file utilities
+- [ ] 3.19 - Migrate configuration management tools
+- [ ] 3.20 - Migrate debug & developer tools
+- [ ] 3.21 - Migrate streaming tools
+- [ ] 3.22 - Test each tool works via MCP protocol
 
 ### Phase 5: Prompts Implementation
 
-- [ ] 4.1 - Implement ListPromptsRequestSchema handler
-- [ ] 4.2 - Implement GetPromptRequestSchema handler
-- [ ] 4.3 - Create "basic-program" prompt
-- [ ] 4.4 - Create "assembly-program" prompt
-- [ ] 4.5 - Create "sid-music" prompt
-- [ ] 4.6 - Create "graphics-demo" prompt
-- [ ] 4.7 - Test prompts work
+- [ ] 4.1 - Design prompt taxonomy & default context injection
+- [ ] 4.2 - Implement ListPromptsRequestSchema handler
+- [ ] 4.3 - Implement GetPromptRequestSchema handler
+- [ ] 4.4 - Create "basic-program" prompt
+- [ ] 4.5 - Create "assembly-program" prompt
+- [ ] 4.6 - Create "sid-music" prompt
+- [ ] 4.7 - Create "graphics-demo" prompt
+- [ ] 4.8 - Add "printer-job" and "memory-debug" prompts
+- [ ] 4.9 - Test prompts work with automated checks
 
 ### Phase 6: Enhanced Tool Descriptions
 
@@ -103,6 +121,7 @@
 ## Notes & Issues
 
 - 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
+- 2025-10-25T10:42:52+01:00: Updated tracker to align with expanded resource/printer/SID documentation tasks and modular tools/prompt plan.
 
 ---
 
@@ -112,5 +131,5 @@
 
 - Started at step: 0
 - Completed steps: tracker initialized; 0.1; 0.2; 0.3; 0.4; 1.1; 1.2; 1.3; 1.4; 2.1; 2.2; 2.3; 2.4; 2.5; 2.6; 2.7; 2.8
-- Ended at step: 3.1
+- Ended at step: 2.9
 - Issues encountered: [none]
