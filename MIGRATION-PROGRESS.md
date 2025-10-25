@@ -1,13 +1,17 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.17
-**Last Updated:** 2025-10-25T17:45:00+01:00
+**Current Step:** 3.18
+**Last Updated:** 2025-10-25T18:10:00+01:00
+
 
 ## Process Guidelines
 
-- At step start: Review doc/tasks/use-mcp-sdk.md, source code, and configs to understand the task.
--At step completion: Update this tracker and doc/tasks/use-mcp-sdk.md.
+- **Purpose:**
+  - Bring the MCP server in line with **MCP SDK** standards for consistency and reuse.  
+  - Equip any LLM using this agent with deep **C64 expertise**, enabling it to create BASIC/Assembly programs, music, and graphics, and control the C64. It should retrieve context mainly from the `data` folder—prioritizing `*spec.md` files, then other `.md` files, and finally any remaining text sources.
+- **At step start:** Review `doc/tasks/use-mcp-sdk.md`, source code, and configs to understand the task.  
+- **At step completion:** Update this tracker and `doc/tasks/use-mcp-sdk.md`.
 
 ---
 
@@ -71,7 +75,7 @@
 - [x] 3.14 - Migrate SID playback and audio analysis tools
 - [x] 3.15 - Migrate graphics and PETSCII tools
 - [x] 3.16 - Migrate printer workflow tools
-- [ ] 3.17 - Migrate RAG retrieval tools
+- [x] 3.17 - Migrate RAG retrieval tools
 - [ ] 3.18 - Migrate program loaders & file utilities
 - [ ] 3.19 - Migrate configuration management tools
 - [ ] 3.20 - Migrate debug & developer tools
@@ -145,6 +149,7 @@
 - 2025-10-25T16:30:00+01:00: Migrated SID playback and audio analysis tools into audio module with attachment support, mock API coverage, and new unit tests.
 - 2025-10-25T17:20:00+01:00: Migrated graphics and PETSCII tools into dedicated MCP module with unit coverage and dry-run support.
 - 2025-10-25T17:45:00+01:00: Migrated printer workflows into MCP printer module with validation schemas and unit tests.
+- 2025-10-25T18:10:00+01:00: Migrated RAG retrieval tools into dedicated module with schema validation, MCP wiring, and unit tests.
 
 ---
 
