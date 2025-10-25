@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.1
-**Last Updated:** 2025-10-25T10:50:40+01:00
+**Current Step:** 3.3
+**Last Updated:** 2025-10-25T11:00:01+01:00
 
 ---
 
@@ -50,8 +50,8 @@
 
 ### Phase 4: Tools Migration (Critical)
 
-- [ ] 3.1 - Design domain-specific tool modules & lifecycle hooks
-- [ ] 3.2 - Implement centralized tool registry with enriched metadata
+- [x] 3.1 - Design domain-specific tool modules & lifecycle hooks
+- [x] 3.2 - Implement centralized tool registry with enriched metadata
 - [ ] 3.3 - Define shared parameter/result schemas & error helpers
 - [ ] 3.4 - Implement ListToolsRequestSchema handler
 - [ ] 3.5 - Implement CallToolRequestSchema handler
@@ -125,6 +125,8 @@
 - 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
 - 2025-10-25T10:42:52+01:00: Updated tracker to align with expanded resource/printer/SID documentation tasks and modular tools/prompt plan.
 - 2025-10-25T10:50:40+01:00: Implemented knowledge bundle registry, enriched metadata, generated docs index, and expanded automated resource tests.
+- 2025-10-25T10:56:56+01:00: Created domain-specific tool modules and shared type definitions ahead of registry implementation.
+- 2025-10-25T11:00:01+01:00: Built centralized tool registry wiring all modules with duplicate detection.
 
 ---
 
@@ -134,5 +136,5 @@
 
 - Started at step: 0
 - Completed steps: tracker initialized; 0.1; 0.2; 0.3; 0.4; 1.1; 1.2; 1.3; 1.4; 2.1; 2.2; 2.3; 2.4; 2.5; 2.6; 2.7; 2.8
-- Ended at step: 3.1
+- Ended at step: 3.3
 - Issues encountered: [none]
