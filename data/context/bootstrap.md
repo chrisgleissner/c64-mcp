@@ -1,6 +1,6 @@
 # C64 Knowledge Bootstrap
 
-High-level overview for C64 development. For more details, see linked spec documents. 
+High-level overview for C64 development. For more details, see linked spec documents.
 
 ## Device & Services
 
@@ -9,7 +9,7 @@ High-level overview for C64 development. For more details, see linked spec docum
 
 ## Memory Map (default RAM layout)
 
-Full details in `data/memory/c64-memory-map.md`.
+For Full details see `../memory/memory-map.md` with focus on low-memory (pages 0-3) in `../memory/low-memory-map.md` and  KERNAL memory in `../memory/kernal-memory-map.md`.
 
 - $0000–$00FF: Zero page
 - $0100–$01FF: Stack
