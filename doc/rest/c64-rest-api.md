@@ -1,4 +1,4 @@
-# c64 REST API Reference
+# C64 REST API Reference
 
 Authoritative source: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html) for devices such as Commodore 64 Ultimate and Ultimate 64.
 

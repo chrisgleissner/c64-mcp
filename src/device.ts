@@ -49,6 +49,7 @@ export interface C64Facade {
   driveOn(drive: string): Promise<RunResult>;
   driveOff(drive: string): Promise<RunResult>;
   driveSetMode(drive: string, mode: "1541" | "1571" | "1581"): Promise<RunResult>;
+  driveLoadRom(drive: string, romPath: string): Promise<RunResult>;
   streamStart(stream: "video" | "audio" | "debug", ip: string): Promise<RunResult>;
   streamStop(stream: "video" | "audio" | "debug"): Promise<RunResult>;
   configsList(): Promise<unknown>;
@@ -195,6 +196,7 @@ class C64uBackend implements C64Facade {
   async driveOn(d: string): Promise<RunResult> { const res = await this.api.v1.drivesOnUpdate(d, ":on"); return { success: true, details: res.data }; }
   async driveOff(d: string): Promise<RunResult> { const res = await this.api.v1.drivesOffUpdate(d, ":off"); return { success: true, details: res.data }; }
   async driveSetMode(d: string, mode: "1541" | "1571" | "1581"): Promise<RunResult> { const res = await this.api.v1.drivesSetModeUpdate(d, ":set_mode", { mode }); return { success: true, details: res.data }; }
+  async driveLoadRom(d: string, romPath: string): Promise<RunResult> { const res = await this.api.v1.drivesLoadRomUpdate(d, ":load_rom", { file: romPath }); return { success: true, details: res.data }; }
   async streamStart(s: "video" | "audio" | "debug", ip: string): Promise<RunResult> { const res = await this.api.v1.streamsStartUpdate(s, ":start", { ip }); return { success: true, details: res.data }; }
   async streamStop(s: "video" | "audio" | "debug"): Promise<RunResult> { const res = await this.api.v1.streamsStopUpdate(s, ":stop"); return { success: true, details: res.data }; }
   async configsList(): Promise<unknown> { const res = await this.api.v1.configsList(); return res.data; }
@@ -257,6 +259,7 @@ class ViceBackend implements C64Facade {
   async driveOn(): Promise<RunResult> { throw unsupported("driveOn"); }
   async driveOff(): Promise<RunResult> { throw unsupported("driveOff"); }
   async driveSetMode(): Promise<RunResult> { throw unsupported("driveSetMode"); }
+  async driveLoadRom(): Promise<RunResult> { throw unsupported("driveLoadRom"); }
   async streamStart(): Promise<RunResult> { throw unsupported("streamStart"); }
   async streamStop(): Promise<RunResult> { throw unsupported("streamStop"); }
   async configsList(): Promise<unknown> { throw unsupported("configsList"); }

@@ -315,6 +315,22 @@ export class C64Client {
 
       // Prefer PUT with hex data for up to 128 bytes; fall back to POST binary for larger writes
       const addrStr = this.formatAddress(address);
+      try {
+        const facade = await this.facadePromise;
+        await facade.writeMemory(address, dataBuffer);
+        return {
+          success: true,
+          details: {
+            address: addrStr,
+            bytes: this.bytesToHex(dataBuffer),
+          },
+        };
+      } catch (facadeError) {
+        if (!(facadeError instanceof Error) || (facadeError as any).code !== "UNSUPPORTED") {
+          throw facadeError;
+        }
+      }
+
       let response: unknown;
       if (dataBuffer.length <= 128) {
         const put = await this.api.v1.machineWritememUpdate(":writemem", {
@@ -574,6 +590,22 @@ export class C64Client {
     try { const facade = await this.facadePromise; return await facade.driveOff(drive); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
   }
 
+  @McpTool({ name: "drive_load_rom", description: "Temporarily load a drive ROM image", parameters: { drive: "string", path: "string" } })
+  async driveLoadRom(drive: string, path: string): Promise<RunBasicResult> {
+    try {
+      if (!drive || !path) throw new Error("Drive and path are required");
+      if (process.env.C64_TEST_TARGET === "mock") {
+        const res = await this.api.v1.drivesLoadRomUpdate(drive, ":load_rom", { file: path });
+        return { success: true, details: res.data };
+      }
+      const facade = await this.facadePromise;
+      const result = await facade.driveLoadRom(drive, path);
+      return { success: result.success, details: result.details };
+    } catch (error) {
+      return { success: false, details: this.normaliseError(error) };
+    }
+  }
+
   @McpTool({ name: "drive_mode", description: "Set drive mode", parameters: { drive: "string", mode: "string" } })
   async driveSetMode(drive: string, mode: "1541" | "1571" | "1581"): Promise<RunBasicResult> {
     try { const facade = await this.facadePromise; return await facade.driveSetMode(drive, mode); } catch (error) { return { success: false, details: this.normaliseError(error) }; }
@@ -703,6 +735,15 @@ export class C64Client {
    * raw binary bytes or JSON with a base64 payload.
    */
   private async readMemoryRaw(address: number, length: number): Promise<Uint8Array> {
+    try {
+      const facade = await this.facadePromise;
+      return await facade.readMemory(address, length);
+    } catch (facadeError) {
+      if (!(facadeError instanceof Error) || (facadeError as any).code !== "UNSUPPORTED") {
+        throw facadeError;
+      }
+    }
+
     const addrStr = this.formatAddress(address);
     const response = await this.api.v1.machineReadmemList(
       ":readmem",
@@ -886,18 +927,10 @@ function buildSingleSpriteProgram(opts: {
   lines.push("* = $0810");
   lines.push("\nstart:");
   // Copy 63 bytes from inlined table to SPRITE_BASE
-  lines.push("  LDA #<sprite_data");
-  lines.push("  STA src");
-  lines.push("  LDA #>sprite_data");
-  lines.push("  STA src+1");
-  lines.push(`  LDA #<${hex16(SPRITE_BASE)}`);
-  lines.push("  STA dest");
-  lines.push(`  LDA #>${hex16(SPRITE_BASE)}`);
-  lines.push("  STA dest+1");
   lines.push("  LDY #$00");
   lines.push("copy_loop:");
-  lines.push("  LDA (src),Y");
-  lines.push("  STA (dest),Y");
+  lines.push("  LDA sprite_data,Y");
+  lines.push(`  STA $${hex16(SPRITE_BASE)},Y`);
   lines.push("  INY");
   lines.push("  CPY #$3F");
   lines.push("  BNE copy_loop");
@@ -905,7 +938,7 @@ function buildSingleSpriteProgram(opts: {
   lines.push(`  LDA #$${pointerValue.toString(16).toUpperCase().padStart(2, "0")}`);
   lines.push(`  STA $${(POINTER_PAGE).toString(16).toUpperCase()}`);
   lines.push(`  LDA #$${color.toString(16).toUpperCase().padStart(2, "0")}`);
-  lines.push(`  STA $D027+${index}`);
+  lines.push(`  STA $${hex16(0xD027 + index)}`);
   lines.push(`  LDA #$${xLo.toString(16).toUpperCase().padStart(2, "0")}`);
   lines.push(`  STA $${(0xD000 + index * 2).toString(16).toUpperCase()}`);
   lines.push(`  LDA #$${y.toString(16).toUpperCase().padStart(2, "0")}`);
@@ -933,10 +966,6 @@ function buildSingleSpriteProgram(opts: {
   }
   // Idle loop
   lines.push("forever: JMP forever");
-  // Zero page pointers
-  // Use fixed zero-page pointers for (zp),Y addressing
-  lines.push("\nsrc = $FB");
-  lines.push("dest = $FD");
   // Sprite data table
   lines.push("\nsprite_data:");
   for (let i = 0; i < 63; i += 3) {

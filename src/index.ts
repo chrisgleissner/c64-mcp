@@ -542,6 +542,16 @@ async function main() {
     }
     return client.driveOff(drive);
   });
+  server.post<{ Body: { drive?: string; path?: string } }>("/tools/drive_load_rom", async (request, reply) => {
+    const { drive, path } = request.body ?? {};
+    if (!drive || !path) {
+      reply.code(400);
+      return { error: "Missing drive or path" };
+    }
+    const result = await client.driveLoadRom(drive, path);
+    if (!result.success) reply.code(502);
+    return result;
+  });
   server.post<{ Body: { drive?: string; mode?: "1541" | "1571" | "1581" } }>(
     "/tools/drive_mode",
     async (request, reply) => {
