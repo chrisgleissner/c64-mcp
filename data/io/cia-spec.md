@@ -1,127 +1,115 @@
 # Commodore 64 CIA Specification
 
+> Purpose: Single source of truth for CIA hardware on the C64 (LLM/MCP).  
+> Companion specs: `io-spec.md` (system I/O topology, IEC/tape/ports), `data/printer/printer-spec.md` (printers).  
+> Notes: Do **not** duplicate I/O details here—refer to `io-spec.md`. This file defines *exact CIA semantics*. Where sources disagree, this merged spec defers to the attached “Mapping the C64 CIA” and the C64 Programmer’s Reference Guide.
+
 ## Overview
 
-**Chips:** 2× MOS 6526 / 6526A / 8521  
-**Roles:** CIA1 ($DC00–$DCFF) handles keyboard, joystick, paddles, lightpen, IRQ.  
-CIA2 ($DD00–$DDFF) handles serial bus, RS-232, VIC memory bank select, NMI.  
-**Clock:** 1 MHz (6526), 2 MHz (6526A).  
-**Mirroring:** Each 16-byte register block repeats to $xxFF.  
-**Electrical:** Open collector w/ pull-ups, CMOS-compatible, 2 TTL inputs.  
-**Core units:**  
+- **Chips:** 2× MOS **6526/6526A/8521** (functionally equivalent for C64 use).  
+- **Address blocks:** **CIA1** `$DC00–$DC0F` (mirrored every 16 bytes to `$DCFF`), **CIA2** `$DD00–$DD0F` (mirrored to `$DDFF`).  
+- **Core units:** Ports **PA/PB (8+8)**, **Timers A/B (16‑bit)**, **TOD clock+alarm (BCD)**, **Serial shift (SDR)**, **ICR**.  
+- **System wiring:** CIA1 → **/IRQ**; CIA2 → **/NMI**. `FLAG` inputs: **CIA1** (cassette READ), **CIA2** (user port pin B).  
+- **Electrical:** Port bits are open‑collector with pull‑ups; CMOS‑compatible; CNT/SP serial pins present on user port.  
+- **Defaults after init:** CIA1 `DDRA=$FF` (PA out), `DDRB=$00` (PB in); CIA2 `DDRA=$3F` (bits 6–7 in), `DDRB=$00` (in).  
+- **Cross‑refs:** IEC bus, user port pins, datasette lines, VIC bank select, joystick/paddles/key scan → see `io-spec.md`.
 
-- 2× 8-bit I/O ports (PA/PB)  
-- 2× 16-bit timers (A/B)  
-- 1× Time-of-Day (TOD) clock + alarm (BCD)  
-- 1× Serial shift register (SDR)  
-- Interrupt control (ICR) via /IRQ (CIA1) or /NMI (CIA2)
+## CIA #1 Registers (`$DC00–$DC0F`) — Keyboard/Joysticks/Paddles/Lightpen/IRQ
 
----
+| Address | Decimal | Name | Function / Bits (compact) |
+|:-------:|:-------:|:-----|:---------------------------|
+| `$DC00` | 56320 | **PRA** | Keyboard **column select** (write), **joy2** read, paddle mux/fire. **b7..b0** column sel; **b7/b6** paddle mux (`01`=Port1, `10`=Port2); **b4** joy2 fire (0=pressed); **b3..b0** joy2 dir; **b3..b2** paddle fires. |
+| `$DC01` | 56321 | **PRB** | Keyboard **row read**, **joy1** read, timer outputs. **b7..b0** rows; **b7** Timer B out (toggle/pulse); **b6** Timer A out; **b4** joy1 fire (0=pressed); **b3..b0** joy1 dir; **b3..b2** paddle fires. |
+| `$DC02` | 56322 | **DDRA** | Port A direction (0=in, 1=out). Default `$FF`. |
+| `$DC03` | 56323 | **DDRB** | Port B direction (0=in, 1=out). Default `$00`. |
+| `$DC04` | 56324 | **TALO** | Timer A **low**. **R:** counter; **W:** latch low. |
+| `$DC05` | 56325 | **TAHI** | Timer A **high**. **R:** counter; **W:** latch high (if stopped, also loads). |
+| `$DC06` | 56326 | **TBLO** | Timer B **low**. **R/W** as above. |
+| `$DC07` | 56327 | **TBHI** | Timer B **high**. **R/W** as above. |
+| `$DC08` | 56328 | **TOD10TH** | TOD tenths BCD (0–9). **CRB7=0:** writes set **time**; **=1:** set **alarm**. |
+| `$DC09` | 56329 | **TODSEC** | TOD seconds BCD. |
+| `$DC0A` | 56330 | **TODMIN** | TOD minutes BCD. |
+| `$DC0B` | 56331 | **TODHR** | TOD hours BCD; **b7 AM/PM** (1=PM). **Write halts** TOD until `$DC08` read. |
+| `$DC0C` | 56332 | **SDR** | Serial shift data. **CRA6:** 0=input (SP→SDR on CNT↑); 1=output (SDR→SP, CNT strobes). |
+| `$DC0D` | 56333 | **ICR** | **R:** b0 TA UF, b1 TB UF, b2 TOD=ALARM, b3 serial byte, b4 FLAG; **b7**=any pending. **W:** b7=1 set mask bits0–4; b7=0 clear them. **Read clears** status bits. |
+| `$DC0E` | 56334 | **CRA** | **Timer A ctrl**/**serial/TOD**: **b0** start; **b1** PB6 enable; **b2** PB6 mode (1 toggle / 0 pulse); **b3** one‑shot; **b4** force load; **b5** count src (1=CNT / 0=Φ2); **b6** SDR dir (1 out); **b7** TOD freq (1=50 Hz/0=60 Hz). |
+| `$DC0F` | 56335 | **CRB** | **Timer B ctrl/TOD sel**: **b0** start; **b1** PB7 enable; **b2** PB7 mode; **b3** one‑shot; **b4** force load; **b6..b5** mode: `00`=Φ2, `01`=CNT, `10`=TA underflow, `11`=TA underflow gated by CNT; **b7** TOD write target (1=ALARM/0=TIME). |
 
-## CIA #1 @ $DC00–$DC0F — Keyboard / Joystick / Paddles / Lightpen / IRQ
+**Notes (CIA1):** Keyboard matrix via column write (PRA) + row read (PRB), active‑low. Joystick‑keyboard contention on **Port 1** (PRB) exists; avoid or gate scanning accordingly. Paddle select uses **PRA b7/b6**; paddle *positions* read via SID POTX/POTY; paddle buttons via CIA (bits 2–3). Lightpen appears as fire on PRA b4 and via VIC `/LP`.
 
-| Addr | Reg | Bits | Function |
-|------|------|------|-----------|
-| $DC00 | **PRA** |7–0| Keyboard column write / read; bit 7–6 paddle mux (01 = Port A, 10 = Port B); bit 4 joy A fire (1 = fire); bits 3–2 paddle fires; bits 3–0 joy A direction (0–15).|
-| $DC01 | **PRB** |7–0| Keyboard row read; bit 7 Timer B pulse/toggle; bit 6 Timer A pulse/toggle; bit 4 joy 1 fire (1 = fire); bits 3–2 paddle fires; bits 3–0 joy 1 direction.|
-| $DC02 | **DDRA** | | Data direction A (0 = input, 1 = output). |
-| $DC03 | **DDRB** | | Data direction B. |
-| $DC04 | **TALO** | | Timer A low byte (latch write / counter read). |
-| $DC05 | **TAHI** | | Timer A high byte (latch write / counter read; reload if stopped). |
-| $DC06 | **TBLO** | | Timer B low byte. |
-| $DC07 | **TBHI** | | Timer B high byte. |
-| $DC08 | **TOD10TH** | | TOD 1/10 s BCD (0–9). Write sets time if CRB7 = 0, alarm if = 1. |
-| $DC09 | **TODSEC** | | Seconds BCD (0–59). |
-| $DC0A | **TODMIN** | | Minutes BCD (0–59). |
-| $DC0B | **TODHR** | | Hours BCD + bit 7 AM/PM (0=AM, 1=PM). Write halts TOD until $DC08 read. |
-| $DC0C | **SDR** | | Serial I/O buffer. Shift on CNT rising edge via SP. |
-| $DC0D | **ICR** |7| IRQ flag (1 = IRQ occurred) / set-clear mask flag. R: b0 TA UF, b1 TB UF, b2 TOD alarm, b3 serial, b4 FLAG1 (cassette/SRQ in). W: mask bits 0–4; b7 = 1 set mask, 0 clear.|
-| $DC0E | **CRA** |7| TOD freq (1 = 50 Hz, 0 = 60 Hz); b6 SDR mode (1 out, 0 in); b5 count source (1 CNT, 0 Φ2); b4 force load; b3 run mode (1 one-shot, 0 cont.); b2 PB6 mode (1 toggle, 0 pulse); b1 PB6 enable (1 yes); b0 start (1)/stop (0).|
-| $DC0F | **CRB** |7| Set alarm/TOD (1 alarm, 0 clock); b6–5 Timer B mode: 00 Φ2, 01 CNT, 10 TA UF, 11 TA UF while CNT high; b4–0 same as CRA. |
+## CIA #2 Registers (`$DD00–$DD0F`) — IEC/User Port/RS‑232/VIC Bank/NMI
 
-**IRQ output:** Active low on CPU /IRQ.
+| Address | Decimal | Name | Function / Bits (compact) |
+|:-------:|:-------:|:-----|:---------------------------|
+| `$DD00` | 56576 | **PRA** | **IEC** + **VIC bank** + RS‑232 TXD. **b7** DATA IN, **b6** CLOCK IN, **b5** DATA OUT, **b4** CLOCK OUT, **b3** ATN OUT (bus lines active‑low via drivers); **b2** RS‑232 TXD (user M); **b1..b0** VIC 16 KiB bank: `00=$C000–FFFF`, `01=$8000–BFFF`, `10=$4000–7FFF`, `11=$0000–3FFF` (power‑on `11`). |
+| `$DD01` | 56577 | **PRB** | **User Port/RS‑232** lines (TTL). **b7** DSR (L), **b6** CTS (K), **b5** User‑J, **b4** DCD (H), **b3** RI (F), **b2** DTR (E), **b1** RTS (D), **b0** RXD (C). **Also:** PB7/PB6 timer outputs when enabled. |
+| `$DD02` | 56578 | **DDRA** | Port A direction. Default `$3F` (b6–b7 in). |
+| `$DD03` | 56579 | **DDRB** | Port B direction. Default `$00`; RS‑232 may set b1–b2 out when opened. |
+| `$DD04` | 56580 | **TALO** | Timer A low (R counter / W latch low). |
+| `$DD05` | 56581 | **TAHI** | Timer A high (R counter / W latch high). |
+| `$DD06` | 56582 | **TBLO** | Timer B low. |
+| `$DD07` | 56583 | **TBHI** | Timer B high. |
+| `$DD08` | 56584 | **TOD10TH** | TOD tenths BCD. (OS typically unused here.) |
+| `$DD09` | 56585 | **TODSEC** | TOD seconds BCD. |
+| `$DD0A` | 56586 | **TODMIN** | TOD minutes BCD. |
+| `$DD0B` | 56587 | **TODHR** | TOD hours BCD + AM/PM (b7). |
+| `$DD0C` | 56588 | **SDR** | Serial shift data (rarely used by OS; available via user port SP2/CNT2). |
+| `$DD0D` | 56589 | **ICR** | As CIA1, but flags drive **/NMI**. **b4**=FLAG (user‑port pin B). |
+| `$DD0E` | 56590 | **CRA** | As CIA1 `$DC0E`. |
+| `$DD0F` | 56591 | **CRB** | As CIA1 `$DC0F`. |
 
----
+**Notes (CIA2):** Provides **IEC** master control (ATN/CLOCK/DATA), **User Port** digital I/O and RS‑232 signals, and **VIC bank** selection via `PRA[1:0]`. `/PC2` (handshake) pulses low for one cycle after **PRB** access—available on user port for external strobing.
 
-## CIA #2 @ $DD00–$DD0F — Serial Bus / RS-232 / VIC Bank / NMI
+## Timers (A/B) — Operation
 
-| Addr | Reg | Bits | Function |
-|------|------|------|-----------|
-| $DD00 | **PRA** |7| Serial bus DATA in; 6 CLOCK in; 5 DATA out; 4 CLOCK out; 3 ATN out; 2 RS-232 TXD (user PA2); 1–0 VIC bank select (00=$C000–FFFF, 01=$8000–BFFF, 10=$4000–7FFF, 11=$0000–3FFF, default=11).|
-| $DD01 | **PRB** |7| DSR; 6 CTS; 5 user; 4 DCD; 3 RI; 2 DTR; 1 RTS; 0 RXD (user PB0–7).|
-| $DD02 | **DDRA** | | Data direction A. |
-| $DD03 | **DDRB** | | Data direction B. |
-| $DD04 | **TALO** | | Timer A low byte. |
-| $DD05 | **TAHI** | | Timer A high byte. |
-| $DD06 | **TBLO** | | Timer B low byte. |
-| $DD07 | **TBHI** | | Timer B high byte. |
-| $DD08 | **TOD10TH** | | TOD 1/10 s BCD. |
-| $DD09 | **TODSEC** | | TOD seconds BCD. |
-| $DD0A | **TODMIN** | | TOD minutes BCD. |
-| $DD0B | **TODHR** | | TOD hours BCD + AM/PM flag. |
-| $DD0C | **SDR** | | Serial I/O buffer. |
-| $DD0D | **ICR** |7| NMI flag (1 = NMI occurred) / mask set-clear; R: b0 TA UF, b1 TB UF, b3 serial, b4 FLAG1 (RS-232 data input); W: mask bits 0–4; b7 set/clear as for CIA1.|
-| $DD0E | **CRA** | | Same as CIA1 ($DC0E). |
-| $DD0F | **CRB** | | Same as CIA1 ($DC0F). |
+- **16‑bit down‑counters** with separate **latches** (write low→high). **Start** or **CRA/CRB b4** forces latch→counter.  
+- **Clock sources:** Φ2 (system cycles) or **CNT** pulses; **Timer B** can count **Timer A underflows**, gated by CNT if mode `11`.  
+- **Underflow:** Sets ICR bit (and asserts IRQ/NMI). Optional **PB6/PB7** **pulse** (b2=0) or **toggle** (b2=1). **b3=1** one‑shot; else auto‑reload.  
+- **Readback:** Reads return current counter; device internally manages proper two‑byte read behavior.  
+- **Typical OS setup:** CIA1 Timer A ≈ 1/60 s IRQ; tape I/O repurposes CIA1 timers; CIA2 timers often used by RS‑232.  
 
-**NMI output:** Active low on CPU /NMI.
+## Time‑of‑Day (TOD) Clock — BCD + Alarm
 
----
+- **Regs:** `$xx08–$xx0B` (10th, sec, min, hr). **Hours b7**=AM/PM.  
+- **Write target:** **CRB7=0** write **time**; **CRB7=1** write **alarm**.  
+- **Halt rule:** Writing **TODHR** halts update until **TOD10TH** is read (for read‑latch/write‑latch coherency).  
+- **Tick source:** **CRA7** selects 60 Hz/50 Hz. **Alarm match** sets ICR bit2 (IRQ/NMI by CIA).  
 
-## Timer Operation
+## Serial Shift (SDR) — SP/CNT
 
-- **16-bit down-counters** (latch + counter).  
-- **Load:** Write low then high; CRA/CRB b4 forces load. Start also loads.  
-- **Clock source:** Φ2 (1 MHz) or CNT; Timer B can count Timer A underflows (see modes).  
-- **Underflow actions:** Set ICR bit, assert IRQ/NMI, pulse or toggle PB6/PB7 as per CRA/CRB b2; auto-reload unless one-shot (b3 = 1).  
-- **Readback:** Counter values latched on read sequence.  
+- **Direction:** **CRA6** (0=in, 1=out).  
+- **Input:** On **CNT↑**, bit from **SP** shifts into SDR; byte complete → **ICR b3**.  
+- **Output:** With Timer A running (cont.), SDR shifts MSB→LSB out **SP** with **CNT** strobes; byte complete → **ICR b3**.  
+- **System:** OS uses port‑bit IEC more than SDR; SDR remains available on user port **SP1/CNT1** (CIA1) and **SP2/CNT2** (CIA2).  
 
----
+## Interrupts (ICR) — Mask/Status
 
-## Time-of-Day Clock
+- **Status read (clears):** b0 TA UF, b1 TB UF, b2 TOD alarm, b3 serial, b4 FLAG; **b7**=any pending (ANDed with mask).  
+- **Mask write:** **b7=1** sets bits 0–4; **b7=0** clears bits 0–4; bits written as 0 are unchanged.  
+- **Wiring:** CIA1 ICR → **/IRQ**; CIA2 ICR → **/NMI** (not maskable by SEI).  
 
-- **Registers:** $08–$0B (BCD: 1/10 s, sec, min, hr + AM/PM).  
-- **Write target:** CRB7=0 → set time, =1 → set alarm.  
-- **Stop/Resume:** Writing TODHR halts clock until TOD10TH read.  
-- **Frequency:** CRA7 = 0 → 60 Hz, 1 → 50 Hz.  
-- **Alarm match:** Sets ICR bit 2.  
+## Pinout (logical summary)
 
----
+`PA0–PA7`, `PB0–PB7` (parallel I/O); `/PC` (handshake pulse after PB access; only CIA2 connected externally); `SP` (serial data), `CNT` (count/serial clock); `FLAG` (neg‑edge IRQ/NMI input); `/IRQ` (CIA1), `/NMI` (CIA2); `RS0–RS3` (reg select); `DB0–DB7`; `R/W`; `/CS`; `/RES`; `Φ2`; `Vcc`; `Vss`.  
+User‑port mapping for CIA2 PRB and PRA b2 is defined in `io-spec.md` (pin letters C..N).  
 
-## Serial I/O (SDR / SP / CNT)
+## Behavior Notes / Gotchas (LLM hints)
 
-- **Shift direction:** CRA6 (0 in, 1 out).  
-- **Clock:** CNT rising edges at ≈ 1 MHz/2 MHz.  
-- **SP:** Data line bidirectional.  
-- **ICR bit 3:** Set when byte transfer complete.  
+- **Keyboard scan vs Joystick 1:** Shared on **PRB**; keyscan can misread joystick state and vice‑versa. Gate scan or prefer **Port 2** for games.  
+- **Paddles:** Buttons via CIA **bits 2–3**; *positions* via **SID** POTX/POTY; select port with **PRA b7/b6**.  
+- **Mirroring:** Access any `$xx00–$xx0F` alias in the `$xx10–$xxFF` window; use base addresses for clarity.  
+- **VIC bank:** Use **CIA2 PRA[1:0]**; update VIC `$D018` pointers accordingly (see `io-spec.md`).  
+- **Datasette:** READ→CIA1 **FLAG** (ICR b4); MOTOR/WRITE/SENSE via CPU `$0001` (see `io-spec.md`).  
 
----
+## Cross‑References
 
-## Interrupt Logic
-
-- **Sources:** TA UF, TB UF, TOD alarm, serial byte done, FLAG edge.  
-- **Mask write:** b7=1 set bits 0–4, b7=0 clear bits 0–4.  
-- **Read:** Returns active flags + b7=1 if any set (mask AND source). Read clears.  
-
----
-
-## Pinout (Simplified Logical)
-
-PA0–7, PB0–7 (Parallel I/O); /PC (Handshake pulse PB access); TOD (50/60 Hz in); SP (Serial Data); CNT (Serial/Timer clock); /IRQ (CIA1) / /NMI (CIA2); /FLAG (Neg-edge in); RS0–3 (Reg select); DB0–7 (Data bus); R/W; /CS; /RES; Φ2; Vcc; Vss.  
+- **System I/O (IEC, tape, user/expansion ports, keyboard algorithm):** `io-spec.md`  
+- **Printers:** `data/printer/printer-spec.md`  
+- **KERNAL vector/entry points:** `data/memory/kernal-api-spec.md`
 
 ---
 
-## Failure Indicators
+**Provenance:**
 
-- **CIA1:** No keyboard/joystick/cursor; random chars; hot chip; blank screen if shorted.  
-- **CIA2:** No serial/user port; drive “File not found”; block chars on boot; cart still works.  
-
----
-
-## Provenance
-
-Integrated from:  
-
-- *C64 Programmer’s Reference Guide* (pp. 322–325)  
-- *MOS 6526 Datasheet*  
-- *C64-Wiki Hardware Reference*  
+- [C64 Programmer’s Reference Guide](https://www.zimmers.net/cbmpics/cbm/c64/c64prg.txt)
+- [Mapping the C64](https://www.zimmers.net/anonftp/pub/cbm/c64/manuals/mapping-c64.txt)
