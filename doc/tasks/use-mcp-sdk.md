@@ -75,7 +75,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 3.4 - Implement ListToolsRequestSchema handler
 - [x] 3.5 - Implement CallToolRequestSchema handler
 - [x] 3.6 - Migrate upload_and_run_basic tool
-- [ ] 3.7 - Migrate upload_and_run_asm tool
+- [x] 3.7 - Migrate upload_and_run_asm tool
 - [ ] 3.8 - Migrate read_screen tool
 - [ ] 3.9 - Migrate read_memory tool
 - [ ] 3.10 - Migrate write_memory tool
