@@ -50,7 +50,7 @@ function createRagTool(language: RagLanguage, options: { description: string; su
         ? ["basic-program"]
         : ["assembly-program"],
     tags: options.tags,
-  async execute(args: unknown, ctx: ToolExecutionContext) {
+    async execute(args: unknown, ctx: ToolExecutionContext) {
       try {
         const parsed = ragRetrieveArgsSchema.parse(args ?? {});
         const limit = parsed.k ?? 3;
