@@ -21,6 +21,7 @@ import { initRag } from "./rag/init.js";
 import { toolRegistry } from "./tools/registry.js";
 import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolLogger, ToolRunResult } from "./tools/types.js";
+import { createPromptRegistry, type PromptSegment } from "./prompts/registry.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,6 +38,7 @@ async function main() {
   const rag = await initRag();
 
   const toolLogger = createToolLogger();
+  const promptRegistry = createPromptRegistry();
 
   // Create MCP server
   const server = new Server(
@@ -84,6 +86,29 @@ async function main() {
     };
   });
 
+  server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    const entries = promptRegistry.list();
+    return {
+      prompts: entries.map((entry) => ({
+        name: entry.descriptor.name,
+        title: entry.descriptor.title,
+        description: entry.descriptor.description,
+        arguments: entry.arguments?.map((argument) => ({
+          name: argument.name,
+          description: argument.description,
+          required: argument.required,
+          options: argument.options,
+        })),
+        _meta: {
+          requiredResources: entry.descriptor.requiredResources,
+          optionalResources: entry.descriptor.optionalResources ?? [],
+          tools: entry.descriptor.tools,
+          tags: entry.descriptor.tags ?? [],
+        },
+      })),
+    };
+  });
+
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name } = request.params;
     const args = request.params.arguments ?? {};
@@ -114,7 +139,27 @@ async function main() {
     }
   });
 
-  // TODO: Add handlers in subsequent steps
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name } = request.params;
+    const args = request.params.arguments ?? {};
+    const resolved = promptRegistry.resolve(name, args);
+
+    return {
+      description: resolved.description,
+      messages: resolved.messages.map(toPromptMessage),
+      _meta: {
+        arguments: resolved.arguments,
+        resources: resolved.resources.map((resource) => ({
+          uri: resource.uri,
+          name: resource.name,
+          description: resource.description,
+          mimeType: resource.mimeType,
+          metadata: resource.metadata,
+        })),
+        tools: resolved.tools,
+      },
+    };
+  });
 
   // Connect via stdio
   const transport = new StdioServerTransport();
@@ -171,6 +216,20 @@ function createToolLogger(): ToolLogger {
     },
     error(message, details) {
       log("error", message, details);
+    },
+  };
+}
+
+function toPromptMessage(segment: PromptSegment): {
+  role: "assistant" | "user";
+  content: { type: "text"; text: string };
+} {
+  const role = segment.role === "user" ? "user" : "assistant";
+  return {
+    role,
+    content: {
+      type: "text",
+      text: segment.content,
     },
   };
 }

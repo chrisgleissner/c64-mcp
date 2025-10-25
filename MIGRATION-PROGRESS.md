@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 4.2
-**Last Updated:** 2025-10-25T21:35:00+01:00
+**Current Step:** 4.9
+**Last Updated:** 2025-10-25T22:15:00+01:00
 
 
 ## Process Guidelines
@@ -85,13 +85,13 @@
 ### Phase 5: Prompts Implementation
 
 - [x] 4.1 - Design prompt taxonomy & default context injection
-- [ ] 4.2 - Implement ListPromptsRequestSchema handler
-- [ ] 4.3 - Implement GetPromptRequestSchema handler
-- [ ] 4.4 - Create "basic-program" prompt
-- [ ] 4.5 - Create "assembly-program" prompt
-- [ ] 4.6 - Create "sid-music" prompt
-- [ ] 4.7 - Create "graphics-demo" prompt
-- [ ] 4.8 - Add "printer-job" and "memory-debug" prompts
+- [x] 4.2 - Implement ListPromptsRequestSchema handler
+- [x] 4.3 - Implement GetPromptRequestSchema handler
+- [x] 4.4 - Create "basic-program" prompt
+- [x] 4.5 - Create "assembly-program" prompt
+- [x] 4.6 - Create "sid-music" prompt
+- [x] 4.7 - Create "graphics-demo" prompt
+- [x] 4.8 - Add "printer-job" and "memory-debug" prompts
 - [ ] 4.9 - Test prompts work with automated checks
 
 ### Phase 6: Enhanced Tool Descriptions
@@ -154,6 +154,7 @@
 - 2025-10-25T19:05:00+01:00: Migrated configuration management tools with normalized schemas, firmware error handling, and dedicated unit tests.
 - 2025-10-25T19:45:00+01:00: Migrated debug register tooling into developer module, finalized streaming module, added unit coverage, and regenerated manifest.
 - 2025-10-25T21:05:00+01:00: Completed MCP protocol validation for all tools, added structured content propagation, fixed mock firmware endpoints, and re-ran full test suite.
+- 2025-10-25T22:15:00+01:00: Implemented prompt registry with List/Get handlers, authored seven workflow prompts, and surfaced resource/tool metadata for MCP clients.
 
 ---
 

@@ -94,13 +94,13 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 
 ### Phase 5: Prompts Implementation
 - [ ] 4.1 - Design prompt taxonomy & default context injection
-- [ ] 4.2 - Implement ListPromptsRequestSchema handler
-- [ ] 4.3 - Implement GetPromptRequestSchema handler
-- [ ] 4.4 - Create "basic-program" prompt
-- [ ] 4.5 - Create "assembly-program" prompt
-- [ ] 4.6 - Create "sid-music" prompt
-- [ ] 4.7 - Create "graphics-demo" prompt
-- [ ] 4.8 - Add "printer-job" and "memory-debug" prompts
+- [x] 4.2 - Implement ListPromptsRequestSchema handler
+- [x] 4.3 - Implement GetPromptRequestSchema handler
+- [x] 4.4 - Create "basic-program" prompt
+- [x] 4.5 - Create "assembly-program" prompt
+- [x] 4.6 - Create "sid-music" prompt
+- [x] 4.7 - Create "graphics-demo" prompt
+- [x] 4.8 - Add "printer-job" and "memory-debug" prompts
 - [ ] 4.9 - Test prompts work with automated checks
 
 ### Phase 6: Enhanced Tool Descriptions
@@ -800,7 +800,9 @@ toolRegistry.register(audioTools, machineControlTools, storageTools, /* ... */);
 **Action:** Add to `src/mcp-server.ts`:
 
 ```typescript
-import { promptRegistry } from "./prompts/registry.js";
+import { createPromptRegistry } from "./prompts/registry.js";
+
+const promptRegistry = createPromptRegistry();
 
 server.setRequestHandler(ListPromptsRequestSchema, async () => {
   return {
