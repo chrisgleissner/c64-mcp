@@ -5,11 +5,10 @@ This document captures common issues and solutions when the c64-mcp server is no
 ## Quick Diagnosis Commands
 
 ```bash
-# Check if server is running
-lsof -i :8000
-ps -ef | grep "src/index.ts" | grep -v grep
+# Check if stdio server is running
+ps -ef | grep "mcp-server.ts" | grep -v grep
 
-# Test basic connectivity
+# If optional HTTP server is enabled
 curl -s http://localhost:8000/tools/info
 
 # Check C64 connectivity
@@ -36,10 +35,9 @@ pkill -f "src/index.ts" || true
 
 # Restart server with explicit port
 cd /path/to/c64-mcp
-PORT=8000 npm start
+npm start
 
-# Verify server starts and shows logs like:
-# "Server listening at http://0.0.0.0:8000"
+# Verify logs show connectivity probe to your device
 # "Connectivity check succeeded for c64 device at http://192.168.1.13"
 ```
 
@@ -59,7 +57,9 @@ PORT=8000 npm start
     "servers": [
       {
         "name": "c64-mcp",
-        "url": "http://localhost:8000",
+        "command": "node",
+        "args": ["./node_modules/c64-mcp/dist/index.js"],
+        "type": "stdio",
   "manifestPath": "/absolute/path/to/c64-mcp/mcp-manifest.json",
         "type": "http"
       }
@@ -133,12 +133,12 @@ ping 192.168.1.13
 
 **Symptoms:**
 
-- `EADDRINUSE: address already in use 0.0.0.0:8000`
+- If enabling HTTP: `EADDRINUSE: address already in use 0.0.0.0:8000`
 
 **Solutions:**
 
 ```bash
-# Find what's using port 8000
+# Find what's using port 8000 (HTTP mode)
 lsof -i :8000
 
 # Kill the process using the port
@@ -190,8 +190,8 @@ curl -X POST -H 'Content-Type: application/json' \
 - [ ] GitHub Copilot extension installed and active
 - [ ] VS Code version supports MCP (Copilot Chat v1.214+)
 - [ ] MCP experimental feature enabled in VS Code settings
-- [ ] MCP server configuration in user settings.json (not just workspace)
-- [ ] HTTP server running on localhost:8000
+- [ ] MCP server configured as stdio in user settings.json (or workspace)
+- [ ] If using HTTP mode, server running on localhost:8000
 - [ ] C64 Ultimate 64 powered on and network accessible
 - [ ] Test with simple curl command first
 
@@ -219,9 +219,9 @@ sleep 3
 
 # Clean restart
 cd /path/to/c64-mcp
-PORT=8000 npm start
+npm start
 
-# Test immediately
+# If using HTTP mode, test immediately
 curl -s http://localhost:8000/tools/info
 ```
 

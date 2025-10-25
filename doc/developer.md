@@ -9,7 +9,7 @@ src/                Core server and client logic
   basicConverter.ts BASIC text → PRG encoder
   c64Client.ts      REST client for c64 devices
   config.ts         Configuration loader
-  index.ts          Fastify HTTP compatibility surface (legacy)
+  index.ts          Fastify HTTP compatibility surface (legacy; optional)
 doc/                Reference material and specs
 scripts/            Utility CLI entry points (tests, etc.)
 test/               Node test runner suites and helpers
@@ -41,7 +41,7 @@ Configuration resolution, first match wins:
 
 ## Useful npm Scripts
 
-- `npm start`: Launch the Fastify MCP server with ts-node.
+- `npm start`: Launch the MCP SDK stdio server (preferred). Falls back to compiled JS.
 - `npm run build`: Type-check TypeScript sources and normalize dist output.
 - `npm test`: Run tests against the bundled mock server.
 - `npm test -- --real [--base-url=http://host]`: Run against hardware.
@@ -58,8 +58,8 @@ The test script is implemented in `scripts/run-tests.mjs`. It sets `C64_TEST_TAR
 
 ```mermaid
 flowchart TD
-    subgraph MCP Server (src/index.ts)
-      Tools["HTTP endpoints /tools/*"]
+    subgraph MCP Server (stdio)
+      Stdio["MCP stdio server (src/mcp-server.ts)"]
       ClientFacade["C64Client facade (src/c64Client.ts)"]
     end
 
@@ -67,7 +67,7 @@ flowchart TD
     Api["Auto-generated REST client"]
     end
 
-    Tools --> ClientFacade
+    Stdio --> ClientFacade
     ClientFacade --> Api
     Api -->|HTTP| C64API["c64 REST API"]
 
@@ -87,7 +87,8 @@ flowchart LR
 
 ## Testing Notes
 
-- Node’s built-in test runner (`node --test`) provides coverage.
+- Node’s built-in test runner (`node --test`) is wrapped by `scripts/run-tests.mjs`.
+- Use `npm run coverage` (c8) to capture coverage without double-running tests.
 - `test/basicConverter.test.mjs`: byte-level PRG output.
 - `test/c64Client.test.mjs`: REST client and mock-server integration; `--real` toggles hardware.
 
@@ -154,6 +155,6 @@ npm run rag:rebuild  # or rely on auto-reindex (~15s default)
 
 ## MCP Server Tips
 
-- Default port `8000` (override with `PORT`).
-- MCP SDK stdio server lives in `src/mcp-server.ts` (preferred). HTTP remains for compatibility.
+- Preferred transport is stdio (`src/mcp-server.ts`).
+- Optional HTTP compatibility server remains in `src/index.ts` for manual testing; set `PORT` to enable.
 - Keep REST interactions isolated in `src/c64Client.ts` for easy mocking.

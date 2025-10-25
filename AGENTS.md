@@ -18,7 +18,7 @@ This server exposes a Model Context Protocol (MCP) surface for driving a Commodo
 npm start
 ```
 
-The server listens on `http://localhost:8000` (override with `PORT`).
+Prefer stdio MCP transport. Optional HTTP compatibility can listen on `http://localhost:8000` (set `PORT`).
 
 ### Capabilities at a Glance
 
@@ -43,9 +43,9 @@ Refer to `mcp-manifest.json` for the complete tool list and parameter types.
     "servers": [
       {
         "name": "c64-mcp",
-        "url": "http://localhost:8000",
-  "manifestPath": "/absolute/path/to/your/checkout/mcp-manifest.json",
-        "type": "http"
+        "command": "node",
+        "args": ["./node_modules/c64-mcp/dist/index.js"],
+        "type": "stdio"
       }
     ]
   }
@@ -56,7 +56,7 @@ Refer to `mcp-manifest.json` for the complete tool list and parameter types.
 
 ### Use with Other MCP Clients
 
-- Point the client at `http://localhost:8000` and load `mcp-manifest.json`.
+- Use stdio configuration as above; if using HTTP, point the client at `http://localhost:8000` and load `mcp-manifest.json`.
 - Expose the tools you need to the LLM session; call them with JSON bodies as described in the manifest.
 
 ### HTTP Examples (Manual Testing)

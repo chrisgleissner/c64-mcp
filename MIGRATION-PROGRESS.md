@@ -109,7 +109,7 @@
 - [x] 6.3 - Add automated integration tests for prompts
 - [x] 6.4 - Add regression tests for common error scenarios
 - [x] 6.5 - Ensure test suite runs in CI
-- [ ] 6.6 - Capture test coverage report
+- [x] 6.6 - Capture test coverage report
 
 ### Phase 8: Cleanup
 
@@ -137,6 +137,7 @@
 - 2025-10-26T00:08:00+01:00: Tagged vice-compatible tools, exposed platform metadata in tool listings, and added regression tests confirming platform enforcement.
 - 2025-10-26T00:23:00+01:00: Completed Enhanced Tool Descriptions: added prerequisites, examples, and resource references across tool modules (program runners, memory, graphics, storage, machine, printer, audio). Tool metadata now guides LLM workflows.
 - 2025-10-26T00:27:00+01:00: Added `npm run coverage` via c8 to capture coverage for Phase 7.6.
+- 2025-10-26T00:45:00+01:00: CI updated to run `npm run coverage` once and upload LCOV; removed duplicate test-only step.
 - 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
 - 2025-10-25T10:42:52+01:00: Updated tracker to align with expanded resource/printer/SID documentation tasks and modular tools/prompt plan.
 - 2025-10-25T10:50:40+01:00: Implemented knowledge bundle registry, enriched metadata, generated docs index, and expanded automated resource tests.
