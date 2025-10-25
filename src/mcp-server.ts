@@ -17,6 +17,7 @@ import {
   listKnowledgeResources,
   readKnowledgeResource,
 } from "./rag/knowledgeIndex.js";
+import { initRag } from "./rag/init.js";
 import { toolRegistry } from "./tools/registry.js";
 import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolLogger, ToolRunResult } from "./tools/types.js";
@@ -33,6 +34,7 @@ async function main() {
   
   // Initialize C64 client (reuse existing)
   const client = new C64Client(baseUrl);
+  const rag = await initRag();
 
   const toolLogger = createToolLogger();
 
@@ -94,6 +96,7 @@ async function main() {
     try {
       const result = await toolRegistry.invoke(name, args, {
         client,
+        rag,
         logger: toolLogger,
       });
 

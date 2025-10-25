@@ -4,10 +4,10 @@
 **Current Step:** 3.17
 **Last Updated:** 2025-10-25T17:45:00+01:00
 
-Requirements:
+## Process Guidelines
 
-- You MUST always read `doc/tasks/use-mcp-sdk.md` before you start a step.
-- You MUST always update this tracker and `doc/tasks/use-mcp-sdk.md` after completing a step.
+- At step start: Review doc/tasks/use-mcp-sdk.md, source code, and configs to understand the task.
+-At step completion: Update this tracker and doc/tasks/use-mcp-sdk.md.
 
 ---
 

@@ -1,4 +1,5 @@
 import type { C64Client } from "../c64Client.js";
+import type { RagRetriever } from "../rag/types.js";
 
 export type JsonSchema = {
   readonly type?: string | readonly string[];
@@ -39,6 +40,7 @@ export interface ToolLogger {
 
 export interface ToolExecutionContext {
   readonly client: C64Client;
+  readonly rag: RagRetriever;
   readonly logger: ToolLogger;
 }
 
