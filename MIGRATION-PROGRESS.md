@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 3.15
-**Last Updated:** 2025-10-25T16:45:00+01:00
+**Current Step:** 3.16
+**Last Updated:** 2025-10-25T17:20:00+01:00
 
 ---
 
@@ -64,7 +64,7 @@
 - [x] 3.12 - Migrate machine control & diagnostics tools
 - [x] 3.13 - Migrate drive and disk-management tools
 - [x] 3.14 - Migrate SID playback and audio analysis tools
-- [ ] 3.15 - Migrate graphics and PETSCII tools
+- [x] 3.15 - Migrate graphics and PETSCII tools
 - [ ] 3.16 - Migrate printer workflow tools
 - [ ] 3.17 - Migrate RAG retrieval tools
 - [ ] 3.18 - Migrate program loaders & file utilities
@@ -138,6 +138,7 @@
 - 2025-10-25T14:55:00+01:00: Migrated SID control tools into audio module with parameter schemas, logging, and MCP integration coverage.
 - 2025-10-25T15:25:00+01:00: Migrated machine control and diagnostics tools with structured metadata, version/info reporting, and MCP integration coverage.
 - 2025-10-25T16:30:00+01:00: Migrated SID playback and audio analysis tools into audio module with attachment support, mock API coverage, and new unit tests.
+- 2025-10-25T17:20:00+01:00: Migrated graphics and PETSCII tools into dedicated MCP module with unit coverage and dry-run support.
 
 ---
 
