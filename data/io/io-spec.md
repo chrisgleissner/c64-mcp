@@ -29,28 +29,29 @@
 
 **Physical lines (on CIA2 PRA):**  
 
-- **b3 ATN OUT**, **b4 CLOCK OUT**, **b5 DATA OUT** (active‑low drivers via 7406), **b6 CLOCK IN**, **b7 DATA IN**. Use open‑collector semantics (0V=true/active). Bytes shift **LSB first**, valid on **CLK rising**. citeturn0search1turn2search7turn0search8  
+- **b3 ATN OUT**, **b4 CLOCK OUT**, **b5 DATA OUT** (active‑low drivers via 7406), **b6 CLOCK IN**, **b7 DATA IN**. Use open‑collector semantics (0V=true/active). Bytes shift **LSB first**, valid on **CLK rising**.
+
 **Protocol sketch:**  
 
 1) Master asserts **ATN**, sends device **TALK/LISTEN** + (optional) **secondary address**.  
 2) Data phase with **ATN released**; talker drives DATA, listeners ack. **EOI** marks last byte.  
-3) Master sends **UNLISTEN/UNTALK** to end. citeturn0search8
+3) Master sends **UNLISTEN/UNTALK** to end.
 
-> Use KERNAL calls where possible; custom fastloaders may bit‑bang CIA2 lines for speed. citeturn2search1
+> Use KERNAL calls where possible; custom fastloaders may bit‑bang CIA2 lines for speed.
 
 ---
 
 ## 4. Datasette (Tape) I/O
 
-- **CPU Port ($0001):** **bit5 MOTOR** (0=on), **bit4 SENSE** (0=key pressed), **bit3 WRITE** (tape out). Direction via $0000. citeturn1search0turn1search9
-- **Read:** Cassette **READ → CIA1 /FLAG** (edge‑sensitive, falling only). **ICR bit4** set on edge; enable IRQ via ICR mask. citeturn1search2turn1search12
-- **Implication:** Can **toggle** write/motor; **cannot level‑poll** read—only edges—so loaders measure inter‑edge timing (often with CIA timers). citeturn1search10
+- **CPU Port ($0001):** **bit5 MOTOR** (0=on), **bit4 SENSE** (0=key pressed), **bit3 WRITE** (tape out). Direction via $0000. 
+- **Read:** Cassette **READ → CIA1 /FLAG** (edge‑sensitive, falling only). **ICR bit4** set on edge; enable IRQ via ICR mask. 
+- **Implication:** Can **toggle** write/motor; **cannot level‑poll** read—only edges—so loaders measure inter‑edge timing (often with CIA timers).
 
 ---
 
 ## 5. Keyboard (Matrix Scan) — Detailed
 
-**Hardware:** 8×8 matrix via **CIA1**: write **PRA ($DC00)** to select **column**, read **PRB ($DC01)** to sense **rows** (active‑low). Configure **DDRA=$FF**, **DDRB=$00**. Typical scan masks: `$FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F`. citeturn0search0turn0search7  
+**Hardware:** 8×8 matrix via **CIA1**: write **PRA ($DC00)** to select **column**, read **PRB ($DC01)** to sense **rows** (active‑low). Configure **DDRA=$FF**, **DDRB=$00**. Typical scan masks: `$FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F`. 
 **Algorithm (debounce omitted):**  
 
 ```
@@ -63,46 +64,46 @@ for col in 0..7:
 
 **Notes:**  
 
-- Joystick **Port 1** shares PRB bits; pressed directions can alias key bits: e.g. Right = “2” key. Prefer **Port 2** for games. citeturn0search3  
+- Joystick **Port 1** shares PRB bits; pressed directions can alias key bits: e.g. Right = “2” key. Prefer **Port 2** for games. 
 - **Shift/Ctrl/Commodore** are matrix keys; handle modifiers in lookup.  
-- KERNAL scan routine entry in ROM; custom code may be faster/leaner. citeturn0search7
+- KERNAL scan routine entry in ROM; custom code may be faster/leaner.
 
 ---
 
 ## 6. Joysticks, Lightpen, Paddles
 
-- **Joysticks:** Digital switches, active‑low. **Port 1 → CIA1 PRB[0..4]**, **Port 2 → CIA1 PRA[0..4]** (see `cia-spec.md` mapping). Joystick‑keyboard contention exists on Port 1. citeturn0search10  
-- **Lightpen:** Routed via VIC /LP; also appears as “fire” on CIA1. Use VIC registers for position latch. (Mapping note: see `cia-spec.md`.) citeturn0search10  
-- **Paddles:** Analog via **SID POTX/POTY**; channel selection via **CIA1 PRA[6:7]** to choose control port. citeturn0search10
+- **Joysticks:** Digital switches, active‑low. **Port 1 → CIA1 PRB[0..4]**, **Port 2 → CIA1 PRA[0..4]** (see `cia-spec.md` mapping). Joystick‑keyboard contention exists on Port 1.
+- **Lightpen:** Routed via VIC /LP; also appears as “fire” on CIA1. Use VIC registers for position latch. (Mapping note: see `cia-spec.md`.) 
+- **Paddles:** Analog via **SID POTX/POTY**; channel selection via **CIA1 PRA[6:7]** to choose control port. 
 
 ---
 
 ## 7. User Port (Rear Edge Connector)
 
-- **Logical:** **CIA2 PRB (PB0–PB7)** as general‑purpose digital I/O; configure with **DDRB**; read/write via **PRB**. KERNAL also provides RS‑232 routines mapping PB pins. citeturn0search10
-- **RS‑232:** TTL‑level via User Port; needs level shifting (e.g., MAX232). High‑speed bit‑bangers (e.g., UP9600) leverage CIA timing/interrupts. citeturn0search2turn0search9
+- **Logical:** **CIA2 PRB (PB0–PB7)** as general‑purpose digital I/O; configure with **DDRB**; read/write via **PRB**. KERNAL also provides RS‑232 routines mapping PB pins. 
+- **RS‑232:** TTL‑level via User Port; needs level shifting (e.g., MAX232). High‑speed bit‑bangers (e.g., UP9600) leverage CIA timing/interrupts. 
 
 ---
 
 ## 8. Expansion Port (Cartridges/REU/Fastloaders)
 
-- **Direct 6510 bus exposure:** A[15:0], D[7:0], R/W, Φ2, /IRQ, /NMI, /RESET, chip selects. Devices can map ROM/RAM/I/O and trap vectors. **No CIA mediation.** citeturn0search6
+- **Direct 6510 bus exposure:** A[15:0], D[7:0], R/W, Φ2, /IRQ, /NMI, /RESET, chip selects. Devices can map ROM/RAM/I/O and trap vectors. **No CIA mediation.** 
 
 ---
 
 ## 9. VIC Bank Select (Memory Windows)
 
-- **CIA2 PRA[1:0]:** **00=$C000–FFFF**, **01=$8000–BFFF**, **10=$4000–7FFF**, **11=$0000–3FFF (default)**. Controls VIC’s addressable 16 KiB bank. (Use with VIC memory pointers). citeturn0search10
+- **CIA2 PRA[1:0]:** **00=$C000–FFFF**, **01=$8000–BFFF**, **10=$4000–7FFF**, **11=$0000–3FFF (default)**. Controls VIC’s addressable 16 KiB bank. (Use with VIC memory pointers).
 
 ---
 
 ## 10. Recommended Access Patterns (Summary)
 
-- **Prefer KERNAL** for disk/printer where compatibility matters; switch to custom IEC only for speed‑critical paths. citeturn0search11
-- **Keyboard:** CIA1 column‑by‑column scan; handle Port‑1 joystick aliasing. citeturn0search0
-- **Tape:** Control motor/write via $0001; measure **FLAG** edges via CIA1 ICR. citeturn1search0turn1search2
-- **User Port:** Set DDRB and use PRB; add RS‑232 level shifting if interfacing to standard serial. citeturn0search2
-- **Expansion Port:** Memory‑mapped by cartridge; coordinate with bank switching and KERNAL vectors. citeturn0search6
+- **Prefer KERNAL** for disk/printer where compatibility matters; switch to custom IEC only for speed‑critical paths.
+- **Keyboard:** CIA1 column‑by‑column scan; handle Port‑1 joystick aliasing. 
+- **Tape:** Control motor/write via $0001; measure **FLAG** edges via CIA1 ICR. 
+- **User Port:** Set DDRB and use PRB; add RS‑232 level shifting if interfacing to standard serial. 
+- **Expansion Port:** Memory‑mapped by cartridge; coordinate with bank switching and KERNAL vectors. 
 
 ---
 

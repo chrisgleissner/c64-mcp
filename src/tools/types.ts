@@ -1,16 +1,25 @@
 import type { C64Client } from "../c64Client.js";
 
 export type JsonSchema = {
-  readonly type: string;
+  readonly type?: string | readonly string[];
   readonly description?: string;
   readonly properties?: Record<string, JsonSchema>;
   readonly required?: readonly string[];
-  readonly enum?: readonly string[];
+  readonly enum?: readonly (string | number | boolean)[];
   readonly items?: JsonSchema | readonly JsonSchema[];
   readonly additionalProperties?: boolean | JsonSchema;
   readonly format?: string;
   readonly default?: unknown;
   readonly examples?: readonly unknown[];
+  readonly minLength?: number;
+  readonly maxLength?: number;
+  readonly pattern?: string;
+  readonly minimum?: number;
+  readonly maximum?: number;
+  readonly const?: unknown;
+  readonly allOf?: readonly JsonSchema[];
+  readonly minItems?: number;
+  readonly maxItems?: number;
 };
 
 export type ToolLifecycle = "request-response" | "stream" | "fire-and-forget";
@@ -50,6 +59,7 @@ export type ToolResponseContent =
 export interface ToolRunResult {
   readonly content: readonly ToolResponseContent[];
   readonly metadata?: Record<string, unknown>;
+  readonly isError?: boolean;
 }
 
 export interface ToolDefinition {

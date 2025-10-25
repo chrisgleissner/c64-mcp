@@ -17,6 +17,7 @@ import {
   listKnowledgeResources,
   readKnowledgeResource,
 } from "./rag/knowledgeIndex.js";
+import { toolRegistry } from "./tools/registry.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,6 +69,12 @@ async function main() {
 
     return {
       contents: [result],
+    };
+  });
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+      tools: toolRegistry.list(),
     };
   });
 
