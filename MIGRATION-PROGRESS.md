@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 4.1
-**Last Updated:** 2025-10-25T21:05:00+01:00
+**Current Step:** 4.2
+**Last Updated:** 2025-10-25T21:35:00+01:00
 
 
 ## Process Guidelines
@@ -84,7 +84,7 @@
 
 ### Phase 5: Prompts Implementation
 
-- [ ] 4.1 - Design prompt taxonomy & default context injection
+- [x] 4.1 - Design prompt taxonomy & default context injection
 - [ ] 4.2 - Implement ListPromptsRequestSchema handler
 - [ ] 4.3 - Implement GetPromptRequestSchema handler
 - [ ] 4.4 - Create "basic-program" prompt

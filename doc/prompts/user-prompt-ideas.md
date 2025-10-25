@@ -3,6 +3,8 @@
 These example prompts illustrate what a user can ask the MCP server to perform on a real or emulated Commodore 64.
 The MCP bridges the user’s intent with direct program generation, execution, or device control.
 
+>[!NOTE] This is meant as a brainstorm collection of prompts. Some of the prompts mentioned below are not yet supported by the current MCP tools.
+
 ---
 
 ## 🧠 General Interaction

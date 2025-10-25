@@ -791,11 +791,7 @@ toolRegistry.register(audioTools, machineControlTools, storageTools, /* ... */);
 - Decide on reusable prompt templates (`promptSegments`) that can be composed (e.g., intro workflow, verification checklist, error recovery hints).
 - Capture these designs in `doc/prompts/README` (or similar) so future authors follow the same voice and safety guidance.
 
-**Update MIGRATION-PROGRESS.md:**
-
-```markdown
-- [x] 4.1 - Design prompt taxonomy & default context injection
-```
+**Update MIGRATION-PROGRESS.md:** *(Completed on 2025-10-25 at step conclusion.)*
 
 ---
 
