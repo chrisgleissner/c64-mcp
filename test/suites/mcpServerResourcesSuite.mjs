@@ -6,21 +6,22 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 const expectedResources = [
-  { uri: "c64://docs/index", domain: "overview", priority: "critical" },
-  { uri: "c64://context/bootstrap", domain: "orientation", priority: "critical" },
-  { uri: "c64://specs/basic", domain: "languages", priority: "critical" },
-  { uri: "c64://specs/assembly", domain: "languages", priority: "critical" },
-  { uri: "c64://specs/sid", domain: "audio", priority: "critical" },
-  { uri: "c64://specs/sidwave", domain: "audio", priority: "reference" },
-  { uri: "c64://docs/sid/file-structure", domain: "audio", priority: "reference" },
-  { uri: "c64://specs/vic", domain: "graphics", priority: "critical" },
-  { uri: "c64://specs/printer", domain: "printer", priority: "critical" },
-  { uri: "c64://docs/printer/guide", domain: "printer", priority: "reference" },
-  { uri: "c64://docs/printer/commodore-text", domain: "printer", priority: "reference" },
-  { uri: "c64://docs/printer/commodore-bitmap", domain: "printer", priority: "reference" },
-  { uri: "c64://docs/printer/epson-text", domain: "printer", priority: "reference" },
-  { uri: "c64://docs/printer/epson-bitmap", domain: "printer", priority: "reference" },
-  { uri: "c64://docs/printer/prompts", domain: "printer", priority: "supplemental" },
+  { uri: "c64://docs/index", domain: "overview", priority: "critical", includeInIndex: true },
+  { uri: "c64://context/bootstrap", domain: "orientation", priority: "critical", includeInIndex: true },
+  { uri: "c64://specs/basic", domain: "languages", priority: "critical", includeInIndex: true },
+  { uri: "c64://specs/assembly", domain: "languages", priority: "critical", includeInIndex: true },
+  { uri: "c64://specs/sid", domain: "audio", priority: "critical", includeInIndex: true },
+  { uri: "c64://specs/sidwave", domain: "audio", priority: "reference", includeInIndex: true },
+  { uri: "c64://docs/sid/file-structure", domain: "audio", priority: "reference", includeInIndex: true },
+  { uri: "c64://specs/vic", domain: "graphics", priority: "critical", includeInIndex: true },
+  { uri: "c64://specs/printer", domain: "printer", priority: "critical", includeInIndex: true },
+  { uri: "c64://docs/printer/guide", domain: "printer", priority: "reference", includeInIndex: true },
+  { uri: "c64://docs/printer/commodore-text", domain: "printer", priority: "reference", includeInIndex: true },
+  { uri: "c64://docs/printer/commodore-bitmap", domain: "printer", priority: "reference", includeInIndex: true },
+  { uri: "c64://docs/printer/epson-text", domain: "printer", priority: "reference", includeInIndex: true },
+  { uri: "c64://docs/printer/epson-bitmap", domain: "printer", priority: "reference", includeInIndex: true },
+  { uri: "c64://docs/printer/prompts", domain: "printer", priority: "supplemental", includeInIndex: true },
+  { uri: "c64://platform/status", domain: "platform", priority: "critical", includeInIndex: false },
 ];
 
 export function registerMcpServerResourcesTests(withSharedMcpClient) {
@@ -75,6 +76,14 @@ export function registerMcpServerResourcesTests(withSharedMcpClient) {
         assert.equal(content.mimeType, "text/markdown", "content should be markdown");
         assert.equal(typeof content.text, "string", "content should include text");
         assert.ok(content.text.length > 0, `resource ${uri} should not be empty`);
+
+        if (uri === "c64://platform/status") {
+          assert.match(
+            content.text,
+            /Current platform: `(?:c64u|vice)`/,
+            "platform resource should report current platform",
+          );
+        }
       }
 
       const indexText = (
@@ -84,8 +93,8 @@ export function registerMcpServerResourcesTests(withSharedMcpClient) {
         )
       ).contents[0].text;
 
-      for (const { uri } of expectedResources) {
-        if (uri === "c64://docs/index") {
+      for (const { uri, includeInIndex } of expectedResources) {
+        if (!includeInIndex || uri === "c64://docs/index") {
           continue;
         }
         assert.ok(indexText.includes(uri), `knowledge index should reference ${uri}`);

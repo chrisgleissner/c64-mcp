@@ -22,7 +22,7 @@ import { toolRegistry } from "./tools/registry.js";
 import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolLogger, ToolRunResult } from "./tools/types.js";
 import { createPromptRegistry, type PromptSegment } from "./prompts/registry.js";
-import { getPlatformStatus, setPlatform } from "./platform.js";
+import { describePlatformCapabilities, getPlatformStatus, setPlatform } from "./platform.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,23 +58,38 @@ async function main() {
 
   // RESOURCES: Expose C64 knowledge base
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    const resources = listKnowledgeResources();
-    return {
-      resources: resources.map((resource) => ({
+      const knowledgeResources = listKnowledgeResources().map((resource) => ({
         uri: resource.uri,
         name: resource.name,
         description: resource.description,
         mimeType: resource.mimeType,
         metadata: resource.metadata,
-      })),
-    };
+      }));
+
+      const platformResource = createPlatformResourceDescriptor();
+
+      return {
+        resources: [...knowledgeResources, platformResource],
+      };
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const result = readKnowledgeResource(request.params.uri, PROJECT_ROOT);
-    if (!result) {
-      throw new Error(`Unknown resource: ${request.params.uri}`);
-    }
+      if (request.params.uri === PLATFORM_RESOURCE_URI) {
+        return {
+          contents: [
+            {
+              uri: PLATFORM_RESOURCE_URI,
+              mimeType: "text/markdown",
+              text: renderPlatformStatusMarkdown(),
+            },
+          ],
+        };
+      }
+
+      const result = readKnowledgeResource(request.params.uri, PROJECT_ROOT);
+      if (!result) {
+        throw new Error(`Unknown resource: ${request.params.uri}`);
+      }
 
     return {
       contents: [result],
@@ -169,6 +184,70 @@ async function main() {
   await server.connect(transport);
   
   console.error("c64-mcp MCP server running on stdio");
+}
+
+const PLATFORM_RESOURCE_URI = "c64://platform/status";
+
+function createPlatformResourceDescriptor() {
+  return {
+    uri: PLATFORM_RESOURCE_URI,
+    name: "Active Platform Status",
+    description: "Reports the active MCP platform and tool compatibility snapshot.",
+    mimeType: "text/markdown",
+    metadata: {
+      domain: "platform",
+      priority: "critical",
+      summary: "Current platform (c64u or vice), feature flags, and tool support overview.",
+      prompts: [],
+      tools: [],
+      tags: ["platform", "compatibility"],
+      relatedResources: [],
+    },
+  };
+}
+
+function renderPlatformStatusMarkdown(): string {
+  const status = getPlatformStatus();
+  const capabilities = describePlatformCapabilities(toolRegistry.list());
+
+  const lines: string[] = [
+    "# MCP Platform Status",
+    "",
+    `Current platform: \`${status.id}\``,
+    "",
+    status.features.length > 0
+      ? ["## Active Features", "", ...status.features.map((feature) => `- ${feature}`)].join("\n")
+      : "",
+    status.limitedFeatures.length > 0
+      ? ["## Limited or Unavailable Features", "", ...status.limitedFeatures.map((feature) => `- ${feature}`)].join("\n")
+      : "",
+    "## Tool Compatibility",
+    "",
+  ].filter(Boolean);
+
+  for (const [platformId, info] of Object.entries(capabilities.platforms)) {
+    lines.push(`### ${platformId.toUpperCase()}`);
+    lines.push("");
+    lines.push(
+      info.tools.length > 0
+        ? `- Supported tools (${info.tools.length}): ${info.tools.map((tool) => `\`${tool}\``).join(", ")}`
+        : "- Supported tools: _none_",
+    );
+    lines.push(
+      info.unsupported_tools.length > 0
+        ? `- Unsupported tools (${info.unsupported_tools.length}): ${info.unsupported_tools
+            .map((tool) => `\`${tool}\``)
+            .join(", ")}`
+        : "- Unsupported tools: _none_",
+    );
+    lines.push("");
+  }
+
+  lines.push(
+    "> Switching platforms currently requires restarting the MCP server with an updated configuration.",
+  );
+
+  return lines.join("\n");
 }
 
 function toCallToolResult(result: ToolRunResult): {
