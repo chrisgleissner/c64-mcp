@@ -130,6 +130,14 @@
       }
     },
     {
+      "name": "drive_load_rom",
+      "description": "Temporarily load a drive ROM image",
+      "parameters": {
+        "drive": "string",
+        "path": "string"
+      }
+    },
+    {
       "name": "drive_mode",
       "description": "Set drive mode",
       "parameters": {
