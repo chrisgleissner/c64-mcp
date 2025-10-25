@@ -82,11 +82,11 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
 - [x] 3.12 - Migrate machine control & diagnostics tools
 - [x] 3.13 - Migrate drive and disk-management tools
-- [ ] 3.14 - Migrate SID playback and audio analysis tools
-- [ ] 3.15 - Migrate graphics and PETSCII tools
-- [ ] 3.16 - Migrate printer workflow tools
-- [ ] 3.17 - Migrate RAG retrieval tools
-- [ ] 3.18 - Migrate program loaders & file utilities
+- [x] 3.14 - Migrate SID playback and audio analysis tools
+- [x] 3.15 - Migrate graphics and PETSCII tools
+- [x] 3.16 - Migrate printer workflow tools
+- [x] 3.17 - Migrate RAG retrieval tools
+- [x] 3.18 - Migrate program loaders & file utilities
 - [ ] 3.19 - Migrate configuration management tools
 - [ ] 3.20 - Migrate debug & developer tools
 - [ ] 3.21 - Migrate streaming tools

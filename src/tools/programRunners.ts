@@ -20,6 +20,16 @@ function extractFailureDetails(details: unknown): Record<string, unknown> | unde
   return { value: details };
 }
 
+function toRecord(details: unknown): Record<string, unknown> | undefined {
+  if (details === undefined || details === null) {
+    return undefined;
+  }
+  if (typeof details === "object") {
+    return details as Record<string, unknown>;
+  }
+  return { value: details };
+}
+
 const uploadBasicArgsSchema = objectSchema({
   description: "Arguments for uploading and running a BASIC program.",
   properties: {
@@ -41,6 +51,30 @@ const uploadAsmArgsSchema = objectSchema({
     }),
   },
   required: ["program"],
+  additionalProperties: false,
+});
+
+const prgFileArgsSchema = objectSchema({
+  description: "Arguments for loading or running a PRG that already exists on the Ultimate filesystem.",
+  properties: {
+    path: stringSchema({
+      description: "Absolute or Ultimate filesystem path to the PRG file (e.g. //USB0/demo.prg).",
+      minLength: 1,
+    }),
+  },
+  required: ["path"],
+  additionalProperties: false,
+});
+
+const crtFileArgsSchema = objectSchema({
+  description: "Arguments for running a CRT image stored on the Ultimate filesystem.",
+  properties: {
+    path: stringSchema({
+      description: "Absolute or Ultimate filesystem path to the CRT file (e.g. //USB0/game.crt).",
+      minLength: 1,
+    }),
+  },
+  required: ["path"],
   additionalProperties: false,
 });
 
@@ -128,6 +162,102 @@ export const programRunnersModule = defineToolModule({
               cause: error,
             });
             return toolErrorResult(validationError);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "load_prg_file",
+      description: "Load a PRG into C64 memory without executing it.",
+      summary: "Instructs the Ultimate firmware to transfer a PRG into memory without RUN.",
+      inputSchema: prgFileArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["programs", "file"],
+      async execute(args, ctx) {
+        try {
+          const parsed = prgFileArgsSchema.parse(args ?? {});
+          ctx.logger.info("Loading PRG file", { path: parsed.path });
+
+          const result = await ctx.client.loadPrgFile(parsed.path);
+          if (!result.success) {
+            throw new ToolExecutionError("C64 firmware reported failure while loading PRG", {
+              details: extractFailureDetails(result.details),
+            });
+          }
+
+          return textResult(`PRG ${parsed.path} loaded into memory.`, {
+            success: true,
+            path: parsed.path,
+            details: toRecord(result.details) ?? null,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "run_prg_file",
+      description: "Run a PRG located on the Ultimate filesystem without uploading source.",
+      summary: "Loads and executes a PRG file residing on attached storage.",
+      inputSchema: prgFileArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["programs", "execution", "file"],
+      async execute(args, ctx) {
+        try {
+          const parsed = prgFileArgsSchema.parse(args ?? {});
+          ctx.logger.info("Running PRG file", { path: parsed.path });
+
+          const result = await ctx.client.runPrgFile(parsed.path);
+          if (!result.success) {
+            throw new ToolExecutionError("C64 firmware reported failure while running PRG", {
+              details: extractFailureDetails(result.details),
+            });
+          }
+
+          return textResult(`PRG ${parsed.path} loaded and executed.`, {
+            success: true,
+            path: parsed.path,
+            details: toRecord(result.details) ?? null,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "run_crt_file",
+      description: "Run a cartridge image stored on the Ultimate filesystem.",
+      summary: "Mounts and autostarts the specified CRT file through the firmware.",
+      inputSchema: crtFileArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap"],
+      tags: ["programs", "cartridge"],
+      async execute(args, ctx) {
+        try {
+          const parsed = crtFileArgsSchema.parse(args ?? {});
+          ctx.logger.info("Running CRT file", { path: parsed.path });
+
+          const result = await ctx.client.runCrtFile(parsed.path);
+          if (!result.success) {
+            throw new ToolExecutionError("C64 firmware reported failure while running CRT", {
+              details: extractFailureDetails(result.details),
+            });
+          }
+
+          return textResult(`CRT ${parsed.path} mounted and started.`, {
+            success: true,
+            path: parsed.path,
+            details: toRecord(result.details) ?? null,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
           }
           return unknownErrorResult(error);
         }
