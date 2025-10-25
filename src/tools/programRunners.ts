@@ -95,12 +95,20 @@ export const programRunnersModule = defineToolModule({
   tools: [
     {
       name: "upload_and_run_basic",
-      description: "Upload a BASIC program to the C64 and execute it immediately.",
+      description: "Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O.",
       summary: "Uploads Commodore BASIC v2 source and runs it via Ultimate 64 firmware.",
       inputSchema: uploadBasicArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/basic", "c64://context/bootstrap"],
       relatedPrompts: ["basic-program"],
       tags: ["basic", "execution"],
+      prerequisites: ["read_screen"],
+      examples: [
+        {
+          name: "Hello loop",
+          description: "Print HELLO in a loop",
+          arguments: { program: "10 PRINT \"HELLO\"\n20 GOTO 10" },
+        },
+      ],
       workflowHints: [
         "Invoke right after you generate BASIC source so it runs on the C64 without extra user steps.",
         "Ensure the program includes line numbers and uppercase keywords before calling the tool.",
@@ -134,12 +142,20 @@ export const programRunnersModule = defineToolModule({
     },
     {
       name: "upload_and_run_asm",
-      description: "Assemble 6502/6510 source code, upload the PRG, and run it immediately.",
+      description: "Assemble 6502/6510 source code, upload the PRG, and run it immediately. See c64://specs/assembly.",
       summary: "Compiles assembly to a PRG and executes it on the C64 via Ultimate 64 firmware.",
       inputSchema: uploadAsmArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/assembly", "c64://context/bootstrap"],
       relatedPrompts: ["assembly-program"],
       tags: ["assembly", "execution"],
+      prerequisites: ["read_screen"],
+      examples: [
+        {
+          name: "Set screen char",
+          description: "Write 1 to $0400 then RTS",
+          arguments: { program: ".org $0801\nstart: lda #$01\n sta $0400\n rts" },
+        },
+      ],
       workflowHints: [
         "Use when the user requests to run new 6502 code; surface any assembler diagnostics in your reply.",
         "Mention the entry routine or important addresses after execution so the user can continue debugging.",
@@ -188,6 +204,14 @@ export const programRunnersModule = defineToolModule({
       inputSchema: prgFileArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["programs", "file"],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Load PRG from USB",
+          description: "Load without running",
+          arguments: { path: "//USB0/demo.prg" },
+        },
+      ],
       workflowHints: [
         "Stage PRG files without running when the user wants to inspect memory first.",
         "Confirm the Ultimate filesystem path (e.g. //USB0/demo.prg) is accessible before invoking.",
@@ -229,6 +253,14 @@ export const programRunnersModule = defineToolModule({
         "Mention that firmware issues a RUN so the user knows the machine state changed.",
       ],
     supportedPlatforms: ["c64u", "vice"] as const,
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Run PRG from USB",
+          description: "Load and RUN",
+          arguments: { path: "//USB0/demo.prg" },
+        },
+      ],
       async execute(args, ctx) {
         try {
           const parsed = prgFileArgsSchema.parse(args ?? {});
@@ -264,6 +296,14 @@ export const programRunnersModule = defineToolModule({
       workflowHints: [
         "Use for cartridge images and remind the user that the machine will reset into the CRT.",
         "Suggest capturing the screen afterwards if they need to verify the cartridge booted.",
+      ],
+      prerequisites: ["drives_list"],
+      examples: [
+        {
+          name: "Start CRT",
+          description: "Mount and run game.crt",
+          arguments: { path: "//USB0/game.crt" },
+        },
       ],
       async execute(args, ctx) {
         try {

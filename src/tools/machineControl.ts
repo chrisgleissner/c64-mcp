@@ -53,10 +53,14 @@ export const machineControlModule = defineToolModule({
   tools: [
     {
       name: "reset_c64",
-      description: "Reset the C64 via Ultimate firmware.",
+      description: "Reset the C64 via Ultimate firmware. Review c64://context/bootstrap safety rules.",
       summary: "Issues a soft reset, equivalent to power cycling without cutting power.",
       inputSchema: resetArgsSchema.jsonSchema,
       tags: ["reset"],
+      prerequisites: [],
+      examples: [
+        { name: "Soft reset", description: "Reset machine", arguments: {} },
+      ],
       workflowHints: [
         "Use when the user wants a quick restart without losing power; mention that memory contents may persist.",
       ],
@@ -88,10 +92,14 @@ export const machineControlModule = defineToolModule({
     },
     {
       name: "reboot_c64",
-      description: "Reboot the Ultimate firmware and C64.",
+      description: "Reboot the Ultimate firmware and C64. See c64://context/bootstrap.",
       summary: "Triggers a firmware reboot, useful after configuration changes.",
       inputSchema: rebootArgsSchema.jsonSchema,
       tags: ["reboot"],
+      prerequisites: [],
+      examples: [
+        { name: "Firmware reboot", description: "Hard reboot", arguments: {} },
+      ],
       workflowHints: [
         "Choose reboot when configuration changed or hardware is stuck; warn that it will interrupt any running program.",
       ],
@@ -123,10 +131,14 @@ export const machineControlModule = defineToolModule({
     },
     {
       name: "pause",
-      description: "Pause the machine using DMA halt.",
+      description: "Pause the machine using DMA halt. See memory safety checklist in c64://context/bootstrap.",
       summary: "Suspends CPU execution until resumed.",
       inputSchema: pauseArgsSchema.jsonSchema,
       tags: ["pause"],
+      prerequisites: [],
+      examples: [
+        { name: "Pause", description: "Halt CPU", arguments: {} },
+      ],
       workflowHints: [
         "Pause when the user needs a stable memory snapshot; remind them to resume to continue execution.",
       ],
@@ -162,6 +174,10 @@ export const machineControlModule = defineToolModule({
       summary: "Releases the DMA halt so the CPU can continue.",
       inputSchema: resumeArgsSchema.jsonSchema,
       tags: ["resume"],
+      prerequisites: ["pause"],
+      examples: [
+        { name: "Resume", description: "Continue CPU", arguments: {} },
+      ],
       workflowHints: [
         "Call after a pause or diagnostic halt and confirm the machine is running again.",
       ],
@@ -193,10 +209,14 @@ export const machineControlModule = defineToolModule({
     },
     {
       name: "poweroff",
-      description: "Power off the machine via Ultimate firmware.",
+      description: "Power off the machine via Ultimate firmware. See safety notes in c64://context/bootstrap.",
       summary: "Attempts a controlled shutdown through the Ultimate control interface.",
       inputSchema: poweroffArgsSchema.jsonSchema,
       tags: ["power"],
+      prerequisites: [],
+      examples: [
+        { name: "Power off", description: "Shut down", arguments: {} },
+      ],
       workflowHints: [
         "Use when the user explicitly requests power off; remind them to power on manually or via drive controls afterwards.",
       ],
@@ -232,6 +252,10 @@ export const machineControlModule = defineToolModule({
       summary: "Simulates the on-device menu button for navigation or exit.",
       inputSchema: menuButtonArgsSchema.jsonSchema,
       tags: ["menu"],
+      prerequisites: [],
+      examples: [
+        { name: "Menu", description: "Toggle menu", arguments: {} },
+      ],
       workflowHints: [
         "Use when the user needs to open or close the Ultimate menu; suggest following up with drive operations if relevant.",
       ],

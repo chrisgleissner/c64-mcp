@@ -426,10 +426,14 @@ export const audioModule = defineToolModule({
   tools: [
     {
       name: "sid_volume",
-      description: "Set the SID master volume register at $D418.",
+      description: "Set the SID master volume register at $D418. See c64://specs/sid.",
       summary: "Clamps the requested volume and writes it to the SID master volume register.",
       inputSchema: sidVolumeArgsSchema.jsonSchema,
       tags: ["sid", "control"],
+      prerequisites: [],
+      examples: [
+        { name: "Set volume", description: "Volume 12", arguments: { volume: 12 } },
+      ],
       workflowHints: [
         "Adjust volume when the user mentions level issues and remind them the valid range is 0-15.",
         "Offer to run analyze_audio if the listener still cannot confirm the change.",
@@ -475,6 +479,10 @@ export const audioModule = defineToolModule({
       summary: "Invokes the Ultimate firmware to silence or fully reset SID registers.",
       inputSchema: sidResetArgsSchema.jsonSchema,
       tags: ["sid", "control"],
+      prerequisites: [],
+      examples: [
+        { name: "Hard reset", description: "Full register scrub", arguments: { hard: true } },
+      ],
       workflowHints: [
         "Use after glitches or hanging notes and tell the user whether you performed a soft or hard reset.",
       ],
@@ -507,10 +515,14 @@ export const audioModule = defineToolModule({
     },
     {
       name: "sid_note_on",
-      description: "Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope.",
+      description: "Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope. See c64://specs/sid.",
       summary: "Resolves note or frequency, clamps parameters, and writes the SID voice registers.",
       inputSchema: sidNoteOnArgsSchema.jsonSchema,
       tags: ["sid", "control", "music"],
+      prerequisites: ["sid_volume"],
+      examples: [
+        { name: "Note on", description: "Voice 1 C4 triangle", arguments: { voice: 1, note: "C4", waveform: "tri" } },
+      ],
       workflowHints: [
         "Invoke when the user wants to audition a single voice; summarise waveform, ADSR, and pitch afterwards.",
         "Translate note descriptions into frequencies yourself if the request is ambiguous.",
@@ -576,6 +588,10 @@ export const audioModule = defineToolModule({
       summary: "Writes zero to the selected voice control register to stop playback.",
       inputSchema: sidNoteOffArgsSchema.jsonSchema,
       tags: ["sid", "control", "music"],
+      prerequisites: ["sid_note_on"],
+      examples: [
+        { name: "Note off", description: "Release voice 1", arguments: { voice: 1 } },
+      ],
       workflowHints: [
         "Stop individual voices after prior note_on calls and confirm which voice you released.",
       ],
@@ -613,6 +629,10 @@ export const audioModule = defineToolModule({
       summary: "Performs a soft reset of SID voices, ensuring audio output stops.",
       inputSchema: sidSilenceArgsSchema.jsonSchema,
       tags: ["sid", "control"],
+      prerequisites: [],
+      examples: [
+        { name: "Silence", description: "Stop all voices", arguments: {} },
+      ],
       workflowHints: [
         "Run when the user asks to stop all audio or before switching to a new composition.",
       ],
@@ -649,6 +669,10 @@ export const audioModule = defineToolModule({
       inputSchema: sidplayFileArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/sid"],
       tags: ["sid", "playback"],
+      prerequisites: ["drives_list"],
+      examples: [
+        { name: "Play SID", description: "song 0", arguments: { path: "//USB0/tune.sid", songnr: 0 } },
+      ],
       workflowHints: [
         "Use when the user references an existing SID file path; surface song numbers if the firmware reports them.",
       ],
@@ -686,6 +710,10 @@ export const audioModule = defineToolModule({
       inputSchema: modplayFileArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/sid"],
       tags: ["sid", "playback"],
+      prerequisites: ["drives_list"],
+      examples: [
+        { name: "Play MOD", description: "module.mod", arguments: { path: "//USB0/module.mod" } },
+      ],
       workflowHints: [
         "Trigger for MOD playback requests and confirm the module path is reachable on Ultimate storage.",
       ],
@@ -724,6 +752,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "music", "generator"],
+      prerequisites: ["sid_volume"],
+      examples: [
+        { name: "C major", description: "C4 arpeggio", arguments: { root: "C4", pattern: "0,4,7", steps: 8, tempoMs: 120, waveform: "pulse" } },
+      ],
       workflowHints: [
         "Offer as a quick inspiration loop when the user wants to hear something immediately; explain how to tweak pattern or tempo.",
       ],
@@ -798,6 +830,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid", "c64://specs/sidwave", "c64://docs/sid/file-structure"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "music", "compiler"],
+      prerequisites: [],
+      examples: [
+        { name: "Compile PRG", description: "Play compiled PRG", arguments: { sidwave: "song: { title: 'Demo' }", output: "prg", dryRun: false } },
+      ],
       workflowHints: [
         "Use when the user provides SIDWAVE/CPG scores or asks for export to PRG/SID; share any generated download URIs in your response.",
         "Suggest analyze_audio afterwards if they want objective feedback on the compiled performance.",
@@ -882,6 +918,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid", "c64://docs/sid/file-structure"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "analysis"],
+      prerequisites: [],
+      examples: [
+        { name: "Analyze 3s", description: "Quick capture", arguments: { durationSeconds: 3 } },
+      ],
       workflowHints: [
         "Recommend after playback when the user wants tuning confirmation; mention capture duration in your summary.",
         "If the user sounded uncertain about audio quality, run this proactively for objective metrics.",
@@ -922,6 +962,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid", "c64://docs/sid/file-structure"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "analysis"],
+      prerequisites: [],
+      examples: [
+        { name: "Check music", description: "Verify by ear", arguments: { request: "does the music sound right?" } },
+      ],
       workflowHints: [
         "Invoke when the user asks to check or verify the music so you can return measured results.",
         "Translate the analysis into concrete next steps like ADSR or tempo tweaks in your response.",

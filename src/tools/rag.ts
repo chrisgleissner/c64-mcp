@@ -38,7 +38,10 @@ const ragRetrieveArgsSchema = objectSchema<RagRetrieveArgs>({
 function createRagTool(language: RagLanguage, options: { description: string; summary: string; tags: readonly string[] }) {
   return {
     name: language === "basic" ? "rag_retrieve_basic" : "rag_retrieve_asm",
-    description: options.description,
+    description:
+      language === "basic"
+        ? "Retrieve BASIC references from local knowledge. See c64://specs/basic before coding."
+        : "Retrieve 6502/6510 assembly references from local knowledge. See c64://specs/assembly.",
     summary: options.summary,
     inputSchema: ragRetrieveArgsSchema.jsonSchema,
     relatedResources:
@@ -50,6 +53,17 @@ function createRagTool(language: RagLanguage, options: { description: string; su
         ? ["basic-program"]
         : ["assembly-program"],
     tags: options.tags,
+    prerequisites: [],
+    examples: [
+      {
+        name: language === "basic" ? "BASIC PRINT" : "Raster IRQ",
+        description: language === "basic" ? "Find PRINT and device usage" : "Find stable raster IRQ snippet",
+        arguments:
+          language === "basic"
+            ? { q: "PRINT to device 4 form feed", k: 3 }
+            : { q: "stable raster irq acknowledge d019", k: 3 },
+      },
+    ],
     workflowHints: language === "basic"
       ? [
         "Use when the user needs BASIC examples or syntax reminders before coding.",

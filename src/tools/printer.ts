@@ -313,12 +313,20 @@ export const printerModule = defineToolModule({
   tools: [
     {
       name: "print_text",
-      description: "Print text on device 4 using Commodore or Epson workflows.",
+      description: "Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide.",
       summary: "Generates printer BASIC, opens device 4, prints text, and optionally emits a form feed.",
       inputSchema: printTextArgsSchema.jsonSchema,
       relatedResources: ["c64://docs/printer/guide", "c64://specs/printer"],
       relatedPrompts: ["printer-job"],
       tags: ["text"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Print line",
+          description: "Print via Commodore device 4",
+          arguments: { text: "HELLO", target: "commodore", formFeed: true },
+        },
+      ],
       workflowHints: [
         "Invoke when the user wants BASIC-generated printer output; state which target (Commodore or Epson) you selected.",
         "Mention whether you appended a form feed so they know if the page advanced.",
@@ -370,6 +378,14 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/commodore-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["bitmap", "commodore"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Print row",
+          description: "Commodore bitmap columns",
+          arguments: { columns: [255,0,255], repeats: 2 },
+        },
+      ],
       workflowHints: [
         "Use for Commodore MPS graphics rows; highlight column count and repeats in your response.",
         "Suggest running define_printer_chars first if the user needs custom glyphs alongside bitmaps.",
@@ -424,6 +440,14 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/epson-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["bitmap", "epson"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Epson row",
+          description: "ESC/P graphics",
+          arguments: { columns: [170,85,170], mode: "K", repeats: 1 },
+        },
+      ],
       workflowHints: [
         "Pick this for Epson FX graphics; confirm ESC/P mode and density so the user can match expectations.",
         "Warn if the bitmap is very wide and recommend batching columns to avoid memory limits.",
@@ -479,6 +503,14 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/commodore-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["dll", "commodore"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Define glyphs",
+          description: "Two custom chars from columns",
+          arguments: { firstChar: 65, chars: [{ columns: [0,0,0,0,0,0,0,0,0,0,0] }, { columns: [255,255,255,255,255,255,255,255,255,255,255] }] },
+        },
+      ],
       workflowHints: [
         "Use to preload custom glyphs; remind the user about firstChar offsets and max 32 characters per call.",
         "Suggest printing a short sample afterwards so they can verify the new character set.",

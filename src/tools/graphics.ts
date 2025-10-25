@@ -316,12 +316,20 @@ export const graphicsModule = defineToolModule({
   tools: [
     {
       name: "generate_sprite_prg",
-      description: "Generate and execute a PRG that displays a sprite from raw 63-byte data.",
+      description: "Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers.",
       summary: "Uploads minimal machine code to copy sprite data, configure VIC-II, and render a sprite.",
       inputSchema: spriteArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "assembly-program"],
       tags: ["sprite", "assembly"],
+      prerequisites: ["upload_and_run_asm"],
+      examples: [
+        {
+          name: "Render sprite 0",
+          description: "Show sprite at 100,100",
+          arguments: { sprite: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", index: 0, x: 100, y: 100, color: 1, multicolour: false },
+        },
+      ],
       workflowHints: [
         "Use when the user supplies sprite bytes or asks to preview graphics quickly; describe resulting coordinates and colours.",
         "Remind the user that sprites live in banked memory so further tweaks may require write_memory calls.",
@@ -372,12 +380,20 @@ export const graphicsModule = defineToolModule({
     },
     {
       name: "render_petscii_screen",
-      description: "Render PETSCII text to the screen with optional border/background colours.",
+      description: "Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic.",
       summary: "Generates a BASIC program that clears the screen, sets colours, and prints text.",
       inputSchema: renderPetsciiScreenArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/basic", "c64://context/bootstrap"],
       relatedPrompts: ["basic-program", "graphics-demo"],
       tags: ["basic", "screen"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Render text",
+          description: "Blue border, black background",
+          arguments: { text: "HELLO", borderColor: 6, backgroundColor: 0 },
+        },
+      ],
       workflowHints: [
         "Call after generating PETSCII text or when the user wants border/background colour changes applied.",
         "Echo the colour indices and mention CLEAR + PRINT so the user knows what ran.",
@@ -415,12 +431,20 @@ export const graphicsModule = defineToolModule({
     },
     {
       name: "create_petscii_image",
-      description: "Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata.",
+      description: "Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic.",
       summary: "Synthesises PETSCII art, generates a BASIC program, and uploads it unless dry-run is requested.",
       inputSchema: petsciiImageArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/basic", "c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "basic-program"],
       tags: ["petscii", "basic"],
+      prerequisites: ["upload_and_run_basic"],
+      examples: [
+        {
+          name: "Generate PETSCII",
+          description: "Run art with default colours",
+          arguments: { prompt: "cat", dryRun: false },
+        },
+      ],
       workflowHints: [
         "Trigger when the user provides creative prompts; clarify whether you ran the art or left it as a dry run.",
         "Provide follow-up suggestions like saving the PRG or capturing the screen after rendering.",
