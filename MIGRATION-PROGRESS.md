@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 6.6
-**Last Updated:** 2025-10-26T00:32:00+01:00
+**Current Step:** 7.1
+**Last Updated:** 2025-10-26T00:40:00+01:00
 
 
 ## Process Guidelines
@@ -117,8 +117,8 @@
 - [ ] 7.2 - Remove scripts/generate-manifest.mjs
 - [ ] 7.3 - Remove mcp-manifest.json
 - [ ] 7.4 - Remove toolsCatalog.ts (if no longer needed)
-- [ ] 7.5 - Update README.md with new setup instructions
-- [ ] 7.6 - Update .vscode/settings.json
+- [x] 7.5 - Update README.md with new setup instructions
+- [x] 7.6 - Update .vscode/settings.json
 - [ ] 7.7 - Archive old HTTP server to src/http-server.ts.backup
 
 ### Phase 9: Documentation
