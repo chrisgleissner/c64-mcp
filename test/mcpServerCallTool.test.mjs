@@ -149,3 +149,49 @@ start:
     }
   }
 });
+
+test("read_screen tool returns current PETSCII screen", async () => {
+  const mockServer = await startMockC64Server();
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "c64-mcp-config-"));
+  const configPath = path.join(tmpDir, "config.json");
+  fs.writeFileSync(configPath, JSON.stringify({ baseUrl: mockServer.baseUrl }), "utf8");
+
+  const connection = await createConnectedClient({
+    env: {
+      C64MCP_CONFIG: configPath,
+      C64_TEST_TARGET: "mock",
+    },
+  });
+  const { client } = connection;
+
+  try {
+    const result = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "read_screen",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(Array.isArray(result.content));
+    const textContent = result.content.find((entry) => entry.type === "text");
+    assert.ok(textContent, "Expected text response content");
+    assert.match(textContent.text, /READY/i);
+
+    assert.ok(result.metadata?.success, "metadata should flag success");
+    assert.equal(typeof result.metadata.screen, "string", "metadata should embed screen contents");
+    assert.match(String(result.metadata.screen), /READY/i);
+  } finally {
+    await connection.close();
+    await mockServer.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    const stderrOutput = connection.stderrOutput();
+    if (stderrOutput) {
+      process.stderr.write(stderrOutput);
+    }
+  }
+});
