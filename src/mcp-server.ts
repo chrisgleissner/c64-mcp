@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -14,6 +13,10 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { loadConfig } from "./config.js";
 import { C64Client } from "./c64Client.js";
+import {
+  listKnowledgeResources,
+  readKnowledgeResource,
+} from "./rag/knowledgeIndex.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,83 +48,26 @@ async function main() {
 
   // RESOURCES: Expose C64 knowledge base
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    const resources = listKnowledgeResources();
     return {
-      resources: [
-        {
-          uri: "c64://context/bootstrap",
-          name: "Workflow Rules & Best Practices",
-          description: "CRITICAL: Mandatory workflow rules for all C64 programming",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/basic",
-          name: "Commodore BASIC v2 Specification",
-          description: "Complete BASIC v2 reference. READ THIS BEFORE generating any BASIC code!",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/assembly",
-          name: "6502/6510 Assembly Reference",
-          description: "Full instruction set and addressing modes. READ THIS BEFORE generating assembly!",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/sid",
-          name: "SID Chip Programming Guide",
-          description: "Sound Interface Device registers and music programming",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/sidwave",
-          name: "SIDWAVE Music Format Specification",
-          description: "YAML/JSON music composition format for SID chip",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/vic",
-          name: "VIC-II Graphics Specification",
-          description: "Video chip, sprites, raster programming, and timing",
-          mimeType: "text/markdown",
-        },
-        {
-          uri: "c64://specs/printer",
-          name: "Printer Programming Guide",
-          description: "Commodore MPS and Epson FX printer control",
-          mimeType: "text/markdown",
-        },
-      ],
+      resources: resources.map((resource) => ({
+        uri: resource.uri,
+        name: resource.name,
+        description: resource.description,
+        mimeType: resource.mimeType,
+        metadata: resource.metadata,
+      })),
     };
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const uri = request.params.uri;
-
-    const resourceMap: Record<string, string> = {
-      "c64://context/bootstrap": "data/context/bootstrap.md",
-      "c64://specs/basic": "data/basic/basic-spec.md",
-      "c64://specs/assembly": "data/assembly/assembly-spec.md",
-      "c64://specs/sid": "data/audio/sid-spec.md",
-      "c64://specs/sidwave": "data/audio/sidwave.md",
-      "c64://specs/vic": "data/video/vic-spec.md",
-      "c64://specs/printer": "data/printer/printer-spec.md",
-    };
-
-    const filePath = resourceMap[uri];
-    if (!filePath) {
-      throw new Error(`Unknown resource: ${uri}`);
+    const result = readKnowledgeResource(request.params.uri, PROJECT_ROOT);
+    if (!result) {
+      throw new Error(`Unknown resource: ${request.params.uri}`);
     }
 
-    const fullPath = join(PROJECT_ROOT, filePath);
-    const content = readFileSync(fullPath, "utf-8");
-
     return {
-      contents: [
-        {
-          uri,
-          mimeType: "text/markdown",
-          text: content,
-        },
-      ],
+      contents: [result],
     };
   });
 
