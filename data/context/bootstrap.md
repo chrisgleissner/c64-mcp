@@ -1,6 +1,6 @@
-# C64 MCP Bootstrap Primer
+# C64 Knowledge Bootstrap
 
-High-level overview for C64 development. For more details, see linked documents. 
+High-level overview for C64 development. For more details, see linked spec documents. 
 
 ## Device & Services
 
