@@ -80,7 +80,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 3.9 - Migrate read_memory tool
 - [x] 3.10 - Migrate write_memory tool
 - [x] 3.11 - Migrate SID control tools (sid_note_on, sid_volume, etc.)
-- [ ] 3.12 - Migrate machine control & diagnostics tools
+- [x] 3.12 - Migrate machine control & diagnostics tools
 - [ ] 3.13 - Migrate drive and disk-management tools
 - [ ] 3.14 - Migrate SID playback and audio analysis tools
 - [ ] 3.15 - Migrate graphics and PETSCII tools

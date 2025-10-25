@@ -418,3 +418,148 @@ test("SID control tools operate via MCP", async () => {
     }
   }
 });
+
+test("Machine control tools operate via MCP", async () => {
+  const mockServer = await startMockC64Server();
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "c64-mcp-config-"));
+  const configPath = path.join(tmpDir, "config.json");
+  fs.writeFileSync(configPath, JSON.stringify({ baseUrl: mockServer.baseUrl }), "utf8");
+
+  const connection = await createConnectedClient({
+    env: {
+      C64MCP_CONFIG: configPath,
+      C64_TEST_TARGET: "mock",
+    },
+  });
+  const { client } = connection;
+
+  try {
+    const resetResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "reset_c64",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(resetResult.metadata?.success, "reset_c64 should succeed");
+    assert.equal(mockServer.state.resets, 1, "reset endpoint should be invoked once");
+
+    const rebootResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "reboot_c64",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(rebootResult.metadata?.success, "reboot_c64 should succeed");
+    assert.equal(mockServer.state.reboots, 1, "reboot endpoint should be invoked once");
+
+    const pauseResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "pause",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(pauseResult.metadata?.success, "pause should succeed");
+    assert.ok(mockServer.state.paused, "machine should be paused");
+
+    const resumeResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "resume",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(resumeResult.metadata?.success, "resume should succeed");
+    assert.equal(mockServer.state.paused, false, "machine should be resumed");
+
+    const debugReadResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "debugreg_read",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(debugReadResult.metadata?.success, "debugreg_read should succeed");
+    assert.equal(debugReadResult.metadata.value, "00");
+
+    const debugWriteResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "debugreg_write",
+          arguments: {
+            value: "AB",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(debugWriteResult.metadata?.success, "debugreg_write should succeed");
+    assert.equal(debugWriteResult.metadata.value, "AB");
+    assert.equal(mockServer.state.debugreg, "AB");
+
+    const versionResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "version",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    const versionContent = versionResult.content.find((entry) => entry.type === "text");
+    assert.ok(versionContent, "version tool should return text content");
+    assert.equal(versionResult.metadata?.success, true);
+    assert.equal(versionResult.metadata?.details?.version, "0.1-mock");
+
+    const infoResult = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "info",
+          arguments: {},
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    const infoContent = infoResult.content.find((entry) => entry.type === "text");
+    assert.ok(infoContent, "info tool should return text content");
+    assert.equal(infoResult.metadata?.success, true);
+    assert.equal(infoResult.metadata?.details?.product, "U64-MOCK");
+  } finally {
+    await connection.close();
+    await mockServer.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    const stderrOutput = connection.stderrOutput();
+    if (stderrOutput) {
+      process.stderr.write(stderrOutput);
+    }
+  }
+});
