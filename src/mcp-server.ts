@@ -22,6 +22,7 @@ import { toolRegistry } from "./tools/registry.js";
 import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolLogger, ToolRunResult } from "./tools/types.js";
 import { createPromptRegistry, type PromptSegment } from "./prompts/registry.js";
+import { getPlatformStatus, setPlatform } from "./platform.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -123,6 +124,8 @@ async function main() {
         client,
         rag,
         logger: toolLogger,
+        platform: getPlatformStatus(),
+        setPlatform,
       });
 
       toolLogger.debug(`Tool ${name} completed`, {

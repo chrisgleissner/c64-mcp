@@ -1,5 +1,6 @@
 import type { ToolRunResult } from "./types.js";
 import { textResult } from "./responses.js";
+import type { PlatformId } from "../platform.js";
 
 export type ToolErrorKind = "validation" | "execution" | "unknown";
 
@@ -48,6 +49,29 @@ export class ToolExecutionError extends ToolError {
     options?: { code?: string; details?: Record<string, unknown>; cause?: unknown },
   ) {
     super(message, "execution", options);
+  }
+}
+
+export class ToolUnsupportedPlatformError extends ToolExecutionError {
+  readonly tool: string;
+  readonly platform: PlatformId;
+  readonly supported: readonly PlatformId[];
+
+  constructor(tool: string, platform: PlatformId, supported: readonly PlatformId[]) {
+    super(
+      `Tool ${tool} is not available on platform ${platform}`,
+      {
+        code: "unsupported_platform",
+        details: {
+          tool,
+          platform,
+          supported,
+        },
+      },
+    );
+    this.tool = tool;
+    this.platform = platform;
+    this.supported = supported;
   }
 }
 

@@ -9,6 +9,7 @@ import { printerModule } from "./printer.js";
 import { ragModule } from "./rag.js";
 import { developerModule } from "./developer.js";
 import { streamingModule } from "./streaming.js";
+import { getPlatformStatus, setPlatform } from "../platform.js";
 
 interface RegisteredTool {
   readonly module: ToolModule;
@@ -51,11 +52,17 @@ export const toolRegistry = {
     args: unknown,
     ctx: ToolExecutionContext,
   ): Promise<ToolRunResult> {
+    const enrichedCtx: ToolExecutionContext = {
+      ...ctx,
+      platform: ctx.platform ?? getPlatformStatus(),
+      setPlatform: ctx.setPlatform ?? setPlatform,
+    };
+
     const entry = toolMap.get(name);
     if (!entry) {
       throw new Error(`Unknown tool: ${name}`);
     }
 
-    return entry.module.invoke(name, args, ctx);
+    return entry.module.invoke(name, args, enrichedCtx);
   },
 };

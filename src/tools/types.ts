@@ -1,5 +1,13 @@
 import type { C64Client } from "../c64Client.js";
 import type { RagRetriever } from "../rag/types.js";
+import {
+  getPlatformStatus,
+  isPlatformSupported,
+  setPlatform,
+  type PlatformId,
+  type PlatformStatus,
+} from "../platform.js";
+import { ToolUnsupportedPlatformError } from "./errors.js";
 
 export type JsonSchema = {
   readonly type?: string | readonly string[];
@@ -42,6 +50,8 @@ export interface ToolExecutionContext {
   readonly client: C64Client;
   readonly rag: RagRetriever;
   readonly logger: ToolLogger;
+  readonly platform: PlatformStatus;
+  readonly setPlatform: (target: PlatformId) => PlatformStatus;
 }
 
 export interface ToolResponseContentText {
@@ -73,6 +83,7 @@ export interface ToolDefinition {
   readonly tags?: readonly string[];
   readonly workflowHints?: readonly string[];
   readonly prerequisites?: readonly string[];
+  readonly supportedPlatforms?: readonly PlatformId[];
   readonly execute: (args: unknown, ctx: ToolExecutionContext) => Promise<ToolRunResult>;
 }
 
@@ -90,6 +101,7 @@ export interface ToolDescriptor {
     readonly tags: readonly string[];
     readonly workflowHints?: readonly string[];
     readonly prerequisites?: readonly string[];
+    readonly platforms?: readonly PlatformId[];
   };
 }
 
@@ -102,6 +114,7 @@ export interface ToolModuleConfig {
   readonly defaultTags?: readonly string[];
   readonly workflowHints?: readonly string[];
   readonly prerequisites?: readonly string[];
+  readonly supportedPlatforms?: readonly PlatformId[];
   readonly tools: readonly ToolDefinition[];
 }
 
@@ -119,6 +132,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
   const defaultPrompts = config.prompts ?? [];
   const defaultWorkflowHints = config.workflowHints ?? [];
   const defaultPrerequisites = config.prerequisites ?? [];
+  const defaultPlatforms = config.supportedPlatforms ?? (Object.freeze(["c64u"] as const) as readonly PlatformId[]);
 
   const toolMap = new Map(config.tools.map((tool) => [tool.name, tool]));
 
@@ -129,6 +143,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
       return config.tools.map((tool) => {
         const workflowHints = mergeOptionalStrings(defaultWorkflowHints, tool.workflowHints);
         const prerequisites = mergeOptionalStrings(defaultPrerequisites, tool.prerequisites);
+        const platforms = mergePlatforms(defaultPlatforms, tool.supportedPlatforms);
 
         const metadata: ToolDescriptor["metadata"] = {
           domain: config.domain,
@@ -140,6 +155,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
           tags: mergeUnique(defaultTags, tool.tags),
           ...(workflowHints ? { workflowHints } : {}),
           ...(prerequisites ? { prerequisites } : {}),
+          ...(platforms ? { platforms } : {}),
         };
 
         return {
@@ -156,7 +172,20 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
         throw new Error(`Unknown tool: ${name}`);
       }
 
-      return tool.execute(args, ctx);
+      const platforms = mergePlatforms(defaultPlatforms, tool.supportedPlatforms) ?? defaultPlatforms;
+      const status = ctx.platform ?? getPlatformStatus();
+      const setter = ctx.setPlatform ?? setPlatform;
+      if (!isPlatformSupported(status.id, platforms)) {
+        throw new ToolUnsupportedPlatformError(name, status.id, platforms);
+      }
+
+      const enrichedCtx: ToolExecutionContext = {
+        ...ctx,
+        platform: status,
+        setPlatform: setter,
+      };
+
+      return tool.execute(args, enrichedCtx);
     },
   };
 }
@@ -181,6 +210,25 @@ function mergeOptionalStrings(
   base: readonly string[],
   extra?: readonly string[],
 ): readonly string[] | undefined {
+  if ((!base || base.length === 0) && (!extra || extra.length === 0)) {
+    return base && base.length > 0 ? base : undefined;
+  }
+
+  const set = new Set(base ?? []);
+  if (extra) {
+    for (const item of extra) {
+      set.add(item);
+    }
+  }
+
+  const merged = Array.from(set);
+  return merged.length > 0 ? merged : undefined;
+}
+
+function mergePlatforms(
+  base: readonly PlatformId[],
+  extra?: readonly PlatformId[],
+): readonly PlatformId[] | undefined {
   if ((!base || base.length === 0) && (!extra || extra.length === 0)) {
     return base && base.length > 0 ? base : undefined;
   }
