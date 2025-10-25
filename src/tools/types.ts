@@ -88,7 +88,6 @@ export interface ToolDescriptor {
     readonly examples?: readonly ToolExample[];
     readonly tags: readonly string[];
     readonly workflowHints?: readonly string[];
-    readonly prerequisites?: readonly string[];
   };
 }
 
@@ -100,7 +99,6 @@ export interface ToolModuleConfig {
   readonly defaultLifecycle?: ToolLifecycle;
   readonly defaultTags?: readonly string[];
   readonly workflowHints?: readonly string[];
-  readonly prerequisites?: readonly string[];
   readonly tools: readonly ToolDefinition[];
 }
 
@@ -116,6 +114,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
   const defaultTags = config.defaultTags ?? [];
   const defaultResources = config.resources ?? [];
   const defaultPrompts = config.prompts ?? [];
+  const defaultWorkflowHints = config.workflowHints ?? [];
 
   const toolMap = new Map(config.tools.map((tool) => [tool.name, tool]));
 
@@ -123,11 +122,10 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
     domain: config.domain,
     summary: config.summary,
     describeTools(): readonly ToolDescriptor[] {
-      return config.tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        metadata: {
+      return config.tools.map((tool) => {
+        const workflowHints = mergeOptionalStrings(defaultWorkflowHints, tool.workflowHints);
+
+        const metadata: ToolDescriptor["metadata"] = {
           domain: config.domain,
           summary: tool.summary ?? tool.description,
           lifecycle: tool.lifecycle ?? defaultLifecycle,
@@ -135,8 +133,16 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
           prompts: mergeUnique(defaultPrompts, tool.relatedPrompts),
           examples: tool.examples,
           tags: mergeUnique(defaultTags, tool.tags),
-        },
-      }));
+          ...(workflowHints ? { workflowHints } : {}),
+        };
+
+        return {
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          metadata,
+        } satisfies ToolDescriptor;
+      });
     },
     async invoke(name, args, ctx) {
       const tool = toolMap.get(name);
@@ -163,4 +169,23 @@ function mergeUnique(
   }
 
   return Array.from(set);
+}
+
+function mergeOptionalStrings(
+  base: readonly string[],
+  extra?: readonly string[],
+): readonly string[] | undefined {
+  if ((!base || base.length === 0) && (!extra || extra.length === 0)) {
+    return base && base.length > 0 ? base : undefined;
+  }
+
+  const set = new Set(base ?? []);
+  if (extra) {
+    for (const item of extra) {
+      set.add(item);
+    }
+  }
+
+  const merged = Array.from(set);
+  return merged.length > 0 ? merged : undefined;
 }

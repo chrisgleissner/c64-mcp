@@ -306,6 +306,10 @@ export const printerModule = defineToolModule({
   ],
   prompts: ["printer-job"],
   defaultTags: ["printer"],
+  workflowHints: [
+    "Reach for printer tools when the user references device 4, hardcopy output, or specific printer models.",
+    "Clarify which workflow (Commodore vs Epson) you chose so the user can prepare matching paper or ribbons.",
+  ],
   tools: [
     {
       name: "print_text",
@@ -315,6 +319,10 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/guide", "c64://specs/printer"],
       relatedPrompts: ["printer-job"],
       tags: ["text"],
+      workflowHints: [
+        "Invoke when the user wants BASIC-generated printer output; state which target (Commodore or Epson) you selected.",
+        "Mention whether you appended a form feed so they know if the page advanced.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = printTextArgsSchema.parse(args ?? {});
@@ -362,6 +370,10 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/commodore-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["bitmap", "commodore"],
+      workflowHints: [
+        "Use for Commodore MPS graphics rows; highlight column count and repeats in your response.",
+        "Suggest running define_printer_chars first if the user needs custom glyphs alongside bitmaps.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = commodoreBitmapArgsSchema.parse(args ?? {});
@@ -412,6 +424,10 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/epson-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["bitmap", "epson"],
+      workflowHints: [
+        "Pick this for Epson FX graphics; confirm ESC/P mode and density so the user can match expectations.",
+        "Warn if the bitmap is very wide and recommend batching columns to avoid memory limits.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = epsonBitmapArgsSchema.parse(args ?? {});
@@ -463,6 +479,10 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/commodore-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["dll", "commodore"],
+      workflowHints: [
+        "Use to preload custom glyphs; remind the user about firstChar offsets and max 32 characters per call.",
+        "Suggest printing a short sample afterwards so they can verify the new character set.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = commodoreDllArgsSchema.parse(args ?? {});

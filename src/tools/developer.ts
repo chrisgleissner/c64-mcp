@@ -160,6 +160,10 @@ export const developerModule = defineToolModule({
   ],
   prompts: ["memory-debug"],
   defaultTags: ["developer", "config", "debug"],
+  workflowHints: [
+    "Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.",
+    "Call out any risky operations (like flash writes) so the user understands the impact.",
+  ],
   tools: [
     {
       name: "config_list",
@@ -168,6 +172,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "list"],
+      workflowHints: [
+        "Run first to enumerate categories before reading or writing specific settings; summarise the top-level sections for the user.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -197,6 +204,9 @@ export const developerModule = defineToolModule({
       inputSchema: configGetArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "read"],
+      workflowHints: [
+        "Use after config_list to fetch details; restate category/item so the user can cross-check values before changes.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = configGetArgsSchema.parse(args ?? {});
@@ -226,6 +236,9 @@ export const developerModule = defineToolModule({
       inputSchema: configSetArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "write"],
+      workflowHints: [
+        "Confirm the user-supplied value before writing; mention whether a reboot is required for the change to take effect.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = configSetArgsSchema.parse(args ?? {});
@@ -268,6 +281,9 @@ export const developerModule = defineToolModule({
       inputSchema: configBatchSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "write"],
+      workflowHints: [
+        "Use when multiple categories must be updated together; remind the user to review validation errors closely.",
+      ],
       async execute(args, ctx) {
         try {
           const payload = configBatchSchema.parse(args ?? {});
@@ -311,6 +327,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "flash"],
+      workflowHints: [
+        "Use when the user wants to revert to saved flash configuration; warn that unsaved RAM changes are discarded.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -342,6 +361,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "flash"],
+      workflowHints: [
+        "Run after configuration changes the user wants to persist; mention that flash writes take a moment.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -373,6 +395,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "reset"],
+      workflowHints: [
+        "Confirm with the user before wiping settings; note that the firmware must restart to apply defaults fully.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -404,6 +429,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["diagnostics", "version"],
+      workflowHints: [
+        "Run when the user wonders which firmware build is active; include API and FPGA versions if available.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -429,6 +457,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["diagnostics", "info"],
+      workflowHints: [
+        "Use to answer hardware capability questions; highlight serials, board revisions, or temperature if present.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -454,6 +485,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["debug"],
+      workflowHints: [
+        "Read the register when debugging DMA or cartridge interactions; translate the hex value into context for the user.",
+      ],
       async execute(args, ctx) {
         try {
           noArgsSchema.parse(args ?? {});
@@ -489,6 +523,9 @@ export const developerModule = defineToolModule({
       inputSchema: debugWriteArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["debug"],
+      workflowHints: [
+        "Confirm with the user before writing arbitrary values; mention side effects on cartridge or DMA behaviour.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = debugWriteArgsSchema.parse(args ?? {});

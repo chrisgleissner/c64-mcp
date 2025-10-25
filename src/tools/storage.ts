@@ -175,6 +175,10 @@ export const storageModule = defineToolModule({
   resources: ["c64://context/bootstrap"],
   prompts: ["memory-debug"],
   defaultTags: ["drive", "storage"],
+  workflowHints: [
+    "Reach for storage tools when the user mentions drives, disk images, or Ultimate slots.",
+    "Spell out which slot or path you touched so the user can replicate actions on hardware.",
+  ],
   tools: [
     {
       name: "drives_list",
@@ -183,6 +187,9 @@ export const storageModule = defineToolModule({
       inputSchema: drivesListArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "status"],
+      workflowHints: [
+        "Call first when you need to orient on current drive state; summarise mounted images and power flags for the user.",
+      ],
       async execute(args, ctx) {
         try {
           drivesListArgsSchema.parse(args ?? {});
@@ -208,6 +215,10 @@ export const storageModule = defineToolModule({
       inputSchema: driveMountArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "mount"],
+      workflowHints: [
+        "Use when the user provides an image path; confirm drive slot, type, and mode in the reply.",
+        "Suggest running drive_on if the slot was powered down before mounting.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveMountArgsSchema.parse(args ?? {});
@@ -255,6 +266,9 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "unmount"],
+      workflowHints: [
+        "Call after confirming the user wants to eject an image; tell them the slot is now empty.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveOnlyArgsSchema.parse(args ?? {});
@@ -287,6 +301,9 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "reset"],
+      workflowHints: [
+        "Use when drive firmware needs a kick after errors; mention that mounted images remain but state resets.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveOnlyArgsSchema.parse(args ?? {});
@@ -319,6 +336,9 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "power"],
+      workflowHints: [
+        "Power a slot on before mounting or accessing disks; note the previous state in your response.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveOnlyArgsSchema.parse(args ?? {});
@@ -352,6 +372,9 @@ export const storageModule = defineToolModule({
       inputSchema: driveOnlyArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "power"],
+      workflowHints: [
+        "Warn the user that powering off ejects the drive from C64 view; suggest unmounting images if necessary first.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveOnlyArgsSchema.parse(args ?? {});
@@ -385,6 +408,9 @@ export const storageModule = defineToolModule({
       inputSchema: driveLoadRomArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "rom"],
+      workflowHints: [
+        "Use when the user requests custom DOS ROMs; remind them a reset may be required afterwards.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveLoadRomArgsSchema.parse(args ?? {});
@@ -418,6 +444,9 @@ export const storageModule = defineToolModule({
       inputSchema: driveModeArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["drive", "mode"],
+      workflowHints: [
+        "Invoke when the user needs to switch between 1541/1571/1581 behaviours; restate the resulting mode in your reply.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = driveModeArgsSchema.parse(args ?? {});
@@ -451,6 +480,9 @@ export const storageModule = defineToolModule({
       inputSchema: fileInfoArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["storage", "info"],
+      workflowHints: [
+        "Use to inspect Ultimate filesystem paths before mounting; report size and type so the user can validate the asset.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = fileInfoArgsSchema.parse(args ?? {});
@@ -477,6 +509,9 @@ export const storageModule = defineToolModule({
       inputSchema: createD64ArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      workflowHints: [
+        "Use when the user needs a new D64 image; confirm track count and disk name in your summary.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = createD64ArgsSchema.parse(args ?? {});
@@ -518,6 +553,9 @@ export const storageModule = defineToolModule({
       inputSchema: createD71ArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      workflowHints: [
+        "Reach for this when the user wants a 1571 disk; mention track count and that the image is double-sided.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = createD71ArgsSchema.parse(args ?? {});
@@ -556,6 +594,9 @@ export const storageModule = defineToolModule({
       inputSchema: createD81ArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      workflowHints: [
+        "Use when the user needs a 1581 disk; remind them about 40 track layout and optional disk name.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = createD81ArgsSchema.parse(args ?? {});
@@ -594,6 +635,9 @@ export const storageModule = defineToolModule({
       inputSchema: createDnpArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["disk", "create"],
+      workflowHints: [
+        "Use for CMD-native DNP images; clarify track count and remind about CMD hardware compatibility.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = createDnpArgsSchema.parse(args ?? {});

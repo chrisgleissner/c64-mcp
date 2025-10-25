@@ -50,6 +50,15 @@ function createRagTool(language: RagLanguage, options: { description: string; su
         ? ["basic-program"]
         : ["assembly-program"],
     tags: options.tags,
+    workflowHints: language === "basic"
+      ? [
+        "Use when the user needs BASIC examples or syntax reminders before coding.",
+        "Summarise key references so the user knows where to look next.",
+      ]
+      : [
+        "Call for assembly patterns, addressing tricks, or hardware explanations before writing code.",
+        "Highlight registers or memory addresses found in the returned references.",
+      ],
     async execute(args: unknown, ctx: ToolExecutionContext) {
       try {
         const parsed = ragRetrieveArgsSchema.parse(args ?? {});
@@ -105,6 +114,10 @@ export const ragModule = defineToolModule({
   ],
   prompts: ["basic-program", "assembly-program"],
   defaultTags: ["rag", "search"],
+  workflowHints: [
+    "Call RAG tools when the user needs references or examples before generating new code.",
+    "Summarise the number of refs returned and suggest follow-up actions like reading specific docs.",
+  ],
   tools: [
     createRagTool("basic", {
       description: "Retrieve BASIC snippets, guidance, and discussion relevant to the provided query.",

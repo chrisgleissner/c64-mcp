@@ -104,7 +104,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 4.9 - Test prompts work with automated checks
 
 ### Phase 6: Enhanced Tool Descriptions
-- [ ] 5.1 - Add workflow hints to tool descriptions
+- [x] 5.1 - Add workflow hints to tool descriptions
 - [ ] 5.2 - Add prerequisite tool references
 - [ ] 5.3 - Add examples to tool schemas
 - [ ] 5.4 - Ensure tools reference resources in descriptions

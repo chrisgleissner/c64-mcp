@@ -419,6 +419,10 @@ export const audioModule = defineToolModule({
   ],
   prompts: ["sid-music"],
   defaultTags: ["sid", "audio"],
+  workflowHints: [
+    "Reach for SID helpers when the user talks about sound design, playback quality, or stuck notes.",
+    "After changing playback state, suggest verify-by-ear steps such as analyze_audio so the user gets concrete feedback.",
+  ],
   tools: [
     {
       name: "sid_volume",
@@ -426,6 +430,10 @@ export const audioModule = defineToolModule({
       summary: "Clamps the requested volume and writes it to the SID master volume register.",
       inputSchema: sidVolumeArgsSchema.jsonSchema,
       tags: ["sid", "control"],
+      workflowHints: [
+        "Adjust volume when the user mentions level issues and remind them the valid range is 0-15.",
+        "Offer to run analyze_audio if the listener still cannot confirm the change.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = sidVolumeArgsSchema.parse(args ?? {});
@@ -467,6 +475,9 @@ export const audioModule = defineToolModule({
       summary: "Invokes the Ultimate firmware to silence or fully reset SID registers.",
       inputSchema: sidResetArgsSchema.jsonSchema,
       tags: ["sid", "control"],
+      workflowHints: [
+        "Use after glitches or hanging notes and tell the user whether you performed a soft or hard reset.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = sidResetArgsSchema.parse(args ?? {});
@@ -500,6 +511,10 @@ export const audioModule = defineToolModule({
       summary: "Resolves note or frequency, clamps parameters, and writes the SID voice registers.",
       inputSchema: sidNoteOnArgsSchema.jsonSchema,
       tags: ["sid", "control", "music"],
+      workflowHints: [
+        "Invoke when the user wants to audition a single voice; summarise waveform, ADSR, and pitch afterwards.",
+        "Translate note descriptions into frequencies yourself if the request is ambiguous.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = sidNoteOnArgsSchema.parse(args ?? {});
@@ -561,6 +576,9 @@ export const audioModule = defineToolModule({
       summary: "Writes zero to the selected voice control register to stop playback.",
       inputSchema: sidNoteOffArgsSchema.jsonSchema,
       tags: ["sid", "control", "music"],
+      workflowHints: [
+        "Stop individual voices after prior note_on calls and confirm which voice you released.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = sidNoteOffArgsSchema.parse(args ?? {});
@@ -595,6 +613,9 @@ export const audioModule = defineToolModule({
       summary: "Performs a soft reset of SID voices, ensuring audio output stops.",
       inputSchema: sidSilenceArgsSchema.jsonSchema,
       tags: ["sid", "control"],
+      workflowHints: [
+        "Run when the user asks to stop all audio or before switching to a new composition.",
+      ],
       async execute(args, ctx) {
         try {
           sidSilenceArgsSchema.parse(args ?? {});
@@ -628,6 +649,9 @@ export const audioModule = defineToolModule({
       inputSchema: sidplayFileArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/sid"],
       tags: ["sid", "playback"],
+      workflowHints: [
+        "Use when the user references an existing SID file path; surface song numbers if the firmware reports them.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = sidplayFileArgsSchema.parse(args ?? {});
@@ -662,6 +686,9 @@ export const audioModule = defineToolModule({
       inputSchema: modplayFileArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/sid"],
       tags: ["sid", "playback"],
+      workflowHints: [
+        "Trigger for MOD playback requests and confirm the module path is reachable on Ultimate storage.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = modplayFileArgsSchema.parse(args ?? {});
@@ -697,6 +724,9 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "music", "generator"],
+      workflowHints: [
+        "Offer as a quick inspiration loop when the user wants to hear something immediately; explain how to tweak pattern or tempo.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = musicGenerateArgsSchema.parse(args ?? {});
@@ -768,6 +798,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid", "c64://specs/sidwave", "c64://docs/sid/file-structure"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "music", "compiler"],
+      workflowHints: [
+        "Use when the user provides SIDWAVE/CPG scores or asks for export to PRG/SID; share any generated download URIs in your response.",
+        "Suggest analyze_audio afterwards if they want objective feedback on the compiled performance.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = musicCompileArgsSchema.parse(args ?? {});
@@ -848,6 +882,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid", "c64://docs/sid/file-structure"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "analysis"],
+      workflowHints: [
+        "Recommend after playback when the user wants tuning confirmation; mention capture duration in your summary.",
+        "If the user sounded uncertain about audio quality, run this proactively for objective metrics.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = recordAndAnalyzeArgsSchema.parse(args ?? {});
@@ -884,6 +922,10 @@ export const audioModule = defineToolModule({
       relatedResources: ["c64://specs/sid", "c64://docs/sid/file-structure"],
       relatedPrompts: ["sid-music"],
       tags: ["sid", "analysis"],
+      workflowHints: [
+        "Invoke when the user asks to check or verify the music so you can return measured results.",
+        "Translate the analysis into concrete next steps like ADSR or tempo tweaks in your response.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = analyzeAudioArgsSchema.parse(args ?? {});

@@ -54,6 +54,10 @@ export const streamingModule = defineToolModule({
   prompts: ["sid-music"],
   defaultLifecycle: "stream",
   defaultTags: ["stream", "monitoring"],
+  workflowHints: [
+    "Use streaming tools for long-running capture or monitoring workflows such as audio verification.",
+    "Clarify that streams keep running until stopped so the user can manage resources.",
+  ],
   tools: [
     {
       name: "stream_start",
@@ -61,6 +65,10 @@ export const streamingModule = defineToolModule({
       summary: "Validates stream arguments and forwards the request to firmware, returning status metadata.",
       inputSchema: streamStartArgsSchema.jsonSchema,
       tags: ["stream", "start"],
+      workflowHints: [
+        "Use when the user wants to begin audio/video capture; restate the destination target so they know where to listen.",
+        "Remind them to stop the stream after gathering enough data.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = streamStartArgsSchema.parse(args ?? {});
@@ -96,6 +104,9 @@ export const streamingModule = defineToolModule({
       summary: "Requests the firmware to stop the specified stream and returns completion metadata.",
       inputSchema: streamStopArgsSchema.jsonSchema,
       tags: ["stream", "stop"],
+      workflowHints: [
+        "Call after a monitoring session to release resources; confirm whether the firmware acknowledged the stop.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = streamStopArgsSchema.parse(args ?? {});

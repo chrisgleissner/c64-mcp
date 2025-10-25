@@ -46,6 +46,10 @@ export const machineControlModule = defineToolModule({
   resources: ["c64://context/bootstrap"],
   prompts: ["memory-debug"],
   defaultTags: ["machine", "control"],
+  workflowHints: [
+    "Reach for machine controls when the user mentions resets, power states, or DMA pause/resume.",
+    "Explain the operational impact (e.g. soft reset vs firmware reboot) so the user knows what changed.",
+  ],
   tools: [
     {
       name: "reset_c64",
@@ -53,6 +57,9 @@ export const machineControlModule = defineToolModule({
       summary: "Issues a soft reset, equivalent to power cycling without cutting power.",
       inputSchema: resetArgsSchema.jsonSchema,
       tags: ["reset"],
+      workflowHints: [
+        "Use when the user wants a quick restart without losing power; mention that memory contents may persist.",
+      ],
       async execute(args, ctx) {
         try {
           resetArgsSchema.parse(args ?? {});
@@ -85,6 +92,9 @@ export const machineControlModule = defineToolModule({
       summary: "Triggers a firmware reboot, useful after configuration changes.",
       inputSchema: rebootArgsSchema.jsonSchema,
       tags: ["reboot"],
+      workflowHints: [
+        "Choose reboot when configuration changed or hardware is stuck; warn that it will interrupt any running program.",
+      ],
       async execute(args, ctx) {
         try {
           rebootArgsSchema.parse(args ?? {});
@@ -117,6 +127,9 @@ export const machineControlModule = defineToolModule({
       summary: "Suspends CPU execution until resumed.",
       inputSchema: pauseArgsSchema.jsonSchema,
       tags: ["pause"],
+      workflowHints: [
+        "Pause when the user needs a stable memory snapshot; remind them to resume to continue execution.",
+      ],
       async execute(args, ctx) {
         try {
           pauseArgsSchema.parse(args ?? {});
@@ -149,6 +162,9 @@ export const machineControlModule = defineToolModule({
       summary: "Releases the DMA halt so the CPU can continue.",
       inputSchema: resumeArgsSchema.jsonSchema,
       tags: ["resume"],
+      workflowHints: [
+        "Call after a pause or diagnostic halt and confirm the machine is running again.",
+      ],
       async execute(args, ctx) {
         try {
           resumeArgsSchema.parse(args ?? {});
@@ -181,6 +197,9 @@ export const machineControlModule = defineToolModule({
       summary: "Attempts a controlled shutdown through the Ultimate control interface.",
       inputSchema: poweroffArgsSchema.jsonSchema,
       tags: ["power"],
+      workflowHints: [
+        "Use when the user explicitly requests power off; remind them to power on manually or via drive controls afterwards.",
+      ],
       async execute(args, ctx) {
         try {
           poweroffArgsSchema.parse(args ?? {});
@@ -213,6 +232,9 @@ export const machineControlModule = defineToolModule({
       summary: "Simulates the on-device menu button for navigation or exit.",
       inputSchema: menuButtonArgsSchema.jsonSchema,
       tags: ["menu"],
+      workflowHints: [
+        "Use when the user needs to open or close the Ultimate menu; suggest following up with drive operations if relevant.",
+      ],
       async execute(args, ctx) {
         try {
           menuButtonArgsSchema.parse(args ?? {});

@@ -72,6 +72,10 @@ export const memoryModule = defineToolModule({
   ],
   prompts: ["memory-debug", "basic-program", "assembly-program"],
   defaultTags: ["memory", "debug"],
+  workflowHints: [
+    "Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.",
+    "Confirm intent before mutating RAM and explain how the change affects the running program.",
+  ],
   tools: [
     {
       name: "read_screen",
@@ -81,6 +85,9 @@ export const memoryModule = defineToolModule({
       relatedResources: ["c64://context/bootstrap", "c64://specs/basic"],
       relatedPrompts: ["memory-debug", "basic-program", "assembly-program"],
       tags: ["screen", "memory"],
+      workflowHints: [
+        "Call after running a program when the user asks to see what is on screen; echo the captured text back to them.",
+      ],
       async execute(args, ctx) {
         try {
           readScreenArgsSchema.parse(args ?? {});
@@ -109,6 +116,10 @@ export const memoryModule = defineToolModule({
     relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex"],
+      workflowHints: [
+        "Resolve symbol names before calling so you can explain the chosen address in the response.",
+        "Keep reads at or below 4096 bytes; split larger requests into multiple calls if needed.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = readMemoryArgsSchema.parse(args ?? {});
@@ -151,6 +162,10 @@ export const memoryModule = defineToolModule({
       relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex", "write"],
+      workflowHints: [
+        "Double-check with the user before writing memory and describe the exact bytes you applied.",
+        "Consider reading the region first so they can compare before and after states.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = writeMemoryArgsSchema.parse(args ?? {});

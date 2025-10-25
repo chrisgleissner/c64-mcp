@@ -88,6 +88,10 @@ export const programRunnersModule = defineToolModule({
   ],
   prompts: ["basic-program", "assembly-program"],
   defaultTags: ["programs", "execution"],
+  workflowHints: [
+    "Choose BASIC or assembly uploaders based on the language you just generated for the user.",
+    "Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.",
+  ],
   tools: [
     {
       name: "upload_and_run_basic",
@@ -97,6 +101,10 @@ export const programRunnersModule = defineToolModule({
       relatedResources: ["c64://specs/basic", "c64://context/bootstrap"],
       relatedPrompts: ["basic-program"],
       tags: ["basic", "execution"],
+      workflowHints: [
+        "Invoke right after you generate BASIC source so it runs on the C64 without extra user steps.",
+        "Ensure the program includes line numbers and uppercase keywords before calling the tool.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = uploadBasicArgsSchema.parse(args);
@@ -131,6 +139,10 @@ export const programRunnersModule = defineToolModule({
       relatedResources: ["c64://specs/assembly", "c64://context/bootstrap"],
       relatedPrompts: ["assembly-program"],
       tags: ["assembly", "execution"],
+      workflowHints: [
+        "Use when the user requests to run new 6502 code; surface any assembler diagnostics in your reply.",
+        "Mention the entry routine or important addresses after execution so the user can continue debugging.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = uploadAsmArgsSchema.parse(args);
@@ -174,6 +186,10 @@ export const programRunnersModule = defineToolModule({
       inputSchema: prgFileArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["programs", "file"],
+      workflowHints: [
+        "Stage PRG files without running when the user wants to inspect memory first.",
+        "Confirm the Ultimate filesystem path (e.g. //USB0/demo.prg) is accessible before invoking.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = prgFileArgsSchema.parse(args ?? {});
@@ -206,6 +222,10 @@ export const programRunnersModule = defineToolModule({
       inputSchema: prgFileArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["programs", "execution", "file"],
+      workflowHints: [
+        "Call when the user provides a PRG path and expects immediate execution without compiling.",
+        "Mention that firmware issues a RUN so the user knows the machine state changed.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = prgFileArgsSchema.parse(args ?? {});
@@ -238,6 +258,10 @@ export const programRunnersModule = defineToolModule({
       inputSchema: crtFileArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["programs", "cartridge"],
+      workflowHints: [
+        "Use for cartridge images and remind the user that the machine will reset into the CRT.",
+        "Suggest capturing the screen afterwards if they need to verify the cartridge booted.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = crtFileArgsSchema.parse(args ?? {});

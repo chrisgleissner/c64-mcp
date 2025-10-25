@@ -15,6 +15,9 @@ function assertDescriptorMetadata(metadata) {
   if (metadata.examples !== undefined) {
     assert.ok(Array.isArray(metadata.examples), "metadata.examples should be array when present");
   }
+  if (metadata.workflowHints !== undefined) {
+    assert.ok(Array.isArray(metadata.workflowHints), "metadata.workflowHints should be array when present");
+  }
 }
 
 export function registerMcpServerToolsTests(withSharedMcpClient) {
@@ -56,6 +59,15 @@ export function registerMcpServerToolsTests(withSharedMcpClient) {
         assert.deepEqual(listed.metadata.resources, descriptor.metadata.resources);
         assert.deepEqual(listed.metadata.prompts, descriptor.metadata.prompts);
         assert.deepEqual(listed.metadata.tags, descriptor.metadata.tags);
+
+        if (descriptor.metadata.workflowHints) {
+          assert.deepEqual(listed.metadata.workflowHints, descriptor.metadata.workflowHints);
+        } else {
+          assert.ok(
+            listed.metadata.workflowHints === undefined || listed.metadata.workflowHints === null,
+            "workflowHints should be absent when registry omits them",
+          );
+        }
 
         if (descriptor.metadata.examples) {
           assert.deepEqual(listed.metadata.examples, descriptor.metadata.examples);

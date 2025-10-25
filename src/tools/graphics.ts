@@ -309,6 +309,10 @@ export const graphicsModule = defineToolModule({
   ],
   prompts: ["graphics-demo", "basic-program", "assembly-program"],
   defaultTags: ["graphics", "vic"],
+  workflowHints: [
+    "Suggest graphics helpers when the user asks for sprites, PETSCII art, or screen layout tweaks.",
+    "Mention how VIC-II state changes (colours, sprite positions) affect follow-up memory operations.",
+  ],
   tools: [
     {
       name: "generate_sprite_prg",
@@ -318,6 +322,10 @@ export const graphicsModule = defineToolModule({
       relatedResources: ["c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "assembly-program"],
       tags: ["sprite", "assembly"],
+      workflowHints: [
+        "Use when the user supplies sprite bytes or asks to preview graphics quickly; describe resulting coordinates and colours.",
+        "Remind the user that sprites live in banked memory so further tweaks may require write_memory calls.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = spriteArgsSchema.parse(args ?? {});
@@ -370,6 +378,10 @@ export const graphicsModule = defineToolModule({
       relatedResources: ["c64://specs/basic", "c64://context/bootstrap"],
       relatedPrompts: ["basic-program", "graphics-demo"],
       tags: ["basic", "screen"],
+      workflowHints: [
+        "Call after generating PETSCII text or when the user wants border/background colour changes applied.",
+        "Echo the colour indices and mention CLEAR + PRINT so the user knows what ran.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = renderPetsciiScreenArgsSchema.parse(args ?? {});
@@ -409,6 +421,10 @@ export const graphicsModule = defineToolModule({
       relatedResources: ["c64://specs/basic", "c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "basic-program"],
       tags: ["petscii", "basic"],
+      workflowHints: [
+        "Trigger when the user provides creative prompts; clarify whether you ran the art or left it as a dry run.",
+        "Provide follow-up suggestions like saving the PRG or capturing the screen after rendering.",
+      ],
       async execute(args, ctx) {
         try {
           const parsed = petsciiImageArgsSchema.parse(args ?? {});

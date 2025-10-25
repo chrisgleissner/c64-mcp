@@ -23,6 +23,22 @@ Exposes tools and knowledge that enable [LLM agents](https://www.promptingguide.
 - **Create** PETSCII drawings
 - **Custom Knowledge Base** with built-in local Retrieval-Augmented Generation ([RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)) for prompt enrichment
 
+## What is MCP?
+
+The **Model Context Protocol (MCP)** defines a universal, secure, and consistent way for LLM-based applications to connect with external systems and data sources.  
+
+Often called [*“the USB-C port for AI”*](https://docs.anthropic.com/en/docs/mcp), it provides a standardized interface that allows language models to access information and perform actions safely, predictably, and repeatably.
+
+Although it resembles a traditional API, MCP is designed specifically for the way LLMs think and interact. An MCP server can:
+
+- **Expose data** through **Resources** — structured information the model can draw into its working context.  
+- **Provide functionality** through **Tools** — executable actions that perform tasks or cause effects.  
+- **Offer guidance** through **Prompts** — reusable conversation patterns for complex operations.  
+
+**C64-MCP** applies this to the **Commodore 64**, serving as an **AI bridge and control deck**.  
+
+You’re the Commodore at the helm — AI assists, extending the reach of your commands into the 8-bit world.
+
 ## Examples 🎬
 
 Let's compose a children song on the C64 using ChatGPT and VS Code:
