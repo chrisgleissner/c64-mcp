@@ -72,6 +72,7 @@ export interface ToolDefinition {
   readonly relatedPrompts?: readonly string[];
   readonly tags?: readonly string[];
   readonly workflowHints?: readonly string[];
+  readonly prerequisites?: readonly string[];
   readonly execute: (args: unknown, ctx: ToolExecutionContext) => Promise<ToolRunResult>;
 }
 
@@ -88,6 +89,7 @@ export interface ToolDescriptor {
     readonly examples?: readonly ToolExample[];
     readonly tags: readonly string[];
     readonly workflowHints?: readonly string[];
+    readonly prerequisites?: readonly string[];
   };
 }
 
@@ -99,6 +101,7 @@ export interface ToolModuleConfig {
   readonly defaultLifecycle?: ToolLifecycle;
   readonly defaultTags?: readonly string[];
   readonly workflowHints?: readonly string[];
+  readonly prerequisites?: readonly string[];
   readonly tools: readonly ToolDefinition[];
 }
 
@@ -115,6 +118,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
   const defaultResources = config.resources ?? [];
   const defaultPrompts = config.prompts ?? [];
   const defaultWorkflowHints = config.workflowHints ?? [];
+  const defaultPrerequisites = config.prerequisites ?? [];
 
   const toolMap = new Map(config.tools.map((tool) => [tool.name, tool]));
 
@@ -124,6 +128,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
     describeTools(): readonly ToolDescriptor[] {
       return config.tools.map((tool) => {
         const workflowHints = mergeOptionalStrings(defaultWorkflowHints, tool.workflowHints);
+        const prerequisites = mergeOptionalStrings(defaultPrerequisites, tool.prerequisites);
 
         const metadata: ToolDescriptor["metadata"] = {
           domain: config.domain,
@@ -134,6 +139,7 @@ export function defineToolModule(config: ToolModuleConfig): ToolModule {
           examples: tool.examples,
           tags: mergeUnique(defaultTags, tool.tags),
           ...(workflowHints ? { workflowHints } : {}),
+          ...(prerequisites ? { prerequisites } : {}),
         };
 
         return {

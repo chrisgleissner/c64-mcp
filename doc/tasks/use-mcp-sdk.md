@@ -19,6 +19,12 @@ This migration MUST be done incrementally with strict progress tracking.
 - Proactively enrich the LLM session with curated C64 knowledge, workflow rules, and starter prompts so it can assist users without manual searching.
 - Maximize maintainability by centralizing shared behaviours: authentication, transport, error handling, logging, and compatibility helpers for the Ultimate hardware REST API.
 - Keep the migration auditable: every addition must have automated verification and be reflected in the progress tracker and changelog.
+- Establish MCP platform awareness so clients know whether C64U or VICE is active: provide a platform resource, a set_platform tool, per-tool backend validation, and (optionally) a capabilities lookup.
+- MCP Platform Awareness — LLM Instructions:
+  1. Expose the active platform via a `platform` resource returning `{ "target": "C64U", "features": [...], "limited_features": [...] }`.
+  2. Allow switching between platforms with a `set_platform` tool accepting `{ "target": "C64U" | "VICE" }`.
+  3. Each tool checks the platform in `execute()` and throws `unsupported_platform` when incompatible.
+  4. Optionally provide a `capabilities` resource that lists available tools per platform.
 
 ---
 
@@ -105,9 +111,10 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 
 ### Phase 6: Enhanced Tool Descriptions
 - [x] 5.1 - Add workflow hints to tool descriptions
-- [ ] 5.2 - Add prerequisite tool references
-- [ ] 5.3 - Add examples to tool schemas
-- [ ] 5.4 - Ensure tools reference resources in descriptions
+- [ ] 5.2 - Implement MCP platform awareness (platform resource, set_platform tool, per-tool backend guards, optional capabilities listing)
+- [ ] 5.3 - Add prerequisite tool references
+- [ ] 5.4 - Add examples to tool schemas
+- [ ] 5.5 - Ensure tools reference resources in descriptions
 
 ### Phase 7: Testing & Validation
 - [ ] 6.1 - Add automated integration tests for tools

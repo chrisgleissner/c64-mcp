@@ -18,6 +18,9 @@ function assertDescriptorMetadata(metadata) {
   if (metadata.workflowHints !== undefined) {
     assert.ok(Array.isArray(metadata.workflowHints), "metadata.workflowHints should be array when present");
   }
+  if (metadata.prerequisites !== undefined) {
+    assert.ok(Array.isArray(metadata.prerequisites), "metadata.prerequisites should be array when present");
+  }
 }
 
 export function registerMcpServerToolsTests(withSharedMcpClient) {
@@ -66,6 +69,15 @@ export function registerMcpServerToolsTests(withSharedMcpClient) {
           assert.ok(
             listed.metadata.workflowHints === undefined || listed.metadata.workflowHints === null,
             "workflowHints should be absent when registry omits them",
+          );
+        }
+
+        if (descriptor.metadata.prerequisites) {
+          assert.deepEqual(listed.metadata.prerequisites, descriptor.metadata.prerequisites);
+        } else {
+          assert.ok(
+            listed.metadata.prerequisites === undefined || listed.metadata.prerequisites === null,
+            "prerequisites should be absent when registry omits them",
           );
         }
 

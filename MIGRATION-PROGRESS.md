@@ -97,9 +97,10 @@
 ### Phase 6: Enhanced Tool Descriptions
 
 - [x] 5.1 - Add workflow hints to tool descriptions
-- [ ] 5.2 - Add prerequisite tool references
-- [ ] 5.3 - Add examples to tool schemas
-- [ ] 5.4 - Ensure tools reference resources in descriptions
+- [ ] 5.2 - Implement MCP platform awareness (platform resource, set_platform tool, per-tool backend guards, optional capabilities listing)
+- [ ] 5.3 - Add prerequisite tool references
+- [ ] 5.4 - Add examples to tool schemas
+- [ ] 5.5 - Ensure tools reference resources in descriptions
 
 ### Phase 7: Testing & Validation
 
@@ -131,6 +132,7 @@
 
 ## Notes & Issues
 
+- 2025-10-25T23:55:00+01:00: Added MCP platform awareness initiative (platform resource, set_platform tool, per-tool backend guards, optional capabilities listing) to migration scope.
 - 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
 - 2025-10-25T10:42:52+01:00: Updated tracker to align with expanded resource/printer/SID documentation tasks and modular tools/prompt plan.
 - 2025-10-25T10:50:40+01:00: Implemented knowledge bundle registry, enriched metadata, generated docs index, and expanded automated resource tests.
