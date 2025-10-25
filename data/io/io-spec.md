@@ -1,7 +1,12 @@
 # Commodore 64 I/O Specification
 
 **Scope:** Single source of truth for C64 I/O architecture and programmer interfaces.  
-**Companion docs:** `data/io/cia-spec.md` (CIA registers/semantics), `data/printer/printer-spec.md` (printer details).  
+
+**Companion docs:** 
+
+- `data/io/cia-spec.md` (CIA registers/semantics)
+- `data/drive/drive-spec.md` (printer details)
+- `data/printer/printer-spec.md` (printer details)
 
 ---
 
