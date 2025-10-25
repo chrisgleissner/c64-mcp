@@ -245,3 +245,55 @@ test("read_memory tool returns hex dump with metadata", async () => {
     }
   }
 });
+
+test("write_memory tool writes bytes to mock C64", async () => {
+  const mockServer = await startMockC64Server();
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "c64-mcp-config-"));
+  const configPath = path.join(tmpDir, "config.json");
+  fs.writeFileSync(configPath, JSON.stringify({ baseUrl: mockServer.baseUrl }), "utf8");
+
+  const connection = await createConnectedClient({
+    env: {
+      C64MCP_CONFIG: configPath,
+      C64_TEST_TARGET: "mock",
+    },
+  });
+  const { client } = connection;
+
+  try {
+    const result = await client.request(
+      {
+        method: "tools/call",
+        params: {
+          name: "write_memory",
+          arguments: {
+            address: "$0400",
+            bytes: "$AA55",
+          },
+        },
+      },
+      CallToolResultSchema,
+    );
+
+    assert.ok(Array.isArray(result.content));
+    const textContent = result.content.find((entry) => entry.type === "text");
+    assert.ok(textContent, "Expected text response content");
+    assert.match(textContent.text, /Wrote/);
+
+    assert.ok(result.metadata?.success, "metadata should flag success");
+    assert.equal(result.metadata.address, "$0400");
+    assert.equal(result.metadata.bytes, "$AA55");
+
+    assert.equal(mockServer.state.lastWrite?.address, 0x0400);
+    assert.deepEqual([...mockServer.state.lastWrite?.bytes ?? []], [0xaa, 0x55]);
+  } finally {
+    await connection.close();
+    await mockServer.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    const stderrOutput = connection.stderrOutput();
+    if (stderrOutput) {
+      process.stderr.write(stderrOutput);
+    }
+  }
+});

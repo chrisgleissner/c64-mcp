@@ -45,6 +45,23 @@ const readMemoryArgsSchema = objectSchema({
   additionalProperties: false,
 });
 
+const writeMemoryArgsSchema = objectSchema({
+  description: "Parameters for writing hexadecimal bytes into C64 memory.",
+  properties: {
+    address: stringSchema({
+      description: "Destination address expressed as $HHHH, decimal, or a documented symbol name.",
+      minLength: 1,
+    }),
+    bytes: stringSchema({
+      description: "Hex byte sequence like $AABBCC or AA BB CC to write starting at the resolved address.",
+      minLength: 2,
+      pattern: /^[\s_0-9A-Fa-f$]+$/,
+    }),
+  },
+  required: ["address", "bytes"],
+  additionalProperties: false,
+});
+
 export const memoryModule = defineToolModule({
   domain: "memory",
   summary: "Screen, main memory, and low-level inspection utilities.",
@@ -88,8 +105,8 @@ export const memoryModule = defineToolModule({
       name: "read_memory",
       description: "Read a range of bytes from main memory and return the data as hexadecimal.",
       summary: "Resolves symbols, reads memory, and returns a hex dump with addressing metadata.",
-      inputSchema: readMemoryArgsSchema.jsonSchema,
-  relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
+    inputSchema: readMemoryArgsSchema.jsonSchema,
+    relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex"],
       async execute(args, ctx) {
@@ -116,6 +133,54 @@ export const memoryModule = defineToolModule({
             address: addressLabel,
             length: lengthLabel,
             hexData: result.data ?? null,
+            details: detailRecord,
+          });
+        } catch (error) {
+          if (error instanceof ToolError) {
+            return toolErrorResult(error);
+          }
+          return unknownErrorResult(error);
+        }
+      },
+    },
+    {
+      name: "write_memory",
+      description: "Write a hexadecimal byte sequence into main memory at the specified address.",
+      summary: "Resolves symbols, validates hex data, and writes bytes to RAM via Ultimate firmware.",
+      inputSchema: writeMemoryArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
+      relatedPrompts: ["memory-debug", "assembly-program"],
+      tags: ["memory", "hex", "write"],
+      async execute(args, ctx) {
+        try {
+          const parsed = writeMemoryArgsSchema.parse(args ?? {});
+          ctx.logger.info("Writing C64 memory", { address: parsed.address, bytesLength: parsed.bytes.length });
+
+          const result = await ctx.client.writeMemory(parsed.address, parsed.bytes);
+          if (!result.success) {
+            throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
+              details: normaliseFailure(result.details),
+            });
+          }
+
+          const detailRecord = toRecord(result.details) ?? {};
+          let resolvedAddress: string;
+          if (typeof detailRecord.address === "number") {
+            resolvedAddress = `$${detailRecord.address.toString(16).toUpperCase().padStart(4, "0")}`;
+          } else if (typeof detailRecord.address === "string" && detailRecord.address.length > 0) {
+            resolvedAddress = detailRecord.address.startsWith("$")
+              ? detailRecord.address
+              : `$${detailRecord.address.toUpperCase()}`;
+          } else {
+            resolvedAddress = parsed.address.startsWith("$") ? parsed.address : `$${parsed.address}`;
+          }
+          const resolvedLength = typeof detailRecord.length === "number" ? detailRecord.length : undefined;
+
+          return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress}.`, {
+            success: true,
+            address: resolvedAddress,
+            length: resolvedLength ?? null,
+            bytes: parsed.bytes,
             details: detailRecord,
           });
         } catch (error) {
