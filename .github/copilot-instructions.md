@@ -6,13 +6,13 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 - Language & runtime: TypeScript (ESM) targeting Node.js 18+.
 - Entry points:
-  - Development: `npm start` (ts-node executes `src/index.ts`).
+  - Development: `npm start` (ts-node executes `src/index.ts`, which loads `src/mcp-server.ts`).
   - Published CLI: `c64-mcp` (imports `dist/index.js`).
-- Build pipeline: `npm run build` emits JavaScript into `dist/`, normalizes the layout, and regenerates `mcp-manifest.json` from `@McpTool` annotations.
+- Build pipeline: `npm run build` emits JavaScript into `dist/`, normalizes the layout, and refreshes README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
 - Key domains:
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
   - Local RAG over `data/` with embeddings.
-  - Fastify server exposing MCP **tools** and **knowledge** endpoints.
+  - Only transport is MCP over stdio.
 - Documentation sources: `README.md`, `doc/` (including SID/BASIC references), `AGENTS.md`, `.github/prompts/*.prompt.md`, and `data/context/*.md`.
 
 ## Coding Standards
@@ -38,14 +38,46 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 ## Prompts & Personas
 
 - Agent context layers: `data/context/bootstrap.md` → `AGENTS.md` → `.github/prompts/*.prompt.md` → `data/context/chat.md` → RAG fetches. Respect existing tone, persona descriptions, and instructions.
-- MCP tools reside in `src/index.ts`; regenerate the manifest after adding/modifying tool decorators.
+- MCP server wiring lives in `src/mcp-server.ts` (imported by `src/index.ts`). No manifest regeneration step is needed; clients discover tools dynamically via MCP.
 
 ## Review Checklist
 
 1. Tests added/updated and green (`npm test`).
-2. `npm run build` cleanly rebuilds (emits `dist/`, `mcp-manifest.json`).
+2. `npm run build` cleanly rebuilds (emits `dist/`).
 3. Docs amended when user-facing behavior changes.
 4. Commit messages are short, clear, and follow Conventional Commits with clear feat/fix/docs/chore/build/style/refactor/test prefixes.
 5. Code adheres to TDD mindset, KISS, DRY, and maintainability goals.
 
 Thanks for helping keep the Commodore 64 MCP server robust and user-friendly! 
+
+---
+
+## Using MCP with Copilot Chat (and Eager C64 Activation)
+
+Use these rules to ensure Copilot reliably engages the `c64-mcp` server when the user asks for C64 work.
+
+- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64-mcp` (see `doc/MCP_SETUP.md`). If the server is not running, start it.
+- Treat the following as strong routing signals: "c64", "commodore 64", "ultimate 64", "c64u", "vic", "sid", "petscii", "basic v2", "6510".
+- When such signals appear, prefer MCP tool usage from `c64-mcp` without waiting for the user to select a server.
+- If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server automatically, start it (e.g., `npm start` or `node ./node_modules/c64-mcp/dist/index.js`).
+
+### Lightweight C64 Chat Mode
+
+- Interpret `/C64` or `/c64` at the beginning of a message as a request to route subsequent steps through the `c64-mcp` tools for this turn. Also accept `C64U` and `c64u` as equivalent triggers.
+- In C64 mode:
+  - Use `upload_and_run_basic` or `upload_and_run_asm` for program execution.
+  - Use `read_screen`, `read_memory`, or `write_memory` for inspection or patches.
+  - Use SID/VIC helpers (`music_generate`, `sid_note_on`, `render_petscii_screen`, etc.) when relevant.
+  - Explain intended tool calls briefly before invoking them.
+
+### Fallback Guidance
+
+- If MCP tooling is unavailable, propose the minimal steps to bring it online:
+  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64-mcp`, 3) run `npm start` (or `node ./node_modules/c64-mcp/dist/index.js`).
+- Avoid performing destructive actions (reset/reboot/power) without explicit confirmation.
+
+### Example Prompts for Activation
+
+- "Read the current C64 screen" → connect and call `read_screen`.
+- "/C64 draw a rectangle using BASIC" → generate BASIC, call `upload_and_run_basic`, then `read_screen`.
+- "Play a C major scale on the SID" → call `music_generate`, then `analyze_audio` for verification.

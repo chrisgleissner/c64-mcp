@@ -46,7 +46,7 @@ npm test -- --mock
 1. Restart VS Code after changing MCP settings.
 2. Verify the settings JSON matches the snippet in `doc/MCP_SETUP.md` (`command`, `args`, `type: "stdio"`).
 3. Keep `npm start` (or `npx c64-mcp`) running; Copilot terminates the stdio process when the chat closes.
-4. Inspect the Copilot output channel for connection errors; certificate prompts indicate VS Code attempted HTTP mode—switch back to stdio.
+4. Inspect the Copilot output channel for connection errors and ensure the stdio server entry is configured and running.
 
 ### 3. Tests Fail Because Mock Server Is Missing
 
@@ -122,12 +122,9 @@ npm install
 npx tsc --noEmit src/index.ts
 ```
 
-### 6. Optional HTTP Compatibility for Legacy Clients
+### 6. Transport
 
-The Fastify HTTP server now lives in `src/http-server.ts.backup` and is not part of the default workflow. If you must expose HTTP endpoints:
-
-1. Launch the backup server manually (temporary testing only).
-2. Update clients to use stdio as soon as possible; HTTP mode lacks the new tool metadata and prompt wiring.
+Only stdio transport is supported for MCP. HTTP transport is not supported.
 
 ## Working Test Sequence
 
@@ -135,7 +132,7 @@ Use these checks to validate the full stack:
 
 1. `npm test` — run the mock suite end-to-end via stdio MCP.
 2. `npm test -- --real --base-url=$C64_BASE` — exercise real hardware (override `C64_BASE` to match your device).
-3. `curl -s "$C64_BASE"/v1/info | jq .version` — confirm the Ultimate 64 REST endpoint responds (`C64_BASE` defaults to your configured host).
+3. `curl -s "$C64_BASE"/v1/info | jq .version` — confirm the Ultimate 64 REST endpoint responds (hardware connectivity; unrelated to MCP transport).
 4. `npm run start-mock` — optional mock C64 server for local experiments.
 
 ## VS Code MCP Setup Checklist
