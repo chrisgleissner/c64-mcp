@@ -209,7 +209,7 @@ Besides this `README.md` document, the project includes extensive documentation:
 
 ## Configuration ⚙️
 
-The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present.
+The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present. Lookup order is: explicit `C64MCP_CONFIG` (falling back to `~/.c64mcp.json` when unset), then the repo-local file, and finally the built-in defaults (`host=c64u`, `port=80`). Legacy keys (`c64_host`, `c64_ip`, bare `baseUrl`) are normalised automatically.
 
 Configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
 

@@ -25,10 +25,11 @@ The install step pulls the MCP SDK, test tooling, and the generated REST client 
 
 The server looks for configuration in the following order (first match wins):
 
-1. JSON file referenced by the `C64MCP_CONFIG` environment variable
+1. JSON file referenced by the `C64MCP_CONFIG` environment variable (if the variable is unset, the default path is `~/.c64mcp.json`)
 2. `.c64mcp.json` in the repository root
-3. `.c64mcp.json` in the user home directory
-4. Built-in defaults (`http://c64u:80`)
+3. Built-in defaults (`http://c64u:80`)
+
+The loader normalises IPv6 literals, accepts legacy keys (`c64_host`, `c64_ip`, `baseUrl`), and derives `baseUrl` from the resolved host/port when omitted.
 
 Recommended configuration file:
 
