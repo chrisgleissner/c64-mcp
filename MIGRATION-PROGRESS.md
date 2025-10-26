@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 8.2
-**Last Updated:** 2025-10-26T08:45:00+01:00
+**Current Step:** Complete
+**Last Updated:** 2025-10-26T11:05:00+01:00
 
 
 ## Process Guidelines
@@ -124,9 +124,9 @@
 ### Phase 9: Documentation
 
 - [x] 8.1 - Document new architecture in doc/developer.md
-- [ ] 8.2 - Create MCP_SETUP.md guide
-- [ ] 8.3 - Update AGENTS.md if needed
-- [ ] 8.4 - Add troubleshooting section
+- [x] 8.2 - Create MCP_SETUP.md guide
+- [x] 8.3 - Update AGENTS.md if needed
+- [x] 8.4 - Add troubleshooting section
 
 ---
 
@@ -139,6 +139,9 @@
 - 2025-10-26T00:27:00+01:00: Added `npm run coverage` via c8 to capture coverage for Phase 7.6.
 - 2025-10-26T00:45:00+01:00: CI updated to run `npm run coverage` once and upload LCOV; removed duplicate test-only step.
 - 2025-10-26T08:40:00+01:00: Refreshed `doc/developer.md` with MCP architecture overview, tool/prompt registries, and platform guidance.
+- 2025-10-26T10:20:00+01:00: Authored `doc/MCP_SETUP.md` with install, configuration, and client hookup guidance (Phase 9 Step 8.2).
+- 2025-10-26T11:00:00+01:00: Updated `AGENTS.md` with MCP setup references and connectivity logging context (Phase 9 Step 8.3).
+- 2025-10-26T11:02:00+01:00: Refreshed `doc/troubleshooting-mcp.md` for stdio-first workflow, connectivity probes, and test verification (Phase 9 Step 8.4).
 - 2025-10-26T08:10:00+01:00: Archived legacy Fastify HTTP server to `src/http-server.ts.backup`; `src/index.ts` now forwards to the MCP server entry point.
 - 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
 - 2025-10-25T10:42:52+01:00: Updated tracker to align with expanded resource/printer/SID documentation tasks and modular tools/prompt plan.

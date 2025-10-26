@@ -1,91 +1,64 @@
 # MCP Troubleshooting Guide
 
-This document captures common issues and solutions when the c64-mcp server is not reachable or not working as expected.
+Field notes for the stdio-based Model Context Protocol server. Use these checks when the C64 MCP surface does not respond or CI fails the connectivity probe.
 
-## Quick Diagnosis Commands
-
-```bash
-# Check if stdio server is running
-ps -ef | grep "mcp-server.ts" | grep -v grep
-
-# If optional HTTP server is enabled
-curl -s http://localhost:8000/tools/info
-
-# Check C64 connectivity
-ping -c 1 192.168.1.13
-curl -s http://192.168.1.13/v1/info
-```
-
-## Common Issues & Solutions
-
-### 1. Server Not Responding to HTTP Requests
-
-**Symptoms:**
-
-- `curl: (7) Failed to connect to localhost port 8000`
-- `Connection refused` errors
-- Server process exists but no response
-
-**Solutions:**
+## Quick Diagnosis Checklist
 
 ```bash
-# Kill any existing processes
-pkill -f "npm start" || true
-pkill -f "src/index.ts" || true
+# 1. Is the MCP server running?
+ps -ef | grep "c64-mcp" | grep -v grep
 
-# Restart server with explicit port
-cd /path/to/c64-mcp
-npm start
+# 2. Do startup logs show the connectivity probe?
+tail -n20 ~/.c64-mcp.log  # or the terminal running npm start
 
-# Verify logs show connectivity probe to your device
-# "Connectivity check succeeded for c64 device at http://192.168.1.13"
+# 3. Can we reach the configured base URL directly?
+curl -s http://<your-c64-host>/v1/info | jq .version
+
+# 4. When using the mock server
+npm test -- --mock
 ```
 
-### 2. VS Code MCP Configuration Issues
+## Common Issues & Fixes
+
+### 1. Server Starts Without Connectivity Logs
 
 **Symptoms:**
 
-- VS Code Copilot Chat doesn't recognize MCP tools
-- Commands don't execute
-- No MCP server connection
+- `npm start` prints the banner but omits `Connectivity check succeeded`.
+- CI job `Validate MCP server logs` fails.
 
-**HTTP MCP Configuration (Working):**
+**Resolution:**
 
-```json
-{
-  "github.copilot.chat.experimental.mcp": {
-    "servers": [
-      {
-        "name": "c64-mcp",
-        "command": "node",
-        "args": ["./node_modules/c64-mcp/dist/index.js"],
-        "type": "stdio",
-  "manifestPath": "/absolute/path/to/c64-mcp/mcp-manifest.json",
-        "type": "http"
-      }
-    ]
-  }
-}
-```
+1. Confirm the REST base URL in `.c64mcp.json` or `C64MCP_CONFIG` matches a reachable device.
+2. Run `curl -I http://<host>/v1/info` to confirm HTTP reachability.
+3. Review `src/mcp-server.ts` connectivity logging; ensure no local edits suppressed `logConnectivity`.
+4. If hardware is offline, expect `Skipping direct REST connectivity probe` in the logs—CI treats this as success.
 
-**Key Points:**
-
-- Use **absolute paths** for `manifestPath`
-- Ensure the HTTP server is running on port 8000
-- HTTP MCP requires **manual approval** for each command
-- Add to both workspace `.vscode/settings.json` AND user settings
-
-### 3. stdout MCP Issues
-
-**⚠️ Known Issue:** stdout MCP integration may not work reliably for C64 hardware control.
+### 2. VS Code (Copilot Chat) Cannot See Tools
 
 **Symptoms:**
 
-- Commands appear to execute but no C64 interaction
-- No visible output on C64 screen
-- Tools run but don't affect hardware
+- Copilot Chat shows "No MCP server" messages.
+- Tool invocations fail silently.
 
-**Recommendation:** Use HTTP MCP for reliable C64 control.
+**Resolution:**
+
+1. Restart VS Code after changing MCP settings.
+2. Verify the settings JSON matches the snippet in `doc/MCP_SETUP.md` (`command`, `args`, `type: "stdio"`).
+3. Keep `npm start` (or `npx c64-mcp`) running; Copilot terminates the stdio process when the chat closes.
+4. Inspect the Copilot output channel for connection errors; certificate prompts indicate VS Code attempted HTTP mode—switch back to stdio.
+
+### 3. Tests Fail Because Mock Server Is Missing
+
+**Symptoms:**
+
+- `npm test` exits with ENOENT for `test/mockC64Server.mjs` or cannot bind to port 18064.
+
+**Resolution:**
+
+1. Ensure dev dependencies are installed (`npm install`).
+2. Verify nothing else occupies the mock server port: `lsof -i :18064`.
+3. Run `npm test -- --verbose` to see which suite fails; the harness spins up the mock server automatically.
 
 ### 4. C64 Hardware Connection Issues
 
@@ -94,18 +67,20 @@ npm start
 ```bash
 # Verify config file exists and has correct IP
 cat .c64mcp.json
+```
 
-## Should contain:
+Expected structure:
 
 ```json
 {
   "c64u": {
-    "host": "c64u"
+    "host": "c64u",
+    "port": 80
   }
 }
 ```
 
-**Or:**
+Example with explicit host:
 
 ```json
 {
@@ -129,26 +104,7 @@ curl -s http://c64u/v1/info
 ping 192.168.1.13
 ```
 
-### 5. Port Conflicts
-
-**Symptoms:**
-
-- If enabling HTTP: `EADDRINUSE: address already in use 0.0.0.0:8000`
-
-**Solutions:**
-
-```bash
-# Find what's using port 8000 (HTTP mode)
-lsof -i :8000
-
-# Kill the process using the port
-kill <PID>
-
-# Or use a different port
-PORT=8001 npm start
-```
-
-### 6. Missing Dependencies
+### 5. Missing Dependencies
 
 **Symptoms:**
 
@@ -166,43 +122,37 @@ npm install
 npx tsc --noEmit src/index.ts
 ```
 
+### 6. Optional HTTP Compatibility for Legacy Clients
+
+The Fastify HTTP server now lives in `src/http-server.ts.backup` and is not part of the default workflow. If you must expose HTTP endpoints:
+
+1. Launch the backup server manually (temporary testing only).
+2. Update clients to use stdio as soon as possible; HTTP mode lacks the new tool metadata and prompt wiring.
+
 ## Working Test Sequence
 
-Once the server is running, verify with this sequence:
+Use these checks to validate the full stack:
 
-```bash
-# 1. Test basic BASIC program upload
-curl -X POST -H 'Content-Type: application/json' \
-  -d '{"program":"10 PRINT \"HELLO WORLD\"\n20 END"}' \
-  http://localhost:8000/tools/upload_and_run_basic
-
-# 2. Read C64 screen to verify
-curl -s http://localhost:8000/tools/read_screen
-
-# 3. Test memory write (change border color to red)
-curl -X POST -H 'Content-Type: application/json' \
-  -d '{"address":"$D020","bytes":"$02"}' \
-  http://localhost:8000/tools/write_memory
-```
+1. `npm test` — run the mock suite end-to-end via stdio MCP.
+2. `npm test -- --real --base-url=$C64_BASE` — exercise real hardware (override `C64_BASE` to match your device).
+3. `curl -s "$C64_BASE"/v1/info | jq .version` — confirm the Ultimate 64 REST endpoint responds (`C64_BASE` defaults to your configured host).
+4. `npm run start-mock` — optional mock C64 server for local experiments.
 
 ## VS Code MCP Setup Checklist
 
 - [ ] GitHub Copilot extension installed and active
-- [ ] VS Code version supports MCP (Copilot Chat v1.214+)
-- [ ] MCP experimental feature enabled in VS Code settings
-- [ ] MCP server configured as stdio in user settings.json (or workspace)
-- [ ] If using HTTP mode, server running on localhost:8000
-- [ ] C64 Ultimate 64 powered on and network accessible
-- [ ] Test with simple curl command first
+- [ ] MCP experimental feature enabled (Copilot Chat ≥ v1.214)
+- [ ] Settings JSON matches `doc/MCP_SETUP.md`
+- [ ] `npm start` (or packaged CLI) running in a terminal
+- [ ] Connectivity logs confirm the REST endpoint is reachable
+- [ ] Hardware (or mock server) is online and accessible
 
 ## Key Lessons Learned
 
-1. **HTTP MCP is more reliable** than stdout MCP for hardware control
-2. **Always test with curl first** before troubleshooting VS Code integration
-3. **Check process lists** - servers can appear to start but not actually listen
-4. **Use absolute paths** in VS Code MCP configuration
-5. **Manual approval is required** for each HTTP MCP command
-6. **Server logs are crucial** - watch for connectivity messages and errors
+1. Connectivity logs are the fastest signal—watch the console during startup.
+2. Keep configuration files small and explicit; mismatched hosts cause silent timeouts.
+3. Automated tests cover most workflows; run `npm test` before suspecting hardware.
+4. Copilot Chat terminates the stdio server when the session ends—restart `npm start` as needed.
 
 ## Emergency Recovery
 
@@ -227,4 +177,4 @@ curl -s http://localhost:8000/tools/info
 
 ---
 
-*This guide was created after a challenging debugging session. Keep it updated with new findings.*
+*Keep this guide updated whenever new MCP workflows or diagnostics land in the project.*

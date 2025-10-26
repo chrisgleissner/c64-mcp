@@ -4,21 +4,23 @@ This server exposes a Model Context Protocol (MCP) surface for driving a Commodo
 
 ## Configuration Artifacts
 
-- `mcp.json` is the human-maintained project configuration. It declares the server entry point, environment variables, and metadata shipped with the npm package.
-  MCP clients discover tools dynamically at runtime over stdio; no manifest file needed.
+- `mcp.json` is the human-maintained project configuration. It declares CLI metadata, environment variables, and packaging details for npm distribution.
+- MCP clients discover tools dynamically at runtime over stdio; no manifest file is required.
+- `doc/MCP_SETUP.md` walks through installation, configuration resolution, and MCP client wiring.
 
 ## Quick Start
 
 ### Run the Server
 
-- Install and configure per the README (“Install” and “Quick start”).
-- Start the server locally:
+- Install dependencies via `npm install`.
+- Configure your target endpoint as documented in `doc/MCP_SETUP.md`.
+- Start the stdio MCP server locally:
 
 ```bash
 npm start
 ```
 
-Prefer stdio MCP transport. Optional HTTP compatibility can listen on `http://localhost:8000` (set `PORT`).
+`npm start` launches the TypeScript entry point (`src/mcp-server.ts`). The command prints connectivity diagnostics (REST probe plus zero-page read) before announcing `c64-mcp MCP server running on stdio`.
 
 ### Capabilities at a Glance
 
@@ -35,7 +37,7 @@ Tools and parameters are listed by the server at runtime via ListTools.
 ### Use with GitHub Copilot Chat (VS Code)
 
 1. Enable MCP support (Copilot Chat v1.214+): Settings → Extensions → GitHub Copilot → Chat: Experimental: MCP → enable, then restart VS Code.
-1. Add the server under Settings → GitHub Copilot → Experimental → MCP Servers:
+1. Add the server under Settings → GitHub Copilot → Experimental → MCP Servers (see `doc/MCP_SETUP.md` for the exact JSON snippet):
 
 ```json
 {
@@ -52,7 +54,8 @@ Tools and parameters are listed by the server at runtime via ListTools.
 }
 ```
 
-1. Keep `npm start` running. In Copilot Chat, invoke tools by natural language (for example, “Upload and run this BASIC program”, “Read the current screen”, “Write $D020=2”).
+1. Keep `npm start` or the packaged CLI running so the stdio transport remains available.
+1. In Copilot Chat, invoke tools by natural language (for example, “Upload and run this BASIC program”, “Read the current screen”, “Write $D020=2”).
 
 ### Use with Other MCP Clients
 

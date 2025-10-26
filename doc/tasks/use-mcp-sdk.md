@@ -137,9 +137,9 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 
 ### Phase 9: Documentation
 - [x] 8.1 - Document new architecture in doc/developer.md
-- [ ] 8.2 - Create MCP_SETUP.md guide
-- [ ] 8.3 - Update AGENTS.md if needed
-- [ ] 8.4 - Add troubleshooting section
+- [x] 8.2 - Create MCP_SETUP.md guide
+- [x] 8.3 - Update AGENTS.md if needed
+- [x] 8.4 - Add troubleshooting section
 
 ---
 
