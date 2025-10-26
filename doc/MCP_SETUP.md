@@ -29,24 +29,16 @@ The server looks for configuration in the following order (first match wins):
 2. `.c64mcp.json` in the repository root
 3. Built-in defaults (`http://c64u:80`)
 
-The loader normalises IPv6 literals, accepts legacy keys (`c64_host`, `c64_ip`), and derives the REST endpoint from the resolved host and port.
-
 Recommended configuration file:
 
 ```json
 {
   "c64u": {
-    "host": "ultimate64.local",
+    "host": "c64u",
     "port": 80
   }
 }
 ```
-
-Aliases supported for legacy files:
-
-- `c64_host` or `c64_ip` are coerced into the new schema
-
-IPv6 literals must be wrapped in square brackets inside the host field (`"[2001:db8::1]"`).
 
 ## 3. Run the MCP Server (source tree)
 
@@ -59,9 +51,14 @@ npm start
 `npm start` locates `src/mcp-server.ts`, loads the config, and launches the stdio transport. Successful startup prints:
 
 ```text
+> c64-mcp@0.3.0 start
+> node scripts/start.mjs
+
 Starting c64-mcp MCP server...
-Connectivity check succeeded for c64 device at http://<host>
-Zero-page probe @ $0000: 00
+[c64u] GET http://192.168.1.64 status=200 bytes=41608 latencyMs=177
+Connectivity check succeeded for c64 device at http://192.168.1.64
+[c64u] GET /v1/machine:readmem status=200 bytes=1 latencyMs=31
+Zero-page probe @ $0000: $00
 c64-mcp MCP server running on stdio
 ```
 
