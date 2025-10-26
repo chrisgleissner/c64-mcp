@@ -254,15 +254,6 @@ On startup, the server logs the selected backend and reason, for example:
 - `Active backend: c64u (from config)`
 - `Active backend: vice (fallback – hardware unavailable)`
 
-### File locations and overrides
-
-- Primary: `~/.c64mcp.json`
-- Override path: set `C64MCP_CONFIG=/absolute/path/to/.c64mcp.json`
-- Repo-local (dev): `.c64mcp.json` at the project root
-
-
-   If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
-
 ### Log Level
 
 By default, the server logs info-level messages and above. 
@@ -274,6 +265,8 @@ In Visual Code, you can achieve this via an entry in your `.env` file at the pro
 ```txt
 LOG_LEVEL=debug
 ```
+
+Please note that all logs use `stderr` since `stdout` is reserved for the MCP protocol messages.
 
 ## Build & Test 🧪
 
