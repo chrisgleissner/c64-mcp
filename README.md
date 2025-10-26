@@ -192,8 +192,15 @@ npm run build
 
 ## Configuration ⚙️
 
-The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present. Lookup order is: explicit `C64MCP_CONFIG` (falling back to `~/.c64mcp.json` when unset), then the repo-local file, and finally the built-in defaults (`host=c64u`, `port=80`). Legacy keys (`c64_host`, `c64_ip`) are normalised automatically.
+The MCP server reads its configuration from a JSON file called `.c64mcp.json` which is resolved as follows (first match wins):
 
+1. explicit `C64MCP_CONFIG` env var containing the absolute path to the config file
+1. `~/.c64mcp.json` (from user home)
+1. `./c64mcp.json` (from current working directory)
+
+If no config file is found, it uses defaults: `host=c64u`, `port=80`
+
+The configuration has a dedicated section for each supported platform (i.e. a real or software-emulated C64 device) as described in the chapters below.
 
 ### C64U (real hardware)
 
@@ -210,11 +217,11 @@ Provide the host (DNS name or IP, defaults to `c64u`) and a port (defaults to `8
 }
 ```
 
-### VICE (emulator)
+### VICE (software emulator)
 
 > [!NOTE] This is an experimental feature that is currently very limited.
 
-This backend starts a fresh VICE process for each PRG run using the emulator binary. In phase one, memory/register operations are not supported; the focus is deterministic PRG execution.
+This backend starts a fresh [VICE](https://vice-emu.sourceforge.io/) process for each PRG run using the emulator binary. In phase one, memory/register operations are not supported; the focus is deterministic PRG execution.
 
 ```json
 {
