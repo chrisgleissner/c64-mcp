@@ -76,7 +76,26 @@ The npm package also exposes a CLI named `c64-mcp`; `npx c64-mcp` or an installe
 ### GitHub Copilot Chat (VS Code)
 
 1. Enable MCP support: Settings > Extensions > GitHub Copilot > Chat > Experimental: MCP.
-2. Add the server entry (Command Palette > Preferences: Open Settings (JSON)):
+2. Add the server entry (Command Palette > Preferences: Open Settings (JSON)).
+
+   When running from the cloned repository after `npm run build`:
+
+   ```json
+   {
+     "github.copilot.chat.experimental.mcp": {
+       "servers": [
+         {
+           "name": "c64-mcp",
+           "command": "node",
+           "args": ["./dist/index.js"],
+           "type": "stdio"
+         }
+       ]
+     }
+   }
+   ```
+
+   When using the published npm package instead of the local build:
 
    ```json
    {
