@@ -66,7 +66,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         description: "CRITICAL: Mandatory workflow rules for all C64 programming",
         relativePath: "data/context/bootstrap.md",
         priority: "critical",
-        summary: "Step-by-step rules for safe automation, verification, and rollback on the Ultimate hardware.",
+        summary: "Step-by-step rules for safe automation, verification, and rollback on the C64.",
         prompts: ["basic-program", "assembly-program", "memory-debug"],
         tools: ["upload_and_run_basic", "upload_and_run_asm", "read_screen", "read_memory"],
         tags: ["workflow", "safety"],

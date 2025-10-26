@@ -186,7 +186,7 @@ npm run build
 - [`mcp.json`](mcp.json): project configuration (entry point, env vars, metadata).
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
 - [`doc/MCP_SETUP.md`](doc/MCP_SETUP) — More details on MCP setup and integration with Visual Code.
-- [`doc/developer.md`](doc/developer.md) — Development environment and workflow details.
+- [`doc/developer.md`](doc/developer.md) — Development environment and workflow details. Also covers how to extend and rebuild the local RAG embeddings.
 - [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
 - [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 
@@ -194,7 +194,6 @@ npm run build
 
 The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present. Lookup order is: explicit `C64MCP_CONFIG` (falling back to `~/.c64mcp.json` when unset), then the repo-local file, and finally the built-in defaults (`host=c64u`, `port=80`). Legacy keys (`c64_host`, `c64_ip`) are normalised automatically.
 
-Configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
 
 ### C64U (real hardware)
 
@@ -257,7 +256,17 @@ On startup, the server logs the selected backend and reason, for example:
 
    If the file is missing, the server first looks for the bundled [`.c64mcp.json`](.c64mcp.json) in the project root, and finally falls back to `http://c64u`.
 
+### Log Level
 
+By default, the server logs info-level messages and above. 
+
+To enable debug logging, set the environment variable `LOG_LEVEL=debug` before starting the server. 
+
+In Visual Code, you can achieve this via an entry in your `.env` file at the project root:
+
+```txt
+LOG_LEVEL=debug
+```
 
 ## Build & Test 🧪
 
@@ -408,23 +417,16 @@ The test runner accepts the following options:
 | `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
 
 #### Rag
-> Retrieval-augmented generation helpers for BASIC and assembly examples.
 
-**Workflow hints:**
-- Call RAG tools when the user needs references or examples before generating new code.
-- Summarise the number of refs returned and suggest follow-up actions like reading specific docs.
+> Retrieval-augmented generation helpers for BASIC and assembly examples. See `doc/developer.md` for detailed guidance.
 
-**Default tags:** `rag`, `search`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `rag_retrieve_asm` | Retrieve 6502/6510 assembly references from local knowledge. See c64://specs/assembly. | `rag`, `search`, `asm` |
-| `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
 
 #### Developer
+
 > Configuration management, diagnostics, and helper utilities for advanced workflows.
 
 **Workflow hints:**
+
 - Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.
 - Call out any risky operations (like flash writes) so the user understands the impact.
 
@@ -445,9 +447,11 @@ The test runner accepts the following options:
 | `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
 
 #### Streaming
+
 > Long-running or streaming workflows such as audio capture or SID playback monitoring.
 
 **Workflow hints:**
+
 - Use streaming tools for long-running capture or monitoring workflows such as audio verification.
 - Clarify that streams keep running until stopped so the user can manage resources.
 
@@ -536,137 +540,6 @@ Keep this running—it will log successful connectivity to your C64 device.
 
 More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
 
-## Optional HTTP compatibility
-
-An HTTP server remains available for manual testing and scripting. It exposes endpoints under `/tools/*`. To enable it locally, export a `PORT` (e.g. 8000) before start:
-
-```bash
-PORT=8000 npm start
-```
-
-Example curl call (when HTTP server is enabled):
-
-```bash
-curl -s http://localhost:8000/tools/info | jq
-```
-
-When using the optional HTTP server, endpoints live under `/tools/*`.
-
-## Local RAG 🕸️
-
-This server includes a local RAG ([Retrieval-Augmented Generation](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)) subsystem that indexes sample Commodore 64 source code and hardware information from the `data` folder on startup.
-
-It maintains several compact JSON indices at `data/embeddings_*.json` which are generated using a deterministic, offline embedding model.
-
-Override the output directory by setting `RAG_EMBEDDINGS_DIR` (defaults to `data/`). The index auto-rebuilds when files under `data` change (polling every `RAG_REINDEX_INTERVAL_MS`, default 15000 ms).
-
-- Programmatic use inside MCP flow: the server uses the retriever to inject relevant examples into prompts. You can also call helper endpoints to validate retrieval:
-  - `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` — returns reference snippets
-  - `POST /tools/rag_retrieve_basic` body `{ "q": "your query", "k": 3 }`
-  - `POST /tools/rag_retrieve_asm` body `{ "q": "your query", "k": 3 }`
-
-Examples:
-
-```bash
-curl -s "http://localhost:8000/rag/retrieve?q=draw%20a%20sine%20wave&k=3&lang=basic" | jq
-curl -s -X POST -H 'Content-Type: application/json' \
-  -d '{"q":"cycle border colors","k":3}' \
-  http://localhost:8000/tools/rag_retrieve_asm | jq
-```
-
-You can add your data (source code, hardware information, Markdown notes, etc.) anywhere under the `data` folder. The indexer scans subdirectories recursively and picks up changes automatically.
-
-A small curated set of documentation from `doc/` is also indexed; by default this includes [`data/assembly/assembly-spec.md`](data/assembly/assembly-spec.md).
-
-To include additional documentation without moving files, set `RAG_DOC_FILES` to a comma-separated list of paths before running `npm run rag:rebuild` or starting the server with `RAG_BUILD_ON_START=1`.
-
-### RAG Rebuild Policy
-
-- Default behaviour (from this PR onward): no background reindex and no build-on-start to avoid churn and merge conflicts.The test runner forces `RAG_EMBEDDINGS_DIR=artifacts/test-embeddings` so CI and local builds never touch the tracked JSON files unless you opt in.
-  - Set `RAG_REINDEX_INTERVAL_MS=0` (default) to disable periodic reindex.
-  - Omit `RAG_BUILD_ON_START`; the server will load existing indices if present and otherwise operate with empty indexes.
-- Opt-in rebuilds:
-  - Trigger a one-time on-start rebuild by exporting `RAG_BUILD_ON_START=1`.
-  - Or run `npm run rag:rebuild` explicitly to rebuild indices.
-- CI recommended settings: `RAG_REINDEX_INTERVAL_MS=0` and do not set `RAG_BUILD_ON_START`.
-
-To minimize diffs, the indexer writes files only when contents change and keeps a stable, sorted record order.
-
-### External Sources
-
-Extending the RAG from external sources is a three-step process: discover sources, fetch content from them, and add the content to the index.
-
-#### Discover
-
-> [!NOTE]
-> This feature is experimental.
-
-To discover new C64 sources on GitHub, first create a `.env` file with GitHub credentials with these contents:
-
-```env
-GITHUB_TOKEN=<personalAccessToken>
-```
-
-The `<personalAccessToken>` can be issued at [GitHub Personal Access Tokens](https://github.com/settings/personal-access-tokens) with these values:
-
-- Expiration: 90 days
-- Resource owner: Your GitHub user account
-- Repository access: All repositories
-- Access type: Public repositories
-- Permissions: Metadata (Read-only), Contents (Read-only)
-
-Then run:
-
-```bash
-npm install --save-dev dotenv-cli
-npx dotenv -e .env -- npm run rag:discover
-```
-
-This will extend the file `src/rag/sources.csv`.
-
-#### Fetch
-
-To download sources available at locations defined in `src/rag/sources.csv`:
-
-1. (Optional) Extend `src/rag/sources.csv` (columns: `type,description,link,depth`) with new sources.
-1. Fetch sources (opt-in, no network on builds/tests):
-
-   ```bash
-   npm run rag:fetch
-   ```
-
-#### Rebuild
-
-1. Rebuild the RAG index to incorporate new or changed sources:
-
-   ```bash
-   # either rely on the running server's auto-reindexer (default ~15s), or
-   npm run rag:rebuild
-   ```
-
-#### Notes
-
-- Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
-- If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
-
-For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
-
-## Utility Scripts 🛠️
-
-- `npm run c64:tool` — interactive helper that can:
-  - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
-  - convert and immediately run the generated PRG on the configured c64 device,
-  - upload an existing PRG and run it on the c64 device.
-- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml).
-- Advanced users can call the underlying CLI directly:
-
-  ```bash
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
-  ```
-
-Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
 
 ## Troubleshooting 🛟
 
@@ -683,9 +556,3 @@ npm start
 # If using optional HTTP server: quick connectivity test
 curl -s http://localhost:8000/tools/info
 ```
-
-## Developer Docs 📖
-
-- REST API docs: [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html)
-- Extend this project: see the [Developer Guide](doc/developer.md).
-- Local references: see the [Documentation](#documentation-) section above.

@@ -4,24 +4,25 @@ Concise reference for contributors working on the MCP server that bridges LLM wo
 
 ## Project Layout
 
-```text
-src/                    Core MCP implementation
-  mcp-server.ts         Primary MCP stdio server wiring tools/resources/prompts
-  index.ts              Thin wrapper used by CLI entry point (imports mcp-server)
-  http-server.ts.backup Archived Fastify HTTP surface kept for reference only
-  tools/                Domain modules (program runners, audio, graphics, etc.)
-  prompts/              Prompt registry and authored prompt definitions
-  rag/                  Retrieval-augmented generation helpers and pipeline
-  c64Client.ts          REST client for Ultimate 64 / C64 Ultimate hardware
-  basicConverter.ts     BASIC text → PRG encoder used across tools/tests
-  platform.ts           Backend capability detection shared by tools
-  petsciiArt.ts         PETSCII renderer used by graphics tools
-  sidwave*.ts           SID music compiler and helpers
-  assemblyConverter.ts  6502 assembler for program loaders
-scripts/                Utility CLI entry points (tests, packaging, release)
-doc/                    Reference material and specs
-test/                   Node test runner suites and helpers (mock + real targets)
-```
+- `src/` — core TypeScript sources for the MCP server.
+  - `mcp-server.ts` wires tools, resources, and prompts into the stdio server entry point imported by `index.ts`.
+  - Support modules such as `c64Client.ts`, `device.ts`, `viceRunner.ts`, `sidplayRunner.ts`, `loggingHttpClient.ts`, and `logger.ts` isolate hardware access and observability.
+  - Domain folders include:
+    - `audio/` for MCP-driven audio capture and analysis.
+    - `rag/` for indexing, retrieval, and external source discovery.
+    - `tools/` for individual MCP tool implementations plus decorators.
+    - `prompts/` for authored prompt definitions surfaced to clients.
+    - `types/` and `context.ts` for shared type definitions and session context helpers.
+    - `petscii*.ts`, `basicConverter.ts`, `assemblyConverter.ts`, and `chargen.ts` for Commodore-specific encoders and assets.
+    - `knowledge.ts` for resource wiring and `config.ts` for environment resolution.
+- `scripts/` — Node/TypeScript utilities for starting the server, rebuilding docs, running tests, regenerating embeddings, packaging releases, and providing the CLI shim used by `c64-mcp`.
+- `doc/` — documentation set (developer guide, REST references, troubleshooting, task notes).
+- `data/` — knowledge corpus, embeddings, and example programs consumed by the RAG pipeline.
+- `test/` — Node test suites plus mock server helpers; includes real-hardware toggles.
+- `generated/` — OpenAPI-derived REST client (`npm run api:generate`).
+- `scripts/cli.js` and `dist/` — compiled CLI façade and build artifacts produced by `npm run build` / npm packaging.
+- `artifacts/` — gitignored output for PRG conversions, test embeddings, and other scratch products.
+- `external/` — optional fetched corpora included in the RAG index.
 
 Key documentation:
 
@@ -52,23 +53,32 @@ Configuration resolution (first match wins):
 
 ## Useful npm Scripts
 
-- `npm start`: Launch the MCP SDK stdio server (preferred). Falls back to compiled JS when ts-node is unavailable.
-- `npm run build`: Type-check TypeScript sources and normalise the `dist/` output.
-- `npm test`: Run tests against the bundled mock server.
-- `npm test -- --real [--base-url=http://host]`: Run the suite against real hardware.
-- `npm run check`: Perform a build and run the mock test suite.
-- `npm run c64:tool`: Launch the interactive BASIC/PRG helper utilities.
-- `npm run api:generate`: Regenerate the REST client (`generated/c64/index.ts`).
-- `npm run rag:rebuild`: Rebuild embeddings and the RAG index when data changes.
-- `npm run release:prepare -- <semver>`: Bump versions, regenerate manifest, and stage changelog updates.
+**Core server flows**
 
-The build pipeline finishes by running `scripts/update-readme.ts`, which introspects the MCP registries and rewrites the `README.md` reference tables. Invoke it directly (`node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts`) after changing tools, resources, or prompts to refresh the docs without a full rebuild.
+- `npm start` launches the stdio MCP server with hot TypeScript support (`scripts/start.mjs`).
+- `npm run mcp` runs the TypeScript entry point directly via `ts-node`; `npm run mcp:build` compiles to `dist/` first, then executes the bundled server for parity testing.
+- `npm run build` compiles TypeScript, runs post-build normalization, and regenerates `README.md` tool/resource tables via `scripts/update-readme.ts`.
+- `npm run lint` maps to `npm run check` for quick consistency with CI.
 
-The test driver in `scripts/run-tests.mjs` accepts additional flags:
+**Quality gates**
 
-- `--mock` (default) to use `test/mockC64Server.mjs`.
-- `--real` to forward requests to hardware (`C64_TEST_TARGET=real`).
-- `--base-url` to override the REST endpoint while using `--real`.
+- `npm test` drives `scripts/run-tests.mjs` against the mock C64 server; pass `-- --real [--base-url=http://host]` to exercise actual hardware.
+- `npm run check` executes `npm run build` followed by the mock test suite; `npm run coverage` wraps the same runner with c8.
+- `npm run check:package` validates packaging metadata, while `npm run check:run-local` / `npm run check:run-npm` execute `scripts/run-mcp-check.sh` against local and packaged installs.
+
+**RAG workflows**
+
+- `npm run rag:rebuild` (alias `npm run build:rag`) rebuilds embeddings; `npm run rag:fetch` pulls external corpora declared in `src/rag/sources.csv`.
+- `npm run rag:discover` performs experimental GitHub discovery using `src/rag/discover.ts` (requires credentials in `.env`).
+
+**Tooling and release**
+
+- `npm run c64:tool` opens the interactive helper for PRG conversion and upload; `npm run api:generate` refreshes the generated REST client.
+- `npm run changelog:generate` distills Conventional Commit history, and `npm run release:prepare -- <semver>` orchestrates version bumps plus manifest regeneration.
+
+Invoke `node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts` directly when you need to refresh documentation tables without a full rebuild.
+
+The test driver in `scripts/run-tests.mjs` accepts additional flags: `--mock` (default) to use `test/mockC64Server.mjs`, `--real` to target hardware (`C64_TEST_TARGET=real`), and `--base-url` to override the REST endpoint during real runs.
 
 ## MCP Architecture
 
@@ -182,17 +192,122 @@ Tips:
 - Skip “Merge …” subjects; they are filtered automatically.
 - Run `npm run changelog:generate` to regenerate locally; it prepends a new section for the current `package.json` version using commits since the last tag.
 
-## Retrieval-Augmented Knowledge
 
-- RAG subsystem (`src/rag/*`) indexes `.bas`, `.asm`, `.s`, and Markdown files under `data/*`. Changes trigger a background re-index.
-- Selected docs under `doc/` are also indexed (default: `data/assembly/assembly-spec.md`). Extend the set by exporting `RAG_DOC_FILES=path/to/doc1.md,path/to/doc2.md` before a rebuild.
-- Set `RAG_EMBEDDINGS_DIR` to redirect the generated `embeddings_basic.json` / `embeddings_asm.json` files to another directory (the test runner uses `artifacts/test-embeddings` to avoid touching tracked files).
-- External sources: edit `src/rag/sources.csv` (`type,description,link,depth`), then:
+## Local RAG
+
+### Overview
+
+- The retrieval-augmented generation subsystem ingests C64-related BASIC, assembly, and Markdown files under `data/` plus a curated subset of docs.
+- Embeddings are written as deterministic JSON payloads (`embeddings_*.json`) inside `data/` unless you override the target with `RAG_EMBEDDINGS_DIR`.
+- The server consumes these indices at startup to enrich MCP tool prompts; if indices are missing it simply serves empty results until you build them.
+
+### Indexed Content
+
+- Drop additional snippets, notes, or source code anywhere under `data/` and the indexer will pick them up recursively.
+- Include documentation that lives outside `data/` by exporting `RAG_DOC_FILES=path/to/doc1.md,path/to/doc2.md` before rebuilding; the defaults already cover `data/assembly/assembly-spec.md`.
+
+### Configuration Flags
+
+- `RAG_EMBEDDINGS_DIR`: relocate the generated JSON files (the test suite points this at `artifacts/test-embeddings`).
+- `RAG_REINDEX_INTERVAL_MS`: set to `0` (default) to disable background polling; raise it to opt into periodic rebuilds.
+- `RAG_BUILD_ON_START`: unset by default so the server reuses existing indices; set to `1` for a one-time rebuild during startup.
+
+The indexer only touches files when content changes to avoid noisy diffs.
+
+### Maintenance Commands
+
+- `npm run rag:rebuild` — rebuild embeddings immediately.
+- `npm run rag:fetch` — refresh external source material defined in `src/rag/sources.csv` before rebuilding.
+
+### Using the Retriever
+
+- Tools: `POST /tools/rag_retrieve_basic` or `POST /tools/rag_retrieve_asm` with `{ "q": "query", "k": 3 }` to pull BASIC or assembly references.
+- HTTP probe: `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` for quick manual inspection.
+
+Example:
 
 ```bash
-npm run rag:fetch
-npm run rag:rebuild  # or rely on auto-reindex (~15s default)
+curl -s "http://localhost:8000/rag/retrieve?q=draw%20a%20sine%20wave&k=3&lang=basic" | jq
 ```
 
-- Defaults: in-domain only; adaptive rate limiting; no network during build/test.
-- See `data/assembly/assembly-spec.md` for the assembly quick reference surfaced by `assembly_spec` and `/rag/retrieve`.
+### Index Hygiene
+
+- Keep `RAG_REINDEX_INTERVAL_MS=0` in CI and local development unless you are actively modifying the corpus.
+- Run `npm run rag:rebuild` after significant documentation imports so teammates receive the updated indices in version control.
+- When experimentation requires rapid iteration, point `RAG_EMBEDDINGS_DIR` at a temporary folder and skip committing the generated files.
+
+### External Sources
+
+Extending the RAG from external sources is a three-step process: discover sources, fetch content from them, and add the content to the index.
+
+#### Discover
+
+> [!NOTE]
+> This feature is experimental.
+
+To discover new C64 sources on GitHub, first create a `.env` file with GitHub credentials with these contents:
+
+```env
+GITHUB_TOKEN=<personalAccessToken>
+```
+
+The `<personalAccessToken>` can be issued at [GitHub Personal Access Tokens](https://github.com/settings/personal-access-tokens) with these values:
+
+- Expiration: 90 days
+- Resource owner: Your GitHub user account
+- Repository access: All repositories
+- Access type: Public repositories
+- Permissions: Metadata (Read-only), Contents (Read-only)
+
+Then run:
+
+```bash
+npm install --save-dev dotenv-cli
+npx dotenv -e .env -- npm run rag:discover
+```
+
+This will extend the file `src/rag/sources.csv`.
+
+#### Fetch
+
+To download sources available at locations defined in `src/rag/sources.csv`:
+
+1. (Optional) Extend `src/rag/sources.csv` (columns: `type,description,link,depth`) with new sources.
+1. Fetch sources (opt-in, no network on builds/tests):
+
+   ```bash
+   npm run rag:fetch
+   ```
+
+#### Rebuild
+
+1. Rebuild the RAG index to incorporate new or changed sources:
+
+   ```bash
+   # either rely on the running server's auto-reindexer (default ~15s), or
+   npm run rag:rebuild
+   ```
+
+#### Notes
+
+- Downloads are stored under `external/` (gitignored) and included in the index alongside `data/*`.
+- If you delete files from `external/` and rebuild, their content will be removed from the RAG. To “freeze” current embeddings, avoid rebuilding (e.g., set `RAG_REINDEX_INTERVAL_MS=0`) until you want to refresh.
+
+For advanced options (depth semantics, throttling/limits, adaptive rate limiting, retries, logs, and environment overrides), see the dedicated section in `doc/developer.md`.
+
+## Utility Scripts 🛠️
+
+- `npm run c64:tool` — interactive helper that can:
+  - convert a BASIC file to a PRG and store it under `artifacts/` (or a path you choose),
+  - convert and immediately run the generated PRG on the configured c64 device,
+  - upload an existing PRG and run it on the c64 device.
+- `npm run api:generate` — regenerate the typed REST client under `generated/c64/` from [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml).
+- Advanced users can call the underlying CLI directly:
+
+  ```bash
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
+  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
+  ```
+
+Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
