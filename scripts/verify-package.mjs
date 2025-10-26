@@ -109,8 +109,39 @@ function showSourcesCsvPreview() {
   }
 }
 
+function logPackageContents() {
+  const items = [];
+  const stack = ['.'];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    const fullPath = resolve(packageDir, current);
+    const stats = statSync(fullPath);
+    if (stats.isDirectory()) {
+      if (current !== '.') {
+        items.push(`${current}/`);
+      }
+      const children = readdirSync(fullPath)
+        .map((name) => (current === '.' ? name : `${current}/${name}`))
+        .sort()
+        .reverse();
+      for (const child of children) {
+        stack.push(child);
+      }
+    } else if (stats.isFile()) {
+      items.push(current);
+    }
+  }
+
+  items.sort((a, b) => a.localeCompare(b));
+  console.log('Package file listing:');
+  for (const entry of items) {
+    console.log(` - ${entry}`);
+  }
+}
+
 assertSpotChecks();
 detectDuplicates();
 showSourcesCsvPreview();
+logPackageContents();
 
 console.log('Package verification succeeded.');
