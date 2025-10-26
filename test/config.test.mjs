@@ -66,3 +66,58 @@ test("loadConfig defaults port when omitted", (t) => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+test("baseUrl entries provide fallback host/port but cannot override", (t) => {
+  const originalEnv = process.env.C64MCP_CONFIG;
+  const { dir, file } = writeTempConfig({
+    c64u: {
+      host: "example.local",
+      port: 1581,
+      baseUrl: "http://ignored.local:1234",
+    },
+    baseUrl: "http://fall.back:4321",
+  });
+
+  process.env.C64MCP_CONFIG = file;
+  __resetConfigCacheForTests();
+
+  const config = loadConfig();
+  assert.equal(config.c64_host, "example.local:1581");
+  assert.equal(config.baseUrl, "http://example.local:1581");
+  assert.equal(config.c64_port, 1581);
+
+  t.after(() => {
+    __resetConfigCacheForTests();
+    if (originalEnv === undefined) {
+      delete process.env.C64MCP_CONFIG;
+    } else {
+      process.env.C64MCP_CONFIG = originalEnv;
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+test("legacy configs with only baseUrl continue to work", (t) => {
+  const originalEnv = process.env.C64MCP_CONFIG;
+  const { dir, file } = writeTempConfig({
+    baseUrl: "http://legacy.local:9000",
+  });
+
+  process.env.C64MCP_CONFIG = file;
+  __resetConfigCacheForTests();
+
+  const config = loadConfig();
+  assert.equal(config.c64_host, "legacy.local:9000");
+  assert.equal(config.baseUrl, "http://legacy.local:9000");
+  assert.equal(config.c64_port, 9000);
+
+  t.after(() => {
+    __resetConfigCacheForTests();
+    if (originalEnv === undefined) {
+      delete process.env.C64MCP_CONFIG;
+    } else {
+      process.env.C64MCP_CONFIG = originalEnv;
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+});

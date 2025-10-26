@@ -53,23 +53,21 @@ export function loadConfig(): C64McpConfig {
     port?: number | string;
   } | undefined;
 
-  const explicitBase = firstDefined(
-    normaliseBaseUrl(c64u?.baseUrl),
-    normaliseBaseUrl(rawConfig?.baseUrl),
-  );
-
-  const explicitBaseParsed = parseEndpoint(explicitBase);
   const parsedC64uHost = parseEndpoint(configuredString(c64u?.host));
   const parsedC64uHostname = parseEndpoint(configuredString(c64u?.hostname));
   const parsedLegacyHost = parseEndpoint(configuredString(rawConfig?.c64_host));
   const parsedLegacyIp = parseEndpoint(configuredString(rawConfig?.c64_ip));
+  const parsedBaseOverrides = [
+    parseEndpoint(normaliseBaseUrl(c64u?.baseUrl)),
+    parseEndpoint(normaliseBaseUrl(rawConfig?.baseUrl)),
+  ];
 
   const hostCandidates = [
     parsedC64uHost.hostname,
     parsedC64uHostname.hostname,
     parsedLegacyHost.hostname,
     parsedLegacyIp.hostname,
-    explicitBaseParsed.hostname,
+    ...parsedBaseOverrides.map((entry) => entry.hostname),
   ];
 
   const portCandidates = [
@@ -79,12 +77,12 @@ export function loadConfig(): C64McpConfig {
     configuredPort(rawConfig?.c64_port),
     parsedLegacyHost.port,
     parsedLegacyIp.port,
-    explicitBaseParsed.port,
+    ...parsedBaseOverrides.map((entry) => entry.port),
   ];
 
   const host = firstDefined(...hostCandidates) ?? DEFAULT_HOST;
   const port = firstDefined(...portCandidates) ?? DEFAULT_PORT;
-  const baseUrl = explicitBase ?? buildBaseUrl(host, port);
+  const baseUrl = buildBaseUrl(host, port);
   const hostLabel = formatHost(host);
   const hostWithPort = port === DEFAULT_PORT ? hostLabel : `${hostLabel}:${port}`;
 

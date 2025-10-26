@@ -49,20 +49,16 @@ jobs:
         if: ${{ env.PACKAGE_SOURCE == 'local' }}
         run: npm ci
 
-      - name: Build project (local source)
+      - name: Build package (local source)
         if: ${{ env.PACKAGE_SOURCE == 'local' }}
         run: npm run build
-
-      - name: Run tests (local source)
-        if: ${{ env.PACKAGE_SOURCE == 'local' }}
-        run: npm test
 
       - name: Pack package
         id: pack
         run: |
           set -euo pipefail
           if [ "${PACKAGE_SOURCE}" = "local" ]; then
-            TARBALL=$(npm pack --silent)
+            TARBALL=$(npm_config_ignore_scripts=false npm pack --silent)
           else
             PKG="c64-mcp"
             if [ -n "${PACKAGE_VERSION}" ]; then

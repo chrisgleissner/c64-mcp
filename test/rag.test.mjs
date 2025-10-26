@@ -10,11 +10,18 @@ import { LocalRagRetriever } from '../src/rag/retriever.ts';
 
 const TEST_TMP_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'tmp');
 
+/**
+ * @param {string} prefix
+ */
 async function makeTempDir(prefix) {
   await fs.mkdir(TEST_TMP_ROOT, { recursive: true });
   return fs.mkdtemp(path.join(TEST_TMP_ROOT, `${prefix}-`));
 }
 
+/**
+ * @param {string} key
+ * @param {string | undefined} originalValue
+ */
 function restoreEnv(key, originalValue) {
   if (originalValue === undefined) delete process.env[key];
   else process.env[key] = originalValue;
@@ -96,6 +103,53 @@ LOOP    STA $D020
           fs.rm(hardwareFile, { force: true }),
           fs.rm(otherFile, { force: true }),
         ]);
+        await buildAllIndexes(buildOptions);
+        indexes = await loadIndexes({ embeddingsDir });
+        rag = new LocalRagRetriever(model, indexes);
+      }
+    });
+
+    await t.test('chunks external OCR text with chapter headings', async () => {
+      const ocrFile = path.join(externalDir, 'butterfield.ocr.txt');
+      const ocrSample = [
+        'CHAPTER 1 INTRODUCTION TO MACHINE CODE',
+        '',
+        'Machine code programs let you control the 6510 directly.',
+        '',
+        '10 PRINT "HELLO"',
+        '',
+        '\f',
+        'SECTION 2 LOOPS AND REGISTERS',
+        '',
+        '* = $0801',
+        '; initialise border colour',
+        'LDA #$00',
+        'STA $D020',
+      ].join('\n');
+      try {
+        await fs.writeFile(ocrFile, ocrSample, 'utf8');
+        await buildAllIndexes(buildOptions);
+        indexes = await loadIndexes({ embeddingsDir });
+
+        const allRecords = [
+          ...(indexes.basic?.records ?? []),
+          ...(indexes.asm?.records ?? []),
+          ...(indexes.mixed?.records ?? []),
+          ...(indexes.hardware?.records ?? []),
+          ...(indexes.other?.records ?? []),
+        ];
+        const ocrRecords = allRecords.filter((record) => record.sourcePath.endsWith('butterfield.ocr.txt'));
+        assert.ok(ocrRecords.length >= 2, 'expected OCR document to be chunked into multiple records');
+
+        const hasChapterChunk = ocrRecords.some((record) => /Source: .*#CHAPTER-1/i.test(record.text));
+        const hasSectionChunk = ocrRecords.some((record) => /Source: .*#SECTION-2/i.test(record.text));
+        assert.ok(hasChapterChunk && hasSectionChunk, 'expected provenance comments with chapter headings');
+
+        const hasBasicLine = ocrRecords.some((record) => /10 PRINT/i.test(record.text));
+        const hasAsmLine = ocrRecords.some((record) => /\bLDA\b/.test(record.text));
+        assert.ok(hasBasicLine || hasAsmLine, 'expected BASIC or ASM lines preserved in chunks');
+      } finally {
+        await fs.rm(ocrFile, { force: true });
         await buildAllIndexes(buildOptions);
         indexes = await loadIndexes({ embeddingsDir });
         rag = new LocalRagRetriever(model, indexes);

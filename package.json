@@ -9,16 +9,18 @@
   },
   "scripts": {
     "start": "node scripts/start.mjs",
-    "manifest": "node scripts/generate-mcp-manifest.mjs",
-    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && npm run manifest",
+    "mcp": "node --loader ts-node/esm src/mcp-server.ts",
+    "mcp:build": "npm run build && node dist/mcp-server.js",
+  "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts",
     "lint": "npm run check",
     "test": "node scripts/run-tests.mjs",
+    "coverage": "c8 -r text -r lcov node scripts/run-tests.mjs",
     "check:package": "node scripts/check-package.mjs",
     "check:run-local": "bash scripts/run-mcp-check.sh local 5",
     "check:run-npm": "bash scripts/run-mcp-check.sh npm 5",
     "check": "npm run build && npm test",
     "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
-  "api:generate": "npx --yes swagger-typescript-api@12.0.4 -p doc/rest/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
+    "api:generate": "npx --yes swagger-typescript-api@12.0.4 -p doc/rest/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",
     "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
     "rag:fetch": "node scripts/fetch-external-sources.mjs",
@@ -29,10 +31,13 @@
   "keywords": [
     "mcp",
     "mcp-server",
+    "model-context-protocol",
     "c64",
     "commodore-64",
     "commodore-64-ultimate",
-    "ultimate-64"
+    "ultimate-64",
+    "retro-computing",
+    "llm"
   ],
   "author": "Christian Gleissner",
   "license": "GPL-2.0-only",
@@ -40,6 +45,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.2",
     "axios": "^1.7.7",
     "fastify": "^4.28.1",
     "meyda": "^5.6.2",
@@ -52,22 +58,22 @@
     "naudiodon": "^2.3.6"
   },
   "devDependencies": {
-    "@types/node": "^20.12.12",
+    "@types/node": "^20.19.23",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "c8": "^9.1.0"
   },
   "files": [
-    "dist/**",
-    "generated/**/*.js",
-    "scripts/**",
-    "doc/**",
-    "data/**",
-    "mcp-manifest.json",
     "mcp.json",
     "AGENTS.md",
-    ".github/prompts/**",
+    "LICENSE",
     "README.md",
-    "LICENSE"
+    "dist/**",
+    "data/**",
+    "doc/**",
+    "scripts/**",
+    "generated/**/*.js",
+    ".github/prompts/**"
   ],
   "prepack": "npm run build"
 }
