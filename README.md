@@ -104,9 +104,7 @@ node --version  # v18+ (v20+ recommended)
 
 ### Install and Run the MCP Server
 
-You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub. Prefer stdio MCP; HTTP is optional.
-
-For a quick start, the first option is recommended. If you plan to contribute code or run tests, use the third option.
+You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub if you want to run tests and contribute.
 
 #### Quick start (npx, zero-setup)
 
@@ -182,11 +180,6 @@ The dev server runs via ts-node; to build the compiled output, you can run:
 ```bash
 npm run build
 ```
-
-### Health Check
-
-When your MCP server starts (stdio), it logs a connectivity probe to your C64 device. For manual HTTP checks (optional), see the HTTP compatibility section below.
-
 
 ## Documentation 📚
 
