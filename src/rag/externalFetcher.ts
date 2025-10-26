@@ -1,5 +1,5 @@
 /*
-C64 MCP - External source fetcher (CSV-driven)
+C64 Bridge - External source fetcher (CSV-driven)
 GPL-2.0-only
 */
 
@@ -824,7 +824,7 @@ export async function fetchFromCsv(opts: FetcherOptions): Promise<FetchSummary[]
   const maxReq = opts.maxRequestsPerSeed ?? 500;
   const concurrency = Math.max(1, opts.concurrency ?? 6);
   const maxBytes = opts.maxContentBytes ?? 2 * 1024 * 1024;
-  const userAgent = opts.userAgent ?? 'c64-mcp-fetcher/0.1';
+  const userAgent = opts.userAgent ?? 'c64bridge-fetcher/0.1';
   const log = opts.log ?? (() => {});
   const maxRetries = Math.max(0, opts.maxRetries ?? 3);
   const throttleBackoffFactor = opts.throttleBackoffFactor ?? 0.5;

@@ -4,7 +4,7 @@ Step-by-step instructions for installing, configuring, and running the Commodore
 
 ## Audience
 
-This guide targets engineers and advanced users who need to bring the C64 MCP server online, wire it into an MCP-capable client (such as GitHub Copilot Chat), and verify connectivity against either real hardware or the bundled mock server.
+This guide targets engineers and advanced users who need to bring the C64 Bridge server online, wire it into an MCP-capable client (such as GitHub Copilot Chat), and verify connectivity against either real hardware or the bundled mock server.
 
 ## Prerequisites
 
@@ -25,8 +25,8 @@ The install step pulls the MCP SDK, test tooling, and the generated REST client 
 
 The server looks for configuration in the following order (first match wins):
 
-1. JSON file referenced by the `C64MCP_CONFIG` environment variable (if the variable is unset, the default path is `~/.c64mcp.json`)
-2. `.c64mcp.json` in the repository root
+1. JSON file referenced by the `C64BRIDGE_CONFIG` environment variable (if the variable is unset, the default path is `~/.c64bridge.json`)
+2. `.c64bridge.json` in the repository root
 3. Built-in defaults (`host=c64u`, `port=80`)
 
 Recommended configuration file:
@@ -51,15 +51,15 @@ npm start
 `npm start` locates `src/mcp-server.ts`, loads the config, and launches the stdio transport. Successful startup prints:
 
 ```text
-> c64-mcp@0.3.0 start
+> c64bridge@0.4.0 start
 > node scripts/start.mjs
 
-Starting c64-mcp MCP server...
+Starting c64bridge MCP server...
 [c64u] GET http://192.168.1.64 status=200 bytes=41608 latencyMs=177
 Connectivity check succeeded for c64 device at http://192.168.1.64
 [c64u] GET /v1/machine:readmem status=200 bytes=1 latencyMs=31
 Zero-page probe @ $0000: $00
-c64-mcp MCP server running on stdio
+c64bridge MCP server running on stdio
 ```
 
 When TypeScript is unavailable (for example inside a packaged release tarball) use the compiled entry point:
@@ -69,7 +69,7 @@ npm run build
 node dist/index.js
 ```
 
-The npm package also exposes a CLI named `c64-mcp`; `npx c64-mcp` or an installed binary launches the same stdio server.
+The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an installed binary launches the same stdio server.
 
 ## 4. Connect an MCP Client
 
@@ -85,7 +85,7 @@ The npm package also exposes a CLI named `c64-mcp`; `npx c64-mcp` or an installe
      "github.copilot.chat.experimental.mcp": {
        "servers": [
          {
-           "name": "c64-mcp",
+           "name": "c64bridge",
            "command": "node",
            "args": ["./dist/index.js"],
            "type": "stdio"
@@ -102,9 +102,9 @@ The npm package also exposes a CLI named `c64-mcp`; `npx c64-mcp` or an installe
      "github.copilot.chat.experimental.mcp": {
        "servers": [
          {
-           "name": "c64-mcp",
+           "name": "c64bridge",
            "command": "node",
-           "args": ["./node_modules/c64-mcp/dist/index.js"],
+           "args": ["./node_modules/c64bridge/dist/index.js"],
            "type": "stdio"
          }
        ]

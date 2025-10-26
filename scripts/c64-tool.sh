@@ -62,7 +62,7 @@ function main_menu() {
   while true; do
     cat <<'EOF'
 ========================================
-C64 MCP Utility
+C64 Bridge Utility
   1) Convert BASIC to PRG
   2) Convert BASIC to PRG and run on C64
   3) Run existing PRG on C64

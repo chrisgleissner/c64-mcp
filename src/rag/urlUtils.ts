@@ -1,5 +1,5 @@
 /*
-C64 MCP - URL/domain utilities
+C64 Bridge - URL/domain utilities
 GPL-2.0-only
 */
 

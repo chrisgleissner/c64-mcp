@@ -1,5 +1,5 @@
 /*
-C64 MCP - Local RAG Retriever
+C64 Bridge - Local RAG Retriever
 GPL-2.0-only
 */
 

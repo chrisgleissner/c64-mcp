@@ -1,5 +1,5 @@
 {
-  "name": "c64-mcp",
+  "name": "c64bridge",
   "version": "0.4.0",
   "description": "Stdio-based Model Context Protocol (MCP) server that bridges Commodore 64 Ultimate hardware with AI agents.",
   "entry": "dist/index.js",
@@ -31,9 +31,9 @@
       "description": "Logger verbosity (debug, info, warn, error)",
       "default": "info"
     },
-    "C64MCP_CONFIG": {
+    "C64BRIDGE_CONFIG": {
       "description": "Path to configuration JSON",
-      "default": "~/.c64mcp.json"
+      "default": "~/.c64bridge.json"
     },
     "C64_MODE": {
       "description": "Select active backend (c64u for Ultimate hardware, vice for emulator)",
@@ -100,7 +100,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/chrisgleissner/c64-mcp"
+    "url": "https://github.com/chrisgleissner/c64bridge"
   },
   "license": "GPL-2.0-only"
 }

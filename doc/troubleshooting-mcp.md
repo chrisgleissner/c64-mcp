@@ -1,15 +1,15 @@
 # MCP Troubleshooting Guide
 
-Field notes for the stdio-based Model Context Protocol server. Use these checks when the C64 MCP surface does not respond or CI fails the connectivity probe.
+Field notes for the stdio-based Model Context Protocol server. Use these checks when the C64 Bridge surface does not respond or CI fails the connectivity probe.
 
 ## Quick Diagnosis Checklist
 
 ```bash
 # 1. Is the MCP server running?
-ps -ef | grep "c64-mcp" | grep -v grep
+ps -ef | grep "c64bridge" | grep -v grep
 
 # 2. Do startup logs show the connectivity probe?
-tail -n20 ~/.c64-mcp.log  # or the terminal running npm start
+tail -n20 ~/.c64bridge.log  # or the terminal running npm start
 
 # 3. Can we reach the configured REST endpoint directly?
 curl -s http://<your-c64-host>/v1/info | jq .version
@@ -29,7 +29,7 @@ npm test -- --mock
 
 **Resolution:**
 
-1. Confirm the REST base URL in `.c64mcp.json` or `C64MCP_CONFIG` matches a reachable device.
+1. Confirm the REST base URL in `.c64bridge.json` or `C64BRIDGE_CONFIG` matches a reachable device.
 2. Run `curl -I http://<host>/v1/info` to confirm HTTP reachability.
 3. Review `src/mcp-server.ts` connectivity logging; ensure no local edits suppressed `logConnectivity`.
 4. If hardware is offline, expect `Skipping direct REST connectivity probe` in the logs—CI treats this as success.
@@ -45,7 +45,7 @@ npm test -- --mock
 
 1. Restart VS Code after changing MCP settings.
 2. Verify the settings JSON matches the snippet in `doc/MCP_SETUP.md` (`command`, `args`, `type: "stdio"`).
-3. Keep `npm start` (or `npx c64-mcp`) running; Copilot terminates the stdio process when the chat closes.
+3. Keep `npm start` (or `npx c64bridge`) running; Copilot terminates the stdio process when the chat closes.
 4. Inspect the Copilot output channel for connection errors and ensure the stdio server entry is configured and running.
 
 ### 3. Tests Fail Because Mock Server Is Missing
@@ -66,7 +66,7 @@ npm test -- --mock
 
 ```bash
 # Verify config file exists and has correct IP
-cat .c64mcp.json
+cat .c64bridge.json
 ```
 
 Expected structure:
@@ -159,13 +159,13 @@ If nothing works:
 # Nuclear option: kill everything and restart
 pkill -f npm
 pkill -f node
-pkill -f c64-mcp
+pkill -f c64bridge
 
 # Wait a few seconds
 sleep 3
 
 # Clean restart
-cd /path/to/c64-mcp
+cd /path/to/c64bridge
 npm start
 
 # If using HTTP mode, test immediately

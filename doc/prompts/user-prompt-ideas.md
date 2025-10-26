@@ -1,4 +1,4 @@
-# Example LLM Prompts for C64 MCP Server
+# Example LLM Prompts for C64 Bridge Server
 
 These example prompts illustrate what a user can ask the MCP server to perform on a real or emulated Commodore 64.
 The MCP bridges the user’s intent with direct program generation, execution, or device control.

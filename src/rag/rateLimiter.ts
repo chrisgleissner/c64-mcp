@@ -1,5 +1,5 @@
 /*
-C64 MCP - Simple per-domain rate limiter
+C64 Bridge - Simple per-domain rate limiter
 GPL-2.0-only
 */
 

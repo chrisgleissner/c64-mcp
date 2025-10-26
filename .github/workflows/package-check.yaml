@@ -60,7 +60,7 @@ jobs:
           if [ "${PACKAGE_SOURCE}" = "local" ]; then
             TARBALL=$(npm_config_ignore_scripts=false npm pack --silent)
           else
-            PKG="c64-mcp"
+            PKG="c64bridge"
             if [ -n "${PACKAGE_VERSION}" ]; then
               PKG="${PKG}@${PACKAGE_VERSION}"
             fi
@@ -124,7 +124,7 @@ jobs:
           cat <<EOF > "$CONFIG_FILE"
           {"c64u":{"host":"${HOST_VALUE}","port":${PORT_VALUE}}}
           EOF
-          export C64MCP_CONFIG="$CONFIG_FILE"
+          export C64BRIDGE_CONFIG="$CONFIG_FILE"
           export PACKAGE_DIR="$PKG_DIR"
           export LOGFILE="$LOGFILE"
           export PORT=0

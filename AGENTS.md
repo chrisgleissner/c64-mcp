@@ -20,7 +20,7 @@ This server exposes a Model Context Protocol (MCP) surface for driving a Commodo
 npm start
 ```
 
-`npm start` launches the TypeScript entry point (`src/mcp-server.ts`). The command prints connectivity diagnostics (REST probe plus zero-page read) before announcing `c64-mcp MCP server running on stdio`.
+`npm start` launches the TypeScript entry point (`src/mcp-server.ts`). The command prints connectivity diagnostics (REST probe plus zero-page read) before announcing `c64bridge MCP server running on stdio`.
 
 ### Capabilities at a Glance
 
@@ -44,9 +44,9 @@ Tools and parameters are listed by the server at runtime via ListTools.
   "github.copilot.chat.experimental.mcp": {
     "servers": [
       {
-        "name": "c64-mcp",
+        "name": "c64bridge",
         "command": "node",
-        "args": ["./node_modules/c64-mcp/dist/index.js"],
+        "args": ["./node_modules/c64bridge/dist/index.js"],
         "type": "stdio"
       }
     ]

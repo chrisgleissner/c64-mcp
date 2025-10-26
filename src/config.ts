@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-export interface C64McpConfig {
+export interface C64BridgeConfig {
   c64_host: string;
   baseUrl: string;
   c64_port: number;
@@ -11,21 +11,21 @@ export interface C64McpConfig {
 const DEFAULT_HOST = "c64u";
 const DEFAULT_PORT = 80;
 
-const DEFAULT_CONFIG: C64McpConfig = {
+const DEFAULT_CONFIG: C64BridgeConfig = {
   c64_host: DEFAULT_HOST,
   baseUrl: buildBaseUrl(DEFAULT_HOST, DEFAULT_PORT),
   c64_port: DEFAULT_PORT,
 };
 
-let cachedConfig: C64McpConfig | null = null;
+let cachedConfig: C64BridgeConfig | null = null;
 
-export function loadConfig(): C64McpConfig {
+export function loadConfig(): C64BridgeConfig {
   if (cachedConfig) {
     return cachedConfig;
   }
 
-  const configPath = process.env.C64MCP_CONFIG ?? `${process.env.HOME}/.c64mcp.json`;
-  const repoConfigPath = join(dirname(fileURLToPath(import.meta.url)), "..", ".c64mcp.json");
+  const configPath = process.env.C64BRIDGE_CONFIG ?? `${process.env.HOME}/.c64bridge.json`;
+  const repoConfigPath = join(dirname(fileURLToPath(import.meta.url)), "..", ".c64bridge.json");
 
   let rawConfig: any;
   try {
@@ -86,7 +86,7 @@ export function loadConfig(): C64McpConfig {
   const hostLabel = formatHost(host);
   const hostWithPort = port === DEFAULT_PORT ? hostLabel : `${hostLabel}:${port}`;
 
-  const config: C64McpConfig = {
+  const config: C64BridgeConfig = {
     c64_host: hostWithPort,
     baseUrl,
     c64_port: port,

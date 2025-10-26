@@ -1073,22 +1073,22 @@ export interface C64uConfig {
   port?: number | string;
 }
 export interface ViceConfig { exe?: string }
-export interface C64McpConfigFile { c64u?: C64uConfig; vice?: ViceConfig }
+export interface C64BridgeConfigFile { c64u?: C64uConfig; vice?: ViceConfig }
 &nbsp;
 const DEFAULT_C64U_HOST = "c64u";
 const DEFAULT_C64U_PORT = 80;
 &nbsp;
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function readConfigFile(): C64McpConfigFile | null {</span></span>
-<span class="cstat-no" title="statement not covered" >  const envPath = process.env.C64MCP_CONFIG;</span>
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function readConfigFile(): C64BridgeConfigFile | null {</span></span>
+<span class="cstat-no" title="statement not covered" >  const envPath = process.env.C64BRIDGE_CONFIG;</span>
 <span class="cstat-no" title="statement not covered" >  const candidates: string[] = [];</span>
 <span class="cstat-no" title="statement not covered" >  if (envPath) candidates.push(envPath);</span>
 <span class="cstat-no" title="statement not covered" >  // Repo root</span>
 <span class="cstat-no" title="statement not covered" >  try {</span>
-<span class="cstat-no" title="statement not covered" >    const here = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", ".c64mcp.json");</span>
+<span class="cstat-no" title="statement not covered" >    const here = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", ".c64bridge.json");</span>
 <span class="cstat-no" title="statement not covered" >    candidates.push(here);</span>
 <span class="cstat-no" title="statement not covered" >  } catch {}</span>
 <span class="cstat-no" title="statement not covered" >  const home = process.env.HOME || os.homedir();</span>
-<span class="cstat-no" title="statement not covered" >  if (home) candidates.push(path.join(home, ".c64mcp.json"));</span>
+<span class="cstat-no" title="statement not covered" >  if (home) candidates.push(path.join(home, ".c64bridge.json"));</span>
 <span class="cstat-no" title="statement not covered" >  for (const p of candidates) {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      if (fs.existsSync(p)) {</span>
@@ -1307,7 +1307,7 @@ function extractBytes(data: unknown): Uint8Array {
 &nbsp;
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function writeTempPrg(prg: Uint8Array | Buffer): string {</span></span>
 <span class="cstat-no" title="statement not covered" >  const dir = process.env.TMPDIR || process.env.TEMP || "/tmp";</span>
-<span class="cstat-no" title="statement not covered" >  const file = path.join(dir, `c64mcp-${Date.now()}-${Math.random().toString(16).slice(2)}.prg`);</span>
+<span class="cstat-no" title="statement not covered" >  const file = path.join(dir, `c64bridge-${Date.now()}-${Math.random().toString(16).slice(2)}.prg`);</span>
 <span class="cstat-no" title="statement not covered" >  const buf = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);</span>
 <span class="cstat-no" title="statement not covered" >  fs.writeFileSync(file, buf);</span>
 <span class="cstat-no" title="statement not covered" >  return file;</span>

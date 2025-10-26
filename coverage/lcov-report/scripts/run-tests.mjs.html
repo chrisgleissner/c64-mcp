@@ -531,9 +531,9 @@ child.on("close", (code, signal) =&gt; {
 });
 &nbsp;
 <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function resolveBaseUrlFromConfig() {</span></span>
-<span class="cstat-no" title="statement not covered" >  const configPathEnv = process.env.C64MCP_CONFIG;</span>
-<span class="cstat-no" title="statement not covered" >  const homeConfig = os.homedir() ? path.join(os.homedir(), ".c64mcp.json") : null;</span>
-<span class="cstat-no" title="statement not covered" >  const repoConfig = path.join(repoRoot, ".c64mcp.json");</span>
+<span class="cstat-no" title="statement not covered" >  const configPathEnv = process.env.C64BRIDGE_CONFIG;</span>
+<span class="cstat-no" title="statement not covered" >  const homeConfig = os.homedir() ? path.join(os.homedir(), ".c64bridge.json") : null;</span>
+<span class="cstat-no" title="statement not covered" >  const repoConfig = path.join(repoRoot, ".c64bridge.json");</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >  const candidates = [];</span>
 <span class="cstat-no" title="statement not covered" >  if (configPathEnv) candidates.push(configPathEnv);</span>

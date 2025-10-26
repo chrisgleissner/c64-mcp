@@ -1,5 +1,5 @@
 /*
-C64 MCP - SIDWAVE Parser and Types
+C64 Bridge - SIDWAVE Parser and Types
 Copyright (C) 2025 Christian Gleissner
 
 Licensed under the GNU General Public License v2.0 or later.

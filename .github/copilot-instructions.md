@@ -1,4 +1,4 @@
-# Copilot Instructions for c64-mcp
+# Copilot Instructions for c64bridge
 
 This repository contains a Model Context Protocol (MCP) server that drives Commodore 64 Ultimate hardware (Ultimate 64 / C64 Ultimate) over its REST API. Keep these guidelines in mind for any changes.
 
@@ -7,7 +7,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 - Language & runtime: TypeScript (ESM) targeting Node.js 18+.
 - Entry points:
   - Development: `npm start` (ts-node executes `src/index.ts`, which loads `src/mcp-server.ts`).
-  - Published CLI: `c64-mcp` (imports `dist/index.js`).
+  - Published CLI: `c64bridge` (imports `dist/index.js`).
 - Build pipeline: `npm run build` emits JavaScript into `dist/`, normalizes the layout, and refreshes README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
 - Key domains:
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
@@ -54,16 +54,16 @@ Thanks for helping keep the Commodore 64 MCP server robust and user-friendly!
 
 ## Using MCP with Copilot Chat (and Eager C64 Activation)
 
-Use these rules to ensure Copilot reliably engages the `c64-mcp` server when the user asks for C64 work.
+Use these rules to ensure Copilot reliably engages the `c64bridge` server when the user asks for C64 work.
 
-- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64-mcp` (see `doc/MCP_SETUP.md`). If the server is not running, start it.
+- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64bridge` (see `doc/MCP_SETUP.md`). If the server is not running, start it.
 - Treat the following as strong routing signals: "c64", "commodore 64", "ultimate 64", "c64u", "vic", "sid", "petscii", "basic v2", "6510".
-- When such signals appear, prefer MCP tool usage from `c64-mcp` without waiting for the user to select a server.
-- If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server automatically, start it (e.g., `npm start` or `node ./node_modules/c64-mcp/dist/index.js`).
+- When such signals appear, prefer MCP tool usage from `c64bridge` without waiting for the user to select a server.
+- If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server automatically, start it (e.g., `npm start` or `node ./node_modules/c64bridge/dist/index.js`).
 
 ### Lightweight C64 Chat Mode
 
-- Interpret `/C64` or `/c64` at the beginning of a message as a request to route subsequent steps through the `c64-mcp` tools for this turn. Also accept `C64U` and `c64u` as equivalent triggers.
+- Interpret `/C64` or `/c64` at the beginning of a message as a request to route subsequent steps through the `c64bridge` tools for this turn. Also accept `C64U` and `c64u` as equivalent triggers.
 - In C64 mode:
   - Use `upload_and_run_basic` or `upload_and_run_asm` for program execution.
   - Use `read_screen`, `read_memory`, or `write_memory` for inspection or patches.
@@ -73,7 +73,7 @@ Use these rules to ensure Copilot reliably engages the `c64-mcp` server when the
 ### Fallback Guidance
 
 - If MCP tooling is unavailable, propose the minimal steps to bring it online:
-  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64-mcp`, 3) run `npm start` (or `node ./node_modules/c64-mcp/dist/index.js`).
+  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64bridge`, 3) run `npm start` (or `node ./node_modules/c64bridge/dist/index.js`).
 - Avoid performing destructive actions (reset/reboot/power) without explicit confirmation.
 
 ### Example Prompts for Activation

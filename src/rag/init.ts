@@ -1,5 +1,5 @@
 /*
-C64 MCP - Local RAG bootstrap
+C64 Bridge - Local RAG bootstrap
 GPL-2.0-only
 */
 

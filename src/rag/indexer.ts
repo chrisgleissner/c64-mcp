@@ -1,5 +1,5 @@
 /*
-C64 MCP - Local RAG Indexer
+C64 Bridge - Local RAG Indexer
 GPL-2.0-only
 */
 

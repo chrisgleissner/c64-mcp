@@ -4,7 +4,7 @@ set -euo pipefail
 # Start a mock C64U server, point MCP at it, then launch MCP for a short time.
 # Usage: scripts/run-mcp-check.sh [local|npm] [duration_seconds]
 # - local: runs the local build (dist/index.js)
-# - npm:   runs the published package via npx (c64-mcp)
+# - npm:   runs the published package via npx (c64bridge)
 
 MODE="${1:-local}"
 DURATION="${2:-5}"
@@ -13,7 +13,7 @@ LOGFILE="${LOGFILE:-mcp-server-$(date +%Y%m%d-%H%M%S).log}"
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 TMPDIR=$(mktemp -d)
 MOCK_INFO="$TMPDIR/mock-info.json"
-CFG_FILE="$TMPDIR/.c64mcp.json"
+CFG_FILE="$TMPDIR/.c64bridge.json"
 
 cleanup() {
   set +e
@@ -57,7 +57,7 @@ cat >"$CFG_FILE" <<EOF
   }
 }
 EOF
-export C64MCP_CONFIG="$CFG_FILE"
+export C64BRIDGE_CONFIG="$CFG_FILE"
 
 # 3) If local mode, verify package contents (spot checks, no duplicates)
 if [[ "$MODE" == "local" ]]; then
@@ -74,9 +74,9 @@ if [[ "$MODE" == "local" ]]; then
   (cd "$ROOT_DIR" && node dist/index.js) 2>&1 | tee "$LOGFILE" &
   MCP_PID=$!
 elif [[ "$MODE" == "npm" ]]; then
-  VERSION=$(npm view c64-mcp version --silent || echo "unknown")
-  echo "==> Downloading c64-mcp@$VERSION from npm registry..."
-  C64MCP_CONFIG="$CFG_FILE" npx --yes c64-mcp 2>&1 | tee "$LOGFILE" &
+  VERSION=$(npm view c64bridge version --silent || echo "unknown")
+  echo "==> Downloading c64bridge@$VERSION from npm registry..."
+  C64BRIDGE_CONFIG="$CFG_FILE" npx --yes c64bridge 2>&1 | tee "$LOGFILE" &
   MCP_PID=$!
 else
   echo "Usage: $0 [local|npm] [duration_seconds]" >&2

@@ -86,7 +86,7 @@
 
 ### Added (0.2.1)
 
-- CLI entrypoint `c64-mcp` to enable `npx c64-mcp` quick start.
+- CLI entrypoint `c64bridge` to enable `npx c64bridge` quick start.
 - Clear installation paths in README (Quick start with npx, Persistent install with npm, From source).
 
 ### Changed (0.2.1)
@@ -122,7 +122,7 @@
 
 ### Added
 
-- Initial public release of c64-mcp MCP server.
+- Initial public release of c64bridge MCP server.
 - Local RAG subsystem with prebuilt embeddings under `data/`.
 - Full tool surface for BASIC/ASM upload, screen/memory access, drives, and SID control.
 - Documentation under `doc/`, plus `AGENTS.md`, `.github/prompts/*.prompt.md`, and `data/context/chat.md`.

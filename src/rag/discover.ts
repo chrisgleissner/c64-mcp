@@ -217,7 +217,7 @@ async function run(): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const octokit = new Octokit({ auth: token, userAgent: 'c64-mcp-rag-discover/1.0' });
+  const octokit = new Octokit({ auth: token, userAgent: 'c64bridge-rag-discover/1.0' });
 
   const configHash = sha1(stableJson(cfg));
 

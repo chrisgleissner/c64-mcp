@@ -29,7 +29,7 @@ async function setupSharedServer() {
 
   const configPath = path.join(
     os.tmpdir(),
-    `c64-mcp-test-config-${process.pid}-${Date.now()}.json`,
+    `c64bridge-test-config-${process.pid}-${Date.now()}.json`,
   );
   const mockUrl = new URL(mockServer.baseUrl);
   const configPayload = {
@@ -47,14 +47,14 @@ async function setupSharedServer() {
     env: {
       ...process.env,
       NODE_ENV: "test",
-      C64MCP_CONFIG: configPath,
+      C64BRIDGE_CONFIG: configPath,
       C64_TEST_TARGET: "mock",
     },
     stderr: "pipe",
   });
 
   const client = new Client(
-    { name: "c64-mcp-tests", version: "0.0.0" },
+    { name: "c64bridge-tests", version: "0.0.0" },
     {
       capabilities: {
         resources: {},

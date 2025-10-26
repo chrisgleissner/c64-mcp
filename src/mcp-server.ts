@@ -62,7 +62,7 @@ function parsePort(raw?: string): number | undefined {
 }
 
 async function main() {
-  console.error("Starting c64-mcp MCP server...");
+  console.error("Starting c64bridge MCP server...");
 
   const config = loadConfig();
   const baseUrl = config.baseUrl ?? `http://${config.c64_host}`;
@@ -79,8 +79,8 @@ async function main() {
   // Create MCP server
   const server = new Server(
     {
-      name: "c64-mcp",
-      version: "0.3.0",
+      name: "c64bridge",
+      version: "0.4.0",
     },
     {
       capabilities: {
@@ -365,7 +365,7 @@ async function main() {
 
   await logConnectivity(client, baseUrl);
   
-  console.error("c64-mcp MCP server running on stdio");
+  console.error("c64bridge MCP server running on stdio");
 }
 
 const PLATFORM_RESOURCE_URI = "c64://platform/status";

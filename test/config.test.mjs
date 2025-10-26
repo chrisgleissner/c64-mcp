@@ -7,13 +7,13 @@ import { loadConfig, __resetConfigCacheForTests } from "../src/config.ts";
 
 function writeTempConfig(contents) {
   const dir = mkdtempSync(path.join(tmpdir(), "c64-config-"));
-  const file = path.join(dir, ".c64mcp.json");
+  const file = path.join(dir, ".c64bridge.json");
   writeFileSync(file, JSON.stringify(contents, null, 2), "utf8");
   return { dir, file };
 }
 
 test("loadConfig supports host/port schema", (t) => {
-  const originalEnv = process.env.C64MCP_CONFIG;
+  const originalEnv = process.env.C64BRIDGE_CONFIG;
   const { dir, file } = writeTempConfig({
     c64u: {
       host: "example.local",
@@ -21,7 +21,7 @@ test("loadConfig supports host/port schema", (t) => {
     },
   });
 
-  process.env.C64MCP_CONFIG = file;
+  process.env.C64BRIDGE_CONFIG = file;
   __resetConfigCacheForTests();
 
   const config = loadConfig();
@@ -32,23 +32,23 @@ test("loadConfig supports host/port schema", (t) => {
   t.after(() => {
     __resetConfigCacheForTests();
     if (originalEnv === undefined) {
-      delete process.env.C64MCP_CONFIG;
+      delete process.env.C64BRIDGE_CONFIG;
     } else {
-      process.env.C64MCP_CONFIG = originalEnv;
+      process.env.C64BRIDGE_CONFIG = originalEnv;
     }
     rmSync(dir, { recursive: true, force: true });
   });
 });
 
 test("loadConfig defaults port when omitted", (t) => {
-  const originalEnv = process.env.C64MCP_CONFIG;
+  const originalEnv = process.env.C64BRIDGE_CONFIG;
   const { dir, file } = writeTempConfig({
     c64u: {
       host: "c64u",
     },
   });
 
-  process.env.C64MCP_CONFIG = file;
+  process.env.C64BRIDGE_CONFIG = file;
   __resetConfigCacheForTests();
 
   const config = loadConfig();
@@ -59,16 +59,16 @@ test("loadConfig defaults port when omitted", (t) => {
   t.after(() => {
     __resetConfigCacheForTests();
     if (originalEnv === undefined) {
-      delete process.env.C64MCP_CONFIG;
+      delete process.env.C64BRIDGE_CONFIG;
     } else {
-      process.env.C64MCP_CONFIG = originalEnv;
+      process.env.C64BRIDGE_CONFIG = originalEnv;
     }
     rmSync(dir, { recursive: true, force: true });
   });
 });
 
 test("baseUrl entries provide fallback host/port but cannot override", (t) => {
-  const originalEnv = process.env.C64MCP_CONFIG;
+  const originalEnv = process.env.C64BRIDGE_CONFIG;
   const { dir, file } = writeTempConfig({
     c64u: {
       host: "example.local",
@@ -78,7 +78,7 @@ test("baseUrl entries provide fallback host/port but cannot override", (t) => {
     baseUrl: "http://fall.back:4321",
   });
 
-  process.env.C64MCP_CONFIG = file;
+  process.env.C64BRIDGE_CONFIG = file;
   __resetConfigCacheForTests();
 
   const config = loadConfig();
@@ -89,21 +89,21 @@ test("baseUrl entries provide fallback host/port but cannot override", (t) => {
   t.after(() => {
     __resetConfigCacheForTests();
     if (originalEnv === undefined) {
-      delete process.env.C64MCP_CONFIG;
+      delete process.env.C64BRIDGE_CONFIG;
     } else {
-      process.env.C64MCP_CONFIG = originalEnv;
+      process.env.C64BRIDGE_CONFIG = originalEnv;
     }
     rmSync(dir, { recursive: true, force: true });
   });
 });
 
 test("legacy configs with only baseUrl continue to work", (t) => {
-  const originalEnv = process.env.C64MCP_CONFIG;
+  const originalEnv = process.env.C64BRIDGE_CONFIG;
   const { dir, file } = writeTempConfig({
     baseUrl: "http://legacy.local:9000",
   });
 
-  process.env.C64MCP_CONFIG = file;
+  process.env.C64BRIDGE_CONFIG = file;
   __resetConfigCacheForTests();
 
   const config = loadConfig();
@@ -114,9 +114,9 @@ test("legacy configs with only baseUrl continue to work", (t) => {
   t.after(() => {
     __resetConfigCacheForTests();
     if (originalEnv === undefined) {
-      delete process.env.C64MCP_CONFIG;
+      delete process.env.C64BRIDGE_CONFIG;
     } else {
-      process.env.C64MCP_CONFIG = originalEnv;
+      process.env.C64BRIDGE_CONFIG = originalEnv;
     }
     rmSync(dir, { recursive: true, force: true });
   });

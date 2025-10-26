@@ -1,11 +1,11 @@
 {
-  "name": "c64-mcp",
+  "name": "c64bridge",
   "version": "0.4.0",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "c64-mcp": "scripts/cli.js"
+    "c64bridge": "scripts/cli.js"
   },
   "scripts": {
     "start": "node scripts/start.mjs",

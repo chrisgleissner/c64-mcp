@@ -1,5 +1,5 @@
 /*
-C64 MCP - Context Loader and Utilities
+C64 Bridge - Context Loader and Utilities
 GPL-2.0-only
 */
 

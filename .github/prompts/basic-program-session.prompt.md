@@ -1,7 +1,7 @@
 ---
 mode: 'agent'
 model: GPT-4o
-tools: ['c64-mcp/*']
+tools: ['c64bridge/*']
 description: 'Plan, write, and validate a Commodore BASIC v2 program with MCP tooling.'
 ---
 Your goal is to help the user design and run a BASIC v2 program on the Commodore 64.

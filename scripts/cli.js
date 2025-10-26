@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lightweight CLI launcher for the compiled server
-// Usage: `npx c64-mcp` or after local install `c64-mcp`
+// Usage: `npx c64bridge` or after local install `c64bridge`
 
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

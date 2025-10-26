@@ -75,22 +75,22 @@ export interface C64uConfig {
   port?: number | string;
 }
 export interface ViceConfig { exe?: string }
-export interface C64McpConfigFile { c64u?: C64uConfig; vice?: ViceConfig }
+export interface C64BridgeConfigFile { c64u?: C64uConfig; vice?: ViceConfig }
 
 const DEFAULT_C64U_HOST = "c64u";
 const DEFAULT_C64U_PORT = 80;
 
-function readConfigFile(): C64McpConfigFile | null {
-  const envPath = process.env.C64MCP_CONFIG;
+function readConfigFile(): C64BridgeConfigFile | null {
+  const envPath = process.env.C64BRIDGE_CONFIG;
   const candidates: string[] = [];
   if (envPath) candidates.push(envPath);
   // Repo root
   try {
-    const here = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", ".c64mcp.json");
+    const here = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", ".c64bridge.json");
     candidates.push(here);
   } catch {}
   const home = process.env.HOME || os.homedir();
-  if (home) candidates.push(path.join(home, ".c64mcp.json"));
+  if (home) candidates.push(path.join(home, ".c64bridge.json"));
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) {
@@ -111,7 +111,7 @@ class C64uBackend implements C64Facade {
   constructor(config: C64uConfig) {
     const baseUrl = resolveBaseUrl(config);
     this.baseUrl = baseUrl;
-  const http = createLoggingHttpClient({ baseURL: baseUrl, timeout: 10_000 });
+    const http = createLoggingHttpClient({ baseURL: baseUrl, timeout: 10_000 });
     this.api = new Api(http);
   }
 
@@ -309,7 +309,7 @@ function which(binary: string): string | null {
 
 function writeTempPrg(prg: Uint8Array | Buffer): string {
   const dir = process.env.TMPDIR || process.env.TEMP || "/tmp";
-  const file = path.join(dir, `c64mcp-${Date.now()}-${Math.random().toString(16).slice(2)}.prg`);
+  const file = path.join(dir, `c64bridge-${Date.now()}-${Math.random().toString(16).slice(2)}.prg`);
   const buf = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
   fs.writeFileSync(file, buf);
   return file;
