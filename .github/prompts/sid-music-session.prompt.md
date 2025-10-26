@@ -1,7 +1,7 @@
 ---
 mode: 'agent'
 model: GPT-4o
-tools: ['c64-mcp/*']
+tools: ['c64bridge/*']
 description: 'Compose, play, and iterate on SID music using MCP tooling.'
 ---
 Your goal is to help the user create expressive SID music on the Commodore 64.

@@ -27,7 +27,7 @@ export async function createConnectedClient(options = {}) {
   });
 
   const client = new Client(
-    { name: options.clientName ?? "c64-mcp-tests", version: options.clientVersion ?? "0.0.0" },
+    { name: options.clientName ?? "c64bridge-tests", version: options.clientVersion ?? "0.0.0" },
     {
       capabilities: {
         resources: {},

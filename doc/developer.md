@@ -15,7 +15,7 @@ Concise reference for contributors working on the MCP server that bridges LLM wo
     - `types/` and `context.ts` for shared type definitions and session context helpers.
     - `petscii*.ts`, `basicConverter.ts`, `assemblyConverter.ts`, and `chargen.ts` for Commodore-specific encoders and assets.
     - `knowledge.ts` for resource wiring and `config.ts` for environment resolution.
-- `scripts/` — Node/TypeScript utilities for starting the server, rebuilding docs, running tests, regenerating embeddings, packaging releases, and providing the CLI shim used by `c64-mcp`.
+- `scripts/` — Node/TypeScript utilities for starting the server, rebuilding docs, running tests, regenerating embeddings, packaging releases, and providing the CLI shim used by `c64bridge`.
 - `doc/` — documentation set (developer guide, REST references, troubleshooting, task notes).
 - `data/` — knowledge corpus, embeddings, and example programs consumed by the RAG pipeline.
 - `test/` — Node test suites plus mock server helpers; includes real-hardware toggles.
@@ -45,8 +45,8 @@ npm install
 
 Configuration resolution (first match wins):
 
-1. Load the file referenced by `C64MCP_CONFIG` (when set); if unset, use `~/.c64mcp.json`.
-2. If missing, fall back to `.c64mcp.json` at the repo root.
+1. Load the file referenced by `C64BRIDGE_CONFIG` (when set); if unset, use `~/.c64bridge.json`.
+2. If missing, fall back to `.c64bridge.json` at the repo root.
 3. Otherwise, default to `host=c64u`, `port=80`.
 
 `loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`), and caches the resolved structure for subsequent calls.
@@ -163,7 +163,7 @@ flowchart LR
 
 ### Commit Messages and CHANGELOG Generation
 
-This repository uses a light [Conventional Commits](https://www.conventionalcommits.org) style to generate [`CHANGELOG.md`](https://github.com/chrisgleissner/c64-mcp/blob/main/CHANGELOG.md) entries (aligned with [Keep a Changelog](https://keepachangelog.com/)) during `release:prepare`:
+This repository uses a light [Conventional Commits](https://www.conventionalcommits.org) style to generate [`CHANGELOG.md`](https://github.com/chrisgleissner/c64bridge/blob/main/CHANGELOG.md) entries (aligned with [Keep a Changelog](https://keepachangelog.com/)) during `release:prepare`:
 
 - Format: `type(scope)?: subject`.
 - Examples:
@@ -309,4 +309,4 @@ For advanced options (depth semantics, throttling/limits, adaptive rate limiting
   node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
   ```
 
-Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64mcp.json` (or `C64MCP_CONFIG`) points at your c64 device before using the run options.
+Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64bridge.json` (or `C64BRIDGE_CONFIG`) points at your c64 device before using the run options.

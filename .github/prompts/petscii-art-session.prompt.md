@@ -1,7 +1,7 @@
 ---
 mode: 'agent'
 model: GPT-4o
-tools: ['c64-mcp/*']
+tools: ['c64bridge/*']
 description: 'Design PETSCII or sprite-based visuals using Commodore 64 MCP tools.'
 ---
 Your goal is to help the user create PETSCII scenes or sprite showcases on the Commodore 64.

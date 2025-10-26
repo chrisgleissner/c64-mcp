@@ -1,18 +1,18 @@
 ![Logo](./doc/img/logo.png)
 
-# c64-mcp
+# C64 Bridge
 
-Your AI Bridge for the Commodore 64.
+Your AI Command Bridge for the Commodore 64.
 
-[![npm](https://img.shields.io/npm/v/c64-mcp.svg)](https://www.npmjs.com/package/c64-mcp)
-[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64-mcp/ci.yaml)](https://github.com/chrisgleissner/c64-mcp/actions/workflows/ci.yaml)
+[![npm](https://img.shields.io/npm/v/c64bridge.svg)](https://www.npmjs.com/package/c64bridge)
+[![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64bridge/ci.yaml)](https://github.com/chrisgleissner/c64bridge/actions/workflows/ci.yaml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
 
 ## About
 
-Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It is built on the official TypeScript `@modelcontextprotocol/sdk` and communicates over the stdio transport.
+C64 Bridge is a Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It is built on the official TypeScript `@modelcontextprotocol/sdk` and communicates over the stdio transport.
 
 Exposes tools and knowledge that enable [LLM agents](https://www.promptingguide.ai/research/llm-agents) to upload and run BASIC or assembly programs, read/write RAM, control the VIC or SID, print documents, and more.
 
@@ -35,7 +35,7 @@ Although it resembles a traditional API, MCP is designed specifically for the wa
 - **Provide functionality** through **Tools** — executable actions that perform tasks or cause effects.  
 - **Offer guidance** through **Prompts** — reusable conversation patterns for complex operations.  
 
-**C64-MCP** applies this to the **Commodore 64**, serving as an **AI bridge and control deck**.  
+**C64 Bridge** applies this to the **Commodore 64**, serving as an **AI bridge and control deck**.  
 
 You’re the Commodore at the helm — AI assists, extending the reach of your commands into the 8-bit world.
 
@@ -111,10 +111,10 @@ You have three options to install and run the MCP server: quick start with npx, 
 Run the prebuilt server without creating a project. npx downloads the package and expands all bundled files on disk for this session.
 
 ```sh
-npx -y c64-mcp@latest
+npx -y c64bridge@latest
 ```
 
-By default, the MCP server looks for `~/.c64mcp.json`. To target your device, create:
+By default, the MCP server looks for `~/.c64bridge.json`. To target your device, create:
 
 ```json
 {
@@ -127,19 +127,19 @@ By default, the MCP server looks for `~/.c64mcp.json`. To target your device, cr
 
 #### Persistent install (npm)
 
-This installs the prebuilt `c64-mcp` Node package from [npm](https://www.npmjs.com/package/c64-mcp) and then runs the server. No build step required.
+This installs the prebuilt `c64bridge` Node package from [npm](https://www.npmjs.com/package/c64bridge) and then runs the server. No build step required.
 
 1. Create a folder (or use an existing project) and install the package:
 
 ```bash
-mkdir -p ~/c64-mcp && cd ~/c64-mcp
+mkdir -p ~/c64bridge && cd ~/c64bridge
 npm init -y
-npm install c64-mcp
+npm install c64bridge
 ```
 
 1. Configure your C64 target (optional but recommended):
 
-Create `~/.c64mcp.json` with your device settings:
+Create `~/.c64bridge.json` with your device settings:
 
 ```json
 { "c64u": { "host": "c64u" } }
@@ -148,7 +148,7 @@ Create `~/.c64mcp.json` with your device settings:
 1. Start the server (stdio MCP):
 
 ```bash
-node ./node_modules/c64-mcp/dist/index.js
+node ./node_modules/c64bridge/dist/index.js
 ```
 
 Notes
@@ -164,8 +164,8 @@ Use this path if you plan to run tests or contribute code; `npm start` automatic
 1. Clone and install dependencies
 
 ```bash
-git clone https://github.com/chrisgleissner/c64-mcp.git
-cd c64-mcp
+git clone https://github.com/chrisgleissner/c64bridge.git
+cd c64bridge
 npm install
 ```
 
@@ -191,7 +191,7 @@ Omitting the port uses `8000`. Only switch to HTTP when remote clients require i
 
 ### Setup GitHub Copilot in VS Code 💻
 
-GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
+GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 Bridge integration:
 
 #### Step 1: Enable MCP in Copilot Chat
 
@@ -200,7 +200,7 @@ GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 
 - Enable the **MCP** checkbox.
 - Restart VS Code.
 
-#### Step 2: Configure the C64 MCP Server
+#### Step 2: Configure the C64 Bridge Server
 
 Add this configuration to your workspace `.vscode/settings.json` (stdio transport):
 
@@ -209,9 +209,9 @@ Add this configuration to your workspace `.vscode/settings.json` (stdio transpor
   "github.copilot.chat.experimental.mcp": {
     "servers": [
       {
-        "name": "c64-mcp",
+        "name": "c64bridge",
         "command": "node",
-        "args": ["./node_modules/c64-mcp/dist/index.js"],
+        "args": ["./node_modules/c64bridge/dist/index.js"],
         "type": "stdio"
       }
     ]
@@ -257,11 +257,11 @@ You should now see a greeting on the screen of your C64 device:
 
 ## Configuration ⚙️
 
-The MCP server reads its configuration from a JSON file called `.c64mcp.json` which is resolved as follows (first match wins):
+The MCP server reads its configuration from a JSON file called `.c64bridge.json` which is resolved as follows (first match wins):
 
-1. explicit `C64MCP_CONFIG` env var containing the absolute path to the config file
-1. `~/.c64mcp.json` (from user home)
-1. `./c64mcp.json` (from current working directory)
+1. explicit `C64BRIDGE_CONFIG` env var containing the absolute path to the config file
+1. `~/.c64bridge.json` (from user home)
+1. `./c64bridge.json` (from current working directory)
 
 If no config file is found, it uses defaults: `host=c64u`, `port=80`
 
@@ -337,7 +337,7 @@ Please note that all logs use `stderr` since `stdout` is reserved for the MCP pr
 
 - `npm run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
-- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64bridge.json` or `C64BRIDGE_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 
 The test runner accepts the following options:

@@ -1,5 +1,5 @@
 /*
-C64 MCP - Local RAG Embeddings
+C64 Bridge - Local RAG Embeddings
 GPL-2.0-only
 */
 

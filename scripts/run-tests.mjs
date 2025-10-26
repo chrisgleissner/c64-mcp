@@ -76,9 +76,9 @@ child.on("close", (code, signal) => {
 });
 
 function resolveBaseUrlFromConfig() {
-  const configPathEnv = process.env.C64MCP_CONFIG;
-  const homeConfig = os.homedir() ? path.join(os.homedir(), ".c64mcp.json") : null;
-  const repoConfig = path.join(repoRoot, ".c64mcp.json");
+  const configPathEnv = process.env.C64BRIDGE_CONFIG;
+  const homeConfig = os.homedir() ? path.join(os.homedir(), ".c64bridge.json") : null;
+  const repoConfig = path.join(repoRoot, ".c64bridge.json");
 
   const candidates = [];
   if (configPathEnv) candidates.push(configPathEnv);

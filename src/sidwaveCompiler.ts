@@ -1,5 +1,5 @@
 /*
-C64 MCP - SIDWAVE to PRG Compiler
+C64 Bridge - SIDWAVE to PRG Compiler
 Copyright (C) 2025 Christian Gleissner
 
 Licensed under the GNU General Public License v2.0 or later.

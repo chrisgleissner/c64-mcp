@@ -1,7 +1,7 @@
 ---
 mode: 'agent'
 model: GPT-4o
-tools: ['c64-mcp/*']
+tools: ['c64bridge/*']
 description: 'Manage Ultimate 64 disk images and drives safely.'
 ---
 Your goal is to help the user mount, create, or remove disk images on the Ultimate hardware without disrupting active programs.

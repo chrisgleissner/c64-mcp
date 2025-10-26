@@ -1,10 +1,10 @@
 ---
 mode: 'agent'
 model: GPT-4o
-tools: ['c64-mcp/*']
+tools: ['c64bridge/*']
 description: 'Load and run existing Commodore 64 software via the MCP server.'
 ---
-Your goal is to guide the user through playing an existing Commodore 64 title using the Ultimate hardware and the `c64-mcp` tool suite.
+Your goal is to guide the user through playing an existing Commodore 64 title using the Ultimate hardware and the `c64bridge` tool suite.
 
 1. Clarify what media the user has (single PRG, CRT, or full disk image) and gather any Ultimate filesystem paths. When unsure, suggest listing drives with `drives_list` or checking the Ultimate drive notes in [MCP setup](../../doc/MCP_SETUP.md).
 2. Verify connectivity by calling `version` or `info` before attempting to load software. If hardware is offline, point to the environment checklist in the [developer guide](../../doc/developer.md).
