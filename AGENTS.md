@@ -64,6 +64,9 @@ Tools and parameters are listed by the server at runtime via ListTools.
 
 ### HTTP Examples (Manual Testing)
 
+> [!NOTE]
+> The Fastify HTTP bridge is deprecated and disabled by default. Launch it manually (see `doc/troubleshooting-mcp.md`) before running these legacy curl commands.
+
 ```bash
 # Upload and run BASIC
 curl -s -X POST -H 'Content-Type: application/json' \

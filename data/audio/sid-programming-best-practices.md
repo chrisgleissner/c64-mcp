@@ -121,6 +121,9 @@ This solution was developed through:
 
 ### Upload Command
 
+> [!NOTE]
+> These curl commands require the optional legacy HTTP bridge. Start it manually before using them; the day-to-day workflow runs over MCP stdio.
+
 ```bash
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"program": "... BASIC program ..."}' \

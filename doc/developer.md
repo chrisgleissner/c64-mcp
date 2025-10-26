@@ -221,12 +221,11 @@ The indexer only touches files when content changes to avoid noisy diffs.
 
 ### Using the Retriever
 
-- Tools: `POST /tools/rag_retrieve_basic` or `POST /tools/rag_retrieve_asm` with `{ "q": "query", "k": 3 }` to pull BASIC or assembly references.
-- HTTP probe: `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` for quick manual inspection.
-
-Example:
+- Tools: call `rag_retrieve_basic` or `rag_retrieve_asm` over the MCP stdio session with `{ "q": "query", "k": 3 }` to pull BASIC or assembly references.
+- Optional HTTP probe: only if you manually launch the legacy Fastify server (see "Optional HTTP Compatibility" in `doc/troubleshooting-mcp.md`), you can `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` for quick inspection.
 
 ```bash
+# Example legacy probe once the optional HTTP server is running
 curl -s "http://localhost:8000/rag/retrieve?q=draw%20a%20sine%20wave&k=3&lang=basic" | jq
 ```
 
