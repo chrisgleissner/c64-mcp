@@ -185,8 +185,8 @@ npm run build
 
 - [`mcp.json`](mcp.json): project configuration (entry point, env vars, metadata).
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
-- [`doc/MCP_SETUP.md`(doc/MCP_SETUP.md) — More details on MCP setup and integration with Visual Code.
-- [`doc/developer.md`](doc/developer.md) — Development environment and workflow details. Also covers how to extend and rebuild the local RAG embeddings.
+- [`doc/MCP_SETUP.md`] (doc/MCP_SETUP.md) — More details on MCP setup and integration with Visual Code.
+- [`doc/developer.md`] (doc/developer.md) — Development environment and workflow details. Also covers how to extend and rebuild the local RAG embeddings.
 - [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
 - [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 
