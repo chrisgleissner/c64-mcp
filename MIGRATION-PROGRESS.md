@@ -1,8 +1,8 @@
 # C64-MCP Migration Progress
 
 **Started:** 2025-10-25
-**Current Step:** 7.1
-**Last Updated:** 2025-10-26T00:40:00+01:00
+**Current Step:** 8.1
+**Last Updated:** 2025-10-26T08:15:00+01:00
 
 
 ## Process Guidelines
@@ -119,7 +119,7 @@
 - [x] 7.4 - Remove toolsCatalog.ts (if no longer needed)
 - [x] 7.5 - Update README.md with new setup instructions
 - [x] 7.6 - Update .vscode/settings.json
-- [ ] 7.7 - Archive old HTTP server to src/http-server.ts.backup
+- [x] 7.7 - Archive old HTTP server to src/http-server.ts.backup
 
 ### Phase 9: Documentation
 
@@ -138,6 +138,7 @@
 - 2025-10-26T00:23:00+01:00: Completed Enhanced Tool Descriptions: added prerequisites, examples, and resource references across tool modules (program runners, memory, graphics, storage, machine, printer, audio). Tool metadata now guides LLM workflows.
 - 2025-10-26T00:27:00+01:00: Added `npm run coverage` via c8 to capture coverage for Phase 7.6.
 - 2025-10-26T00:45:00+01:00: CI updated to run `npm run coverage` once and upload LCOV; removed duplicate test-only step.
+- 2025-10-26T08:10:00+01:00: Archived legacy Fastify HTTP server to `src/http-server.ts.backup`; `src/index.ts` now forwards to the MCP server entry point.
 - 2025-10-25T10:20:34+01:00: Replaced manual MCP Inspector tasks with automated test requirements; added integration test for resources list/read.
 - 2025-10-25T10:42:52+01:00: Updated tracker to align with expanded resource/printer/SID documentation tasks and modular tools/prompt plan.
 - 2025-10-25T10:50:40+01:00: Implemented knowledge bundle registry, enriched metadata, generated docs index, and expanded automated resource tests.

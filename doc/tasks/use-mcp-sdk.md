@@ -133,7 +133,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 7.4 - Remove toolsCatalog.ts (if no longer needed)
 - [ ] 7.5 - Update README.md with new setup instructions
 - [ ] 7.6 - Update .vscode/settings.json
-- [ ] 7.7 - Archive old HTTP server to src/http-server.ts.backup
+- [x] 7.7 - Archive old HTTP server to src/http-server.ts.backup
 
 ### Phase 9: Documentation
 - [ ] 8.1 - Document new architecture in doc/developer.md
