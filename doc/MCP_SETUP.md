@@ -99,11 +99,6 @@ The npm package also exposes a CLI named `c64-mcp`; `npx c64-mcp` or an installe
 3. Keep `npm start` or the CLI running in the background.
 4. In Copilot Chat, reference tools naturally (for example, "Read the current screen" or "Upload and run this BASIC program").
 
-### Other MCP Clients
-
-- Prefer stdio transport (`command`, `args`) when supported.
-- Optional HTTP compatibility is available through the archived Fastify server (`src/http-server.ts.backup`) but is not maintained; use only for legacy experiments.
-
 ## 5. Verify Operation
 
 Run the automated test suites against the mock hardware:
