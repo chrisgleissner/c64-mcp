@@ -37,7 +37,6 @@ function assertSpotChecks() {
   const files = [
     'package.json',
     'mcp.json',
-    'mcp-manifest.json',
     'README.md',
     'LICENSE',
     'dist/index.js',
