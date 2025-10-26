@@ -29,7 +29,7 @@ The server looks for configuration in the following order (first match wins):
 2. `.c64mcp.json` in the repository root
 3. Built-in defaults (`http://c64u:80`)
 
-The loader normalises IPv6 literals, accepts legacy keys (`c64_host`, `c64_ip`, `baseUrl`), and derives `baseUrl` from the resolved host/port when omitted.
+The loader normalises IPv6 literals, accepts legacy keys (`c64_host`, `c64_ip`), and derives the REST endpoint from the resolved host and port.
 
 Recommended configuration file:
 
@@ -37,8 +37,7 @@ Recommended configuration file:
 {
   "c64u": {
     "host": "ultimate64.local",
-    "port": 80,
-    "baseUrl": "http://ultimate64.local"
+    "port": 80
   }
 }
 ```
@@ -46,7 +45,6 @@ Recommended configuration file:
 Aliases supported for legacy files:
 
 - `c64_host` or `c64_ip` are coerced into the new schema
-- `baseUrl` without a scheme gains `http://`
 
 IPv6 literals must be wrapped in square brackets inside the host field (`"[2001:db8::1]"`).
 
@@ -114,7 +112,7 @@ Run the automated test suites against the mock hardware:
 npm test
 ```
 
-To exercise a real device, provide the base URL via config and append `-- --real`:
+To exercise a real device, ensure your config points at the desired host/port and append `-- --real`:
 
 ```bash
 npm test -- --real

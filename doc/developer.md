@@ -46,9 +46,9 @@ Configuration resolution (first match wins):
 
 1. Load the file referenced by `C64MCP_CONFIG` (when set); if unset, use `~/.c64mcp.json`.
 2. If missing, fall back to `.c64mcp.json` at the repo root.
-3. Otherwise, default to `host=c64u`, `port=80` (`baseUrl` derived automatically).
+3. Otherwise, default to `host=c64u`, `port=80`.
 
-`loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`, `baseUrl`), and caches the resolved structure for subsequent calls.
+`loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`), and caches the resolved structure for subsequent calls.
 
 ## Useful npm Scripts
 

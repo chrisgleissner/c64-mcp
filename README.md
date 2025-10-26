@@ -209,7 +209,7 @@ Besides this `README.md` document, the project includes extensive documentation:
 
 ## Configuration ⚙️
 
-The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present. Lookup order is: explicit `C64MCP_CONFIG` (falling back to `~/.c64mcp.json` when unset), then the repo-local file, and finally the built-in defaults (`host=c64u`, `port=80`). Legacy keys (`c64_host`, `c64_ip`, bare `baseUrl`) are normalised automatically.
+The MCP server reads configuration from a JSON file called `.c64mcp.json`. The recommended location is your home directory (`~/.c64mcp.json`). You can override the path with the `C64MCP_CONFIG` environment variable. As a convenience during development, a project-local [`.c64mcp.json`](.c64mcp.json) at the repo root is also picked up if present. Lookup order is: explicit `C64MCP_CONFIG` (falling back to `~/.c64mcp.json` when unset), then the repo-local file, and finally the built-in defaults (`host=c64u`, `port=80`). Legacy keys (`c64_host`, `c64_ip`) are normalised automatically.
 
 Configuration is split by device type. No top-level `backend` field is required; the server selects a backend automatically (see selection rules below).
 
@@ -280,14 +280,14 @@ On startup, the server logs the selected backend and reason, for example:
 
 - `npm run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
-- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the base URL, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the REST endpoint, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 
 The test runner accepts the following options:
 
 - `--mock` (default): use the bundled mock hardware emulator.
 - `--real`: talk to physical hardware (requires reachable C64 device).
-- `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
+- `--base-url=http://host[:port]`: override the REST endpoint when running with `--real`.
 
 ## MCP API Reference
 

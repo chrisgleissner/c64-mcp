@@ -31,7 +31,14 @@ async function setupSharedServer() {
     os.tmpdir(),
     `c64-mcp-test-config-${process.pid}-${Date.now()}.json`,
   );
-  fs.writeFileSync(configPath, JSON.stringify({ baseUrl: mockServer.baseUrl }), "utf8");
+  const mockUrl = new URL(mockServer.baseUrl);
+  const configPayload = {
+    c64u: {
+      host: mockUrl.hostname,
+      port: mockUrl.port ? Number(mockUrl.port) : 80,
+    },
+  };
+  fs.writeFileSync(configPath, JSON.stringify(configPayload), "utf8");
 
   const transport = new StdioClientTransport({
     command: process.execPath,

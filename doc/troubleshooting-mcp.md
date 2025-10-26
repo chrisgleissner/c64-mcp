@@ -11,7 +11,7 @@ ps -ef | grep "c64-mcp" | grep -v grep
 # 2. Do startup logs show the connectivity probe?
 tail -n20 ~/.c64-mcp.log  # or the terminal running npm start
 
-# 3. Can we reach the configured base URL directly?
+# 3. Can we reach the configured REST endpoint directly?
 curl -s http://<your-c64-host>/v1/info | jq .version
 
 # 4. When using the mock server
