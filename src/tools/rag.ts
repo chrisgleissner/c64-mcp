@@ -1,7 +1,8 @@
 import type { RagLanguage } from "../rag/types.js";
+import { listKnowledgeResources } from "../rag/knowledgeIndex.js";
 import { defineToolModule, type ToolExecutionContext } from "./types.js";
 import { objectSchema, optionalSchema, stringSchema, numberSchema } from "./schema.js";
-import { jsonResult, textResult } from "./responses.js";
+import { textResult } from "./responses.js";
 import {
   ToolError,
   ToolExecutionError,
@@ -36,6 +37,10 @@ const ragRetrieveArgsSchema = objectSchema<RagRetrieveArgs>({
 });
 
 function createRagTool(language: RagLanguage, options: { description: string; summary: string; tags: readonly string[] }) {
+  const primaryResourceUris = language === "basic"
+    ? ["c64://specs/basic", "c64://context/bootstrap"]
+    : ["c64://specs/assembly", "c64://context/bootstrap"];
+
   return {
     name: language === "basic" ? "rag_retrieve_basic" : "rag_retrieve_asm",
     description:
@@ -91,23 +96,51 @@ function createRagTool(language: RagLanguage, options: { description: string; su
           throw new ToolExecutionError("RAG retrieval failed", { cause: error });
         }
 
-        if (refs.length === 0) {
-          return textResult("No matching references were found.", {
-            success: true,
-            language,
-            limit,
-            queryLength: parsed.q.length,
-            count: 0,
-          });
-        }
+        const resources = listKnowledgeResources();
+        const primaryResources = primaryResourceUris
+          .map((uri) => resources.find((entry) => entry.uri === uri))
+          .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
-        return jsonResult({ refs }, {
+        const ragCount = refs.length;
+
+        const primaryLines = primaryResources.length
+          ? primaryResources.map((entry) => `- ${entry.name} (${entry.uri}) — ${entry.metadata.summary}`)
+          : ["- No curated resources found."];
+
+        const ragLines = ragCount
+          ? refs.map((ref, index) => `${index + 1}. ${ref}`)
+          : ["No supplemental RAG references were found."];
+
+        const text = [
+          "Primary knowledge resources (consult these first):",
+          ...primaryLines,
+          "",
+          "Supplemental RAG references:",
+          ...ragLines,
+        ].join("\n");
+
+        const base = textResult(text, {
           success: true,
           language,
           limit,
           queryLength: parsed.q.length,
-          count: refs.length,
+          count: ragCount,
         });
+
+        return {
+          ...base,
+          structuredContent: {
+            type: "json" as const,
+            data: {
+              primaryResources: primaryResources.map((entry) => ({
+                uri: entry.uri,
+                name: entry.name,
+                summary: entry.metadata.summary,
+              })),
+              refs,
+            },
+          },
+        };
       } catch (error) {
         if (error instanceof ToolError) {
           return toolErrorResult(error);

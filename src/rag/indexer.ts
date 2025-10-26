@@ -285,6 +285,13 @@ function analyzeText(text: string): TextAnalysis {
   let hardwareScore = 0;
   let basicLines = 0;
   let asmLines = 0;
+  const lowered = text.toLowerCase();
+  if (/```(?:basic|commodore|cbm-basic)/.test(lowered)) {
+    basicScore += 4;
+  }
+  if (/```(?:asm|assembly|ca65|acme|kickass)/.test(lowered)) {
+    asmScore += 4;
+  }
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) {
@@ -304,6 +311,14 @@ function analyzeText(text: string): TextAnalysis {
     }
     if (/\bREM\b/i.test(trimmed) || /\bPRINT\b/i.test(trimmed) || /\bINPUT\b/i.test(trimmed)) {
       basicScore += 1;
+    }
+
+    if (/^\s*\*\s*=\s*\$?[0-9A-F]{3,4}/i.test(trimmed)) {
+      asmScore += 3;
+      asmLines++;
+    }
+    if (/^\s*;/.test(trimmed)) {
+      asmScore += 1;
     }
 
     if (ASM_DIRECTIVE_RE.test(trimmed)) {
@@ -376,6 +391,100 @@ function nameRelativeTo(root: string, file: string): string {
   return toPosixRelative(root, file);
 }
 
+function sanitizeSectionTitle(input: string): string {
+  const trimmed = input.trim().replace(/\s+/g, " ");
+  if (!trimmed) return "section";
+  const collapsed = trimmed.replace(/[^A-Za-z0-9 -]/g, "").trim();
+  const normalized = collapsed || "section";
+  return normalized
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 60);
+}
+
+function detectHeadingCandidate(paragraph: string): string | null {
+  const singleLine = !/\n/.test(paragraph);
+  if (!singleLine) return null;
+  const trimmed = paragraph.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > 80) return null;
+  if (/^chapter\s+\d+/i.test(trimmed)) return trimmed;
+  if (/^(section|appendix|part)\b/i.test(trimmed)) return trimmed;
+  if (/^\d+(?:\.\d+)*\s+[A-Za-z]/.test(trimmed)) return trimmed;
+  const letters = trimmed.replace(/[^A-Za-z]/g, "");
+  if (letters.length < 4) return null;
+  const uppercase = letters.replace(/[^A-Z]/g, "");
+  const lowercase = letters.replace(/[^a-z]/g, "");
+  const uppercaseRatio = uppercase.length / letters.length;
+  if (uppercaseRatio >= 0.7 && lowercase.length <= 2) {
+    return trimmed;
+  }
+  return null;
+}
+
+function chunkPlainTextSections(text: string, filePath: string): Array<{ text: string; origin: string }> {
+  const normalized = text.replace(/\r\n?/g, "\n");
+  const pages = normalized.split(/\f+/);
+  const relativePath = toPosixRelative(process.cwd(), filePath);
+  const results: Array<{ text: string; origin: string }> = [];
+
+  const pushChunk = (payload: string[], sectionTitle: string, sequence: number) => {
+    if (!payload.length) return;
+    const body = payload.join("\n\n").trim();
+    if (!body) return;
+    const suffix = sequence > 1 ? `-${sequence}` : "";
+    const origin = `${relativePath}#${sanitizeSectionTitle(sectionTitle)}${suffix}`;
+    results.push({ text: body, origin });
+  };
+
+  pages.forEach((pageText, pageIndex) => {
+    const pageTag = `Page-${pageIndex + 1}`;
+    const paragraphs = pageText.split(/\n{2,}/);
+    let sectionTitle = pageTag;
+    let payload: string[] = [];
+    let charCount = 0;
+    let chunkSequence = 1;
+
+    const flush = () => {
+      pushChunk(payload, sectionTitle, chunkSequence);
+      if (payload.length) {
+        chunkSequence += 1;
+      }
+      payload = [];
+      charCount = 0;
+    };
+
+    for (const rawParagraph of paragraphs) {
+      const paragraph = rawParagraph.trim();
+      if (!paragraph) continue;
+      const heading = detectHeadingCandidate(paragraph);
+      if (heading) {
+        flush();
+        sectionTitle = heading;
+        chunkSequence = 1;
+        payload.push(paragraph);
+        charCount = paragraph.length;
+        continue;
+      }
+      const additionLength = payload.length ? paragraph.length + 2 : paragraph.length;
+      if (charCount + additionLength > 1600) {
+        flush();
+      }
+      payload.push(paragraph);
+      charCount += additionLength;
+    }
+
+    flush();
+  });
+
+  if (results.length === 0) {
+    const fallbackOrigin = `${relativePath}#Full`;
+    return [{ text: normalized, origin: fallbackOrigin }];
+  }
+
+  return results;
+}
+
 async function buildIndexForCategory(
   category: RagLanguage,
   files: PreparedFile[],
@@ -445,6 +554,7 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
   const resolvedBasicDirs = (basicDirs ?? [BASIC_DIR]).map((dir) => path.resolve(dir));
   const resolvedAsmDirs = (asmDirs ?? [ASM_DIR]).map((dir) => path.resolve(dir));
   const resolvedExternalDirs = (externalDirs ?? [EXTERNAL_DIR]).map((dir) => path.resolve(dir));
+  const externalRoots = resolvedExternalDirs.map((dir) => path.resolve(dir));
 
   const sourcesConfig: Array<{ root: string; exts: string[] }> = [
     ...resolvedBasicDirs.map((root) => ({ root, exts: BASIC_EXTS })),
@@ -495,9 +605,13 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     const provenance = await resolveProvenance(source.file);
 
     // For markdown docs under doc/, chunk by sections; for context files inject as a single small chunk
-    const isMarkdown = path.extname(source.file).toLowerCase() === ".md";
-  const isContext = contextSet.has(path.resolve(source.file));
-    const isDocFile = isMarkdown && path.resolve(source.file).startsWith(path.resolve(DOC_ROOT) + path.sep);
+    const absoluteFile = path.resolve(source.file);
+    const ext = path.extname(absoluteFile).toLowerCase();
+    const isMarkdown = ext === ".md";
+    const isContext = contextSet.has(absoluteFile);
+    const isDocFile = isMarkdown && absoluteFile.startsWith(path.resolve(DOC_ROOT) + path.sep);
+    const isExternalFile = externalRoots.some((root) => absoluteFile === root || absoluteFile.startsWith(root + path.sep));
+    const isPlainText = ext === ".txt" || ext === ".text";
 
     if (isDocFile) {
       const chunks = chunkMarkdownSections(text, source.file);
@@ -523,7 +637,7 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     }
 
     if (isContext) {
-  const origin = path.relative(process.cwd(), source.file).split(path.sep).join("/");
+      const origin = path.relative(process.cwd(), source.file).split(path.sep).join("/");
       const analysis = analyzeText(text);
       const category = decideCategory(analysis, path.extname(source.file), source.root);
       preparedByCategory[category].push({
@@ -543,10 +657,33 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
       continue;
     }
 
+    if (isExternalFile && isPlainText) {
+      const chunks = chunkPlainTextSections(text, source.file);
+      for (const chunk of chunks) {
+        const analysis = analyzeText(chunk.text);
+        const category = decideCategory(analysis, ext, source.root);
+        preparedByCategory[category].push({
+          file: source.file,
+          root: source.root,
+          text: addProvenanceComment(chunk.text, chunk.origin),
+          mtimeMs: stat.mtimeMs,
+          sourceUrl: provenance.sourceUrl,
+          sourceRepoUrl: provenance.sourceRepoUrl,
+          license: provenance.licenseLabel,
+          licenseSpdxId: provenance.licenseSpdxId,
+          licenseName: provenance.licenseName,
+          licenseUrl: provenance.licenseUrl,
+          attribution: provenance.attribution,
+          origin: chunk.origin,
+        });
+      }
+      continue;
+    }
+
     // Default: treat as a single record (BASIC/ASM/external)
     {
       const analysis = analyzeText(text);
-      const category = decideCategory(analysis, path.extname(source.file), source.root);
+      const category = decideCategory(analysis, ext, source.root);
       preparedByCategory[category].push({
         file: source.file,
         root: source.root,
@@ -583,7 +720,7 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
 function chunkMarkdownSections(text: string, filePath: string): Array<{ text: string; origin: string }> {
   // Split on H2/H3 headers; keep headers with content; bound chunk size to ~1500-2500 chars
   const lines = text.split(/\r?\n/);
-  const headerRe = /^(##{1,2})\s+(.*)$/; // matches '##' or '###'
+  const headerRe = /^(#{1,3})\s+(.*)$/; // matches '#', '##', or '###'
   const chunks: Array<{ title: string; lines: string[] }> = [];
   let current: { title: string; lines: string[] } | null = null;
   for (const line of lines) {
