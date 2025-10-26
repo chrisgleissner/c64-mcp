@@ -3,8 +3,13 @@
     "servers": [
       {
         "name": "c64-mcp",
-        "url": "http://localhost:8000",
-        "type": "http"
+        "type": "stdio",
+        "command": "node",
+        "args": ["./dist/index.js"],
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "LOG_LEVEL": "info"
+        }
       }
     ]
   }
