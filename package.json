@@ -1,6 +1,6 @@
 {
   "name": "c64-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +11,7 @@
     "start": "node scripts/start.mjs",
     "mcp": "node --loader ts-node/esm src/mcp-server.ts",
     "mcp:build": "npm run build && node dist/mcp-server.js",
-  "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts",
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts",
     "lint": "npm run check",
     "test": "node scripts/run-tests.mjs",
     "coverage": "c8 -r text -r lcov node scripts/run-tests.mjs",

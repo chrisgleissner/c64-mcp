@@ -1,6 +1,6 @@
 {
   "name": "c64-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Stdio-based Model Context Protocol (MCP) server that bridges Commodore 64 Ultimate hardware with AI agents.",
   "entry": "dist/index.js",
   "type": "stdio",

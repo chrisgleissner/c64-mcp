@@ -5,6 +5,17 @@
 
 
 
+
+## 0.4.0 - 2025-10-26
+
+### Features
+
+- Migrated to use the MCP SDK
+- Improved knowledge base
+- Consistent MCP/REST/RAG logs (b7c4172)
+- Added chat mode on VS Code
+- Improved RAG embeddings (5935f14)
+
 ## 0.3.0 - 2025-10-24
 
 ### Features
