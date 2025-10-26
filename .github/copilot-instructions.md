@@ -12,7 +12,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 - Key domains:
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
   - Local RAG over `data/` with embeddings.
-  - Primary transport is MCP over stdio. Legacy HTTP is deprecated and disabled by default (see `doc/troubleshooting-mcp.md`).
+  - Only transport is MCP over stdio.
 - Documentation sources: `README.md`, `doc/` (including SID/BASIC references), `AGENTS.md`, `.github/prompts/*.prompt.md`, and `data/context/*.md`.
 
 ## Coding Standards
@@ -56,14 +56,14 @@ Thanks for helping keep the Commodore 64 MCP server robust and user-friendly!
 
 Use these rules to ensure Copilot reliably engages the `c64-mcp` server when the user asks for C64 work.
 
-- Preferred transport is stdio. VS Code should have the experimental MCP setting enabled and a server entry for `c64-mcp` (see `doc/MCP_SETUP.md`).
+- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64-mcp` (see `doc/MCP_SETUP.md`). If the server is not running, start it.
 - Treat the following as strong routing signals: "c64", "commodore 64", "ultimate 64", "c64u", "vic", "sid", "petscii", "basic v2", "6510".
 - When such signals appear, prefer MCP tool usage from `c64-mcp` without waiting for the user to select a server.
-- If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server, ask the user to run `npm start`.
+- If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server automatically, start it (e.g., `npm start` or `node ./node_modules/c64-mcp/dist/index.js`).
 
 ### Lightweight C64 Chat Mode
 
-- Interpret `/C64` at the beginning of a message as a request to route subsequent steps through the `c64-mcp` tools for this turn.
+- Interpret `/C64` or `/c64` at the beginning of a message as a request to route subsequent steps through the `c64-mcp` tools for this turn. Also accept `C64U` and `c64u` as equivalent triggers.
 - In C64 mode:
   - Use `upload_and_run_basic` or `upload_and_run_asm` for program execution.
   - Use `read_screen`, `read_memory`, or `write_memory` for inspection or patches.
