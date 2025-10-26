@@ -136,7 +136,7 @@ Create `MIGRATION-PROGRESS.md` at repository root:
 - [x] 7.7 - Archive old HTTP server to src/http-server.ts.backup
 
 ### Phase 9: Documentation
-- [ ] 8.1 - Document new architecture in doc/developer.md
+- [x] 8.1 - Document new architecture in doc/developer.md
 - [ ] 8.2 - Create MCP_SETUP.md guide
 - [ ] 8.3 - Update AGENTS.md if needed
 - [ ] 8.4 - Add troubleshooting section

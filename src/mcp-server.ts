@@ -23,6 +23,7 @@ import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolLogger, ToolRunResult } from "./tools/types.js";
 import { createPromptRegistry, type PromptSegment } from "./prompts/registry.js";
 import { describePlatformCapabilities, getPlatformStatus, setPlatform } from "./platform.js";
+import axios from "axios";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -182,6 +183,8 @@ async function main() {
   // Connect via stdio
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  await logConnectivity(client, baseUrl);
   
   console.error("c64-mcp MCP server running on stdio");
 }
@@ -248,6 +251,42 @@ function renderPlatformStatusMarkdown(): string {
   );
 
   return lines.join("\n");
+}
+
+async function logConnectivity(client: C64Client, baseUrl: string): Promise<void> {
+  try {
+    const response = await axios.get(baseUrl, { timeout: 2000 }).catch(() => null);
+    if (response) {
+      console.log(`Connectivity check succeeded for c64 device at ${baseUrl}`);
+    } else {
+      console.log(`Skipping direct REST connectivity probe (no hardware REST base reachable at ${baseUrl})`);
+      return;
+    }
+
+    try {
+      const memoryAddress = "$0000";
+      const memoryResult = await client.readMemory(memoryAddress, "1");
+      if (memoryResult.success && memoryResult.data) {
+        console.log(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}`);
+      } else if (memoryResult.details) {
+        console.warn(`Zero-page probe failed: ${JSON.stringify(memoryResult.details)}`);
+      }
+    } catch (memoryError) {
+      const message = memoryError instanceof Error ? memoryError.message : String(memoryError);
+      console.warn(`Zero-page probe skipped or failed (may be unsupported on current backend): ${message}`);
+    }
+  } catch (error) {
+    let message: string;
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      message = status ? `${error.message} (status ${status})` : error.message;
+    } else if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = String(error);
+    }
+    console.warn(`Connectivity check failed for c64 device at ${baseUrl}: ${message}`);
+  }
 }
 
 function toCallToolResult(result: ToolRunResult): {

@@ -1,24 +1,34 @@
 # Developer Guide
 
-Concise reference for contributors working on the MCP server bridging LLMs with C64 Ultimate hardware.
+Concise reference for contributors working on the MCP server that bridges LLM workflows with Commodore 64 Ultimate hardware.
 
 ## Project Layout
 
-```
-src/                Core server and client logic
-  basicConverter.ts BASIC text → PRG encoder
-  c64Client.ts      REST client for c64 devices
-  config.ts         Configuration loader
-  index.ts          Fastify HTTP compatibility surface (legacy; optional)
-doc/                Reference material and specs
-scripts/            Utility CLI entry points (tests, etc.)
-test/               Node test runner suites and helpers
+```text
+src/                    Core MCP implementation
+  mcp-server.ts         Primary MCP stdio server wiring tools/resources/prompts
+  index.ts              Thin wrapper used by CLI entry point (imports mcp-server)
+  http-server.ts.backup Archived Fastify HTTP surface kept for reference only
+  tools/                Domain modules (program runners, audio, graphics, etc.)
+  prompts/              Prompt registry and authored prompt definitions
+  rag/                  Retrieval-augmented generation helpers and pipeline
+  c64Client.ts          REST client for Ultimate 64 / C64 Ultimate hardware
+  basicConverter.ts     BASIC text → PRG encoder used across tools/tests
+  platform.ts           Backend capability detection shared by tools
+  petsciiArt.ts         PETSCII renderer used by graphics tools
+  sidwave*.ts           SID music compiler and helpers
+  assemblyConverter.ts  6502 assembler for program loaders
+scripts/                Utility CLI entry points (tests, packaging, release)
+doc/                    Reference material and specs
+test/                   Node test runner suites and helpers (mock + real targets)
 ```
 
 Key documentation:
+
 - `data/basic/basic-spec.md` — BASIC tokenisation rules used by the converter.
-- `doc/rest/c64-rest-api.md` — Summary of the c64 REST API.
+- `doc/rest/c64-rest-api.md` — Summary of the Ultimate REST API.
 - `doc/rest/c64-openapi.yaml` — Machine-readable API schema for mocking and generators.
+- `doc/tasks/use-mcp-sdk.md` — Step-by-step migration log with requirements.
 
 ## Prerequisites
 
@@ -32,71 +42,102 @@ Key documentation:
 npm install
 ```
 
-Configuration resolution, first match wins:
+Configuration resolution (first match wins):
 
-1. Load from path in `C64MCP_CONFIG` env var
-2. Load from `.c64mcp.json` in current working directory
-3. Load from `.c64mcp.json` in user home
-4. Use defaults: `HOST=c64u`, `PORT=80`
+1. Load from path in `C64MCP_CONFIG` env var.
+2. Load from `.c64mcp.json` in current working directory.
+3. Load from `.c64mcp.json` in user home.
+4. Fall back to defaults: `HOST=c64u`, `PORT=80`.
 
 ## Useful npm Scripts
 
-- `npm start`: Launch the MCP SDK stdio server (preferred). Falls back to compiled JS.
-- `npm run build`: Type-check TypeScript sources and normalize dist output.
+- `npm start`: Launch the MCP SDK stdio server (preferred). Falls back to compiled JS when ts-node is unavailable.
+- `npm run build`: Type-check TypeScript sources and normalise the `dist/` output.
 - `npm test`: Run tests against the bundled mock server.
-- `npm test -- --real [--base-url=http://host]`: Run against hardware.
-- `npm run check`: Build + mock tests.
-- `npm run c64:tool`: Interactive BASIC/PRG helper.
+- `npm test -- --real [--base-url=http://host]`: Run the suite against real hardware.
+- `npm run check`: Perform a build and run the mock test suite.
+- `npm run c64:tool`: Launch the interactive BASIC/PRG helper utilities.
 - `npm run api:generate`: Regenerate the REST client (`generated/c64/index.ts`).
+- `npm run rag:rebuild`: Rebuild embeddings and the RAG index when data changes.
+- `npm run release:prepare -- <semver>`: Bump versions, regenerate manifest, and stage changelog updates.
 
-The test script is implemented in `scripts/run-tests.mjs`. It sets `C64_TEST_TARGET` for the suites and accepts the following flags:
+The test driver in `scripts/run-tests.mjs` accepts additional flags:
+
 - `--mock` (default) to use `test/mockC64Server.mjs`.
-- `--real` to forward requests to real hardware.
-- `--base-url` to override the REST endpoint when using `--real`.
+- `--real` to forward requests to hardware (`C64_TEST_TARGET=real`).
+- `--base-url` to override the REST endpoint while using `--real`.
 
-## Architecture at a Glance
+## MCP Architecture
+
+The server is organised around three core surfaces exposed through the MCP SDK: **tools**, **resources**, and **prompts**. `src/mcp-server.ts` wires these registries together, loads configuration, and enforces platform compatibility.
+
+```text
+src/mcp-server.ts
+├── toolRegistry (src/tools/registry.ts)
+│    └── Domain modules (audio, graphics, memory, printer, rag, etc.)
+├── knowledge resources (src/rag/knowledgeIndex.ts)
+│    └── data/ and doc/ references surfaced via c64:// URIs
+├── prompt registry (src/prompts/registry.ts)
+│    └── Authored prompt definitions under .github/prompts and doc/prompts
+└── platform awareness (src/platform.ts)
+     └── Evaluates backend compatibility (C64U vs VICE) for each tool
+```
+
+`scripts/start.mjs` detects whether TypeScript sources are available and launches `src/mcp-server.ts` (via `src/index.ts`), ensuring both local development and packaged CLI usage share the same entry point.
 
 ```mermaid
 flowchart TD
-    subgraph MCP Server (stdio)
-      Stdio["MCP stdio server (src/mcp-server.ts)"]
-      ClientFacade["C64Client facade (src/c64Client.ts)"]
+    subgraph "MCP Server (stdio)"
+      Stdio["src/mcp-server.ts"]
+      ToolRegistry["Tool metadata (src/tools/*)"]
+      PromptRegistry["Prompt registry (src/prompts/*)"]
+      Resources["Knowledge resources (src/rag/knowledgeIndex.ts)"]
     end
 
-    subgraph Generated SDK (generated/c64/)
-    Api["Auto-generated REST client"]
+    subgraph "Generated SDK"
+      Api["generated/c64/index.ts"]
     end
 
-    Stdio --> ClientFacade
-    ClientFacade --> Api
-    Api -->|HTTP| C64API["c64 REST API"]
-
-    ClientFacade --> BasicConverter["basicConverter.ts (BASIC → PRG)"]
-    ClientFacade --> Config["config.ts (load C64 host/base URL)"]
+    Stdio --> ToolRegistry
+    Stdio --> PromptRegistry
+    Stdio --> Resources
+    ToolRegistry --> Client["C64Client (src/c64Client.ts)"]
+    ToolRegistry --> BasicConverter["basicConverter.ts"]
+    ToolRegistry --> Rag["RAG helpers (src/rag/*)"]
+    Client --> Api
+    Api -->|HTTP| UltimateAPI["Ultimate 64 REST API"]
 ```
 
 ```mermaid
 flowchart LR
   OpenAPI["doc/rest/c64-openapi.yaml"]
-    Generator["npm run api:generate (swagger-typescript-api)"]
-    Generated["generated/c64/index.ts"]
-    Facade["src/c64Client.ts"]
+  Generator["npm run api:generate"]
+  Generated["generated/c64/index.ts"]
+  Facade["src/c64Client.ts"]
 
-    OpenAPI --> Generator --> Generated --> Facade
+  OpenAPI --> Generator --> Generated --> Facade
 ```
+
+## MCP Server Tips
+
+- Preferred transport is stdio (`src/mcp-server.ts`); `src/index.ts` simply imports this module so CLI and npm consumers share the same entry point.
+- The legacy Fastify HTTP server now lives in `src/http-server.ts.backup`. Keep it untouched unless you need to resurrect HTTP compatibility for debugging.
+- MCP tools enforce platform compatibility via `src/platform.ts`; run `npm test` to cover both metadata and runtime enforcement.
+- Keep REST interactions isolated in `src/c64Client.ts` for easy mocking.
 
 ## Testing Notes
 
 - Node’s built-in test runner (`node --test`) is wrapped by `scripts/run-tests.mjs`.
 - Use `npm run coverage` (c8) to capture coverage without double-running tests.
-- `test/basicConverter.test.mjs`: byte-level PRG output.
+- `test/basicConverter.test.mjs`: byte-level PRG output validation.
 - `test/c64Client.test.mjs`: REST client and mock-server integration; `--real` toggles hardware.
+- `test/suites/mcpServer*.mjs`: End-to-end MCP surface coverage (tools, resources, prompts).
 
 ## Fast Development Workflow
 
 1. `npm run build` to validate types.
-2. `npm test` with mock server.
-3. `npm test -- --real` for hardware.
+2. `npm test` against the mock server.
+3. `npm test -- --real` when hardware is available.
 4. Update `doc/` and keep `doc/rest/c64-openapi.yaml` in sync with code.
 
 ## Release Workflow
@@ -109,9 +150,9 @@ flowchart LR
 
 ### Commit Messages and CHANGELOG Generation
 
-This repository uses a light [Conventional Commits](https://www.conventionalcommits.org) style to generate a [`CHANGELOG.md`](https://github.com/chrisgleissner/c64-mcp/blob/main/CHANGELOG.md) (in line with [Keep a Changelog](https://keepachangelog.com/) principles) automatically during `release:prepare`:
+This repository uses a light [Conventional Commits](https://www.conventionalcommits.org) style to generate [`CHANGELOG.md`](https://github.com/chrisgleissner/c64-mcp/blob/main/CHANGELOG.md) entries (aligned with [Keep a Changelog](https://keepachangelog.com/)) during `release:prepare`:
 
-- Format: `type(scope)?: subject`
+- Format: `type(scope)?: subject`.
 - Examples:
   - `feat: add SID triangle-wave example`
   - `fix(petscii): correct chargen mapping for inverted glyphs`
@@ -136,7 +177,7 @@ Tips:
 
 - Prefer concise subjects; the changelog lists the subject plus the short SHA.
 - Skip “Merge …” subjects; they are filtered automatically.
-- You can run `npm run changelog:generate` to regenerate locally; it prepends a new section for the current `package.json` version using commits since the last tag.
+- Run `npm run changelog:generate` to regenerate locally; it prepends a new section for the current `package.json` version using commits since the last tag.
 
 ## Retrieval-Augmented Knowledge
 
@@ -152,9 +193,3 @@ npm run rag:rebuild  # or rely on auto-reindex (~15s default)
 
 - Defaults: in-domain only; adaptive rate limiting; no network during build/test.
 - See `data/assembly/assembly-spec.md` for the assembly quick reference surfaced by `assembly_spec` and `/rag/retrieve`.
-
-## MCP Server Tips
-
-- Preferred transport is stdio (`src/mcp-server.ts`).
-- Optional HTTP compatibility server remains in `src/index.ts` for manual testing; set `PORT` to enable.
-- Keep REST interactions isolated in `src/c64Client.ts` for easy mocking.
