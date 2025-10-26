@@ -187,8 +187,6 @@ npm run build
 
 When your MCP server starts (stdio), it logs a connectivity probe to your C64 device. For manual HTTP checks (optional), see the HTTP compatibility section below.
 
-Congratulations! You are now all set to use the MCP server with your C64 device.
-
 
 ## Documentation 📚
 
