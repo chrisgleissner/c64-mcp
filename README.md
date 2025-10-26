@@ -424,16 +424,23 @@ The test runner accepts the following options:
 | `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
 
 #### Rag
+> Retrieval-augmented generation helpers for BASIC and assembly examples.
 
-> Retrieval-augmented generation helpers for BASIC and assembly examples. See `doc/developer.md` for detailed guidance.
+**Workflow hints:**
+- Call RAG tools when the user needs references or examples before generating new code.
+- Summarise the number of refs returned and suggest follow-up actions like reading specific docs.
 
+**Default tags:** `rag`, `search`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `rag_retrieve_asm` | Retrieve 6502/6510 assembly references from local knowledge. See c64://specs/assembly. | `rag`, `search`, `asm` |
+| `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
 
 #### Developer
-
 > Configuration management, diagnostics, and helper utilities for advanced workflows.
 
 **Workflow hints:**
-
 - Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.
 - Call out any risky operations (like flash writes) so the user understands the impact.
 
@@ -454,11 +461,9 @@ The test runner accepts the following options:
 | `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
 
 #### Streaming
-
 > Long-running or streaming workflows such as audio capture or SID playback monitoring.
 
 **Workflow hints:**
-
 - Use streaming tools for long-running capture or monitoring workflows such as audio verification.
 - Clarify that streams keep running until stopped so the user can manage resources.
 
@@ -474,7 +479,7 @@ The test runner accepts the following options:
 | Name | Summary |
 | --- | --- |
 | `c64://docs/index` | Explains how to approach each knowledge bundle and when to consult it. |
-| `c64://context/bootstrap` | Step-by-step rules for safe automation, verification, and rollback on the Ultimate hardware. |
+| `c64://context/bootstrap` | Step-by-step rules for safe automation, verification, and rollback on the C64. |
 | `c64://specs/basic` | Token definitions, syntax rules, and device I/O guidance for BASIC v2. |
 | `c64://specs/assembly` | Official opcode matrix, addressing modes, and zero-page strategy for the 6510 CPU. |
 | `c64://specs/sid` | Register map, waveform behaviour, and ADSR envelopes for expressive SID playback. |

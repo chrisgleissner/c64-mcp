@@ -1,10 +1,9 @@
 {
   "name": "c64-mcp",
   "version": "0.3.0",
-  "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
+  "description": "Stdio-based Model Context Protocol (MCP) server that bridges Commodore 64 Ultimate hardware with AI agents.",
   "entry": "dist/index.js",
-  "type": "http",
-  "defaultUrl": "http://127.0.0.1:8000",
+  "type": "stdio",
   "keywords": [
     "mcp",
     "mcp-server",
@@ -28,20 +27,17 @@
     "ultimate 64"
   ],
   "env": {
-    "PORT": {
-      "description": "HTTP port for the MCP server",
-      "default": "8000"
-    },
-    "HOST": {
-      "description": "Bind address for the HTTP server",
-      "default": "127.0.0.1"
-    },
     "LOG_LEVEL": {
-      "description": "Fastify logger level",
+      "description": "Logger verbosity (debug, info, warn, error)",
       "default": "info"
     },
     "C64MCP_CONFIG": {
-      "description": "Path to configuration JSON (~/.c64mcp.json by default)"
+      "description": "Path to configuration JSON",
+      "default": "~/.c64mcp.json"
+    },
+    "C64_MODE": {
+      "description": "Select active backend (c64u for Ultimate hardware, vice for emulator)",
+      "default": "c64u"
     },
     "RAG_EMBEDDINGS_DIR": {
       "description": "Directory containing RAG embedding JSON files",
@@ -56,12 +52,55 @@
     },
     "RAG_DOC_FILES": {
       "description": "Comma-separated extra docs to include in RAG"
+    },
+    "RAG_DISCOVER_FORCE_REFRESH": {
+      "description": "Set to 1 to ignore cached discovery results when fetching external docs"
+    },
+    "GITHUB_TOKEN": {
+      "description": "Personal access token used for optional RAG discovery against GitHub"
+    },
+    "C64_TEST_TARGET": {
+      "description": "Overrides integration tests to hit mock or real hardware (mock|real)"
+    },
+    "VICE_MODE": {
+      "description": "Default video standard for VICE audio capture (ntsc|pal)",
+      "default": "ntsc"
+    },
+    "VICE_LIMIT_CYCLES": {
+      "description": "Maximum CPU cycles to render when VICE generates audio",
+      "default": "120000000"
+    },
+    "VICE_BINARY": {
+      "description": "VICE binary to launch for audio capture",
+      "default": "x64sc"
+    },
+    "VICE_RUN_TIMEOUT_MS": {
+      "description": "Timeout for headless VICE runs in milliseconds",
+      "default": "10000"
+    },
+    "FORCE_XVFB": {
+      "description": "Set to 1 to force xvfb-run when executing VICE",
+      "default": "0"
+    },
+    "SIDPLAY_MODE": {
+      "description": "Default SID playback mode (ntsc|pal)",
+      "default": "ntsc"
+    },
+    "SIDPLAY_LIMIT_CYCLES": {
+      "description": "Maximum CPU cycles to render when sidplayfp generates audio",
+      "default": "120000000"
+    },
+    "SIDPLAY_BINARY": {
+      "description": "sidplayfp binary to launch when generating audio",
+      "default": "sidplayfp"
+    },
+    "SIDPLAYFP_BINARY": {
+      "description": "Legacy alias for SIDPLAY_BINARY (sidplayfp executable name)"
     }
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/chrisgleissner/c64-mcp"
   },
-  "license": "GPL-2.0-only",
-  "manifest": null
+  "license": "GPL-2.0-only"
 }
