@@ -61,6 +61,8 @@ Configuration resolution (first match wins):
 - `npm run rag:rebuild`: Rebuild embeddings and the RAG index when data changes.
 - `npm run release:prepare -- <semver>`: Bump versions, regenerate manifest, and stage changelog updates.
 
+The build pipeline finishes by running `scripts/update-readme.ts`, which introspects the MCP registries and rewrites the `README.md` reference tables. Invoke it directly (`node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts`) after changing tools, resources, or prompts to refresh the docs without a full rebuild.
+
 The test driver in `scripts/run-tests.mjs` accepts additional flags:
 
 - `--mock` (default) to use `test/mockC64Server.mjs`.
