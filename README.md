@@ -215,7 +215,7 @@ Configuration is split by device type. No top-level `backend` field is required;
 
 ### C64U (real hardware)
 
-Use this section to point the server at an Commodore 64 Ultimate or Ultimate 64 device. 
+Use this section to point the server at an Commodore 64 Ultimate or Ultimate 64 device.
 
 Provide the host (DNS name or IP, defaults to `c64u`) and a port (defaults to `80`).
 
@@ -289,56 +289,225 @@ The test runner accepts the following options:
 - `--real`: talk to physical hardware (requires reachable C64 device).
 - `--base-url=http://host[:port]`: override the REST base URL when running with `--real`.
 
-## Available Tools 🧰
+## MCP API Reference
 
-Here is an overview of some of the most important tools. To see all available tools, use an MCP client against the running server (tools are discovered dynamically via stdio).
+<!-- AUTO-GENERATED:MCP-DOCS-START -->
 
+### Tools
 
-### Control
+#### Programs
+> Program uploaders, runners, and compilation workflows for BASIC, assembly, and PRG files.
 
-| Tool | Description |
+**Workflow hints:**
+- Choose BASIC or assembly uploaders based on the language you just generated for the user.
+- Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
+
+**Default tags:** `programs`, `execution`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `load_prg_file` | Load a PRG into C64 memory without executing it. | `programs`, `execution`, `file` |
+| `run_crt_file` | Run a cartridge image stored on the Ultimate filesystem. | `programs`, `execution`, `cartridge` |
+| `run_prg_file` | Run a PRG located on the Ultimate filesystem without uploading source. | `programs`, `execution`, `file` |
+| `upload_and_run_asm` | Assemble 6502/6510 source code, upload the PRG, and run it immediately. See c64://specs/assembly. | `programs`, `execution`, `assembly` |
+| `upload_and_run_basic` | Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O. | `programs`, `execution`, `basic` |
+
+#### Memory
+> Screen, main memory, and low-level inspection utilities.
+
+**Workflow hints:**
+- Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
+- Confirm intent before mutating RAM and explain how the change affects the running program.
+
+**Default tags:** `memory`, `debug`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `read_memory` | Read a range of bytes from main memory and return the data as hexadecimal. Consult c64://specs/assembly and docs index. | `memory`, `debug`, `hex` |
+| `read_screen` | Read the current text screen (40x25) and return its ASCII representation. For PETSCII details, see c64://specs/basic. | `memory`, `debug`, `screen` |
+| `write_memory` | Write a hexadecimal byte sequence into main memory at the specified address. See c64://context/bootstrap for safety rules. | `memory`, `debug`, `hex`, `write` |
+
+#### Audio
+> SID composition, playback, and audio analysis workflows.
+
+**Workflow hints:**
+- Reach for SID helpers when the user talks about sound design, playback quality, or stuck notes.
+- After changing playback state, suggest verify-by-ear steps such as analyze_audio so the user gets concrete feedback.
+
+**Default tags:** `sid`, `audio`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `analyze_audio` | Automatically analyze SID playback when the user requests verification feedback. | `sid`, `audio`, `analysis` |
+| `modplay_file` | Play a MOD tracker module stored on the Ultimate filesystem. | `sid`, `audio`, `playback` |
+| `music_compile_and_play` | Compile a SIDWAVE composition to PRG or SID and optionally play it immediately. | `sid`, `audio`, `music`, `compiler` |
+| `music_generate` | Generate a lightweight arpeggio and schedule playback on SID voice 1. | `sid`, `audio`, `music`, `generator` |
+| `record_and_analyze_audio` | Record audio from the default input device and analyze SID playback characteristics. | `sid`, `audio`, `analysis` |
+| `sid_note_off` | Release a SID voice by clearing its GATE bit. | `sid`, `audio`, `control`, `music` |
+| `sid_note_on` | Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope. See c64://specs/sid. | `sid`, `audio`, `control`, `music` |
+| `sid_reset` | Reset the SID chip either softly (silence) or with a full register scrub. | `sid`, `audio`, `control` |
+| `sid_silence_all` | Silence all SID voices by clearing control and envelope registers. | `sid`, `audio`, `control` |
+| `sid_volume` | Set the SID master volume register at $D418. See c64://specs/sid. | `sid`, `audio`, `control` |
+| `sidplay_file` | Play a SID file stored on the Ultimate filesystem via the firmware player. | `sid`, `audio`, `playback` |
+
+#### Machine
+> Power, reset, pause/resume, and diagnostic controls for the C64 and Ultimate hardware.
+
+**Workflow hints:**
+- Reach for machine controls when the user mentions resets, power states, or DMA pause/resume.
+- Explain the operational impact (e.g. soft reset vs firmware reboot) so the user knows what changed.
+
+**Default tags:** `machine`, `control`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `menu_button` | Toggle the Ultimate 64 menu button. | `machine`, `control`, `menu` |
+| `pause` | Pause the machine using DMA halt. See memory safety checklist in c64://context/bootstrap. | `machine`, `control`, `pause` |
+| `poweroff` | Power off the machine via Ultimate firmware. See safety notes in c64://context/bootstrap. | `machine`, `control`, `power` |
+| `reboot_c64` | Reboot the Ultimate firmware and C64. See c64://context/bootstrap. | `machine`, `control`, `reboot` |
+| `reset_c64` | Reset the C64 via Ultimate firmware. Review c64://context/bootstrap safety rules. | `machine`, `control`, `reset` |
+| `resume` | Resume the machine after a DMA pause. | `machine`, `control`, `resume` |
+
+#### Storage
+> Drive management, disk image creation, and file inspection utilities.
+
+**Workflow hints:**
+- Reach for storage tools when the user mentions drives, disk images, or Ultimate slots.
+- Spell out which slot or path you touched so the user can replicate actions on hardware.
+
+**Default tags:** `drive`, `storage`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `create_d64` | Create a blank D64 disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
+| `create_d71` | Create a blank D71 disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
+| `create_d81` | Create a blank D81 disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
+| `create_dnp` | Create a blank DNP disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
+| `drive_load_rom` | Temporarily load a custom ROM into an Ultimate drive slot. | `drive`, `storage`, `rom` |
+| `drive_mode` | Set the emulation mode for an Ultimate drive slot (1541/1571/1581). | `drive`, `storage`, `mode` |
+| `drive_mount` | Mount a disk image onto a specific Ultimate drive slot. | `drive`, `storage`, `mount` |
+| `drive_off` | Power off a specific Ultimate drive slot. | `drive`, `storage`, `power` |
+| `drive_on` | Power on a specific Ultimate drive slot. | `drive`, `storage`, `power` |
+| `drive_remove` | Remove the currently mounted disk image from an Ultimate drive slot. | `drive`, `storage`, `unmount` |
+| `drive_reset` | Reset the selected Ultimate drive slot. | `drive`, `storage`, `reset` |
+| `drives_list` | List Ultimate drive slots and their currently mounted images. Read c64://context/bootstrap for drive safety. | `drive`, `storage`, `status` |
+| `file_info` | Inspect metadata for a file on the Ultimate filesystem. | `drive`, `storage`, `info` |
+
+#### Graphics
+> PETSCII art, sprite workflows, and VIC-II graphics helpers.
+
+**Workflow hints:**
+- Suggest graphics helpers when the user asks for sprites, PETSCII art, or screen layout tweaks.
+- Mention how VIC-II state changes (colours, sprite positions) affect follow-up memory operations.
+
+**Default tags:** `graphics`, `vic`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic. | `graphics`, `vic`, `petscii`, `basic` |
+| `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly` |
+| `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
+
+#### Printer
+> Printer workflow helpers for Commodore MPS and Epson FX devices, including prompt templates.
+
+**Workflow hints:**
+- Reach for printer tools when the user references device 4, hardcopy output, or specific printer models.
+- Clarify which workflow (Commodore vs Epson) you chose so the user can prepare matching paper or ribbons.
+
+**Default tags:** `printer`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `define_printer_chars` | Define custom characters on Commodore MPS printers using DLL mode. | `printer`, `dll`, `commodore` |
+| `print_bitmap_commodore` | Print a Commodore MPS bit-image row using BIM BASIC helpers. | `printer`, `bitmap`, `commodore` |
+| `print_bitmap_epson` | Print an Epson FX bit-image row using ESC/P commands. | `printer`, `bitmap`, `epson` |
+| `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
+
+#### Rag
+> Retrieval-augmented generation helpers for BASIC and assembly examples.
+
+**Workflow hints:**
+- Call RAG tools when the user needs references or examples before generating new code.
+- Summarise the number of refs returned and suggest follow-up actions like reading specific docs.
+
+**Default tags:** `rag`, `search`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `rag_retrieve_asm` | Retrieve 6502/6510 assembly references from local knowledge. See c64://specs/assembly. | `rag`, `search`, `asm` |
+| `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
+
+#### Developer
+> Configuration management, diagnostics, and helper utilities for advanced workflows.
+
+**Workflow hints:**
+- Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.
+- Call out any risky operations (like flash writes) so the user understands the impact.
+
+**Default tags:** `developer`, `config`, `debug`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `config_batch_update` | Apply multiple configuration changes in a single request. | `developer`, `config`, `debug`, `write` |
+| `config_get` | Read a configuration category or specific item. | `developer`, `config`, `debug`, `read` |
+| `config_list` | List configuration categories available on the Ultimate firmware. | `developer`, `config`, `debug`, `list` |
+| `config_load_from_flash` | Load configuration settings from flash storage. | `developer`, `config`, `debug`, `flash` |
+| `config_reset_to_default` | Reset configuration categories to their factory defaults. | `developer`, `config`, `debug`, `reset` |
+| `config_save_to_flash` | Persist current configuration settings to flash storage. | `developer`, `config`, `debug`, `flash` |
+| `config_set` | Set a configuration value within a category. | `developer`, `config`, `debug`, `write` |
+| `debugreg_read` | Read the Ultimate debug register ($D7FF). | `developer`, `config`, `debug` |
+| `debugreg_write` | Write a value into the Ultimate debug register ($D7FF). | `developer`, `config`, `debug` |
+| `info` | Retrieve Ultimate hardware information and status. | `developer`, `config`, `debug`, `diagnostics`, `info` |
+| `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
+
+#### Streaming
+> Long-running or streaming workflows such as audio capture or SID playback monitoring.
+
+**Workflow hints:**
+- Use streaming tools for long-running capture or monitoring workflows such as audio verification.
+- Clarify that streams keep running until stopped so the user can manage resources.
+
+**Default tags:** `stream`, `monitoring`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `stream_start` | Start an Ultimate streaming session (video/audio/debug) targeting a host:port destination. See c64://docs/index for usage notes. | `stream`, `monitoring`, `start` |
+| `stream_stop` | Stop an Ultimate streaming session (video/audio/debug). | `stream`, `monitoring`, `stop` |
+
+### Resources
+
+| Name | Summary |
 | --- | --- |
-| `read_screen` | Read 1KB starting at `$0400`, convert PETSCII to ASCII, and return the screen buffer. |
-| `read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
-| `write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
-| `reset_c64` | Trigger a soft reset via the REST API. |
-| `reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
+| `c64://docs/index` | Explains how to approach each knowledge bundle and when to consult it. |
+| `c64://context/bootstrap` | Step-by-step rules for safe automation, verification, and rollback on the Ultimate hardware. |
+| `c64://specs/basic` | Token definitions, syntax rules, and device I/O guidance for BASIC v2. |
+| `c64://specs/assembly` | Official opcode matrix, addressing modes, and zero-page strategy for the 6510 CPU. |
+| `c64://specs/sid` | Register map, waveform behaviour, and ADSR envelopes for expressive SID playback. |
+| `c64://specs/sidwave` | Defines the SIDWAVE interchange format used by the SID composer workflow. |
+| `c64://docs/sid/file-structure` | Explains PSID/RSID headers, metadata blocks, and compatibility notes for imported music. |
+| `c64://specs/vic` | Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II. |
+| `c64://specs/printer` | Covers device setup, control codes, and Ultimate 64 integration for printers. |
+| `c64://docs/printer/guide` | Quick-look workflow covering setup, troubleshooting, and sample jobs for both printer families. |
+| `c64://docs/printer/commodore-text` | Character sets, control codes, and formatting for Commodore MPS text output. |
+| `c64://docs/printer/commodore-bitmap` | Details bitmap modes, graphics commands, and data layout for MPS bitmap printing. |
+| `c64://docs/printer/epson-text` | Lists ESC/P control codes and formatting advice for Epson FX text output. |
+| `c64://docs/printer/epson-bitmap` | Explains bit-image modes, density options, and data packing for Epson bitmap jobs. |
+| `c64://docs/printer/prompts` | Reusable prompt templates that drive complex printer jobs through the MCP server. |
 
-### Basic
+### Prompts
 
-| Tool | Description |
+| Name | Description |
 | --- | --- |
-| `basic_spec` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
-| `upload_and_run_basic` | Convert BASIC source to PRG, upload, and execute on the C64. |
+| `assembly-program` | Author 6502/6510 assembly routines with precise hardware guidance. |
+| `basic-program` | Plan, implement, and verify Commodore BASIC v2 programs safely. |
+| `drive-manager` | Mount, create, or power drives while preserving running workloads. |
+| `graphics-demo` | Create VIC-II graphics demos with safe setup and validation steps. |
+| `memory-debug` | Inspect or patch memory ranges with reversible steps and logging. |
+| `printer-job` | Send formatted output to Commodore or Epson printers with safe teardown steps. |
+| `sid-music` | Compose SID music with expressive phrasing and iterative audio verification. |
 
-### Assembly
-
-| Tool | Description |
-| --- | --- |
-| `assembly_spec` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
-| `upload_and_run_asm` | Assemble 6502/6510 source to PRG and run it on the C64. |
-
-### SID (Audio)
-
-| Tool | Description |
-| --- | --- |
-| `music_compile_and_play` | Compile a SIDWAVE composition to PRG/SID and play it |
-| `sid_reset` | Reset or silence SID |
-
-### Graphics (VIC II)
-
-| Tool | Description |
-| --- | --- |
-| `vic_spec` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
-| `generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
-| `render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
-| `create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |
-
-### Printer
-
-| Tool | Description |
-| --- | --- |
-| `print_text` | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
+<!-- AUTO-GENERATED:MCP-DOCS-END -->
 
 ## Using with GitHub Copilot in VS Code 💻
 

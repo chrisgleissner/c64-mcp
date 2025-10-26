@@ -121,24 +121,30 @@ export interface ToolModuleConfig {
 export interface ToolModule {
   readonly domain: string;
   readonly summary: string;
+  readonly defaultTags: readonly string[];
+  readonly workflowHints?: readonly string[];
   describeTools(): readonly ToolDescriptor[];
   invoke(name: string, args: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult>;
 }
 
 export function defineToolModule(config: ToolModuleConfig): ToolModule {
   const defaultLifecycle = config.defaultLifecycle ?? "request-response";
-  const defaultTags = config.defaultTags ?? [];
-  const defaultResources = config.resources ?? [];
-  const defaultPrompts = config.prompts ?? [];
-  const defaultWorkflowHints = config.workflowHints ?? [];
-  const defaultPrerequisites = config.prerequisites ?? [];
-  const defaultPlatforms = config.supportedPlatforms ?? (Object.freeze(["c64u"] as const) as readonly PlatformId[]);
+  const defaultTags = Object.freeze([...(config.defaultTags ?? [])]) as readonly string[];
+  const defaultResources = Object.freeze([...(config.resources ?? [])]) as readonly string[];
+  const defaultPrompts = Object.freeze([...(config.prompts ?? [])]) as readonly string[];
+  const defaultWorkflowHints = Object.freeze([...(config.workflowHints ?? [])]) as readonly string[];
+  const defaultPrerequisites = Object.freeze([...(config.prerequisites ?? [])]) as readonly string[];
+  const defaultPlatforms = config.supportedPlatforms
+    ? Object.freeze([...(config.supportedPlatforms)]) as readonly PlatformId[]
+    : (Object.freeze(["c64u"] as const) as readonly PlatformId[]);
 
   const toolMap = new Map(config.tools.map((tool) => [tool.name, tool]));
 
   return {
     domain: config.domain,
     summary: config.summary,
+    defaultTags,
+    workflowHints: defaultWorkflowHints.length > 0 ? defaultWorkflowHints : undefined,
     describeTools(): readonly ToolDescriptor[] {
       return config.tools.map((tool) => {
         const workflowHints = mergeOptionalStrings(defaultWorkflowHints, tool.workflowHints);

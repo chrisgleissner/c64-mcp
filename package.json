@@ -11,7 +11,7 @@
     "start": "node scripts/start.mjs",
     "mcp": "node --loader ts-node/esm src/mcp-server.ts",
     "mcp:build": "npm run build && node dist/mcp-server.js",
-    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
+  "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts",
     "lint": "npm run check",
     "test": "node scripts/run-tests.mjs",
     "coverage": "c8 -r text -r lcov node scripts/run-tests.mjs",

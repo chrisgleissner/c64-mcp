@@ -16,6 +16,14 @@ interface RegisteredTool {
   readonly descriptor: ToolDescriptor;
 }
 
+export interface ToolModuleDescriptor {
+  readonly domain: string;
+  readonly summary: string;
+  readonly defaultTags: readonly string[];
+  readonly workflowHints: readonly string[];
+  readonly tools: readonly ToolDescriptor[];
+}
+
 const toolModules: readonly ToolModule[] = [
   programRunnersModule,
   memoryModule,
@@ -66,3 +74,13 @@ export const toolRegistry = {
     return entry.module.invoke(name, args, enrichedCtx);
   },
 };
+
+export function describeToolModules(): readonly ToolModuleDescriptor[] {
+  return toolModules.map((module) => ({
+    domain: module.domain,
+    summary: module.summary,
+    defaultTags: module.defaultTags,
+    workflowHints: module.workflowHints ?? [],
+    tools: module.describeTools(),
+  }));
+}
