@@ -6,6 +6,11 @@
 
 
 
+
+## 0.5.0 - 2025-10-26
+
+- No notable changes in this release.
+
 ## 0.4.0 - 2025-10-26
 
 ### Features
