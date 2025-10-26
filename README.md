@@ -104,9 +104,7 @@ node --version  # v18+ (v20+ recommended)
 
 ### Install and Run the MCP Server
 
-You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub. Prefer stdio MCP; HTTP is optional.
-
-For a quick start, the first option is recommended. If you plan to contribute code or run tests, use the third option.
+You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub if you want to run tests and contribute.
 
 #### Quick start (npx, zero-setup)
 
@@ -183,29 +181,14 @@ The dev server runs via ts-node; to build the compiled output, you can run:
 npm run build
 ```
 
-### Health Check
-
-When your MCP server starts (stdio), it logs a connectivity probe to your C64 device. For manual HTTP checks (optional), see the HTTP compatibility section below.
-
-Congratulations! You are now all set to use the MCP server with your C64 device.
-
-
 ## Documentation 📚
 
-The Agent has two main artifacts:
-
-- [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata).
-  (No manifest file required; MCP clients discover tools at runtime over stdio.)
-
-Besides this `README.md` document, the project includes extensive documentation:
-
+- [`mcp.json`](mcp.json): project configuration (entry point, env vars, metadata).
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
-- [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
-- `.github/prompts/*.prompt.md` — Request templates surfaced to agents (see `src/context.ts`).
+- [`doc/MCP_SETUP.md`](doc/MCP_SETUP) — More details on MCP setup and integration with Visual Code.
 - [`doc/developer.md`](doc/developer.md) — Development environment and workflow details.
-- [`doc/rest/c64-rest-api.md`](doc/rest/c64-rest-api.md) — Summary of the c64 REST endpoints.
-- [`data/basic/basic-spec.md`](data/basic/basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
+- [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 
 ## Configuration ⚙️
 
