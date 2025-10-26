@@ -236,7 +236,8 @@ More system, drive, file, streaming, and SID tools are available. For the full l
 1. In VS Code, select **Menu → View → Chat** to open the Copilot Chat window.
 1. At the bottom of that window, use the drop-down that lists `Agent`, `Ask`, `Edit`, and `C64`. The `C64` option should be auto-discovered from the `.github/chatmodes/c64.chatmode.md` file bundled with this project.
 1. Select **C64** to switch into the dedicated chat mode, as shown below.
-  ![VS Code C64 chat mode](./doc/img/vscode/vscode-copilot-c64-chat-mode.png)
+
+![VS Code C64 chat mode](./doc/img/vscode/vscode-copilot-c64-chat-mode.png)
 
 #### Step 6: Run Your First C64 AI Prompt
 
