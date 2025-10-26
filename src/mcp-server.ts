@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListResourcesRequestSchema,
@@ -18,6 +20,7 @@ import {
   readKnowledgeResource,
 } from "./rag/knowledgeIndex.js";
 import { initRag } from "./rag/init.js";
+import type { RagRetriever } from "./rag/types.js";
 import { toolRegistry } from "./tools/registry.js";
 import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolRunResult } from "./tools/types.js";
@@ -29,6 +32,34 @@ import { loggerFor, payloadByteLength, formatPayloadForDebug, formatErrorMessage
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = join(__dirname, "..");
+
+type CliOptions = { mode: "stdio" } | { mode: "http"; port?: number };
+
+interface ServerRuntimeContext {
+  client: C64Client;
+  rag: RagRetriever;
+  baseUrl: string;
+}
+
+function parseCliOptions(argv: string[]): CliOptions {
+  const httpIndex = argv.indexOf("--http");
+  if (httpIndex === -1) {
+    return { mode: "stdio" };
+  }
+  const portCandidate = argv[httpIndex + 1];
+  return { mode: "http", port: parsePort(portCandidate) };
+}
+
+function parsePort(raw?: string): number | undefined {
+  if (!raw || raw.startsWith("--")) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65_535) {
+    return parsed;
+  }
+  return undefined;
+}
 
 async function main() {
   console.error("Starting c64-mcp MCP server...");

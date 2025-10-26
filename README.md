@@ -181,6 +181,71 @@ The dev server runs via ts-node; to build the compiled output, you can run:
 npm run build
 ```
 
+By default the server speaks MCP over stdio, which is the recommended mode for local editor integrations such as GitHub Copilot. If you need to expose the server to other machines, you can bridge it over HTTP with:
+
+```bash
+npm start -- --http [<port>]
+```
+
+Omitting the port uses `8000`. Only switch to HTTP when remote clients require it; stdio remains the preferred option because it avoids extra networking and keeps tool discovery automatic inside your editor.
+
+### Setup GitHub Copilot in VS Code 💻
+
+GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
+
+#### Step 1: Enable MCP in Copilot Chat
+
+- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in.
+- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**.
+- Enable the **MCP** checkbox.
+- Restart VS Code.
+
+#### Step 2: Configure the C64 MCP Server
+
+Add this configuration to your workspace `.vscode/settings.json` (stdio transport):
+
+```json
+{
+  "github.copilot.chat.experimental.mcp": {
+    "servers": [
+      {
+        "name": "c64-mcp",
+        "command": "node",
+        "args": ["./node_modules/c64-mcp/dist/index.js"],
+        "type": "stdio"
+      }
+    ]
+  }
+}
+```
+
+MCP clients discover tools dynamically at runtime; no manifest file is required.
+
+#### Step 3: Start the MCP Server
+
+Normally it gets started automatically, but if not, please see the previous chapter on [Installing and Running the MCP Server](#install-and-run-the-mcp-server).
+
+Keep this running—it will log successful connectivity to your C64 device.
+
+#### Step 4: Use MCP Tools in Copilot Chat
+
+More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
+
+#### Step 5: Activate the C64 Chat Mode
+
+1. In VS Code, select **Menu → View → Chat** to open the Copilot Chat window.
+1. At the bottom of that window, use the drop-down that lists `Agent`, `Ask`, `Edit`, and `C64`. The `C64` option should be auto-discovered from the `.github/chatmodes/c64.chatmode.md` file bundled with this project.
+1. Select **C64** to switch into the dedicated chat mode, as shown below.
+  ![VS Code C64 chat mode](./doc/img/vscode/vscode-copilot-c64-chat-mode.png)
+
+#### Step 6: Run Your First C64 AI Prompt
+
+Prompt Copilot with **"Print a greeting on the screen"** to watch the MCP server upload and execute a BASIC greeting on your C64.
+
+You should now see a greeting on the screen of your C64 device:
+
+![VS Code C64 Hello World](./doc/img/vscode/vscode-copilot-hello-world.png)
+
 ## Documentation 📚
 
 - [`mcp.json`](mcp.json): project configuration (entry point, env vars, metadata).
@@ -501,49 +566,6 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-END -->
 
-## Using with GitHub Copilot in VS Code 💻
-
-GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 MCP integration:
-
-### Step 1: Enable MCP in Copilot Chat
-
-- Open VS Code and ensure GitHub Copilot Chat extension is installed and signed in.
-- Open **Settings** → **Extensions** → **GitHub Copilot** → **Chat: Experimental: MCP**.
-- Enable the **MCP** checkbox.
-- Restart VS Code.
-
-### Step 2: Configure the C64 MCP Server
-
-Add this configuration to your workspace `.vscode/settings.json` (stdio transport):
-
-```json
-{
-  "github.copilot.chat.experimental.mcp": {
-    "servers": [
-      {
-        "name": "c64-mcp",
-        "command": "node",
-        "args": ["./node_modules/c64-mcp/dist/index.js"],
-        "type": "stdio"
-      }
-    ]
-  }
-}
-```
-
-MCP clients discover tools dynamically at runtime; no manifest file is required.
-
-### Step 3: Start the MCP Server
-
-```bash
-npm start
-```
-
-Keep this running—it will log successful connectivity to your C64 device.
-
-### Step 4: Use MCP Tools in Copilot Chat
-
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
 
 
 ## Troubleshooting 🛟

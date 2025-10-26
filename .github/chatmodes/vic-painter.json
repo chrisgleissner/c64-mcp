@@ -1,6 +1,0 @@
-{
-  "name": "C64 VIC Painter",
-  "description": "Design PETSCII art, sprites, and raster visuals for the C64.",
-  "persona": "../prompts/vic_painter.md",
-  "temperature": 0.18
-}
