@@ -12,7 +12,7 @@ Your AI Bridge for the Commodore 64.
 
 ## About
 
-Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It is built on the official TypeScript `@modelcontextprotocol/sdk` and communicates over the stdio transport by default; an HTTP compatibility surface remains for manual testing.
+Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It is built on the official TypeScript `@modelcontextprotocol/sdk` and communicates over the stdio transport.
 
 Exposes tools and knowledge that enable [LLM agents](https://www.promptingguide.ai/research/llm-agents) to upload and run BASIC or assembly programs, read/write RAM, control the VIC or SID, print documents, and more.
 
@@ -272,7 +272,7 @@ Please note that all logs use `stderr` since `stdout` is reserved for the MCP pr
 
 - `npm run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
-- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the REST endpoint, and falls back to `http://c64u`. You can also override explicitly with `--base-url=http://<host>`.
+- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64mcp.json` or `C64MCP_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 
 The test runner accepts the following options:
@@ -557,7 +557,4 @@ Quick diagnosis commands:
 ```bash
 # Start stdio server
 npm start
-
-# If using optional HTTP server: quick connectivity test
-curl -s http://localhost:8000/tools/info
 ```

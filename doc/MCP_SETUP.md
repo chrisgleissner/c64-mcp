@@ -27,7 +27,7 @@ The server looks for configuration in the following order (first match wins):
 
 1. JSON file referenced by the `C64MCP_CONFIG` environment variable (if the variable is unset, the default path is `~/.c64mcp.json`)
 2. `.c64mcp.json` in the repository root
-3. Built-in defaults (`http://c64u:80`)
+3. Built-in defaults (`host=c64u`, `port=80`)
 
 Recommended configuration file:
 
