@@ -12,7 +12,7 @@ Your AI Bridge for the Commodore 64.
 
 ## About
 
-Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/).
+Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). The primary interface is the MCP SDK stdio transport; an HTTP compatibility surface remains for manual testing.
 
 Exposes tools and knowledge that enable [LLM agents](https://www.promptingguide.ai/research/llm-agents) to upload and run BASIC or assembly programs, read/write RAM, control the VIC or SID, print documents, and more.
 
@@ -104,7 +104,7 @@ node --version  # v18+ (v20+ recommended)
 
 ### Install and Run the MCP Server
 
-You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub.
+You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub. Prefer stdio MCP; HTTP is optional.
 
 For a quick start, the first option is recommended. If you plan to contribute code or run tests, use the third option.
 
@@ -113,7 +113,7 @@ For a quick start, the first option is recommended. If you plan to contribute co
 Run the prebuilt server without creating a project. npx downloads the package and expands all bundled files on disk for this session.
 
 ```sh
-HOST=127.0.0.1 PORT=8000 npx -y c64-mcp@latest
+npx -y c64-mcp@latest
 ```
 
 By default, the MCP server looks for `~/.c64mcp.json`. To target your device, create:
@@ -147,10 +147,10 @@ Create `~/.c64mcp.json` with your device settings:
 { "c64u": { "host": "c64u" } }
 ```
 
-1. Start the server:
+1. Start the server (stdio MCP):
 
 ```bash
-HOST=127.0.0.1 PORT=8000 node ./node_modules/c64-mcp/dist/index.js
+node ./node_modules/c64-mcp/dist/index.js
 ```
 
 Notes
@@ -185,37 +185,7 @@ npm run build
 
 ### Health Check
 
-When your MCP server starts, it tries to connect to your C64 device and logs success or failure.
-
-A healthy start looks like this:
-
-```sh
-> c64-mcp@0.2.2 start
-> node scripts/start.mjs
-
-{"level":30,"time":1761206855279,"pid":43066,"hostname":"mickey","status":200,"msg":"Connectivity check succeeded for c64 device at http://192.168.1.64"}
-
-...skipped...
-
-{"level":30,"time":1761206855344,"pid":43066,"hostname":"mickey","msg":"c64-mcp server listening on 127.0.0.1:8000"}
-```
-
-Once running, verify that the MCP server can reach your C64 device by querying the version endpoint:
-
-```bash
-curl -s http://127.0.0.1:8000/tools/version | jq
-```
-
-You should see the version of the REST API repoted back by your C64 and relayed to you via the MCP server:
-
-```json
-{
-  "details": {
-    "version": "0.1",
-    "errors": []
-  }
-}
-```
+When your MCP server starts (stdio), it logs a connectivity probe to your C64 device. For manual HTTP checks (optional), see the HTTP compatibility section below.
 
 Congratulations! You are now all set to use the MCP server with your C64 device.
 
@@ -225,7 +195,7 @@ Congratulations! You are now all set to use the MCP server with your C64 device.
 The Agent has two main artifacts:
 
 - [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata).
-- [`mcp-manifest.json`](mcp-manifest.json): auto-generated tool manifest consumed by MCP clients. It is regenerated via `npm run manifest` or `npm run build`. Avoid editing the generated manifest by hand.
+  (No manifest file required; MCP clients discover tools at runtime over stdio.)
 
 Besides this `README.md` document, the project includes extensive documentation:
 
@@ -321,54 +291,54 @@ The test runner accepts the following options:
 
 ## Available Tools 🧰
 
-Here is an overview of some of the most important tools. To see all available tools, use an MCP client against the running server (tools are discovered dynamically; no static manifest required).
+Here is an overview of some of the most important tools. To see all available tools, use an MCP client against the running server (tools are discovered dynamically via stdio).
 
 
 ### Control
 
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `read_screen` | `GET /tools/read_screen` | Read 1KB starting at `$0400`, convert PETSCII to ASCII, and return the screen buffer. |
-| `read_memory` | `POST /tools/read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
-| `write_memory` | `POST /tools/write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
-| `reset_c64` | `POST /tools/reset_c64` | Trigger a soft reset via the REST API. |
-| `reboot_c64` | `POST /tools/reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
+| Tool | Description |
+| --- | --- |
+| `read_screen` | Read 1KB starting at `$0400`, convert PETSCII to ASCII, and return the screen buffer. |
+| `read_memory` | Read arbitrary memory; accepts `address` and `length` in `$HEX`, `%BIN`, or decimal form and returns a hex byte string. |
+| `write_memory` | Write a hex byte sequence (`$AABBCC…`) to any RAM address specified in hex, binary, or decimal. |
+| `reset_c64` | Trigger a soft reset via the REST API. |
+| `reboot_c64` | Request a firmware reboot when a soft reset is insufficient. |
 
 ### Basic
 
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `basic_spec` | `GET /tools/basic_spec?topic=<pattern>` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
-| `upload_and_run_basic` | `POST /tools/upload_and_run_basic` | Convert BASIC source to PRG, upload, and execute on the C64. |
+| Tool | Description |
+| --- | --- |
+| `basic_spec` | Retrieve the Commodore BASIC v2 quick spec or search sections by keyword. |
+| `upload_and_run_basic` | Convert BASIC source to PRG, upload, and execute on the C64. |
 
 ### Assembly
 
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `assembly_spec` | `GET /tools/assembly_spec?topic=<pattern>` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
-| `upload_and_run_asm` | TODO | Assemble 6502/6510 source to PRG and run it on the C64. |
+| Tool | Description |
+| --- | --- |
+| `assembly_spec` | Fetch or filter the 6502/6510 assembly quick reference used for fast/machine-code prompts. |
+| `upload_and_run_asm` | Assemble 6502/6510 source to PRG and run it on the C64. |
 
 ### SID (Audio)
 
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `music_compile_and_play` | TODO | Compile a SIDWAVE (`.sid.yaml` / `.sidwave.yaml` or JSON) composition to PRG/SID and play it |
-| `sid_reset` | TODO | Reset or silence SID |
+| Tool | Description |
+| --- | --- |
+| `music_compile_and_play` | Compile a SIDWAVE composition to PRG/SID and play it |
+| `sid_reset` | Reset or silence SID |
 
 ### Graphics (VIC II)
 
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `vic_spec` | `GET /tools/vic_spec?topic=<pattern>` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
-| `generate_sprite_prg` | `POST /tools/generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
-| `render_petscii_screen` | `POST /tools/render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
-| `create_petscii_image` | `POST /tools/create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |
+| Tool | Description |
+| --- | --- |
+| `vic_spec` | VIC-II graphics/timing knowledge including PAL/NTSC geometry, badlines, DMA steals, border windows. |
+| `generate_sprite_prg` | Build and run a PRG that displays one sprite from 63 raw bytes (hex/base64); options: `index`, `x`, `y`, `color`, `multicolour`. |
+| `render_petscii_screen` | Generate and run a BASIC program that clears screen, sets colours, and prints PETSCII text. |
+| `create_petscii_image` | Produce PETSCII character art from prompts/text (max 320×200 bitmap) and run the generated BASIC program on the C64. |
 
 ### Printer
 
-| Tool | Endpoint | Description |
-| --- | --- | --- |
-| `print_text` | TODO | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
+| Tool | Description |
+| --- | --- |
+| `print_text` | Generate a BASIC program to print text to device 4 (Commodore MPS by default) and run it |
 
 ## Using with GitHub Copilot in VS Code 💻
 
@@ -383,7 +353,7 @@ GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 
 
 ### Step 2: Configure the C64 MCP Server
 
-Add this configuration to your workspace `.vscode/settings.json`:
+Add this configuration to your workspace `.vscode/settings.json` (stdio transport):
 
 ```json
 {
@@ -391,15 +361,16 @@ Add this configuration to your workspace `.vscode/settings.json`:
     "servers": [
       {
         "name": "c64-mcp",
-        "url": "http://localhost:8000",
-        "type": "http"
+        "command": "node",
+        "args": ["./node_modules/c64-mcp/dist/index.js"],
+        "type": "stdio"
       }
     ]
   }
 }
 ```
 
-You can optionally set the `manifestPath` to point at `mcp-manifest.json`, but the official SDK server surface does not require a static manifest.
+MCP clients discover tools dynamically at runtime; no manifest file is required.
 
 ### Step 3: Start the MCP Server
 
@@ -413,26 +384,21 @@ Keep this running—it will log successful connectivity to your C64 device.
 
 More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
 
-## Minimal CLI interaction 💻
+## Optional HTTP compatibility
 
-If you want to exercise the MCP endpoints from a terminal, you can call them directly with `curl` (or any HTTP client). Examples:
+An HTTP server remains available for manual testing and scripting. It exposes endpoints under `/tools/*`. To enable it locally, export a `PORT` (e.g. 8000) before start:
 
 ```bash
-# Upload and run HELLO WORLD
-curl -s -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"program": "10 PRINT \"HELLO\"\n20 GOTO 10"}' \
-  http://localhost:8000/tools/upload_and_run_basic | jq
-
-# Fetch the current screen buffer
-curl -s http://localhost:8000/tools/read_screen | jq
-
-# Reset or reboot the machine
-curl -s -X POST http://localhost:8000/tools/reset_c64
-curl -s -X POST http://localhost:8000/tools/reboot_c64
+PORT=8000 npm start
 ```
 
-Any endpoint listed in the generated `mcp-manifest.json` (or `src/mcpManifest.json`) can be invoked the same way by posting JSON to `/tools/<name>`.
+Example curl call (when HTTP server is enabled):
+
+```bash
+curl -s http://localhost:8000/tools/info | jq
+```
+
+When using the optional HTTP server, endpoints live under `/tools/*`.
 
 ## Local RAG 🕸️
 
@@ -559,14 +525,11 @@ If the MCP server is not reachable or VS Code integration isn't working, see the
 Quick diagnosis commands:
 
 ```bash
-# Check if server is running
-lsof -i :8000
+# Start stdio server
+npm start
 
-# Test basic connectivity  
+# If using optional HTTP server: quick connectivity test
 curl -s http://localhost:8000/tools/info
-
-# Emergency restart
-pkill -f "npm start" && PORT=8000 npm start
 ```
 
 ## Developer Docs 📖
