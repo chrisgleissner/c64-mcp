@@ -20,10 +20,11 @@ import {
 import { initRag } from "./rag/init.js";
 import { toolRegistry } from "./tools/registry.js";
 import { unknownErrorResult } from "./tools/errors.js";
-import type { ToolLogger, ToolRunResult } from "./tools/types.js";
+import type { ToolRunResult } from "./tools/types.js";
 import { createPromptRegistry, type PromptSegment } from "./prompts/registry.js";
 import { describePlatformCapabilities, getPlatformStatus, setPlatform } from "./platform.js";
-import axios from "axios";
+import axios, { type AxiosResponse } from "axios";
+import { loggerFor, payloadByteLength, formatPayloadForDebug, formatErrorMessage } from "./logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,7 +40,9 @@ async function main() {
   const client = new C64Client(baseUrl);
   const rag = await initRag();
 
-  const toolLogger = createToolLogger();
+  const toolLogger = loggerFor("tool");
+  const resourceLogger = loggerFor("resource");
+  const promptLogger = loggerFor("prompt");
   const promptRegistry = createPromptRegistry();
 
   // Create MCP server
@@ -59,6 +62,8 @@ async function main() {
 
   // RESOURCES: Expose C64 knowledge base
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    const startedAt = Date.now();
+    try {
       const knowledgeResources = listKnowledgeResources().map((resource) => ({
         uri: resource.uri,
         name: resource.name,
@@ -69,14 +74,37 @@ async function main() {
 
       const platformResource = createPlatformResourceDescriptor();
 
-      return {
+      const response = {
         resources: [...knowledgeResources, platformResource],
       };
+
+      const latency = Date.now() - startedAt;
+      const bytes = payloadByteLength(response);
+      resourceLogger.info(`list resources count=${response.resources.length} bytes=${bytes} latencyMs=${latency}`);
+
+      if (resourceLogger.isDebugEnabled()) {
+        resourceLogger.debug("list resources request", { request: {} });
+        resourceLogger.debug("list resources response", { response: formatPayloadForDebug(response) });
+      }
+
+      return response;
+    } catch (error) {
+      const latency = Date.now() - startedAt;
+      resourceLogger.error(`list resources failed bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      if (resourceLogger.isDebugEnabled()) {
+        resourceLogger.debug("list resources request", { request: {} });
+        resourceLogger.debug("list resources error", { error: formatErrorMessage(error) });
+      }
+      throw error;
+    }
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const startedAt = Date.now();
+    try {
+      let response;
       if (request.params.uri === PLATFORM_RESOURCE_URI) {
-        return {
+        response = {
           contents: [
             {
               uri: PLATFORM_RESOURCE_URI,
@@ -85,55 +113,119 @@ async function main() {
             },
           ],
         };
+      } else {
+        const result = readKnowledgeResource(request.params.uri, PROJECT_ROOT);
+        if (!result) {
+          throw new Error(`Unknown resource: ${request.params.uri}`);
+        }
+        response = {
+          contents: [result],
+        };
       }
 
-      const result = readKnowledgeResource(request.params.uri, PROJECT_ROOT);
-      if (!result) {
-        throw new Error(`Unknown resource: ${request.params.uri}`);
+      const latency = Date.now() - startedAt;
+      const bytes = payloadByteLength(response);
+      resourceLogger.info(`read resource uri=${request.params.uri} bytes=${bytes} latencyMs=${latency}`);
+
+      if (resourceLogger.isDebugEnabled()) {
+        resourceLogger.debug("read resource request", { request: formatPayloadForDebug(request.params) });
+        resourceLogger.debug("read resource response", { response: formatPayloadForDebug(response) });
       }
 
-    return {
-      contents: [result],
-    };
+      return response;
+    } catch (error) {
+      const latency = Date.now() - startedAt;
+      resourceLogger.error(`read resource uri=${request.params.uri} bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      if (resourceLogger.isDebugEnabled()) {
+        resourceLogger.debug("read resource request", { request: formatPayloadForDebug(request.params) });
+        resourceLogger.debug("read resource error", { error: formatErrorMessage(error) });
+      }
+      throw error;
+    }
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: toolRegistry.list(),
-    };
+    const startedAt = Date.now();
+    try {
+      const response = {
+        tools: toolRegistry.list(),
+      };
+      const latency = Date.now() - startedAt;
+      const bytes = payloadByteLength(response);
+      toolLogger.info(`list tools count=${response.tools.length} bytes=${bytes} latencyMs=${latency}`);
+
+      if (toolLogger.isDebugEnabled()) {
+        toolLogger.debug("list tools request", { request: {} });
+        toolLogger.debug("list tools response", { response: formatPayloadForDebug(response) });
+      }
+
+      return response;
+    } catch (error) {
+      const latency = Date.now() - startedAt;
+      toolLogger.error(`list tools failed bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      if (toolLogger.isDebugEnabled()) {
+        toolLogger.debug("list tools request", { request: {} });
+        toolLogger.debug("list tools error", { error: formatErrorMessage(error) });
+      }
+      throw error;
+    }
   });
 
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    const entries = promptRegistry.list();
-    return {
-      prompts: entries.map((entry) => ({
-        name: entry.descriptor.name,
-        title: entry.descriptor.title,
-        description: entry.descriptor.description,
-        arguments: entry.arguments?.map((argument) => ({
-          name: argument.name,
-          description: argument.description,
-          required: argument.required,
-          options: argument.options,
+    const startedAt = Date.now();
+    try {
+      const entries = promptRegistry.list();
+      const response = {
+        prompts: entries.map((entry) => ({
+          name: entry.descriptor.name,
+          title: entry.descriptor.title,
+          description: entry.descriptor.description,
+          arguments: entry.arguments?.map((argument) => ({
+            name: argument.name,
+            description: argument.description,
+            required: argument.required,
+            options: argument.options,
+          })),
+          _meta: {
+            requiredResources: entry.descriptor.requiredResources,
+            optionalResources: entry.descriptor.optionalResources ?? [],
+            tools: entry.descriptor.tools,
+            tags: entry.descriptor.tags ?? [],
+          },
         })),
-        _meta: {
-          requiredResources: entry.descriptor.requiredResources,
-          optionalResources: entry.descriptor.optionalResources ?? [],
-          tools: entry.descriptor.tools,
-          tags: entry.descriptor.tags ?? [],
-        },
-      })),
-    };
+      };
+
+      const latency = Date.now() - startedAt;
+      const bytes = payloadByteLength(response);
+      promptLogger.info(`list prompts count=${response.prompts.length} bytes=${bytes} latencyMs=${latency}`);
+
+      if (promptLogger.isDebugEnabled()) {
+        promptLogger.debug("list prompts request", { request: {} });
+        promptLogger.debug("list prompts response", { response: formatPayloadForDebug(response) });
+      }
+
+      return response;
+    } catch (error) {
+      const latency = Date.now() - startedAt;
+      promptLogger.error(`list prompts failed bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      if (promptLogger.isDebugEnabled()) {
+        promptLogger.debug("list prompts request", { request: {} });
+        promptLogger.debug("list prompts error", { error: formatErrorMessage(error) });
+      }
+      throw error;
+    }
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name } = request.params;
     const args = request.params.arguments ?? {};
     const startedAt = Date.now();
-
-    toolLogger.debug(`Invoking tool ${name}`, {
-      hasArguments: args && typeof args === "object" && Object.keys(args).length > 0,
-    });
+    if (toolLogger.isDebugEnabled()) {
+      toolLogger.debug("tool request", {
+        name,
+        arguments: formatPayloadForDebug(args),
+      });
+    }
 
     try {
       const result = await toolRegistry.invoke(name, args, {
@@ -144,40 +236,96 @@ async function main() {
         setPlatform,
       });
 
-      toolLogger.debug(`Tool ${name} completed`, {
-        durationMs: Date.now() - startedAt,
-      });
+      const response = toCallToolResult(result);
+      const latency = Date.now() - startedAt;
+      const bytes = payloadByteLength(response);
+      const status = result.isError ? "error" : "ok";
 
-      return toCallToolResult(result);
+      toolLogger.info(`call tool name=${name} status=${status} bytes=${bytes} latencyMs=${latency}`);
+
+      if (toolLogger.isDebugEnabled()) {
+        toolLogger.debug("tool response", {
+          name,
+          response: formatPayloadForDebug(response),
+        });
+      }
+
+      return response;
     } catch (error) {
-      toolLogger.error(`Tool ${name} failed`, {
-        durationMs: Date.now() - startedAt,
-        message: error instanceof Error ? error.message : String(error),
-      });
-      return toCallToolResult(unknownErrorResult(error));
+      const latency = Date.now() - startedAt;
+      const fallback = unknownErrorResult(error);
+      const response = toCallToolResult(fallback);
+      const bytes = payloadByteLength(response);
+
+      toolLogger.error(`call tool name=${name} status=failed bytes=${bytes} latencyMs=${latency} error=${formatErrorMessage(error)}`);
+
+      if (toolLogger.isDebugEnabled()) {
+        toolLogger.debug("tool response", {
+          name,
+          response: formatPayloadForDebug(response),
+          error: formatErrorMessage(error),
+        });
+      }
+
+      return response;
     }
   });
 
   server.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const { name } = request.params;
     const args = request.params.arguments ?? {};
-    const resolved = promptRegistry.resolve(name, args);
+    const startedAt = Date.now();
 
-    return {
-      description: resolved.description,
-      messages: resolved.messages.map(toPromptMessage),
-      _meta: {
-        arguments: resolved.arguments,
-        resources: resolved.resources.map((resource) => ({
-          uri: resource.uri,
-          name: resource.name,
-          description: resource.description,
-          mimeType: resource.mimeType,
-          metadata: resource.metadata,
-        })),
-        tools: resolved.tools,
-      },
-    };
+    if (promptLogger.isDebugEnabled()) {
+      promptLogger.debug("prompt request", {
+        name,
+        arguments: formatPayloadForDebug(args),
+      });
+    }
+
+    try {
+      const resolved = promptRegistry.resolve(name, args);
+
+      const response = {
+        description: resolved.description,
+        messages: resolved.messages.map(toPromptMessage),
+        _meta: {
+          arguments: resolved.arguments,
+          resources: resolved.resources.map((resource) => ({
+            uri: resource.uri,
+            name: resource.name,
+            description: resource.description,
+            mimeType: resource.mimeType,
+            metadata: resource.metadata,
+          })),
+          tools: resolved.tools,
+        },
+      };
+
+      const latency = Date.now() - startedAt;
+      const bytes = payloadByteLength(response);
+      promptLogger.info(`get prompt name=${name} bytes=${bytes} latencyMs=${latency}`);
+
+      if (promptLogger.isDebugEnabled()) {
+        promptLogger.debug("prompt response", {
+          name,
+          response: formatPayloadForDebug(response),
+        });
+      }
+
+      return response;
+    } catch (error) {
+      const latency = Date.now() - startedAt;
+      promptLogger.error(`get prompt name=${name} bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      if (promptLogger.isDebugEnabled()) {
+        promptLogger.debug("prompt request", {
+          name,
+          arguments: formatPayloadForDebug(args),
+        });
+        promptLogger.debug("prompt error", { name, error: formatErrorMessage(error) });
+      }
+      throw error;
+    }
   });
 
   // Connect via stdio
@@ -254,38 +402,47 @@ function renderPlatformStatusMarkdown(): string {
 }
 
 async function logConnectivity(client: C64Client, baseUrl: string): Promise<void> {
-  try {
-    const response = await axios.get(baseUrl, { timeout: 2000 }).catch(() => null);
-    if (response) {
-      console.log(`Connectivity check succeeded for c64 device at ${baseUrl}`);
-    } else {
-      console.log(`Skipping direct REST connectivity probe (no hardware REST base reachable at ${baseUrl})`);
-      return;
-    }
+  const c64Logger = loggerFor("c64u");
+  const startedAt = Date.now();
+  let response: AxiosResponse | null = null;
 
-    try {
-      const memoryAddress = "$0000";
-      const memoryResult = await client.readMemory(memoryAddress, "1");
-      if (memoryResult.success && memoryResult.data) {
-        console.log(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}`);
-      } else if (memoryResult.details) {
-        console.warn(`Zero-page probe failed: ${JSON.stringify(memoryResult.details)}`);
-      }
-    } catch (memoryError) {
-      const message = memoryError instanceof Error ? memoryError.message : String(memoryError);
-      console.warn(`Zero-page probe skipped or failed (may be unsupported on current backend): ${message}`);
-    }
+  try {
+    const probeResponse = await axios.get(baseUrl, { timeout: 2000 });
+    response = probeResponse;
+    const latency = Date.now() - startedAt;
+    const bytes = payloadByteLength(probeResponse.data);
+    c64Logger.info(`GET ${baseUrl} status=${probeResponse.status} bytes=${bytes} latencyMs=${latency}`);
   } catch (error) {
-    let message: string;
+    const latency = Date.now() - startedAt;
     if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
-      message = status ? `${error.message} (status ${status})` : error.message;
-    } else if (error instanceof Error) {
-      message = error.message;
+      const status = error.response?.status ?? "ERR";
+      const bytes = error.response ? payloadByteLength(error.response.data) : 0;
+      c64Logger.warn(`GET ${baseUrl} status=${status} bytes=${bytes} latencyMs=${latency} error=${formatErrorMessage(error)}`);
     } else {
-      message = String(error);
+      c64Logger.error(`GET ${baseUrl} status=ERR bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
     }
-    console.warn(`Connectivity check failed for c64 device at ${baseUrl}: ${message}`);
+    console.log(`Skipping direct REST connectivity probe (no hardware REST base reachable at ${baseUrl})`);
+    return;
+  }
+
+  if (!response) {
+    console.log(`Skipping direct REST connectivity probe (no hardware REST base reachable at ${baseUrl})`);
+    return;
+  }
+
+  console.log(`Connectivity check succeeded for c64 device at ${baseUrl}`);
+
+  try {
+    const memoryAddress = "$0000";
+    const memoryResult = await client.readMemory(memoryAddress, "1");
+    if (memoryResult.success && memoryResult.data) {
+      console.log(`Zero-page probe @ ${memoryAddress}: ${memoryResult.data}`);
+    } else if (memoryResult.details) {
+      console.warn(`Zero-page probe failed: ${JSON.stringify(memoryResult.details)}`);
+    }
+  } catch (memoryError) {
+    const message = memoryError instanceof Error ? memoryError.message : String(memoryError);
+    console.warn(`Zero-page probe skipped or failed (may be unsupported on current backend): ${message}`);
   }
 }
 
@@ -308,37 +465,6 @@ function toCallToolResult(result: ToolRunResult): {
   }
 
   return base;
-}
-
-function createToolLogger(): ToolLogger {
-  const log = (level: "debug" | "info" | "warn" | "error", message: string, details?: Record<string, unknown>) => {
-    if (process.env.NODE_ENV === "test") {
-      return;
-    }
-
-    const method = (console[level] as ((...args: unknown[]) => void) | undefined) ?? console.log;
-    const payload = details && Object.keys(details).length > 0 ? details : undefined;
-    if (payload) {
-      method(`[tools] ${message}`, payload);
-    } else {
-      method(`[tools] ${message}`);
-    }
-  };
-
-  return {
-    debug(message, details) {
-      log("debug", message, details);
-    },
-    info(message, details) {
-      log("info", message, details);
-    },
-    warn(message, details) {
-      log("warn", message, details);
-    },
-    error(message, details) {
-      log("error", message, details);
-    },
-  };
 }
 
 function toPromptMessage(segment: PromptSegment): {

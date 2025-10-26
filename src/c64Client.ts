@@ -14,6 +14,7 @@ import { petsciiToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
 import { C64Facade, createFacade } from "./device.js";
 import { Api, HttpClient } from "../generated/c64/index.js";
+import { createLoggingHttpClient } from "./loggingHttpClient.js";
 
 export interface RunBasicResult {
   success: boolean;
@@ -32,7 +33,7 @@ export class C64Client {
   private readonly facadePromise: Promise<C64Facade>;
 
   constructor(baseUrl: string) {
-    this.http = new HttpClient({ baseURL: baseUrl, timeout: 10_000 });
+    this.http = createLoggingHttpClient({ baseURL: baseUrl, timeout: 10_000 });
     this.api = new Api(this.http);
     // Select backend once lazily; keep REST for hardware-specific fallbacks
     this.facadePromise = createFacade(undefined, { preferredC64uBaseUrl: baseUrl }).then((sel) => sel.facade);

@@ -83,7 +83,7 @@ function createRagTool(language: RagLanguage, options: { description: string; su
         const parsed = ragRetrieveArgsSchema.parse(args ?? {});
         const limit = parsed.k ?? 3;
 
-        ctx.logger.info("Retrieving RAG references", {
+        ctx.logger.debug("Retrieving RAG references", {
           language,
           queryLength: parsed.q.length,
           limit,

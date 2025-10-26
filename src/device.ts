@@ -8,7 +8,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Api, HttpClient } from "../generated/c64/index.js";
+import { Api } from "../generated/c64/index.js";
+import { createLoggingHttpClient } from "./loggingHttpClient.js";
 
 export type DeviceType = "c64u" | "vice";
 
@@ -110,7 +111,7 @@ class C64uBackend implements C64Facade {
   constructor(config: C64uConfig) {
     const baseUrl = resolveBaseUrl(config);
     this.baseUrl = baseUrl;
-    const http = new HttpClient({ baseURL: baseUrl, timeout: 10_000 });
+  const http = createLoggingHttpClient({ baseURL: baseUrl, timeout: 10_000 });
     this.api = new Api(http);
   }
 

@@ -8,6 +8,7 @@ import path from "node:path";
 import { LocalMiniHashEmbedding } from "./embeddings.js";
 import { buildAllIndexes, loadIndexes } from "./indexer.js";
 import { LocalRagRetriever } from "./retriever.js";
+import { LoggingRagRetriever } from "./loggingRetriever.js";
 import type { RagRetriever } from "./types.js";
 const EXTERNAL_DIR = path.resolve("external");
 const BASIC_DATA_DIR = path.resolve("data/basic/examples");
@@ -48,7 +49,8 @@ export async function initRag(): Promise<RagRetriever> {
 
   const embeddingsDir = resolveEmbeddingsDir();
   const { basic, asm, mixed, hardware, other } = await loadIndexes({ embeddingsDir });
-  const retriever = new LocalRagRetriever(model, { basic, asm, mixed, hardware, other });
+  const baseRetriever = new LocalRagRetriever(model, { basic, asm, mixed, hardware, other });
+  const loggingRetriever = new LoggingRagRetriever(baseRetriever);
 
   // Background watcher: reindex if source files change (checks mtimes periodically)
   // Default disabled to avoid churn/conflicts unless explicitly enabled
@@ -59,7 +61,7 @@ export async function initRag(): Promise<RagRetriever> {
         if (await needsRebuild()) {
           await buildAllIndexes({ model });
           const updated = await loadIndexes({ embeddingsDir: resolveEmbeddingsDir() });
-          retriever.updateIndexes(updated);
+          baseRetriever.updateIndexes(updated);
         }
       } catch (err) {
         // swallow in background to avoid crashing server
@@ -69,7 +71,7 @@ export async function initRag(): Promise<RagRetriever> {
     }, intervalMs).unref();
   }
 
-  return retriever;
+  return loggingRetriever;
 }
 
 async function fileMtime(file: string): Promise<number | null> {
