@@ -183,20 +183,12 @@ npm run build
 
 ## Documentation 📚
 
-The Agent has two main artifacts:
-
-- [`mcp.json`](mcp.json):  human-maintained project configuration (entry point, env vars, metadata).
-  (No manifest file required; MCP clients discover tools at runtime over stdio.)
-
-Besides this `README.md` document, the project includes extensive documentation:
-
+- [`mcp.json`](mcp.json): project configuration (entry point, env vars, metadata).
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
-- [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
-- `.github/prompts/*.prompt.md` — Request templates surfaced to agents (see `src/context.ts`).
+- [`doc/MCP_SETUP.md`](doc/MCP_SETUP) — More details on MCP setup and integration with Visual Code.
 - [`doc/developer.md`](doc/developer.md) — Development environment and workflow details.
-- [`doc/rest/c64-rest-api.md`](doc/rest/c64-rest-api.md) — Summary of the c64 REST endpoints.
-- [`data/basic/basic-spec.md`](data/basic/basic-spec.md) — BASIC tokenisation and PRG file layout.
 - [`doc/rest/c64-openapi.yaml`](doc/rest/c64-openapi.yaml) — OpenAPI 3.1 description of the REST surface.
+- [`data/context/bootstrap.md`](data/context/bootstrap.md) — Core primer injected ahead of agent prompts.
 
 ## Configuration ⚙️
 
