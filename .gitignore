@@ -1,3 +1,17 @@
-# Ignore agent state and temp test artifacts
-.c64bridge/
-/.tmp-meta-tests/
+node_modules/
+dist/
+build/
+.env
+.c64bridge
+*.pid
+*.log
+*.tsbuildinfo
+.DS_Store
+artifacts/
+external/
+tmp/
+.tmp/
+test/tmp/
+publish/
+generated/**/*.js
+generated/**/*.js.map
