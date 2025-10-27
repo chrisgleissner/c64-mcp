@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "id": "t1",
+      "name": "t1",
+      "operation": "read_memory",
+      "args": {
+        "address": "$0400",
+        "length": 1
+      },
+      "intervalMs": 5,
+      "maxIterations": 2,
+      "iterations": 2,
+      "status": "completed",
+      "startedAt": 1761567219484,
+      "updatedAt": 1761567219495,
+      "nextRunAt": 1761567219495,
+      "stoppedAt": 1761567219524
+    }
+  ]
+}

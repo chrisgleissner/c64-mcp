@@ -533,6 +533,27 @@ The test runner accepts the following options:
 | `stream_start` | Start an Ultimate streaming session (video/audio/debug) targeting a host:port destination. See c64://docs/index for usage notes. | `stream`, `monitoring`, `start` |
 | `stream_stop` | Stop an Ultimate streaming session (video/audio/debug). | `stream`, `monitoring`, `stop` |
 
+#### Meta
+> High-level meta tools that orchestrate multiple MCP actions.
+
+**Workflow hints:**
+- Use meta tools to reduce round-trips by composing several steps into one.
+
+**Default tags:** `meta`, `orchestration`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `config_snapshot_and_restore` | Read all configuration categories and write a versioned snapshot, or restore from a snapshot; supports diff mode. | `meta`, `orchestration`, `config`, `snapshot` |
+| `find_paths_by_name` | Return device paths whose names contain a substring; supports simple extension filters and wildcard-aware firmware search. | `meta`, `orchestration`, `files`, `discover` |
+| `firmware_info_and_healthcheck` | Fetch firmware version and info, probe zero-page read, and return readiness with latencies. | `meta`, `orchestration`, `diagnostics` |
+| `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `background`, `scheduler` |
+| `memory_dump_to_file` | Chunked memory dump with retries; optional pause/resume; writes hex or binary and a manifest. | `meta`, `orchestration`, `memory`, `dump`, `file` |
+| `start_background_task` | Start a background task that runs an operation at a fixed interval for N iterations or indefinitely. | `meta`, `orchestration`, `background`, `scheduler` |
+| `stop_all_background_tasks` | Stop all active background tasks. | `meta`, `orchestration`, `background`, `scheduler` |
+| `stop_background_task` | Stop a named background task. | `meta`, `orchestration`, `background`, `scheduler` |
+| `verify_and_write_memory` | Pause → read → verify (optional) → write → read-back → resume. Aborts on mismatch unless override. | `meta`, `orchestration`, `memory`, `write`, `verify` |
+| `wait_for_screen_text` | Poll screen until a regex or substring matches, within a timeout. | `meta`, `orchestration`, `screen`, `assert` |
+
 ### Resources
 
 | Name | Summary |

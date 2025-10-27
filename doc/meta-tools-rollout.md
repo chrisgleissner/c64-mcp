@@ -30,25 +30,25 @@ Notes:
 ---
 
 ### Phase 0 — Foundations (low-effort, high-benefit, unlocks others)
-- [ ] `firmware_info_and_healthcheck` — Implementation notes:
+- [x] `firmware_info_and_healthcheck` — Implementation notes:
   - Compose version, info, and a tiny `readmem` probe. Return structured readiness.
   - Use short, bounded timeouts; capture latency metrics.
-- [ ] `wait_for_screen_text` — Implementation notes:
+- [x] `wait_for_screen_text` — Implementation notes:
   - Poll screen RAM via existing helper; support regex and plain text. Provide timeout and interval.
   - Return match bounds and elapsed time.
-- [ ] `verify_and_write_memory` — Implementation notes:
+- [x] `verify_and_write_memory` — Implementation notes:
   - Pause → read → verify → write → read-back → resume. Abort on mismatch.
   - Parameterize verification masks and expected buffer; return a diff when failing.
-- [ ] `start_background_task` / `stop_background_task` / `list_background_tasks` / `stop_all_background_tasks` — Implementation notes:
+- [x] `start_background_task` / `stop_background_task` / `list_background_tasks` / `stop_all_background_tasks` — Implementation notes:
   - Implement a persistent registry (in-memory with serialized state to disk if available).
   - Support fixed-interval scheduling and a maximum iterations cap.
-- [ ] `find_paths_by_name` — Implementation notes:
+- [x] `find_paths_by_name` — Implementation notes:
   - Container-aware discovery using wildcard info endpoints; return host and logical paths.
   - Cache recent results with a short TTL to avoid repeated scans.
-- [ ] `memory_dump_to_file` — Implementation notes:
+- [x] `memory_dump_to_file` — Implementation notes:
   - Chunked reads with retries; optional pause/resume. Support hex and binary formats.
   - Emit a checksum and write a manifest alongside the dump.
-- [ ] `config_snapshot_and_restore` — Implementation notes:
+- [x] `config_snapshot_and_restore` — Implementation notes:
   - Read all categories, persist versioned JSON; support batch restore and diff preview.
 
 Requirement: After each checkbox completion, run `npm run check` and proceed only on success.
