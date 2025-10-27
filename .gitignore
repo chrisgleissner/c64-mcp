@@ -2,6 +2,7 @@ node_modules/
 dist/
 build/
 .env
+.c64bridge
 *.pid
 *.log
 *.tsbuildinfo
@@ -11,6 +12,7 @@ external/
 tmp/
 .tmp/
 test/tmp/
+.tmp-meta-tests/
 publish/
 generated/**/*.js
 generated/**/*.js.map

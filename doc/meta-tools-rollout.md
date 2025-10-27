@@ -2,7 +2,16 @@
 
 Purpose: Provide a concrete, dependency-aware rollout approach for the meta tools defined in `doc/meta-tools.md`. This plan gives ordered, checkable task lists and high-level implementation notes. It is written so another LLM can execute the rollout autonomously.
 
+### Required reading
+
+The following documents need to be read and understood before starting the rollout:
+
+- `doc/meta-tools.md` — Meta tools definitions, effort/benefit/dependencies matrix
+- `doc/agent-state-spec.md` — Background task registry and persistence model
+- `doc/developer.md` — Architecture overview and contribution guidelines
+
 ### Operator rules for the LLM performing the rollout
+
 - Always work tasks strictly in order as listed. Do not skip ahead unless a task is cancelled.
 - After each checklist item, run the full build and test suite and proceed only if it passes:
   - Preferred: `npm run check` (build + tests) or `npm test` if already built.
@@ -15,6 +24,7 @@ Purpose: Provide a concrete, dependency-aware rollout approach for the meta tool
 - Respect device-affecting safeguards already in the codebase (pause/resume, stream mutual exclusion, time limits).
 
 ### Global implementation template (apply per meta tool)
+
 - [ ] Read the tool’s entry in `doc/meta-tools.md` and its Effort/Benefit/Dependencies.
 - [ ] Verify prerequisites (dependencies implemented). If missing, pause and complete dependencies first.
 - [ ] Implement the meta tool wrapper in the MCP server (compose existing low-level tools; avoid firmware-only assumptions).
@@ -23,6 +33,7 @@ Purpose: Provide a concrete, dependency-aware rollout approach for the meta tool
 - [ ] Run full build + tests: `npm run check` must pass.
 
 Notes:
+
 - Do not expand the REST surface; meta tools must compose existing MCP tools.
 - Ensure mutual exclusion where streams and debug capture conflict.
 - Enforce timeouts and guardrails for background/scheduled operations.
@@ -30,25 +41,26 @@ Notes:
 ---
 
 ### Phase 0 — Foundations (low-effort, high-benefit, unlocks others)
-- [ ] `firmware_info_and_healthcheck` — Implementation notes:
+
+- [x] `firmware_info_and_healthcheck` — Implementation notes:
   - Compose version, info, and a tiny `readmem` probe. Return structured readiness.
   - Use short, bounded timeouts; capture latency metrics.
-- [ ] `wait_for_screen_text` — Implementation notes:
+- [x] `wait_for_screen_text` — Implementation notes:
   - Poll screen RAM via existing helper; support regex and plain text. Provide timeout and interval.
   - Return match bounds and elapsed time.
-- [ ] `verify_and_write_memory` — Implementation notes:
+- [x] `verify_and_write_memory` — Implementation notes:
   - Pause → read → verify → write → read-back → resume. Abort on mismatch.
   - Parameterize verification masks and expected buffer; return a diff when failing.
-- [ ] `start_background_task` / `stop_background_task` / `list_background_tasks` / `stop_all_background_tasks` — Implementation notes:
+- [x] `start_background_task` / `stop_background_task` / `list_background_tasks` / `stop_all_background_tasks` — Implementation notes:
   - Implement a persistent registry (in-memory with serialized state to disk if available).
   - Support fixed-interval scheduling and a maximum iterations cap.
-- [ ] `find_paths_by_name` — Implementation notes:
+- [x] `find_paths_by_name` — Implementation notes:
   - Container-aware discovery using wildcard info endpoints; return host and logical paths.
   - Cache recent results with a short TTL to avoid repeated scans.
-- [ ] `memory_dump_to_file` — Implementation notes:
+- [x] `memory_dump_to_file` — Implementation notes:
   - Chunked reads with retries; optional pause/resume. Support hex and binary formats.
   - Emit a checksum and write a manifest alongside the dump.
-- [ ] `config_snapshot_and_restore` — Implementation notes:
+- [x] `config_snapshot_and_restore` — Implementation notes:
   - Read all categories, persist versioned JSON; support batch restore and diff preview.
 
 Requirement: After each checkbox completion, run `npm run check` and proceed only on success.
@@ -56,6 +68,7 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 ---
 
 ### Phase 1 — Orchestration and assertions
+
 - [ ] `program_shuffle` — Implementation notes:
   - Discover PRG/CRT under root; run each for a duration; capture screen; soft reset.
   - Persist a light run log per program.
@@ -71,6 +84,7 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 ---
 
 ### Phase 2 — Filesystem and drives
+
 - [ ] `drive_mount_and_verify` — Implementation notes:
   - Power on if needed; mount; reset; verify via drives list. Retry with backoff.
 - [ ] `create_and_mount_blank_d64` — Implementation notes:
@@ -87,12 +101,14 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
   - Produce reversible quarantine plan; default dry-run; require explicit confirm to apply.
 
 Optional in this phase:
+
 - [ ] `drive_mode_profile_switch`
 - [ ] `eject_and_poweroff_drive`
 
 ---
 
 ### Phase 3 — Graphics and screen pipelines
+
 - [ ] `extract_sprites_from_ram` — Implementation notes:
   - Search with stride for 63-byte sprite patterns; export `.spr`/hex/base64.
 - [ ] `rip_charset_from_ram` — Implementation notes:
@@ -105,6 +121,7 @@ Optional in this phase:
 ---
 
 ### Phase 4 — SID and audio
+
 - [ ] `silence_and_verify` — Implementation notes:
   - Write SID reset/silence; record short audio; verify threshold.
 - [ ] `music_compile_play_analyze` — Implementation notes:
@@ -115,6 +132,7 @@ Optional in this phase:
 ---
 
 ### Phase 5 — Debug stream workflows (post‑GA)
+
 - Prerequisites (must be satisfied before starting this phase):
   - UDP ingest pipeline with backpressure and packet‑loss handling.
   - Sampling/windowing design for high‑rate streams and summary accuracy.
@@ -133,6 +151,7 @@ Optional in this phase:
   - Timestamp action issue and first matching event; compute cycles/µs.
 
 Optional follow-ons in this phase (implement after above pass):
+
 - [ ] `verify_irq_jitter`
 - [ ] `sid_register_write_profile`
 - [ ] `iec_bus_handshake_probe`
@@ -141,6 +160,7 @@ Optional follow-ons in this phase (implement after above pass):
 ---
 
 ### Phase 6 — Developer and recovery loops
+
 - [ ] `red_green_refactor_loop` — Implementation notes:
   - Iterate: run → capture screen → write_memory fixes → rerun until pass.
 - [ ] `multi_range_guardrails` — Implementation notes:
@@ -153,6 +173,7 @@ Optional follow-ons in this phase (implement after above pass):
 ---
 
 ### RAG-coupled meta tools
+
 - [ ] `ask_and_apply_memory_fix` — Implementation notes:
   - Retrieve assembly guidance (RAG), compute targeted writes, then `verify_and_write_memory`.
 - [ ] `sprite_program_from_prompt` — Implementation notes:
@@ -161,6 +182,7 @@ Optional follow-ons in this phase (implement after above pass):
 ---
 
 ### Optional follow-ups and experiments
+
 - [ ] `memory_heatmap_over_time`
 - [ ] `irq_latency_probe`
 - [ ] `sid_voice_stuck_guard`
@@ -171,17 +193,19 @@ Optional follow-ons in this phase (implement after above pass):
 ---
 
 ### Per-task Done Definition (LLM must verify before ticking)
+
 - Implementation compiles with no TypeScript errors (where applicable).
 - New/updated tests exist and are passing locally.
 - `npm run check` passes end-to-end.
 - Documentation updated if tool behavior changed.
 
 ### How to tick off checkboxes (LLM instructions)
+
 - After completing a checklist item and confirming the Done Definition, update the corresponding `- [ ]` line to `- [x]` in `doc/meta-tools-rollout.md`.
 - Only tick one line at a time, from top to bottom, respecting phases and dependencies.
 - After ticking, immediately run `npm run check` again to ensure that the documentation update did not break formatting-sensitive scripts.
 
 ### Notes on sequencing
+
 - Respect the dependency graph from `doc/meta-tools.md` (Effort/Benefit/Dependencies Matrix).
 - Within a phase, process items in order. If an item depends on another not yet done, jump to the dependency’s phase, complete it, then resume.
-
