@@ -71,26 +71,66 @@ function escapeRegex(s: string): string {
 
 type TaskStatus = "running" | "completed" | "stopped" | "error";
 
+/**
+ * Background task state (in-memory and persisted) aligned with doc/agent-state-spec.md
+ * - All timestamps are stored as UTC strings in format YYYY-MM-DDTHH-mm-ssZ
+ * - Folder paths are relative to the tasks home directory (e.g., ~/.c64bridge)
+ */
 interface BackgroundTask {
-  id: string;
+  id: string; // e.g. 0001_read_memory
   name: string;
+  type: "background";
   operation: string;
   args: Record<string, unknown>;
   intervalMs: number;
   maxIterations?: number;
   iterations: number;
   status: TaskStatus;
-  startedAt: number;
-  updatedAt: number;
-  stoppedAt?: number;
-  lastError?: string;
-  nextRunAt?: number;
-  _timer?: NodeJS.Timeout | null;
+  startedAt: string; // spec timestamp
+  updatedAt: string; // spec timestamp
+  stoppedAt?: string | null; // spec timestamp or null
+  lastError?: string | null;
+  nextRunAt?: string | null; // not in spec but useful for display
+  folder: string; // e.g. tasks/background/0001_read_memory
+  _timer?: NodeJS.Timeout | null; // transient, not persisted
 }
 
 const TASKS: Map<string, BackgroundTask> = new Map();
+
+import os from "node:os";
+import { join as joinPath } from "node:path";
+
+function formatTimestampSpec(date: Date = new Date()): string {
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  const hh = String(date.getUTCHours()).padStart(2, "0");
+  const mi = String(date.getUTCMinutes()).padStart(2, "0");
+  const ss = String(date.getUTCSeconds()).padStart(2, "0");
+  // Spec requires hyphens between hh-mm-ss
+  return `${yyyy}-${mm}-${dd}T${hh}-${mi}-${ss}Z`;
+}
+
+function getTasksHomeDir(): string {
+  const overrideFile = process.env.C64_TASK_STATE_FILE ? resolvePath(String(process.env.C64_TASK_STATE_FILE)) : null;
+  if (overrideFile) {
+    return dirname(overrideFile);
+  }
+  return resolvePath(joinPath(os.homedir(), ".c64bridge"));
+}
+
 function getTaskStateFilePath(): string {
-  return process.env.C64_TASK_STATE_FILE || ".c64bridge/tasks.json";
+  const override = process.env.C64_TASK_STATE_FILE;
+  if (override) return resolvePath(String(override));
+  return resolvePath(joinPath(getTasksHomeDir(), "tasks.json"));
+}
+
+function getBackgroundTaskFolderRelative(id: string): string {
+  return `tasks/background/${id}`;
+}
+
+function getBackgroundTaskFolderAbsolute(id: string): string {
+  return resolvePath(joinPath(getTasksHomeDir(), getBackgroundTaskFolderRelative(id)));
 }
 let TASKS_LOADED = false;
 
@@ -101,8 +141,42 @@ async function ensureTasksLoaded(): Promise<void> {
     const text = await fs.readFile(getTaskStateFilePath(), "utf8");
     const parsed = JSON.parse(text);
     if (parsed && Array.isArray(parsed.tasks)) {
-      for (const t of parsed.tasks as BackgroundTask[]) {
-        TASKS.set(t.name, { ...t, _timer: null });
+      for (const raw of parsed.tasks as any[]) {
+        // Backwards compatibility: convert numeric timestamps and fill missing fields
+        const id = String(raw.id ?? raw.name ?? "");
+        const name = String(raw.name ?? id);
+        const startedAt = typeof raw.startedAt === "number" ? formatTimestampSpec(new Date(raw.startedAt)) : (raw.startedAt ?? formatTimestampSpec());
+        const updatedAt = typeof raw.updatedAt === "number" ? formatTimestampSpec(new Date(raw.updatedAt)) : (raw.updatedAt ?? startedAt);
+        const stoppedAt = raw.stoppedAt === null || raw.stoppedAt === undefined
+          ? null
+          : (typeof raw.stoppedAt === "number" ? formatTimestampSpec(new Date(raw.stoppedAt)) : String(raw.stoppedAt));
+        const nextRunAt = raw.nextRunAt === null || raw.nextRunAt === undefined
+          ? null
+          : (typeof raw.nextRunAt === "number" ? formatTimestampSpec(new Date(raw.nextRunAt)) : String(raw.nextRunAt));
+
+        const folder: string = raw.folder
+          ? String(raw.folder)
+          : getBackgroundTaskFolderRelative(id);
+
+        const task: BackgroundTask = {
+          id,
+          name,
+          type: "background",
+          operation: String(raw.operation ?? "read_memory"),
+          args: (raw.args && typeof raw.args === "object") ? raw.args as Record<string, unknown> : {},
+          intervalMs: Number.isFinite(raw.intervalMs) ? Number(raw.intervalMs) : 1000,
+          maxIterations: Number.isFinite(raw.maxIterations) ? Number(raw.maxIterations) : undefined,
+          iterations: Number.isFinite(raw.iterations) ? Number(raw.iterations) : 0,
+          status: (raw.status as TaskStatus) ?? "stopped",
+          startedAt,
+          updatedAt,
+          stoppedAt,
+          lastError: raw.lastError ?? null,
+          nextRunAt,
+          folder,
+          _timer: null,
+        };
+        TASKS.set(task.name, task);
       }
     }
   } catch (error: any) {
@@ -114,12 +188,83 @@ async function ensureTasksLoaded(): Promise<void> {
   }
 }
 
+async function writeTaskJson(task: BackgroundTask): Promise<void> {
+  const folderAbs = getBackgroundTaskFolderAbsolute(task.id);
+  const resultRelative = `${task.folder}/result.json`;
+  const data = {
+    id: task.id,
+    name: task.name,
+    type: task.type,
+    operation: task.operation,
+    args: task.args,
+    status: task.status,
+    startedAt: task.startedAt,
+    updatedAt: task.updatedAt,
+    stoppedAt: task.stoppedAt ?? null,
+    resultPath: resultRelative,
+  };
+  await fs.mkdir(folderAbs, { recursive: true });
+  await fs.writeFile(resolvePath(folderAbs, "task.json"), JSON.stringify(data, null, 2), "utf8");
+}
+
+async function ensureResultAndLog(task: BackgroundTask): Promise<void> {
+  const folderAbs = getBackgroundTaskFolderAbsolute(task.id);
+  await fs.mkdir(folderAbs, { recursive: true });
+  const resultPath = resolvePath(folderAbs, "result.json");
+  const logPath = resolvePath(folderAbs, "log.txt");
+  try {
+    await fs.access(resultPath);
+  } catch {
+    const initial = {
+      id: task.id,
+      type: "task",
+      name: task.operation,
+      created: task.startedAt,
+      status: task.status,
+      iterations: task.iterations,
+    } as Record<string, unknown>;
+    await fs.writeFile(resultPath, JSON.stringify(initial, null, 2), "utf8");
+  }
+  try {
+    await fs.access(logPath);
+  } catch {
+    await fs.writeFile(logPath, "", "utf8");
+  }
+}
+
+async function appendTaskLog(task: BackgroundTask, message: string): Promise<void> {
+  const logPath = resolvePath(getBackgroundTaskFolderAbsolute(task.id), "log.txt");
+  const ts = task.updatedAt ?? task.startedAt ?? formatTimestampSpec();
+  await fs.appendFile(logPath, `[${ts}] ${message}\n`, "utf8");
+}
+
 async function persistTasks(): Promise<void> {
   try {
     const path = getTaskStateFilePath();
     await fs.mkdir(dirname(path), { recursive: true });
-    const data = Array.from(TASKS.values()).map((t) => ({ ...t, _timer: undefined }));
+    const data = Array.from(TASKS.values()).map((t) => ({
+      id: t.id,
+      name: t.name,
+      type: t.type,
+      operation: t.operation,
+      args: t.args,
+      intervalMs: t.intervalMs,
+      maxIterations: t.maxIterations,
+      iterations: t.iterations,
+      status: t.status,
+      startedAt: t.startedAt,
+      updatedAt: t.updatedAt,
+      stoppedAt: t.stoppedAt ?? null,
+      lastError: t.lastError ?? null,
+      nextRunAt: t.nextRunAt ?? null,
+      folder: t.folder,
+    }));
     await fs.writeFile(path, JSON.stringify({ tasks: data }, null, 2), "utf8");
+    // Keep per-task files up to date
+    for (const t of TASKS.values()) {
+      await writeTaskJson(t);
+      await ensureResultAndLog(t);
+    }
   } catch {
     // ignore
   }
@@ -145,29 +290,31 @@ function runOperation(op: string, args: Record<string, unknown>, ctx: Parameters
 
 function scheduleNextRun(task: BackgroundTask, ctx: Parameters<typeof metaModule.invoke>[2]): void {
   if (task.status !== "running") return;
-  const now = Date.now();
   const delay = Math.max(0, task.intervalMs);
-  task.nextRunAt = now + delay;
+  task.nextRunAt = formatTimestampSpec(new Date(Date.now() + delay));
   task._timer = setTimeout(async () => {
     if (task.status !== "running") return;
     try {
       await runOperation(task.operation, task.args, ctx);
       task.iterations += 1;
-      task.updatedAt = Date.now();
+      task.updatedAt = formatTimestampSpec();
       if (task.maxIterations && task.iterations >= task.maxIterations) {
         task.status = "completed";
-        task.stoppedAt = Date.now();
+        task.stoppedAt = formatTimestampSpec();
         task._timer = null;
+        await appendTaskLog(task, `completed iterations=${task.iterations}`);
         await persistTasks();
         return;
       }
+      await appendTaskLog(task, `iteration=${task.iterations}`);
       await persistTasks();
       scheduleNextRun(task, ctx);
     } catch (err) {
       task.status = "error";
       task.lastError = err instanceof Error ? err.message : String(err);
-      task.stoppedAt = Date.now();
+      task.stoppedAt = formatTimestampSpec();
       task._timer = null;
+      await appendTaskLog(task, `error: ${task.lastError}`);
       await persistTasks();
     }
   }, delay);
@@ -179,7 +326,7 @@ function stopTask(task: BackgroundTask): void {
   }
   task._timer = null;
   task.status = task.status === "completed" ? task.status : "stopped";
-  task.stoppedAt = Date.now();
+  task.stoppedAt = formatTimestampSpec();
 }
 
 const noArgsSchema = objectSchema<Record<string, never>>({ description: "No arguments", properties: {}, additionalProperties: false });
@@ -470,46 +617,51 @@ export const metaModule = defineToolModule({
         try {
           await ensureTasksLoaded();
           const parsed = startBackgroundTaskArgsSchema.parse(args ?? {});
-          const now = Date.now();
+          const nowStr = formatTimestampSpec();
           const existing = TASKS.get(parsed.name);
           if (existing && existing.status === "running") {
             throw new ToolValidationError("Task with this name is already running", { path: "$.name" });
           }
 
-          const task: BackgroundTask = existing
-            ? {
-                ...existing,
-                operation: parsed.operation,
-                args: (parsed.arguments as Record<string, unknown>) ?? {},
-                intervalMs: parsed.intervalMs ?? existing.intervalMs ?? 1000,
-                maxIterations: parsed.maxIterations,
-                iterations: 0,
-                status: "running",
-                startedAt: now,
-                updatedAt: now,
-                stoppedAt: undefined,
-                lastError: undefined,
-                nextRunAt: undefined,
-                _timer: null,
-              }
-            : {
-                id: parsed.name,
-                name: parsed.name,
-                operation: parsed.operation,
-                args: (parsed.arguments as Record<string, unknown>) ?? {},
-                intervalMs: parsed.intervalMs ?? 1000,
-                maxIterations: parsed.maxIterations,
-                iterations: 0,
-                status: "running",
-                startedAt: now,
-                updatedAt: now,
-                _timer: null,
-              };
+          // Determine next global counter by scanning existing registry entries
+          const allTasks = Array.from(TASKS.values());
+          const currentMax = allTasks.reduce((max, t) => {
+            const match = /^([0-9]{4})_/.exec(t.id);
+            const n = match ? Number(match[1]) : 0;
+            return Number.isFinite(n) && n > max ? n : max;
+          }, 0);
+
+          const newCounter = String(currentMax + 1).padStart(4, "0");
+          const newId = `${newCounter}_${parsed.name}`;
+
+          const task: BackgroundTask = {
+            id: existing && existing.status !== "running" ? existing.id : newId,
+            name: parsed.name,
+            type: "background",
+            operation: parsed.operation,
+            args: (parsed.arguments as Record<string, unknown>) ?? {},
+            intervalMs: parsed.intervalMs ?? (existing?.intervalMs ?? 1000),
+            maxIterations: parsed.maxIterations,
+            iterations: 0,
+            status: "running",
+            startedAt: nowStr,
+            updatedAt: nowStr,
+            stoppedAt: null,
+            lastError: null,
+            nextRunAt: null,
+            folder: getBackgroundTaskFolderRelative(existing && existing.status !== "running" ? existing.id : newId),
+            _timer: null,
+          };
 
           TASKS.set(task.name, task);
+          // Ensure per-task structure and seed files
+          await fs.mkdir(getBackgroundTaskFolderAbsolute(task.id), { recursive: true });
+          await writeTaskJson(task);
+          await ensureResultAndLog(task);
+          await appendTaskLog(task, "started");
           scheduleNextRun(task, ctx);
           await persistTasks();
-          return jsonResult({ started: true, task: { name: task.name, operation: task.operation, intervalMs: task.intervalMs, maxIterations: task.maxIterations ?? null } }, { success: true });
+          return jsonResult({ started: true, task: { id: task.id, name: task.name, operation: task.operation, intervalMs: task.intervalMs, maxIterations: task.maxIterations ?? null, folder: task.folder } }, { success: true });
         } catch (error) {
           if (error instanceof ToolError) return toolErrorResult(error);
           return unknownErrorResult(error);
@@ -532,6 +684,7 @@ export const metaModule = defineToolModule({
             return jsonResult({ stopped: false, name: parsed.name, notFound: true }, { success: true });
           }
           stopTask(task);
+          await appendTaskLog(task, "stopped");
           await persistTasks();
           return jsonResult({ stopped: true, name: task.name, status: task.status }, { success: true });
         } catch (error) {
@@ -551,7 +704,9 @@ export const metaModule = defineToolModule({
           await ensureTasksLoaded();
           listBackgroundTasksArgsSchema.parse(args ?? {});
           const tasks = Array.from(TASKS.values()).map((t) => ({
+            id: t.id,
             name: t.name,
+            type: t.type,
             status: t.status,
             iterations: t.iterations,
             intervalMs: t.intervalMs,
@@ -561,6 +716,7 @@ export const metaModule = defineToolModule({
             updatedAt: t.updatedAt,
             stoppedAt: t.stoppedAt ?? null,
             lastError: t.lastError ?? null,
+            folder: t.folder,
           }));
           return jsonResult({ tasks }, { success: true, count: tasks.length });
         } catch (error) {
@@ -581,6 +737,7 @@ export const metaModule = defineToolModule({
           stopAllBackgroundTasksArgsSchema.parse(args ?? {});
           for (const task of TASKS.values()) {
             stopTask(task);
+            await appendTaskLog(task, "stopped");
           }
           await persistTasks();
           return jsonResult({ stoppedAll: true, count: TASKS.size }, { success: true });
