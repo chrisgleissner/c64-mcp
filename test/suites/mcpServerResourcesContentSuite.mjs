@@ -16,6 +16,32 @@ const repoRoot = path.resolve(__dirname, "../..");
 // The MCP server adds a synthetic platform status resource alongside knowledge resources
 const PLATFORM_RESOURCE_URI = "c64://platform/status";
 
+// Hardcode the full set of expected knowledge resource URIs. This ensures that
+// any addition/removal must be intentional and reflected here.
+const EXPECTED_RESOURCE_URIS = [
+  // Orientation
+  "c64://context/bootstrap",
+  // Languages
+  "c64://specs/basic",
+  "c64://specs/assembly",
+  // Audio / SID
+  "c64://specs/sid",
+  "c64://specs/sidwave",
+  "c64://docs/sid/file-structure",
+  // Graphics / VIC-II
+  "c64://specs/vic",
+  // Printers
+  "c64://specs/printer",
+  "c64://docs/printer/guide",
+  "c64://docs/printer/commodore-text",
+  "c64://docs/printer/commodore-bitmap",
+  "c64://docs/printer/epson-text",
+  "c64://docs/printer/epson-bitmap",
+  "c64://docs/printer/prompts",
+  // Knowledge index (synthetic)
+  "c64://docs/index",
+];
+
 export function registerMcpServerResourcesContentTests(withSharedMcpClient) {
   test("MCP resources list matches knowledgeIndex + platform; file-backed contents exact", async () => {
     await withSharedMcpClient(async ({ client }) => {
@@ -27,12 +53,9 @@ export function registerMcpServerResourcesContentTests(withSharedMcpClient) {
 
       const serverUris = new Set(listResult.resources.map((r) => r.uri));
 
-      // 2) Build expected set from knowledgeIndex + platform resource
+      // 2) Build expected set from hardcoded list + platform resource
       const knowledge = listKnowledgeResources();
-      const expectedUris = new Set([
-        ...knowledge.map((r) => r.uri),
-        PLATFORM_RESOURCE_URI,
-      ]);
+      const expectedUris = new Set([...EXPECTED_RESOURCE_URIS, PLATFORM_RESOURCE_URI]);
 
       // Ensure both sets match exactly
       const missingOnServer = [...expectedUris].filter((u) => !serverUris.has(u));
@@ -66,6 +89,13 @@ export function registerMcpServerResourcesContentTests(withSharedMcpClient) {
         const content = readResult.contents[0];
         assert.equal(content.uri, uri);
         assert.equal(typeof content.text, "string");
+
+        // Strengthened check: content should be at least 100 bytes
+        const byteLength = Buffer.byteLength(content.text, "utf8");
+        assert.ok(
+          byteLength >= 100,
+          `${uri} content should be at least 100 bytes, got ${byteLength}`,
+        );
 
         const relativePath = uriToRelativePath.get(uri);
         if (!relativePath) {
