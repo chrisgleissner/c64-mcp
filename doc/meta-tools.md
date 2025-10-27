@@ -359,3 +359,73 @@ These meta tools build atop existing MCP tools which already wrap the REST surfa
 - Developer/Config: `version`, `info`, `config_list|get|set|batch_update|load_from_flash|save_to_flash|reset_to_default`
 
 By bundling these into single, parameterized meta tools with agent-side scheduling and state, the agent can execute complex workflows with one invocation, reducing latency and improving determinism.
+
+---
+
+### Effort/Benefit/Dependencies Matrix
+
+| Tool | Effort (min) | Benefit | Dependencies |
+|---|---:|---|---|
+| memory_dump_to_file | 45 | medium | none |
+| memory_snapshot_and_diff | 50 | high | memory_dump_to_file |
+| verify_and_write_memory | 35 | high | none |
+| watch_memory_until_condition | 40 | medium | none |
+| disassemble_ram_region | 60 | medium | none |
+| trace_code_flow_by_checksums | 75 | medium | memory_snapshot_and_diff |
+| extract_sprites_from_ram | 80 | medium | memory_dump_to_file |
+| rip_charset_from_ram | 75 | medium | memory_dump_to_file |
+| screen_capture_timeline | 50 | medium | wait_for_screen_text |
+| sprite_preview_prg_batch | 60 | medium | program_shuffle |
+| program_shuffle | 45 | medium | wait_for_screen_text |
+| batch_run_with_assertions | 60 | high | wait_for_screen_text |
+| compile_run_verify_cycle | 90 | high | batch_run_with_assertions, bundle_run_artifacts |
+| cold_boot_and_run | 40 | medium | firmware_info_and_healthcheck |
+| start_background_task | 50 | high | none |
+| stop_background_task | 15 | high | start_background_task |
+| list_background_tasks | 20 | medium | start_background_task |
+| stop_all_background_tasks | 15 | medium | start_background_task |
+| drive_mount_and_verify | 45 | medium | firmware_info_and_healthcheck |
+| create_and_mount_blank_d64 | 35 | medium | drive_mount_and_verify |
+| batch_on_assets_apply_tools | 70 | medium | find_paths_by_name |
+| drive_mode_profile_switch | 40 | low | drive_mount_and_verify |
+| eject_and_poweroff_drive | 25 | low | drive_mount_and_verify |
+| find_and_run_program_by_name | 45 | high | find_paths_by_name |
+| filesystem_stats_by_extension | 35 | medium | none |
+| find_paths_by_name | 40 | high | none |
+| run_copy_move_delete_by_path | 50 | medium | find_paths_by_name |
+| container_aware_walk_and_classify | 60 | medium | find_paths_by_name |
+| classify_prg_basic_or_mc | 45 | medium | container_aware_walk_and_classify |
+| dedup_scan | 60 | medium | filesystem_stats_by_extension |
+| dedup_plan_and_apply | 75 | medium | dedup_scan |
+| sid_param_sweep | 90 | medium | silence_and_verify |
+| music_compile_play_analyze | 90 | high | silence_and_verify |
+| silence_and_verify | 35 | high | none |
+| stream_video_for_duration | 40 | medium | none |
+| stream_audio_and_record | 50 | medium | none |
+| debug_stream_watch | 55 | medium | none |
+| debug_loop_run_and_capture | 80 | high | debug_stream_watch |
+| debug_trace_until_cpu_write | 70 | high | debug_loop_run_and_capture |
+| verify_irq_jitter | 70 | medium | debug_loop_run_and_capture |
+| verify_raster_irq_line | 70 | high | debug_loop_run_and_capture |
+| iec_bus_handshake_probe | 85 | medium | debug_loop_run_and_capture |
+| sid_register_write_profile | 70 | medium | debug_loop_run_and_capture |
+| action_latency_measure | 75 | medium | debug_loop_run_and_capture |
+| time_bounded_trace_around_event | 70 | medium | debug_loop_run_and_capture |
+| config_snapshot_and_restore | 60 | medium | none |
+| firmware_info_and_healthcheck | 30 | high | none |
+| safe_reset_sequence | 45 | medium | firmware_info_and_healthcheck |
+| wait_for_screen_text | 35 | high | none |
+| menu_navigation_script | 45 | medium | wait_for_screen_text |
+| red_green_refactor_loop | 70 | high | verify_and_write_memory, wait_for_screen_text |
+| multi_range_guardrails | 80 | medium | verify_and_write_memory, memory_snapshot_and_diff |
+| drive_recovery_sequence | 60 | medium | drive_mount_and_verify |
+| ask_and_apply_memory_fix | 65 | high | verify_and_write_memory |
+| sprite_program_from_prompt | 75 | medium | sprite_preview_prg_batch |
+| export_directory_listing_via_basic | 45 | medium | wait_for_screen_text |
+| bundle_run_artifacts | 50 | high | memory_snapshot_and_diff, wait_for_screen_text |
+| memory_heatmap_over_time | 60 | medium | watch_memory_until_condition |
+| irq_latency_probe | 70 | medium | debug_stream_watch |
+| sid_voice_stuck_guard | 45 | medium | silence_and_verify |
+| auto_benchmark_suite | 80 | medium | program_shuffle, batch_run_with_assertions |
+| firmware_compat_matrix | 60 | medium | firmware_info_and_healthcheck |
+| ultimate_config_migrate | 75 | medium | config_snapshot_and_restore |
