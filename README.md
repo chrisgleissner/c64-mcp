@@ -208,7 +208,7 @@ Normally it gets started automatically, but if not, you can start it by opening 
 
 It will log some `[warning]` messages which is normal since all logs by the MCP server go to `stderr`.
 
-This is the expected output in the `Output / MCP: c64bridge`
+These are the expected logs in the Output panel of VS Studio when you select `MCP: c64bridge` from its drop-down:
 
 ```text
 2025-10-27 18:50:01.811 [warning] [server stderr] Starting c64bridge MCP server...
