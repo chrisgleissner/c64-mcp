@@ -134,25 +134,43 @@ Conventions:
 
 ### Filesystem discovery and deduplication
 
+Container-aware traversal: All tools in this group recurse into disk/tape containers (`.d64/.d71/.d81/.dnp/.t64`) and operate on their internal directory entries, not just the host filesystem. When container introspection is not available via REST, tools fall back to mounting the image and scraping the CBM directory via BASIC.
+
 - "find_and_run_program_by_name"
-  - Search under a root for the first program whose filename contains a substring; run it. Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
+  - Search under a root (including inside `.d64/.d71/.d81/.t64`) for the first program whose filename contains a substring; run it. Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
   - Agent state: recent searches (root, pattern, extensions), last run path.
-  - REST: GET /v1/files/{root}/**/*{substring}*.{prg|crt}:info (wildcards), PUT /v1/runners:run_prg, PUT /v1/runners:run_crt
+  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_and_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
 
 - "filesystem_stats_by_extension"
-  - Walk all files beneath a root and compute counts and size statistics (total, min, max, mean) per extension, with convenience rollups for PRG vs non‑PRG and per‑folder summaries.
+  - Walk all files beneath a root—including files inside disk/tape images—and compute counts and size statistics (total, min, max, mean) per extension, with convenience rollups for PRG vs non‑PRG and per‑folder (and per‑container) summaries.
   - Agent state: cached directory index, prior stats snapshots for trend comparisons.
-  - REST: GET /v1/files/{root}/**/*:info (wildcards)
+  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards); fallback: mount images and scrape directory via BASIC.
 
 - "find_paths_by_name"
-  - Return fully qualified device paths for files whose names contain a substring; optional extension filter and max results.
+  - Return fully qualified device paths for files whose names contain a substring; optional extension filter and max results. Returns host paths and logical paths inside containers (`<container>#<cbm-path>`).
   - Agent state: result caches with TTL and last search parameters.
-  - REST: GET /v1/files/{root}/**/*{substring}*{.{ext}}:info (wildcards)
+  - REST: Container-aware GET /v1/files/{root}/**/*{substring}*{.{ext}}:info (wildcards)
 
 - "run_copy_move_delete_by_path"
   - Execute a batch of file operations addressed by fully qualified paths. Operations: run (PRG/CRT), copy, move, delete. Supports dry‑run planning and per‑op guards.
   - Agent state: audit log of planned/applied ops, allowlist/denylist of roots, optional quarantine path for deletes.
   - REST: Run → PUT /v1/runners:run_prg|:run_crt; Copy/Move/Delete → not exposed in current API (host‑side or future firmware endpoints). When unavailable, tool returns a plan and no‑ops unless host mapping is configured.
+
+- "container_aware_walk_and_classify"
+  - Recursively walk host paths and container contents; classify each entry as `BASIC`, `PRG-MC`, `SEQ`, `USR`, `REL`, or `UNKNOWN`.
+  - Agent state: classification cache keyed by content hash and CBM directory entry, per-container manifests.
+  - REST: Container-aware GET /v1/files/{root}/**/*:info; for BASIC vs PRG‑MC, either (a) read PRG header bytes if `/files:read` is available, or (b) use PUT /v1/runners:load_prg followed by GET /v1/machine:readmem at the file’s load address to inspect tokens; cleanup via PUT /v1/machine:reset.
+
+- "classify_prg_basic_or_mc"
+  - For a given PRG path (host or inside a container), determine if it is tokenized BASIC or machine code/data using load address and token checks.
+  - Agent state: last probe result, token scanner configuration (PAL/NTSC irrelevant here).
+  - REST: PUT /v1/runners:load_prg (does not run), GET /v1/machine:readmem (few hundred bytes from load address), optional PUT /v1/machine:reset.
+
+File-Type Determination (CBM directory and PRG content):
+- Step 1: Fetch metadata/listing for host files; detect container types (`.d64/.d71/.d81/.t64`).
+- Step 2: For containers, parse directory entries (CBM type byte at offset $02) to classify `SEQ/PRG/USR/REL/UNKNOWN`.
+- Step 3: If type is `PRG`, inspect first bytes of file data: load address, plausible next-line pointer, and presence of tokens ≥ $80 before `00 00` termination → classify as `BASIC`; else `PRG-MC`.
+- Practical note: When byte reads are not supported by firmware for host files, use `load_prg` (non-running) + `readmem` to examine the loaded header without executing.
 
 - "dedup_scan"
   - Discover duplicate files under a root using a tiered strategy: (1) group by size and extension; (2) optional filename normalization; (3) optional content fingerprint when available. Produces groups of candidate duplicates.
