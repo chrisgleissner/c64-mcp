@@ -9,13 +9,12 @@ function createLogger() {
 }
 
 function tmpPath(subdir, name) {
-  // Use test-local temp folder to avoid writing to restricted locations like /workspace
-  const root = path.resolve("test/tmp/.tmp-meta-tests/metaModule");
+  const root = path.resolve("test/tmp/metaModule");
   const dir = path.join(root, subdir);
   return { dir, file: path.join(dir, name) };
 }
 
-await fs.mkdir("test/tmp/.tmp-meta-tests/metaModule", { recursive: true });
+await fs.mkdir("test/tmp/metaModule", { recursive: true });
 
 // --- firmware_info_and_healthcheck ---
 

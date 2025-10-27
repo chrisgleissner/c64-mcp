@@ -1,9 +1,0 @@
-{
-  "address": "$C000",
-  "length": 32,
-  "chunkSize": 8,
-  "format": "hex",
-  "checksum": "B37C476BD775B870029B62D7CB329EF464C18161B3F9ADB15017B061C6AF2662",
-  "outputPath": "/workspace/.tmp-meta-tests/dump.hex",
-  "createdAt": "2025-10-27T12:24:42.634Z"
-}
