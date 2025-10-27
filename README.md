@@ -349,11 +349,9 @@ The test runner accepts the following options:
 ### Tools
 
 #### Programs
->
 > Program uploaders, runners, and compilation workflows for BASIC, assembly, and PRG files.
 
 **Workflow hints:**
-
 - Choose BASIC or assembly uploaders based on the language you just generated for the user.
 - Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
 
@@ -368,11 +366,9 @@ The test runner accepts the following options:
 | `upload_and_run_basic` | Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O. | `programs`, `execution`, `basic` |
 
 #### Memory
->
 > Screen, main memory, and low-level inspection utilities.
 
 **Workflow hints:**
-
 - Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
 - Confirm intent before mutating RAM and explain how the change affects the running program.
 
@@ -385,11 +381,9 @@ The test runner accepts the following options:
 | `write_memory` | Write a hexadecimal byte sequence into main memory at the specified address. See c64://context/bootstrap for safety rules. | `memory`, `debug`, `hex`, `write` |
 
 #### Audio
->
 > SID composition, playback, and audio analysis workflows.
 
 **Workflow hints:**
-
 - Reach for SID helpers when the user talks about sound design, playback quality, or stuck notes.
 - After changing playback state, suggest verify-by-ear steps such as analyze_audio so the user gets concrete feedback.
 
@@ -410,11 +404,9 @@ The test runner accepts the following options:
 | `sidplay_file` | Play a SID file stored on the Ultimate filesystem via the firmware player. | `sid`, `audio`, `playback` |
 
 #### Machine
->
 > Power, reset, pause/resume, and diagnostic controls for the C64 and Ultimate hardware.
 
 **Workflow hints:**
-
 - Reach for machine controls when the user mentions resets, power states, or DMA pause/resume.
 - Explain the operational impact (e.g. soft reset vs firmware reboot) so the user knows what changed.
 
@@ -430,11 +422,9 @@ The test runner accepts the following options:
 | `resume` | Resume the machine after a DMA pause. | `machine`, `control`, `resume` |
 
 #### Storage
->
 > Drive management, disk image creation, and file inspection utilities.
 
 **Workflow hints:**
-
 - Reach for storage tools when the user mentions drives, disk images, or Ultimate slots.
 - Spell out which slot or path you touched so the user can replicate actions on hardware.
 
@@ -457,11 +447,9 @@ The test runner accepts the following options:
 | `file_info` | Inspect metadata for a file on the Ultimate filesystem. | `drive`, `storage`, `info` |
 
 #### Graphics
->
 > PETSCII art, sprite workflows, and VIC-II graphics helpers.
 
 **Workflow hints:**
-
 - Suggest graphics helpers when the user asks for sprites, PETSCII art, or screen layout tweaks.
 - Mention how VIC-II state changes (colours, sprite positions) affect follow-up memory operations.
 
@@ -474,11 +462,9 @@ The test runner accepts the following options:
 | `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
 
 #### Printer
->
 > Printer workflow helpers for Commodore MPS and Epson FX devices, including prompt templates.
 
 **Workflow hints:**
-
 - Reach for printer tools when the user references device 4, hardcopy output, or specific printer models.
 - Clarify which workflow (Commodore vs Epson) you chose so the user can prepare matching paper or ribbons.
 
@@ -492,11 +478,9 @@ The test runner accepts the following options:
 | `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
 
 #### Rag
->
 > Retrieval-augmented generation helpers for BASIC and assembly examples.
 
 **Workflow hints:**
-
 - Call RAG tools when the user needs references or examples before generating new code.
 - Summarise the number of refs returned and suggest follow-up actions like reading specific docs.
 
@@ -508,11 +492,9 @@ The test runner accepts the following options:
 | `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
 
 #### Developer
->
 > Configuration management, diagnostics, and helper utilities for advanced workflows.
 
 **Workflow hints:**
-
 - Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.
 - Call out any risky operations (like flash writes) so the user understands the impact.
 
@@ -533,11 +515,9 @@ The test runner accepts the following options:
 | `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
 
 #### Streaming
->
 > Long-running or streaming workflows such as audio capture or SID playback monitoring.
 
 **Workflow hints:**
-
 - Use streaming tools for long-running capture or monitoring workflows such as audio verification.
 - Clarify that streams keep running until stopped so the user can manage resources.
 
@@ -549,11 +529,9 @@ The test runner accepts the following options:
 | `stream_stop` | Stop an Ultimate streaming session (video/audio/debug). | `stream`, `monitoring`, `stop` |
 
 #### Meta
->
 > High-level meta tools that orchestrate multiple MCP actions.
 
 **Workflow hints:**
-
 - Use meta tools to reduce round-trips by composing several steps into one.
 
 **Default tags:** `meta`, `orchestration`
