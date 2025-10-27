@@ -9,7 +9,6 @@ Your AI Command Bridge for the Commodore 64.
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
 
-
 ## About
 
 C64 Bridge is a Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server for driving a Commodore 64 with AI via the REST API of the [Commodore 64 Ultimate](https://www.commodore.net/) or [Ultimate 64](https://ultimate64.com/). It is built on the official TypeScript `@modelcontextprotocol/sdk` and communicates over the stdio transport.
@@ -200,38 +199,34 @@ GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 
 - Enable the **MCP** checkbox.
 - Restart VS Code.
 
-#### Step 2: Configure the C64 Bridge Server
 
-Add this configuration to your workspace `.vscode/settings.json` (stdio transport):
+#### Step 2: Start the MCP Server
 
-```json
-{
-  "github.copilot.chat.experimental.mcp": {
-    "servers": [
-      {
-        "name": "c64bridge",
-        "command": "node",
-        "args": ["./node_modules/c64bridge/dist/index.js"],
-        "type": "stdio"
-      }
-    ]
-  }
-}
+Normally it gets started automatically, but if not, you can start it by opening `.vscode/mcp.json` in this repository and clicking on the "Start" icon:
+
+![VS Code MCP start](./doc/img/vscode/vscode-start-mcp-server.png)
+
+It will log some `[warning]` messages which is normal since all logs by the MCP server go to `stderr`.
+
+This is the expected output in the `Output / MCP: c64bridge`
+
+```text
+2025-10-27 18:50:01.811 [warning] [server stderr] Starting c64bridge MCP server...
+2025-10-27 18:50:02.118 [warning] [server stderr] [tool] list tools count=70 bytes=89244 latencyMs=0
+2025-10-27 18:50:02.118 [warning] [server stderr] [prompt] list prompts count=7 bytes=3196 latencyMs=0
+2025-10-27 18:50:02.122 [info] Discovered 70 tools
+2025-10-27 18:50:02.320 [warning] [server stderr] [c64u] GET http://192.168.1.64 status=200 bytes=41608 latencyMs=172
+2025-10-27 18:50:02.320 [warning] [server stderr] Connectivity check succeeded for c64 device at http://192.168.1.64
 ```
 
-MCP clients discover tools dynamically at runtime; no manifest file is required.
+Keep this running.
 
-#### Step 3: Start the MCP Server
 
-Normally it gets started automatically, but if not, please see the previous chapter on [Installing and Running the MCP Server](#install-and-run-the-mcp-server).
-
-Keep this running—it will log successful connectivity to your C64 device.
-
-#### Step 4: Use MCP Tools in Copilot Chat
+#### Step 3: Use MCP Tools in Copilot Chat
 
 More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
 
-#### Step 5: Activate the C64 Chat Mode
+#### Step 4: Activate the C64 Chat Mode
 
 1. In VS Code, select **Menu → View → Chat** to open the Copilot Chat window.
 1. At the bottom of that window, use the drop-down that lists `Agent`, `Ask`, `Edit`, and `C64`. The `C64` option should be auto-discovered from the `.github/chatmodes/c64.chatmode.md` file bundled with this project.
@@ -239,7 +234,7 @@ More system, drive, file, streaming, and SID tools are available. For the full l
 
 ![VS Code C64 chat mode](./doc/img/vscode/vscode-copilot-c64-chat-mode.png)
 
-#### Step 6: Run Your First C64 AI Prompt
+#### Step 5: Run Your First C64 AI Prompt
 
 Prompt Copilot with **"Print a greeting on the screen"** to watch the MCP server upload and execute a BASIC greeting on your C64.
 
@@ -322,9 +317,9 @@ On startup, the server logs the selected backend and reason, for example:
 
 ### Log Level
 
-By default, the server logs info-level messages and above. 
+By default, the server logs info-level messages and above.
 
-To enable debug logging, set the environment variable `LOG_LEVEL=debug` before starting the server. 
+To enable debug logging, set the environment variable `LOG_LEVEL=debug` before starting the server.
 
 In Visual Code, you can achieve this via an entry in your `.env` file at the project root:
 
@@ -354,9 +349,11 @@ The test runner accepts the following options:
 ### Tools
 
 #### Programs
+>
 > Program uploaders, runners, and compilation workflows for BASIC, assembly, and PRG files.
 
 **Workflow hints:**
+
 - Choose BASIC or assembly uploaders based on the language you just generated for the user.
 - Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
 
@@ -371,9 +368,11 @@ The test runner accepts the following options:
 | `upload_and_run_basic` | Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O. | `programs`, `execution`, `basic` |
 
 #### Memory
+>
 > Screen, main memory, and low-level inspection utilities.
 
 **Workflow hints:**
+
 - Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
 - Confirm intent before mutating RAM and explain how the change affects the running program.
 
@@ -386,9 +385,11 @@ The test runner accepts the following options:
 | `write_memory` | Write a hexadecimal byte sequence into main memory at the specified address. See c64://context/bootstrap for safety rules. | `memory`, `debug`, `hex`, `write` |
 
 #### Audio
+>
 > SID composition, playback, and audio analysis workflows.
 
 **Workflow hints:**
+
 - Reach for SID helpers when the user talks about sound design, playback quality, or stuck notes.
 - After changing playback state, suggest verify-by-ear steps such as analyze_audio so the user gets concrete feedback.
 
@@ -409,9 +410,11 @@ The test runner accepts the following options:
 | `sidplay_file` | Play a SID file stored on the Ultimate filesystem via the firmware player. | `sid`, `audio`, `playback` |
 
 #### Machine
+>
 > Power, reset, pause/resume, and diagnostic controls for the C64 and Ultimate hardware.
 
 **Workflow hints:**
+
 - Reach for machine controls when the user mentions resets, power states, or DMA pause/resume.
 - Explain the operational impact (e.g. soft reset vs firmware reboot) so the user knows what changed.
 
@@ -427,9 +430,11 @@ The test runner accepts the following options:
 | `resume` | Resume the machine after a DMA pause. | `machine`, `control`, `resume` |
 
 #### Storage
+>
 > Drive management, disk image creation, and file inspection utilities.
 
 **Workflow hints:**
+
 - Reach for storage tools when the user mentions drives, disk images, or Ultimate slots.
 - Spell out which slot or path you touched so the user can replicate actions on hardware.
 
@@ -452,9 +457,11 @@ The test runner accepts the following options:
 | `file_info` | Inspect metadata for a file on the Ultimate filesystem. | `drive`, `storage`, `info` |
 
 #### Graphics
+>
 > PETSCII art, sprite workflows, and VIC-II graphics helpers.
 
 **Workflow hints:**
+
 - Suggest graphics helpers when the user asks for sprites, PETSCII art, or screen layout tweaks.
 - Mention how VIC-II state changes (colours, sprite positions) affect follow-up memory operations.
 
@@ -467,9 +474,11 @@ The test runner accepts the following options:
 | `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
 
 #### Printer
+>
 > Printer workflow helpers for Commodore MPS and Epson FX devices, including prompt templates.
 
 **Workflow hints:**
+
 - Reach for printer tools when the user references device 4, hardcopy output, or specific printer models.
 - Clarify which workflow (Commodore vs Epson) you chose so the user can prepare matching paper or ribbons.
 
@@ -483,9 +492,11 @@ The test runner accepts the following options:
 | `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
 
 #### Rag
+>
 > Retrieval-augmented generation helpers for BASIC and assembly examples.
 
 **Workflow hints:**
+
 - Call RAG tools when the user needs references or examples before generating new code.
 - Summarise the number of refs returned and suggest follow-up actions like reading specific docs.
 
@@ -497,9 +508,11 @@ The test runner accepts the following options:
 | `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
 
 #### Developer
+>
 > Configuration management, diagnostics, and helper utilities for advanced workflows.
 
 **Workflow hints:**
+
 - Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.
 - Call out any risky operations (like flash writes) so the user understands the impact.
 
@@ -520,9 +533,11 @@ The test runner accepts the following options:
 | `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
 
 #### Streaming
+>
 > Long-running or streaming workflows such as audio capture or SID playback monitoring.
 
 **Workflow hints:**
+
 - Use streaming tools for long-running capture or monitoring workflows such as audio verification.
 - Clarify that streams keep running until stopped so the user can manage resources.
 
@@ -534,9 +549,11 @@ The test runner accepts the following options:
 | `stream_stop` | Stop an Ultimate streaming session (video/audio/debug). | `stream`, `monitoring`, `stop` |
 
 #### Meta
+>
 > High-level meta tools that orchestrate multiple MCP actions.
 
 **Workflow hints:**
+
 - Use meta tools to reduce round-trips by composing several steps into one.
 
 **Default tags:** `meta`, `orchestration`
@@ -587,8 +604,6 @@ The test runner accepts the following options:
 | `sid-music` | Compose SID music with expressive phrasing and iterative audio verification. |
 
 <!-- AUTO-GENERATED:MCP-DOCS-END -->
-
-
 
 ## Troubleshooting 🛟
 
