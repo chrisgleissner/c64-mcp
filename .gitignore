@@ -12,6 +12,7 @@ external/
 tmp/
 .tmp/
 test/tmp/
+.tmp-meta-tests/
 publish/
 generated/**/*.js
 generated/**/*.js.map
