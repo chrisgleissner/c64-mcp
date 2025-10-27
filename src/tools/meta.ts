@@ -70,12 +70,6 @@ function escapeRegex(s: string): string {
 // Persistent background task registry
 
 type TaskStatus = "running" | "completed" | "stopped" | "error";
-
-/**
- * Background task state (in-memory and persisted) aligned with doc/agent-state-spec.md
- * - All timestamps are stored as UTC strings in format YYYY-MM-DDTHH-mm-ssZ
- * - Folder paths are relative to the tasks home directory (e.g., ~/.c64bridge)
- */
 interface BackgroundTask {
   id: string; // e.g. 0001_read_memory
   name: string;
@@ -86,11 +80,11 @@ interface BackgroundTask {
   maxIterations?: number;
   iterations: number;
   status: TaskStatus;
-  startedAt: string; // spec timestamp
-  updatedAt: string; // spec timestamp
-  stoppedAt?: string | null; // spec timestamp or null
+  startedAt: string; // UTC timestamp string
+  updatedAt: string; // UTC timestamp string
+  stoppedAt?: string | null; // UTC timestamp string or null
   lastError?: string | null;
-  nextRunAt?: string | null; // not in spec but useful for display
+  nextRunAt?: string | null;
   folder: string; // e.g. tasks/background/0001_read_memory
   _timer?: NodeJS.Timeout | null; // transient, not persisted
 }
@@ -107,7 +101,6 @@ function formatTimestampSpec(date: Date = new Date()): string {
   const hh = String(date.getUTCHours()).padStart(2, "0");
   const mi = String(date.getUTCMinutes()).padStart(2, "0");
   const ss = String(date.getUTCSeconds()).padStart(2, "0");
-  // Spec requires hyphens between hh-mm-ss
   return `${yyyy}-${mm}-${dd}T${hh}-${mi}-${ss}Z`;
 }
 
@@ -141,42 +134,8 @@ async function ensureTasksLoaded(): Promise<void> {
     const text = await fs.readFile(getTaskStateFilePath(), "utf8");
     const parsed = JSON.parse(text);
     if (parsed && Array.isArray(parsed.tasks)) {
-      for (const raw of parsed.tasks as any[]) {
-        // Backwards compatibility: convert numeric timestamps and fill missing fields
-        const id = String(raw.id ?? raw.name ?? "");
-        const name = String(raw.name ?? id);
-        const startedAt = typeof raw.startedAt === "number" ? formatTimestampSpec(new Date(raw.startedAt)) : (raw.startedAt ?? formatTimestampSpec());
-        const updatedAt = typeof raw.updatedAt === "number" ? formatTimestampSpec(new Date(raw.updatedAt)) : (raw.updatedAt ?? startedAt);
-        const stoppedAt = raw.stoppedAt === null || raw.stoppedAt === undefined
-          ? null
-          : (typeof raw.stoppedAt === "number" ? formatTimestampSpec(new Date(raw.stoppedAt)) : String(raw.stoppedAt));
-        const nextRunAt = raw.nextRunAt === null || raw.nextRunAt === undefined
-          ? null
-          : (typeof raw.nextRunAt === "number" ? formatTimestampSpec(new Date(raw.nextRunAt)) : String(raw.nextRunAt));
-
-        const folder: string = raw.folder
-          ? String(raw.folder)
-          : getBackgroundTaskFolderRelative(id);
-
-        const task: BackgroundTask = {
-          id,
-          name,
-          type: "background",
-          operation: String(raw.operation ?? "read_memory"),
-          args: (raw.args && typeof raw.args === "object") ? raw.args as Record<string, unknown> : {},
-          intervalMs: Number.isFinite(raw.intervalMs) ? Number(raw.intervalMs) : 1000,
-          maxIterations: Number.isFinite(raw.maxIterations) ? Number(raw.maxIterations) : undefined,
-          iterations: Number.isFinite(raw.iterations) ? Number(raw.iterations) : 0,
-          status: (raw.status as TaskStatus) ?? "stopped",
-          startedAt,
-          updatedAt,
-          stoppedAt,
-          lastError: raw.lastError ?? null,
-          nextRunAt,
-          folder,
-          _timer: null,
-        };
-        TASKS.set(task.name, task);
+      for (const t of parsed.tasks as BackgroundTask[]) {
+        TASKS.set(t.name, { ...t, _timer: null });
       }
     }
   } catch (error: any) {
