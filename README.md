@@ -538,11 +538,15 @@ The test runner accepts the following options:
 
 | Name | Description | Tags |
 | --- | --- | --- |
+| `batch_run_with_assertions` | Run multiple programs with post-condition assertions; produce junit-like results. | `meta`, `orchestration`, `testing`, `assertions` |
+| `bundle_run_artifacts` | Gather screen capture, memory snapshots, and debugreg into a structured bundle for a run. | `meta`, `orchestration`, `artifacts`, `debugging` |
+| `compile_run_verify_cycle` | Compile source (BASIC/ASM/SIDWAVE), run, verify via screen/audio, and archive artifacts. | `meta`, `orchestration`, `compile`, `verify` |
 | `config_snapshot_and_restore` | Read all configuration categories and write a versioned snapshot, or restore from a snapshot; supports diff mode. | `meta`, `orchestration`, `config`, `snapshot` |
 | `find_paths_by_name` | Return device paths whose names contain a substring; supports simple extension filters and wildcard-aware firmware search. | `meta`, `orchestration`, `files`, `discover` |
 | `firmware_info_and_healthcheck` | Fetch firmware version and info, probe zero-page read, and return readiness with latencies. | `meta`, `orchestration`, `diagnostics` |
 | `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `background`, `scheduler` |
 | `memory_dump_to_file` | Chunked memory dump with retries; optional pause/resume; writes hex or binary and a manifest. | `meta`, `orchestration`, `memory`, `dump`, `file` |
+| `program_shuffle` | Discover and run PRG/CRT programs under a root path, capturing screens and resetting between runs. | `meta`, `orchestration`, `programs`, `testing` |
 | `start_background_task` | Start a background task that runs an operation at a fixed interval for N iterations or indefinitely. | `meta`, `orchestration`, `background`, `scheduler` |
 | `stop_all_background_tasks` | Stop all active background tasks. | `meta`, `orchestration`, `background`, `scheduler` |
 | `stop_background_task` | Stop a named background task. | `meta`, `orchestration`, `background`, `scheduler` |
