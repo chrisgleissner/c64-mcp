@@ -96,15 +96,12 @@ import { join as joinPath } from "node:path";
 import { addMilliseconds } from "date-fns";
 
 function formatTimestampSpec(date: Date = new Date()): string {
-  const iso = date.toISOString(); // YYYY-MM-DDTHH:MM:SS.mmmZ
-  const noMs = iso.replace(/\.\d{3}Z$/, "Z");
-  return noMs.replace(/:/g, "-"); // YYYY-MM-DDTHH-MM-SSZ
+  return date.toISOString();
 }
 
 function parseTimestampSpec(s: string | null | undefined): Date | null {
   if (!s) return null;
-  const normalized = s.replace(/T(\d{2})-(\d{2})-(\d{2})Z$/, "T$1:$2:$3Z");
-  const d = new Date(normalized);
+  const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
