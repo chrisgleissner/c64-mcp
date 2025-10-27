@@ -199,6 +199,53 @@ Conventions:
   - Agent state: packet counters, idle detection.
   - REST: PUT /v1/streams/debug:start, PUT /v1/streams/debug:stop
 
+#### Debug stream–based feedback loops
+
+- "debug_loop_run_and_capture"
+  - Pause → start debug stream → resume → perform action (tool callback) → wait window or until condition → pause → stop stream → parse and summarize packets.
+  - Agent state: host:port, selected mode (6510/VIC/1541), rolling buffer, filters (address ranges, R/W, device), last summary.
+  - REST: PUT /v1/machine:pause, PUT /v1/streams/debug:start, PUT /v1/machine:resume, [action tool], PUT /v1/machine:pause, PUT /v1/streams/debug:stop
+  - Safety: refuse when video stream is active; enforce max duration; auto-stop on packet loss; configurable throttling.
+
+- "debug_trace_until_cpu_write"
+  - Run until a CPU write to an address (or set) is observed; then immediately pause and return a short trace window around the event.
+  - Agent state: address watch set, pre/post window sizes, event metadata.
+  - REST: PUT /v1/machine:pause, PUT /v1/streams/debug:start, PUT /v1/machine:resume, PUT /v1/machine:pause, PUT /v1/streams/debug:stop
+
+- "verify_irq_jitter"
+  - Measure IRQ handler periodicity by detecting writes to $D019 (IRQ ack) or reads/writes around vector/$0314; compute intervals and jitter vs. threshold.
+  - Agent state: target addresses, acceptable jitter, histogram of deltas.
+  - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
+
+- "verify_raster_irq_line"
+  - Verify raster IRQ is programmed to a specific line by correlating writes to $D012/$D011 and ensuing IRQ acks; report mismatches.
+  - Agent state: expected lines, tolerance for off-by-one conditions.
+  - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
+
+- "iec_bus_handshake_probe"
+  - Use 1541 debug mode to capture ATN/CLOCK/DATA activity during a load/save; verify protocol phases and timings.
+  - Agent state: phase detector, timing thresholds, pass/fail report.
+  - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop (1541 mode), optional PUT /v1/runners:load_prg|:run_prg
+
+- "sid_register_write_profile"
+  - Capture and summarize writes to $D400–$D418 (SID) to verify gates, ADSR and waveform updates; report per-voice rates and anomalies.
+  - Agent state: address filters, per-register counters, time-bucketed stats.
+  - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
+
+- "action_latency_measure"
+  - Measure cycles between issuing an action (e.g., menu_button, write_memory) and the first observed matching bus event; return cycle/µs estimate.
+  - Agent state: action timestamp, first-match timestamp, CPU clock assumption (PAL/NTSC option).
+  - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop, PUT /v1/machine:menu_button|:writemem|runners
+
+- "time_bounded_trace_around_event"
+  - Maintain a circular buffer of debug entries and freeze it when a predicate matches (address, R/W, data mask); export the pre/post window.
+  - Agent state: predicate, buffer size, captured window.
+  - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
+
+Notes:
+- Debug stream consumes significant bandwidth and cannot run concurrently with video; tools enforce mutual exclusion and strict time limits.
+- Modes supported: 6510, VIC, 6510&VIC, 1541, 6510&1541. Tools select minimal necessary mode for the predicate to reduce load.
+
 ### Configuration and diagnostics bundles
 
 - "config_snapshot_and_restore"
