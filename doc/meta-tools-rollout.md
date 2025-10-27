@@ -70,28 +70,7 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 
 ---
 
-### Phase 2 — Debug stream workflows
-- [ ] `debug_stream_watch` — Implementation notes:
-  - Start/stop; summarize rates; enforce mutual exclusion with video stream.
-- [ ] `debug_loop_run_and_capture` — Implementation notes:
-  - Pause → start debug → resume → action → pause → stop → summarize packets.
-  - Support modes: 6510, VIC, 1541; choose minimal scope by default.
-- [ ] `verify_raster_irq_line` — Implementation notes:
-  - Correlate writes to $D012/$D011 and IRQ ack; configurable tolerance.
-- [ ] `debug_trace_until_cpu_write` — Implementation notes:
-  - Watch address set; freeze a pre/post window when first write observed.
-- [ ] `action_latency_measure` — Implementation notes:
-  - Timestamp action issue and first matching event; compute cycles/µs.
-
-Optional follow-ons in this phase (implement after above pass):
-- [ ] `verify_irq_jitter`
-- [ ] `sid_register_write_profile`
-- [ ] `iec_bus_handshake_probe`
-- [ ] `time_bounded_trace_around_event`
-
----
-
-### Phase 3 — Filesystem and drives
+### Phase 2 — Filesystem and drives
 - [ ] `drive_mount_and_verify` — Implementation notes:
   - Power on if needed; mount; reset; verify via drives list. Retry with backoff.
 - [ ] `create_and_mount_blank_d64` — Implementation notes:
@@ -113,7 +92,7 @@ Optional in this phase:
 
 ---
 
-### Phase 4 — Graphics and screen pipelines
+### Phase 3 — Graphics and screen pipelines
 - [ ] `extract_sprites_from_ram` — Implementation notes:
   - Search with stride for 63-byte sprite patterns; export `.spr`/hex/base64.
 - [ ] `rip_charset_from_ram` — Implementation notes:
@@ -125,13 +104,39 @@ Optional in this phase:
 
 ---
 
-### Phase 5 — SID and audio
+### Phase 4 — SID and audio
 - [ ] `silence_and_verify` — Implementation notes:
   - Write SID reset/silence; record short audio; verify threshold.
 - [ ] `music_compile_play_analyze` — Implementation notes:
   - Compile SIDWAVE→PRG or SID; play; record; analyze; save JSON.
 - [ ] `sid_param_sweep` — Implementation notes:
   - Sweep ADSR/waveform/pulse width; schedule notes; analyze; score.
+
+---
+
+### Phase 5 — Debug stream workflows (post‑GA)
+- Prerequisites (must be satisfied before starting this phase):
+  - UDP ingest pipeline with backpressure and packet‑loss handling.
+  - Sampling/windowing design for high‑rate streams and summary accuracy.
+  - Performance targets validated via load and soak tests.
+  - Observability and failure‑mode coverage (metrics, logs, alerts, drop counters).
+- [ ] `debug_stream_watch` — Implementation notes:
+  - Start/stop; summarize rates; enforce mutual exclusion with video stream.
+- [ ] `debug_loop_run_and_capture` — Implementation notes:
+  - Pause → start debug → resume → action → pause → stop → summarize packets.
+  - Support modes: 6510, VIC, 1541; choose minimal scope by default.
+- [ ] `verify_raster_irq_line` — Implementation notes:
+  - Correlate writes to $D012/$D011 and IRQ ack; configurable tolerance.
+- [ ] `debug_trace_until_cpu_write` — Implementation notes:
+  - Watch address set; freeze a pre/post window when first write observed.
+- [ ] `action_latency_measure` — Implementation notes:
+  - Timestamp action issue and first matching event; compute cycles/µs.
+
+Optional follow-ons in this phase (implement after above pass):
+- [ ] `verify_irq_jitter`
+- [ ] `sid_register_write_profile`
+- [ ] `iec_bus_handshake_probe`
+- [ ] `time_bounded_trace_around_event`
 
 ---
 
