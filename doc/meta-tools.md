@@ -132,6 +132,39 @@ Conventions:
   - Agent state: last known image, slot state.
   - REST: PUT /v1/drives/{drive}:remove, PUT /v1/drives/{drive}:off
 
+### Filesystem discovery and deduplication
+
+- "find_and_run_program_by_name"
+  - Search under a root for the first program whose filename contains a substring; run it. Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
+  - Agent state: recent searches (root, pattern, extensions), last run path.
+  - REST: GET /v1/files/{root}/**/*{substring}*.{prg|crt}:info (wildcards), PUT /v1/runners:run_prg, PUT /v1/runners:run_crt
+
+- "filesystem_stats_by_extension"
+  - Walk all files beneath a root and compute counts and size statistics (total, min, max, mean) per extension, with convenience rollups for PRG vs non‑PRG and per‑folder summaries.
+  - Agent state: cached directory index, prior stats snapshots for trend comparisons.
+  - REST: GET /v1/files/{root}/**/*:info (wildcards)
+
+- "find_paths_by_name"
+  - Return fully qualified device paths for files whose names contain a substring; optional extension filter and max results.
+  - Agent state: result caches with TTL and last search parameters.
+  - REST: GET /v1/files/{root}/**/*{substring}*{.{ext}}:info (wildcards)
+
+- "run_copy_move_delete_by_path"
+  - Execute a batch of file operations addressed by fully qualified paths. Operations: run (PRG/CRT), copy, move, delete. Supports dry‑run planning and per‑op guards.
+  - Agent state: audit log of planned/applied ops, allowlist/denylist of roots, optional quarantine path for deletes.
+  - REST: Run → PUT /v1/runners:run_prg|:run_crt; Copy/Move/Delete → not exposed in current API (host‑side or future firmware endpoints). When unavailable, tool returns a plan and no‑ops unless host mapping is configured.
+
+- "dedup_scan"
+  - Discover duplicate files under a root using a tiered strategy: (1) group by size and extension; (2) optional filename normalization; (3) optional content fingerprint when available. Produces groups of candidate duplicates.
+  - Agent state: size→paths index, optional fingerprint cache, serialized scan manifests.
+  - REST: GET /v1/files/{root}/**/*:info (wildcards). Note: content hashing requires a future `/files:read` capability; when absent, tool limits to size/name heuristics.
+
+- "dedup_plan_and_apply"
+  - From a dedup scan, create a reversible plan that keeps one canonical file per group and quarantines the rest. Apply step moves duplicates into a timestamped quarantine directory; final deletion is an explicit, separate step.
+  - Agent state: quarantine root, manifest of moved paths, rollback map, retention policy.
+  - REST: No direct delete/move endpoints today; this tool defaults to dry‑run and plan output. Apply is disabled unless host‑side filesystem integration or future endpoints are configured.
+  - Safety guards: dry‑run by default; explicit `apply=true` and `confirm_phrase` required; path allowlist; maximum deletions threshold; quarantine with rollback window; never touches outside allowed roots.
+
 ### SID, music, and audio analysis
 
 - "sid_param_sweep"
