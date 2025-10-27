@@ -80,11 +80,11 @@ interface BackgroundTask {
   maxIterations?: number;
   iterations: number;
   status: TaskStatus;
-  startedAt: string; // UTC timestamp string
-  updatedAt: string; // UTC timestamp string
-  stoppedAt?: string | null; // UTC timestamp string or null
+  startedAt: Date;
+  updatedAt: Date;
+  stoppedAt?: Date | null;
   lastError?: string | null;
-  nextRunAt?: string | null;
+  nextRunAt?: Date | null;
   folder: string; // e.g. tasks/background/0001_read_memory
   _timer?: NodeJS.Timeout | null; // transient, not persisted
 }
@@ -102,6 +102,74 @@ function formatTimestampSpec(date: Date = new Date()): string {
   const mi = String(date.getUTCMinutes()).padStart(2, "0");
   const ss = String(date.getUTCSeconds()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}T${hh}-${mi}-${ss}Z`;
+}
+
+function parseTimestampSpec(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})Z$/.exec(s);
+  if (!m) return null;
+  const [_, y, mo, d, h, mi, se] = m;
+  const t = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se));
+  return new Date(t);
+}
+
+type PersistedTask = {
+  id: string;
+  name: string;
+  type: "background";
+  operation: string;
+  args: Record<string, unknown>;
+  intervalMs: number;
+  maxIterations?: number;
+  iterations: number;
+  status: TaskStatus;
+  startedAt: string;
+  updatedAt: string;
+  stoppedAt?: string | null;
+  lastError?: string | null;
+  nextRunAt?: string | null;
+  folder: string;
+};
+
+function toPersistedTask(t: BackgroundTask): PersistedTask {
+  return {
+    id: t.id,
+    name: t.name,
+    type: t.type,
+    operation: t.operation,
+    args: t.args,
+    intervalMs: t.intervalMs,
+    maxIterations: t.maxIterations,
+    iterations: t.iterations,
+    status: t.status,
+    startedAt: formatTimestampSpec(t.startedAt),
+    updatedAt: formatTimestampSpec(t.updatedAt),
+    stoppedAt: t.stoppedAt ? formatTimestampSpec(t.stoppedAt) : null,
+    lastError: t.lastError ?? null,
+    nextRunAt: t.nextRunAt ? formatTimestampSpec(t.nextRunAt) : null,
+    folder: t.folder,
+  };
+}
+
+function fromPersistedTask(p: PersistedTask): BackgroundTask {
+  return {
+    id: p.id,
+    name: p.name,
+    type: "background",
+    operation: p.operation,
+    args: p.args ?? {},
+    intervalMs: p.intervalMs,
+    maxIterations: p.maxIterations,
+    iterations: p.iterations,
+    status: p.status,
+    startedAt: parseTimestampSpec(p.startedAt) ?? new Date(),
+    updatedAt: parseTimestampSpec(p.updatedAt) ?? new Date(),
+    stoppedAt: parseTimestampSpec(p.stoppedAt ?? null),
+    lastError: p.lastError ?? null,
+    nextRunAt: parseTimestampSpec(p.nextRunAt ?? null),
+    folder: p.folder,
+    _timer: null,
+  };
 }
 
 function getTasksHomeDir(): string {
@@ -134,8 +202,9 @@ async function ensureTasksLoaded(): Promise<void> {
     const text = await fs.readFile(getTaskStateFilePath(), "utf8");
     const parsed = JSON.parse(text);
     if (parsed && Array.isArray(parsed.tasks)) {
-      for (const t of parsed.tasks as BackgroundTask[]) {
-        TASKS.set(t.name, { ...t, _timer: null });
+      for (const pt of parsed.tasks as PersistedTask[]) {
+        const t = fromPersistedTask(pt);
+        TASKS.set(t.name, t);
       }
     }
   } catch (error: any) {
@@ -150,18 +219,8 @@ async function ensureTasksLoaded(): Promise<void> {
 async function writeTaskJson(task: BackgroundTask): Promise<void> {
   const folderAbs = getBackgroundTaskFolderAbsolute(task.id);
   const resultRelative = `${task.folder}/result.json`;
-  const data = {
-    id: task.id,
-    name: task.name,
-    type: task.type,
-    operation: task.operation,
-    args: task.args,
-    status: task.status,
-    startedAt: task.startedAt,
-    updatedAt: task.updatedAt,
-    stoppedAt: task.stoppedAt ?? null,
-    resultPath: resultRelative,
-  };
+  const pt = toPersistedTask(task);
+  const data = { ...pt, resultPath: resultRelative } as const;
   await fs.mkdir(folderAbs, { recursive: true });
   await fs.writeFile(resolvePath(folderAbs, "task.json"), JSON.stringify(data, null, 2), "utf8");
 }
@@ -178,7 +237,7 @@ async function ensureResultAndLog(task: BackgroundTask): Promise<void> {
       id: task.id,
       type: "task",
       name: task.operation,
-      created: task.startedAt,
+      created: formatTimestampSpec(task.startedAt),
       status: task.status,
       iterations: task.iterations,
     } as Record<string, unknown>;
@@ -193,7 +252,7 @@ async function ensureResultAndLog(task: BackgroundTask): Promise<void> {
 
 async function appendTaskLog(task: BackgroundTask, message: string): Promise<void> {
   const logPath = resolvePath(getBackgroundTaskFolderAbsolute(task.id), "log.txt");
-  const ts = task.updatedAt ?? task.startedAt ?? formatTimestampSpec();
+  const ts = formatTimestampSpec(task.updatedAt ?? task.startedAt ?? new Date());
   await fs.appendFile(logPath, `[${ts}] ${message}\n`, "utf8");
 }
 
@@ -201,23 +260,7 @@ async function persistTasks(): Promise<void> {
   try {
     const path = getTaskStateFilePath();
     await fs.mkdir(dirname(path), { recursive: true });
-    const data = Array.from(TASKS.values()).map((t) => ({
-      id: t.id,
-      name: t.name,
-      type: t.type,
-      operation: t.operation,
-      args: t.args,
-      intervalMs: t.intervalMs,
-      maxIterations: t.maxIterations,
-      iterations: t.iterations,
-      status: t.status,
-      startedAt: t.startedAt,
-      updatedAt: t.updatedAt,
-      stoppedAt: t.stoppedAt ?? null,
-      lastError: t.lastError ?? null,
-      nextRunAt: t.nextRunAt ?? null,
-      folder: t.folder,
-    }));
+    const data = Array.from(TASKS.values()).map((t) => toPersistedTask(t));
     await fs.writeFile(path, JSON.stringify({ tasks: data }, null, 2), "utf8");
     // Keep per-task files up to date
     for (const t of TASKS.values()) {
@@ -250,16 +293,16 @@ function runOperation(op: string, args: Record<string, unknown>, ctx: Parameters
 function scheduleNextRun(task: BackgroundTask, ctx: Parameters<typeof metaModule.invoke>[2]): void {
   if (task.status !== "running") return;
   const delay = Math.max(0, task.intervalMs);
-  task.nextRunAt = formatTimestampSpec(new Date(Date.now() + delay));
+  task.nextRunAt = new Date(Date.now() + delay);
   task._timer = setTimeout(async () => {
     if (task.status !== "running") return;
     try {
       await runOperation(task.operation, task.args, ctx);
       task.iterations += 1;
-      task.updatedAt = formatTimestampSpec();
+      task.updatedAt = new Date();
       if (task.maxIterations && task.iterations >= task.maxIterations) {
         task.status = "completed";
-        task.stoppedAt = formatTimestampSpec();
+        task.stoppedAt = new Date();
         task._timer = null;
         await appendTaskLog(task, `completed iterations=${task.iterations}`);
         await persistTasks();
@@ -271,7 +314,7 @@ function scheduleNextRun(task: BackgroundTask, ctx: Parameters<typeof metaModule
     } catch (err) {
       task.status = "error";
       task.lastError = err instanceof Error ? err.message : String(err);
-      task.stoppedAt = formatTimestampSpec();
+      task.stoppedAt = new Date();
       task._timer = null;
       await appendTaskLog(task, `error: ${task.lastError}`);
       await persistTasks();
@@ -285,7 +328,7 @@ function stopTask(task: BackgroundTask): void {
   }
   task._timer = null;
   task.status = task.status === "completed" ? task.status : "stopped";
-  task.stoppedAt = formatTimestampSpec();
+  task.stoppedAt = new Date();
 }
 
 const noArgsSchema = objectSchema<Record<string, never>>({ description: "No arguments", properties: {}, additionalProperties: false });
@@ -576,7 +619,7 @@ export const metaModule = defineToolModule({
         try {
           await ensureTasksLoaded();
           const parsed = startBackgroundTaskArgsSchema.parse(args ?? {});
-          const nowStr = formatTimestampSpec();
+          const now = new Date();
           const existing = TASKS.get(parsed.name);
           if (existing && existing.status === "running") {
             throw new ToolValidationError("Task with this name is already running", { path: "$.name" });
@@ -603,8 +646,8 @@ export const metaModule = defineToolModule({
             maxIterations: parsed.maxIterations,
             iterations: 0,
             status: "running",
-            startedAt: nowStr,
-            updatedAt: nowStr,
+            startedAt: now,
+            updatedAt: now,
             stoppedAt: null,
             lastError: null,
             nextRunAt: null,
@@ -670,10 +713,10 @@ export const metaModule = defineToolModule({
             iterations: t.iterations,
             intervalMs: t.intervalMs,
             maxIterations: t.maxIterations ?? null,
-            nextRunAt: t.nextRunAt ?? null,
-            startedAt: t.startedAt,
-            updatedAt: t.updatedAt,
-            stoppedAt: t.stoppedAt ?? null,
+            nextRunAt: t.nextRunAt ? formatTimestampSpec(t.nextRunAt) : null,
+            startedAt: formatTimestampSpec(t.startedAt),
+            updatedAt: formatTimestampSpec(t.updatedAt),
+            stoppedAt: t.stoppedAt ? formatTimestampSpec(t.stoppedAt) : null,
             lastError: t.lastError ?? null,
             folder: t.folder,
           }));
