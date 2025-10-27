@@ -95,22 +95,16 @@ import os from "node:os";
 import { join as joinPath } from "node:path";
 
 function formatTimestampSpec(date: Date = new Date()): string {
-  const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(date.getUTCDate()).padStart(2, "0");
-  const hh = String(date.getUTCHours()).padStart(2, "0");
-  const mi = String(date.getUTCMinutes()).padStart(2, "0");
-  const ss = String(date.getUTCSeconds()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}T${hh}-${mi}-${ss}Z`;
+  const iso = date.toISOString(); // YYYY-MM-DDTHH:MM:SS.mmmZ
+  const noMs = iso.replace(/\.\d{3}Z$/, "Z");
+  return noMs.replace(/:/g, "-"); // YYYY-MM-DDTHH-MM-SSZ
 }
 
 function parseTimestampSpec(s: string | null | undefined): Date | null {
   if (!s) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})Z$/.exec(s);
-  if (!m) return null;
-  const [_, y, mo, d, h, mi, se] = m;
-  const t = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se));
-  return new Date(t);
+  const normalized = s.replace(/T(\d{2})-(\d{2})-(\d{2})Z$/, "T$1:$2:$3Z");
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 type PersistedTask = {
