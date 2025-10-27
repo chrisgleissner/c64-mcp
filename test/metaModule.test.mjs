@@ -8,12 +8,13 @@ function createLogger() {
   return { debug() {}, info() {}, warn() {}, error() {} };
 }
 
-function tmpPath(name) {
-  const dir = path.resolve("/workspace/.tmp-meta-tests");
+function tmpPath(subdir, name) {
+  const root = path.resolve("/workspace/.tmp-meta-tests/metaModule");
+  const dir = path.join(root, subdir);
   return { dir, file: path.join(dir, name) };
 }
 
-await fs.mkdir("/workspace/.tmp-meta-tests", { recursive: true });
+await fs.mkdir("/workspace/.tmp-meta-tests/metaModule", { recursive: true });
 
 // --- firmware_info_and_healthcheck ---
 
@@ -117,7 +118,8 @@ test("verify_and_write_memory aborts on pre-verify mismatch", async () => {
 // --- background tasks ---
 
 test("background tasks persist and complete iterations", async () => {
-  const { file } = tmpPath("tasks.json");
+  const { file, dir } = tmpPath("background", "tasks.json");
+  await fs.mkdir(dir, { recursive: true });
   process.env.C64_TASK_STATE_FILE = file;
   const ctx = {
     client: {
@@ -163,7 +165,7 @@ test("find_paths_by_name filters by substring and extension", async () => {
 // --- memory_dump_to_file ---
 
 test("memory_dump_to_file writes hex and manifest", async () => {
-  const { file, dir } = tmpPath("dump.hex");
+  const { file, dir } = tmpPath("memory", "dump.hex");
   const ctx = {
     client: {
       async pause() { return { success: true }; },
@@ -189,7 +191,8 @@ test("memory_dump_to_file writes hex and manifest", async () => {
 // --- config_snapshot_and_restore ---
 
 test("config_snapshot_and_restore snapshot and restore", async () => {
-  const { file } = tmpPath("config-snapshot.json");
+  const { file, dir } = tmpPath("config", "config-snapshot.json");
+  await fs.mkdir(dir, { recursive: true });
   let batchUpdated = false;
   const ctx = {
     client: {
