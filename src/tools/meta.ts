@@ -93,6 +93,7 @@ const TASKS: Map<string, BackgroundTask> = new Map();
 
 import os from "node:os";
 import { join as joinPath } from "node:path";
+import { addMilliseconds } from "date-fns";
 
 function formatTimestampSpec(date: Date = new Date()): string {
   const iso = date.toISOString(); // YYYY-MM-DDTHH:MM:SS.mmmZ
@@ -287,7 +288,7 @@ function runOperation(op: string, args: Record<string, unknown>, ctx: Parameters
 function scheduleNextRun(task: BackgroundTask, ctx: Parameters<typeof metaModule.invoke>[2]): void {
   if (task.status !== "running") return;
   const delay = Math.max(0, task.intervalMs);
-  task.nextRunAt = new Date(Date.now() + delay);
+  task.nextRunAt = addMilliseconds(new Date(), delay);
   task._timer = setTimeout(async () => {
     if (task.status !== "running") return;
     try {
