@@ -243,6 +243,8 @@ Well done! You are all set.
 
 ## Documentation 📚
 
+The following files provide further insight into various aspects of C64 Bridge:
+
 - [`mcp.json`](mcp.json): project configuration (entry point, env vars, metadata).
 - [`AGENTS.md`](AGENTS.md) — Quick-start guidance for automation agents and persona definitions.
 - [`doc/MCP_SETUP.md`](doc/MCP_SETUP.md) — More details on MCP setup and integration with Visual Code.
