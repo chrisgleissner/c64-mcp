@@ -1,0 +1,24 @@
+{
+  "exclude": ["./dist", "./docs", "./__tests__", "rollup.config.mjs", "./bin"],
+  "compilerOptions": {
+    "outDir": "./dist/esm",
+    "declaration": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "importHelpers": true,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "rootDir": "./src",
+    "module": "esnext"
+  },
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Recommended"
+}
