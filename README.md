@@ -235,9 +235,11 @@ In case you are having difficulties to start C64 Bridge, please consult the offi
 
 Prompt Copilot with **"Print a greeting on the screen"** to watch the MCP server upload and execute a BASIC greeting on your C64.
 
-You should now see a greeting on the screen of your C64 device:
+After a short while, a friendly AI greeting should appear on your C64 screen:
 
 ![VS Code C64 Hello World](./doc/img/vscode/vscode-copilot-hello-world.png)
+
+Well done! You are all set. 
 
 ## Documentation 📚
 
