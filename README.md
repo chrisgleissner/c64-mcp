@@ -150,7 +150,7 @@ Create `~/.c64bridge.json` with your device settings:
 node ./node_modules/c64bridge/dist/index.js
 ```
 
-Notes
+**Notes**
 
 - Works fully offline. The npm package bundles `doc/`, `data/`, and `mcp.json`.
 - All environment flags (e.g., `RAG_BUILD_ON_START=1`) apply the same as in a source checkout.
@@ -190,7 +190,7 @@ Omitting the port uses `8000`. Only switch to HTTP when remote clients require i
 
 ### Setup GitHub Copilot in VS Code 💻
 
-GitHub Copilot Chat (version 1.214+) includes native MCP support. To enable C64 Bridge integration:
+VS Code (version 1.102+) and GitHub Copilot Chat (version 1.214+) include native MCP support. To enable C64 Bridge integration:
 
 #### Step 1: Enable MCP in Copilot Chat
 
@@ -221,12 +221,9 @@ This is the expected output in the `Output / MCP: c64bridge`
 
 Keep this running.
 
+In case you are having difficulties to start C64 Bridge, please consult the official [VS Code MCP Server](https://code.visualstudio.com/docs/copilot/customization/mcp-servers) instructions.
 
-#### Step 3: Use MCP Tools in Copilot Chat
-
-More system, drive, file, streaming, and SID tools are available. For the full list and parameters, ask the MCP client to list tools.
-
-#### Step 4: Activate the C64 Chat Mode
+#### Step 3: Activate the C64 Chat Mode
 
 1. In VS Code, select **Menu → View → Chat** to open the Copilot Chat window.
 1. At the bottom of that window, use the drop-down that lists `Agent`, `Ask`, `Edit`, and `C64`. The `C64` option should be auto-discovered from the `.github/chatmodes/c64.chatmode.md` file bundled with this project.
@@ -234,7 +231,7 @@ More system, drive, file, streaming, and SID tools are available. For the full l
 
 ![VS Code C64 chat mode](./doc/img/vscode/vscode-copilot-c64-chat-mode.png)
 
-#### Step 5: Run Your First C64 AI Prompt
+#### Step 4: Run Your First C64 AI Prompt
 
 Prompt Copilot with **"Print a greeting on the screen"** to watch the MCP server upload and execute a BASIC greeting on your C64.
 
