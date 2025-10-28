@@ -293,3 +293,159 @@ test("sidplayRunner: tune parameter", async (t) => {
     }
   );
 });
+
+test("sidplayRunner: ensureParentDir creates nested directories", async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
+  const sidPath = path.join(tmpDir, "test.sid");
+  const wavPath = path.join(tmpDir, "nested", "dir", "out.wav");
+  
+  t.after(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  fs.writeFileSync(sidPath, Buffer.from([0x50, 0x53, 0x49, 0x44, 0x00, 0x01, 0x00, 0x7C]));
+
+  const oldBinary = process.env.SIDPLAYFP_BINARY;
+  process.env.SIDPLAYFP_BINARY = "nonexistent-sidplayfp-xyz";
+  
+  t.after(() => {
+    if (oldBinary !== undefined) {
+      process.env.SIDPLAYFP_BINARY = oldBinary;
+    } else {
+      delete process.env.SIDPLAYFP_BINARY;
+    }
+  });
+
+  await assert.rejects(
+    () => runSidToWav({ sidPath, wavPath }),
+    (err) => {
+      assert.ok(err instanceof SidplayExecutionError);
+      // Verify that the nested directory was created (even though the command failed)
+      assert.ok(fs.existsSync(path.dirname(wavPath)));
+      return true;
+    }
+  );
+});
+
+test("sidplayRunner: which function with path separator", async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
+  const sidPath = path.join(tmpDir, "test.sid");
+  const wavPath = path.join(tmpDir, "out.wav");
+  const fakeBinary = path.join(tmpDir, "fake-sidplayfp");
+  
+  t.after(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  fs.writeFileSync(sidPath, Buffer.from([0x50, 0x53, 0x49, 0x44, 0x00, 0x01, 0x00, 0x7C]));
+
+  // Test with a binary that has a path separator (should be resolved directly)
+  await assert.rejects(
+    () => runSidToWav({ sidPath, wavPath, binary: fakeBinary }),
+    (err) => {
+      assert.ok(err instanceof SidplayExecutionError);
+      assert.ok(err.message.includes("not found") || err.message.includes("not installed"));
+      return true;
+    }
+  );
+});
+
+test("sidplayRunner: non-zero exit code produces error", async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
+  const sidPath = path.join(tmpDir, "test.sid");
+  const wavPath = path.join(tmpDir, "out.wav");
+  const scriptPath = path.join(tmpDir, "fake-sidplayfp.sh");
+  
+  t.after(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  fs.writeFileSync(sidPath, Buffer.from([0x50, 0x53, 0x49, 0x44, 0x00, 0x01, 0x00, 0x7C]));
+
+  // Create a fake sidplayfp that exits with error
+  fs.writeFileSync(scriptPath, "#!/bin/sh\nexit 42\n", { mode: 0o755 });
+
+  await assert.rejects(
+    () => runSidToWav({ sidPath, wavPath, binary: scriptPath }),
+    (err) => {
+      assert.ok(err instanceof SidplayExecutionError);
+      assert.equal(err.exitCode, 42);
+      return true;
+    }
+  );
+});
+
+test("sidplayRunner: missing WAV output after success produces error", async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
+  const sidPath = path.join(tmpDir, "test.sid");
+  const wavPath = path.join(tmpDir, "out.wav");
+  const scriptPath = path.join(tmpDir, "fake-sidplayfp.sh");
+  
+  t.after(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  fs.writeFileSync(sidPath, Buffer.from([0x50, 0x53, 0x49, 0x44, 0x00, 0x01, 0x00, 0x7C]));
+
+  // Create a fake sidplayfp that exits successfully but doesn't create WAV
+  fs.writeFileSync(scriptPath, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+
+  await assert.rejects(
+    () => runSidToWav({ sidPath, wavPath, binary: scriptPath }),
+    (err) => {
+      assert.ok(err instanceof SidplayExecutionError);
+      assert.ok(err.message.includes("did not produce a WAV file"));
+      return true;
+    }
+  );
+});
+
+test("sidplayRunner: invalid WAV header too small", async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
+  const sidPath = path.join(tmpDir, "test.sid");
+  const wavPath = path.join(tmpDir, "out.wav");
+  const scriptPath = path.join(tmpDir, "fake-sidplayfp.sh");
+  
+  t.after(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  fs.writeFileSync(sidPath, Buffer.from([0x50, 0x53, 0x49, 0x44, 0x00, 0x01, 0x00, 0x7C]));
+
+  // Create a fake sidplayfp that creates a too-small WAV
+  const scriptContent = `#!/bin/sh
+# Parse arguments to find the -w output path
+outfile=""
+for arg in "$@"; do
+  case "$arg" in
+    -w*) outfile="\${arg#-w}" ;;
+  esac
+done
+# Write just a few bytes (too small for WAV)
+printf 'RIFF' > "\$outfile"
+exit 0
+`;
+  fs.writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
+
+  await assert.rejects(
+    () => runSidToWav({ sidPath, wavPath, binary: scriptPath }),
+    (err) => {
+      // Should error about WAV being too small
+      if (err instanceof Error) {
+        assert.ok(err.message.includes("too small") || err.message.includes("WAV"));
+        return true;
+      }
+      return false;
+    }
+  );
+});
