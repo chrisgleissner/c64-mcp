@@ -114,6 +114,32 @@ test("handles expectedSidwave with patterns", async () => {
   assert.ok(hasDeviation);
 });
 
+test("computeRms fallback path works without meyda", async () => {
+  // A simple low-amplitude signal to ensure RMS below threshold on parts
+  const low = genSine(261.63, 0.2, SR).map((x) => x * 0.001);
+  const audio = low;
+  const res = await analyzePcmForTest(audio, SR);
+  assert.ok(res.analysis.durationSeconds > 0);
+});
+
+test("uses expectedSidwave parsed doc to compute deviations", async () => {
+  const c4 = genSine(261.63, 0.4, SR);
+  const expectedSidwave = {
+    title: "Demo",
+    tempo: 100,
+    mode: "PAL",
+    voices: [
+      { id: 1, patterns: { main: { notes: ["C4", "E4"] } } },
+    ],
+    timeline: [ { bars: 1, layers: { v1: "main" } } ],
+  };
+  const res = await analyzePcmForTest(c4, SR, expectedSidwave);
+  const notes = res.analysis.voices[0].detected_notes.filter((n) => n.note);
+  assert.ok(notes.length > 0);
+  // Deviation should be a finite number thanks to expected set
+  assert.ok(Number.isFinite(notes[0].deviation_cents));
+});
+
 test("handles expectedSidwave with groove instead of notes", async () => {
   const e4 = genSine(329.63, 0.5, SR);
   const expectedSidwave = {
