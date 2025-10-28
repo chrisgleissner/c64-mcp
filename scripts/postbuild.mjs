@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Normalize the compiled output layout after TypeScript build.
  *

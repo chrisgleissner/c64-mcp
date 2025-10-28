@@ -1,5 +1,7 @@
 curl
 git
+nodejs
+npm
 sidplayfp
 vice
 xvfb

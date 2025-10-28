@@ -61,7 +61,7 @@ export C64BRIDGE_CONFIG="$CFG_FILE"
 
 # 3) If local mode, verify package contents (spot checks, no duplicates)
 if [[ "$MODE" == "local" ]]; then
-  (cd "$ROOT_DIR" && node scripts/check-package.mjs)
+  (cd "$ROOT_DIR" && bun scripts/check-package.mjs)
 fi
 
 echo "==> Starting MCP server in '$MODE' mode for $DURATION seconds..."

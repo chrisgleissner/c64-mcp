@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,8 +10,7 @@ const DEFAULT_TARGET = "mock";
 let target = DEFAULT_TARGET;
 let explicitBaseUrl = null;
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const registerSpec = pathToFileURL(path.join(repoRoot, "scripts", "register-ts-node.mjs")).href;
-const nodeArgs = ["--import", registerSpec, "--test"];
+const nodeArgs = ["--test"];
 
 for (const arg of process.argv.slice(2)) {
   if (arg === "--mock") {
@@ -62,7 +61,7 @@ if (target === "real" && !env.C64_TEST_BASE_URL) {
   env.C64_TEST_BASE_URL = resolveBaseUrlFromConfig() ?? "http://c64u";
 }
 
-const child = spawn(process.execPath, nodeArgs, {
+const child = spawn("bun", nodeArgs, {
   stdio: "inherit",
   env,
 });

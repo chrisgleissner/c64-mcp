@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CLI_CMD=(node --import "${REPO_ROOT}/scripts/register-ts-node.mjs" "${REPO_ROOT}/scripts/c64-cli.mjs")
+CLI_CMD=(bun "${REPO_ROOT}/scripts/c64-cli.mjs")
 
 function prompt_path() {
   local prompt="$1"

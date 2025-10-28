@@ -69,11 +69,17 @@ jobs:
         with:
           name: c64bridge-tarball
           path: ${{ steps.pack.outputs.tarball }}
+      - name: Publish to npm
+        if: ${{ env.NPM_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm publish --access public
 
   verify_npm:
     needs:
       - release
     uses: ./.github/workflows/package-check.yaml
     with:
-      package_source: local
+      package_source: npm
       package_version: ${{ needs.release.outputs.pkg_version }}

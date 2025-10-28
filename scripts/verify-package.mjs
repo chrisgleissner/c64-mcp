@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
 import crypto from 'node:crypto';
 
 function usage() {
-  console.error('Usage: node scripts/verify-package.mjs <package-dir>');
+  console.error('Usage: bun scripts/verify-package.mjs <package-dir>');
   process.exit(1);
 }
 

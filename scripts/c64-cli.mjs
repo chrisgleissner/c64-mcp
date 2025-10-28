@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, basename, resolve } from "node:path";
 import { Buffer } from "node:buffer";
