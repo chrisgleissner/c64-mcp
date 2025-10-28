@@ -1,0 +1,17 @@
+{
+  "reporter": ["text", "lcov"],
+  "exclude": [
+    "generated/**",
+    "test/**",
+    "scripts/**",
+    "dist/**",
+    "coverage/**",
+    "node_modules/**",
+    "**/*.d.ts",
+    "**/*.test.js",
+    "**/*.test.mjs",
+    "**/*.test.ts"
+  ],
+  "all": true,
+  "check-coverage": false
+}

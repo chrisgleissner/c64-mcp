@@ -152,7 +152,7 @@ function buildSidplayArgs(params: Required<RunSidToWavParams>, seconds: number):
   return args;
 }
 
-function parseWavHeader(buffer: Buffer): WavInfo {
+export function parseWavHeader(buffer: Buffer): WavInfo {
   if (buffer.length < 44) throw new Error("WAV too small");
   if (buffer.toString("ascii", 0, 4) !== "RIFF") throw new Error("WAV missing RIFF header");
   if (buffer.toString("ascii", 8, 12) !== "WAVE") throw new Error("WAV missing WAVE header");
