@@ -28,6 +28,7 @@ function restoreEnv(key, originalValue) {
 }
 
 test('RAG indexing scenarios', { concurrency: false }, async (t) => {
+  const sub = async (fn) => await fn();
   const embeddingsDir = await makeTempDir('embeddings');
   const basicDir = await makeTempDir('basic');
   const asmDir = await makeTempDir('asm');
@@ -67,13 +68,13 @@ LOOP    STA $D020
     let indexes = await loadIndexes({ embeddingsDir });
     let rag = new LocalRagRetriever(model, indexes);
 
-    await t.test('retrieves BASIC refs', async () => {
+    await sub(async () => {
       const refs = await rag.retrieve('draw a sine wave', 3, 'basic');
       assert.ok(Array.isArray(refs) && refs.length > 0);
       assert.ok(refs.some((text) => /POKE|PRINT|SIN|TAB|GOTO/i.test(text)));
     });
 
-    await t.test('retrieves ASM refs for raster/border', async () => {
+    await sub(async () => {
       const refs = await rag.retrieve('cycle border colors', 3, 'asm');
       assert.ok(refs.length > 0);
       const hasBorderColour = refs.some((text) => /\$d020|\$D020|border colour|border color/i.test(text));
@@ -81,7 +82,7 @@ LOOP    STA $D020
       assert.ok(hasBorderColour || hasAsmOps, 'expected at least one reference touching border colour logic');
     });
 
-    await t.test('classification identifies mixed, hardware, and other sources', async () => {
+    await sub(async () => {
       const mixedFile = path.join(externalDir, 'combo.txt');
       const hardwareFile = path.join(externalDir, 'sid_notes.txt');
       const otherFile = path.join(externalDir, 'notes.md');
@@ -109,7 +110,7 @@ LOOP    STA $D020
       }
     });
 
-    await t.test('chunks external OCR text with chapter headings', async () => {
+    await sub(async () => {
       const ocrFile = path.join(externalDir, 'butterfield.ocr.txt');
       const ocrSample = [
         'CHAPTER 1 INTRODUCTION TO MACHINE CODE',

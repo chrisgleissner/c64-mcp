@@ -26,7 +26,7 @@ cleanup() {
 trap cleanup EXIT
 
 # 1) Start mock server and wait for baseUrl
-node "$ROOT_DIR/scripts/start-mock.mjs" "$MOCK_INFO" &
+bun run "$ROOT_DIR/scripts/start-mock.mjs" "$MOCK_INFO" &
 MOCK_PID=$!
 
 for i in {1..50}; do
@@ -39,14 +39,14 @@ if [[ ! -f "$MOCK_INFO" ]]; then
   exit 1
 fi
 
-BASE_URL=$(node -e "const fs=require('fs'); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log(j.baseUrl || '');" "$MOCK_INFO")
+BASE_URL=$(bun -e "const fs=require('fs'); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log(j.baseUrl || '');" "$MOCK_INFO")
 if [[ -z "$BASE_URL" ]]; then
   echo "ERROR: mock baseUrl not found." >&2
   exit 1
 fi
 
-HOST_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "$BASE_URL")
-PORT_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "$BASE_URL")
+HOST_VALUE=$(bun -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "$BASE_URL")
+PORT_VALUE=$(bun -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "$BASE_URL")
 
 # 2) Write MCP config pointing to mock
 cat >"$CFG_FILE" <<EOF
@@ -61,22 +61,22 @@ export C64BRIDGE_CONFIG="$CFG_FILE"
 
 # 3) If local mode, verify package contents (spot checks, no duplicates)
 if [[ "$MODE" == "local" ]]; then
-  (cd "$ROOT_DIR" && node scripts/check-package.mjs)
+  (cd "$ROOT_DIR" && bun run scripts/check-package.mjs)
 fi
 
 echo "==> Starting MCP server in '$MODE' mode for $DURATION seconds..."
 echo "==> Logs will be written to: $(realpath "$LOGFILE")"
 
 if [[ "$MODE" == "local" ]]; then
-  (cd "$ROOT_DIR" && npm run build)
-  VERSION=$(node -p "require('$ROOT_DIR/package.json').version")
+  (cd "$ROOT_DIR" && bun run build)
+  VERSION=$(bun -e "console.log(require(process.argv[1]).version)" "$ROOT_DIR/package.json")
   echo "==> Running local build version $VERSION"
-  (cd "$ROOT_DIR" && node dist/index.js) 2>&1 | tee "$LOGFILE" &
+  (cd "$ROOT_DIR" && bun run dist/index.js) 2>&1 | tee "$LOGFILE" &
   MCP_PID=$!
 elif [[ "$MODE" == "npm" ]]; then
-  VERSION=$(npm view c64bridge version --silent || echo "unknown")
+  VERSION="latest"
   echo "==> Downloading c64bridge@$VERSION from npm registry..."
-  C64BRIDGE_CONFIG="$CFG_FILE" npx --yes c64bridge 2>&1 | tee "$LOGFILE" &
+  C64BRIDGE_CONFIG="$CFG_FILE" bun x c64bridge 2>&1 | tee "$LOGFILE" &
   MCP_PID=$!
 else
   echo "Usage: $0 [local|npm] [duration_seconds]" >&2

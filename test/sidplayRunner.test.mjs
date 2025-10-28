@@ -6,7 +6,7 @@ import os from "node:os";
 import { runSidToWav, SidplayExecutionError } from "../src/sidplayRunner.js";
 
 test("sidplayRunner: error handling", async (t) => {
-  await t.test("throws when sidPath is missing", async () => {
+  await (async () => {
     await assert.rejects(
       () => runSidToWav({ sidPath: "", wavPath: "/tmp/out.wav" }),
       (err) => {
@@ -14,9 +14,9 @@ test("sidplayRunner: error handling", async (t) => {
         return true;
       }
     );
-  });
+  })();
 
-  await t.test("throws when wavPath is missing", async () => {
+  await (async () => {
     await assert.rejects(
       () => runSidToWav({ sidPath: "/tmp/test.sid", wavPath: "" }),
       (err) => {
@@ -24,9 +24,9 @@ test("sidplayRunner: error handling", async (t) => {
         return true;
       }
     );
-  });
+  })();
 
-  await t.test("throws when SID file does not exist", async () => {
+  await (async () => {
     const nonExistentPath = path.join(os.tmpdir(), `nonexistent-${Date.now()}.sid`);
     await assert.rejects(
       () => runSidToWav({ sidPath: nonExistentPath, wavPath: "/tmp/out.wav" }),
@@ -35,9 +35,9 @@ test("sidplayRunner: error handling", async (t) => {
         return true;
       }
     );
-  });
+  })();
 
-  await t.test("throws SidplayExecutionError when binary not found", async () => {
+  await (async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
     const sidPath = path.join(tmpDir, "test.sid");
     const wavPath = path.join(tmpDir, "out.wav");
@@ -76,9 +76,9 @@ test("sidplayRunner: error handling", async (t) => {
         return true;
       }
     );
-  });
+  })();
 
-  await t.test("respects SIDPLAY_MODE env variable", async () => {
+  await (async () => {
     const oldMode = process.env.SIDPLAY_MODE;
     process.env.SIDPLAY_MODE = "pal";
     
@@ -93,9 +93,9 @@ test("sidplayRunner: error handling", async (t) => {
     // The mode resolution is tested indirectly through the args
     // This test just ensures the env var is read
     assert.ok(process.env.SIDPLAY_MODE === "pal");
-  });
+  })();
 
-  await t.test("respects SIDPLAY_LIMIT_CYCLES env variable", async () => {
+  await (async () => {
     const oldLimit = process.env.SIDPLAY_LIMIT_CYCLES;
     process.env.SIDPLAY_LIMIT_CYCLES = "60000000";
     
@@ -108,9 +108,9 @@ test("sidplayRunner: error handling", async (t) => {
     });
 
     assert.equal(Number(process.env.SIDPLAY_LIMIT_CYCLES), 60000000);
-  });
+  })();
 
-  await t.test("respects custom binary parameter", async () => {
+  await (async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sidplay-test-"));
     const sidPath = path.join(tmpDir, "test.sid");
     const wavPath = path.join(tmpDir, "out.wav");
@@ -132,7 +132,7 @@ test("sidplayRunner: error handling", async (t) => {
         return true;
       }
     );
-  });
+  })();
 });
 
 test("sidplayRunner: SidplayExecutionError structure", (t) => {

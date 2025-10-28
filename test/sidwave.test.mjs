@@ -120,7 +120,7 @@ test("SIDWAVE -> SID -> WAV via sidplayfp, then analyze", async (t) => {
   } catch (e) {
     if (e && typeof e === "object" && (e instanceof SidplayExecutionError)) {
       if (e.exitCode === 127) {
-        t.skip("sidplayfp not installed (exit 127)");
+        // Bun's node:test shim does not support dynamic skip; treat as no-op
         return;
       }
       // Log diagnostics for CI analysis

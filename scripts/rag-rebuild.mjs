@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { stat } from 'node:fs/promises';
@@ -27,9 +27,8 @@ async function main() {
     LocalMiniHashEmbedding = em.LocalMiniHashEmbedding;
     buildAllIndexes = ix.buildAllIndexes;
   } else {
-    // Fall back to TypeScript sources via ts-node when available
+    // Fall back to TypeScript sources (Bun can import TS directly)
     try {
-      await import('./register-ts-node.mjs');
       const em = await import(pathToFileURL(path.join(projectRoot, 'src', 'rag', 'embeddings.ts')).href);
       const ix = await import(pathToFileURL(path.join(projectRoot, 'src', 'rag', 'indexer.ts')).href);
       LocalMiniHashEmbedding = em.LocalMiniHashEmbedding;

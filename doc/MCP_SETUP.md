@@ -8,18 +8,17 @@ This guide targets engineers and advanced users who need to bring the C64 Bridge
 
 ## Prerequisites
 
-- Node.js 18 or newer (Node 20 recommended)
-- npm (ships with Node)
+- Bun 1.3+ (install via `curl -fsSL https://bun.sh/install | bash`)
 - Optional: Ultimate 64 or Commodore 64 Ultimate hardware reachable over HTTP
 - macOS, Linux, or WSL are fully supported. Windows works when the shell supports stdio transports.
 
 ## 1. Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
-The install step pulls the MCP SDK, test tooling, and the generated REST client stubs.
+The install step pulls the MCP SDK and the generated REST client stubs.
 
 ## 2. Configure the C64 Endpoint
 
@@ -45,15 +44,12 @@ Recommended configuration file:
 For active development against TypeScript sources:
 
 ```bash
-npm start
+bun run start
 ```
 
-`npm start` locates `src/mcp-server.ts`, loads the config, and launches the stdio transport. Successful startup prints:
+`bun run start` locates `src/mcp-server.ts`, loads the config, and launches the stdio transport. Successful startup prints:
 
 ```text
-> c64bridge@0.4.0 start
-> node scripts/start.mjs
-
 Starting c64bridge MCP server...
 [c64u] GET http://192.168.1.64 status=200 bytes=41608 latencyMs=177
 Connectivity check succeeded for c64 device at http://192.168.1.64
@@ -65,8 +61,8 @@ c64bridge MCP server running on stdio
 When TypeScript is unavailable (for example inside a packaged release tarball) use the compiled entry point:
 
 ```bash
-npm run build
-node dist/index.js
+bun run build
+bun run dist/index.js
 ```
 
 The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an installed binary launches the same stdio server.
@@ -112,7 +108,7 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
    }
    ```
 
-3. Keep `npm start` or the CLI running in the background.
+3. Keep `bun run start` or the CLI running in the background.
 4. In Copilot Chat, reference tools naturally (for example, "Read the current screen" or "Upload and run this BASIC program").
 
 ## 5. Verify Operation
@@ -120,28 +116,28 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
 Run the automated test suites against the mock hardware:
 
 ```bash
-npm test
+bun test
 ```
 
-To exercise a real device, ensure your config points at the desired host/port and append `-- --real`:
+To exercise a real device, ensure your config points at the desired host/port and set an env var:
 
 ```bash
-npm test -- --real
+C64_TEST_TARGET=real bun test
 ```
 
-`npm run coverage` captures c8 coverage for CI parity.
+`bun test --coverage` captures LCOV coverage for CI parity.
 
 ## 6. Common Tasks
 
-- Rebuild TypeScript output: `npm run build`
-- Regenerate REST client from OpenAPI: `npm run api:generate`
-- Refresh RAG embeddings after updating `data/`: `npm run rag:rebuild`
-- Smoke test the packaged tarball (used in CI): `npm run verify-package`
+- Rebuild TypeScript output: `bun run build`
+- Regenerate REST client from OpenAPI: `bun run api:generate`
+- Refresh RAG embeddings after updating `data/`: `bun run rag:rebuild`
+- Smoke test the packaged tarball (used in CI): `bun run verify-package`
 
 ## 7. Troubleshooting
 
 - Confirm connectivity logs appear on startup; missing logs indicate the REST endpoint is unreachable.
-- If `npm start` exits immediately, ensure Node can locate `ts-node/register` (installed via dev dependencies).
+- If `bun run start` exits immediately, ensure your configuration file is resolvable and Bun is on your PATH.
 - When GitHub Copilot cannot see tools, restart VS Code after editing MCP settings.
 - Additional guidance lives in `doc/troubleshooting-mcp.md`.
 

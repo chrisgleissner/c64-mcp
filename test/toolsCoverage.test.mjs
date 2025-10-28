@@ -63,10 +63,11 @@ function expectSuccess(result, message) {
 }
 
 test("C64Client MCP tool coverage", async (t) => {
+  const sub = async (fn) => await fn();
   const client = new C64Client("http://stub.local");
   Reflect.set(client, "facadePromise", Promise.resolve(stubFacade));
 
-  await t.test("program runners", async () => {
+  await sub(async () => {
     const basicResult = await client.uploadAndRunBasic('10 PRINT "HELLO"\n20 END');
     expectSuccess(basicResult, "upload_and_run_basic");
     assert.ok(lastPrg instanceof Uint8Array, "PRG bytes captured");
@@ -81,20 +82,20 @@ test("C64Client MCP tool coverage", async (t) => {
     expectSuccess(await client.modplayFile("//music/song.mod"), "modplay_file");
   });
 
-  await t.test("printer helpers", async () => {
+  await sub(async () => {
     expectSuccess(await client.printTextOnPrinterAndRun({ text: "HELLO" }), "print_text");
     expectSuccess(await client.printBitmapOnCommodoreAndRun({ columns: [0, 1, 2], repeats: 1, secondaryAddress: 7 }), "print_bitmap_commodore");
     expectSuccess(await client.printBitmapOnEpsonAndRun({ columns: [0, 1, 2, 3], mode: "L", repeats: 1, timesPerLine: 1 }), "print_bitmap_epson");
     expectSuccess(await client.defineCustomCharsOnCommodoreAndRun({ firstChar: 65, chars: [{ a: 1, columns: Array.from({ length: 11 }, () => 0) }], secondaryAddress: 0 }), "printer_dll");
   });
 
-  await t.test("graphics helpers", async () => {
+  await sub(async () => {
     const spriteBytes = new Uint8Array(63).fill(0x11);
     expectSuccess(await client.generateAndRunSpritePrg({ spriteBytes, spriteIndex: 0, x: 100, y: 50, color: 2, multicolour: false }), "generate_sprite_prg");
     expectSuccess(await client.renderPetsciiScreenAndRun({ text: "PETSCII" }), "render_petscii_screen");
   });
 
-  await t.test("memory access", async () => {
+  await sub(async () => {
     const read = await client.readMemory("$0400", "4");
     expectSuccess(read, "read_memory");
     assert.equal(read.data, "$00010203");
@@ -106,7 +107,7 @@ test("C64Client MCP tool coverage", async (t) => {
     assert.deepEqual(Array.from(lastWrite.bytes), [0xaa, 0x55]);
   });
 
-  await t.test("machine controls", async () => {
+  await sub(async () => {
     expectSuccess(await client.reset(), "reset_c64");
     expectSuccess(await client.reboot(), "reboot_c64");
     expectSuccess(await client.pause(), "pause");
@@ -122,7 +123,7 @@ test("C64Client MCP tool coverage", async (t) => {
     assert.equal(debugWrite.success, true);
   });
 
-  await t.test("sid helpers", async () => {
+  await sub(async () => {
     expectSuccess(await client.sidSetVolume(12), "sid_volume");
     expectSuccess(await client.sidReset(false), "sid_reset_soft");
     expectSuccess(await client.sidReset(true), "sid_reset_hard");
@@ -131,7 +132,7 @@ test("C64Client MCP tool coverage", async (t) => {
     expectSuccess(await client.sidSilenceAll(), "sid_silence_all");
   });
 
-  await t.test("drive + stream", async () => {
+  await sub(async () => {
     const drives = await client.drivesList();
     assert.ok(drives);
     expectSuccess(await client.driveMount("a", "/tmp/demo.d64", { type: "d64", mode: "readwrite" }), "drive_mount");
@@ -145,7 +146,7 @@ test("C64Client MCP tool coverage", async (t) => {
     expectSuccess(await client.streamStop("video"), "stream_stop");
   });
 
-  await t.test("config endpoints", async () => {
+  await sub(async () => {
     const categories = await client.configsList();
     assert.deepEqual(categories, { categories: ["Audio"] });
     const cat = await client.configGet("Audio", "Volume");
@@ -157,7 +158,7 @@ test("C64Client MCP tool coverage", async (t) => {
     expectSuccess(await client.configResetToDefault(), "config_reset_to_default");
   });
 
-  await t.test("file helpers", async () => {
+  await sub(async () => {
     const info = await client.filesInfo("/tmp/file" );
     assert.deepEqual(info, { info: { size: 1024 } });
     expectSuccess(await client.filesCreateD64("/tmp/disk.d64", { tracks: 35, diskname: "DEMO" }), "create_d64");

@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeToolModules } from "../src/tools/registry.js";
-import { listKnowledgeResources } from "../src/rag/knowledgeIndex.js";
-import { createPromptRegistry } from "../src/prompts/registry.js";
+import { describeToolModules } from "../src/tools/registry.ts";
+import { listKnowledgeResources } from "../src/rag/knowledgeIndex.ts";
+import { createPromptRegistry } from "../src/prompts/registry.ts";
 
 const START_MARKER = "<!-- AUTO-GENERATED:MCP-DOCS-START -->";
 const END_MARKER = "<!-- AUTO-GENERATED:MCP-DOCS-END -->";

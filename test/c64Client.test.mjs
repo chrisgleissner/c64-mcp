@@ -28,8 +28,8 @@ const target = (process.env.C64_TEST_TARGET ?? "mock").toLowerCase();
 const injectedBaseUrl = process.env.C64_TEST_BASE_URL;
 
 test("C64Client against mock server", async (t) => {
+  const sub = async (fn) => await fn();
   if (target !== "mock") {
-    t.skip("mock target disabled");
     return;
   }
 
@@ -40,7 +40,7 @@ test("C64Client against mock server", async (t) => {
 
   const client = new C64Client(mock.baseUrl);
 
-  await t.test("uploadAndRunBasic sends PRG payload", async () => {
+  await sub(async () => {
     const program = '10 PRINT "HELLO"';
     const result = await client.uploadAndRunBasic(program);
     assert.equal(result.success, true);
@@ -57,7 +57,7 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(finalMarker), [0x00, 0x00]);
   });
 
-  await t.test("printTextOnPrinterAndRun generates Commodore BASIC and runs it", async () => {
+  await sub(async () => {
     const opts = { text: "HELLO\nWORLD", formFeed: true };
     const prevRuns = mock.state.runCount;
     const result = await client.printTextOnPrinterAndRun(opts);
@@ -69,12 +69,12 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expectedPrg));
   });
 
-  await t.test("buildPrinterBasicProgram splits long lines and escapes quotes", () => {
+  await sub(async () => {
     const src = buildPrinterBasicProgram({ text: 'A"B' });
     assert.ok(src.includes('PRINT#1,"A""B"'));
   });
 
-  await t.test("Commodore BIM builder sets bit7 and emits DATA lines", () => {
+  await sub(async () => {
     const src = buildCommodoreBitmapBasicProgram({ columns: [0, 1, 2, 127], repeats: 2, secondaryAddress: 7 });
     // Expect bit7 set => 128,129,130,255 in DATA
     assert.ok(src.includes("DATA 128,129,130,255"));
@@ -82,21 +82,21 @@ test("C64Client against mock server", async (t) => {
     assert.ok(src.includes("PRINT#1,CHR$(8);A$"));
   });
 
-  await t.test("Epson bitmap builder encodes length in n,m", () => {
+  await sub(async () => {
     const src = buildEpsonBitmapBasicProgram({ columns: Array.from({ length: 16 }).map((_, i) => i), mode: "K", repeats: 3, timesPerLine: 2 });
     // n=16, m=0
     assert.ok(src.includes("CHR$(27)+CHR$(75)+CHR$(16)+CHR$(0)"), src);
     assert.ok(src.includes("PRINT#1,A$;A$;CHR$(10);CHR$(13)"));
   });
 
-  await t.test("Commodore DLL builder computes m,n and prints p1..p11", () => {
+  await sub(async () => {
     const src = buildCommodoreDllBasicProgram({ firstChar: 65, chars: [{ a: 0, columns: [1,2,3,4,5,6,7,8,9,10,11] }] });
     // t = (1*13)+2 = 15 => n=0, m=15
     assert.ok(src.includes('CHR$(27);"=";CHR$(15);CHR$(0);CHR$(65);CHR$(32);CHR$(0)'));
     assert.ok(src.includes('PRINT#1,CHR$(1),CHR$(2),CHR$(3),CHR$(4),CHR$(5),CHR$(6),CHR$(7),CHR$(8),CHR$(9),CHR$(10),CHR$(11)'));
   });
 
-  await t.test("printBitmapOnCommodoreAndRun sends expected PRG", async () => {
+  await sub(async () => {
     const opts = { columns: [0, 1, 2, 3, 4, 5, 6, 7], repeats: 2, secondaryAddress: 7 };
     const before = mock.state.runCount;
     const result = await client.printBitmapOnCommodoreAndRun(opts);
@@ -106,7 +106,7 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
   });
 
-  await t.test("printBitmapOnEpsonAndRun sends expected PRG", async () => {
+  await sub(async () => {
     const opts = { columns: Array.from({ length: 16 }).map((_, i) => i), mode: "L", repeats: 1, timesPerLine: 1 };
     const before = mock.state.runCount;
     const result = await client.printBitmapOnEpsonAndRun(opts);
@@ -116,7 +116,7 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
   });
 
-  await t.test("defineCustomCharsOnCommodoreAndRun sends expected PRG", async () => {
+  await sub(async () => {
     const opts = { firstChar: 65, chars: [{ a: 1, columns: [1,2,3,4,5,6,7,8,9,10,11] }], secondaryAddress: 0 };
     const before = mock.state.runCount;
     const result = await client.defineCustomCharsOnCommodoreAndRun(opts);
@@ -126,7 +126,7 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
   });
 
-  await t.test("printTextOnPrinterAndRun honors explicit Epson target (same BASIC by default)", async () => {
+  await sub(async () => {
     const opts = { text: "EPSON TEXT", target: "epson", formFeed: false };
     const before = mock.state.runCount;
     const result = await client.printTextOnPrinterAndRun(opts);
@@ -136,14 +136,14 @@ test("C64Client against mock server", async (t) => {
     assert.deepEqual(Array.from(mock.state.lastPrg), Array.from(expected));
   });
 
-  await t.test("version and info endpoints respond", async () => {
+  await sub(async () => {
     const v = await client.version();
     assert.ok(v && typeof v === "object");
     const info = await client.info();
     assert.ok(info && typeof info === "object");
   });
 
-  await t.test("pause/resume and debugreg read/write work", async () => {
+  await sub(async () => {
     let r = await client.pause();
     assert.equal(r.success, true);
     r = await client.resume();
@@ -156,19 +156,19 @@ test("C64Client against mock server", async (t) => {
     assert.equal(read.value?.toUpperCase(), "AB");
   });
 
-  await t.test("symbol address 'screen' resolves for readMemory", async () => {
+  await sub(async () => {
     const result = await client.readMemory("screen", "1");
     assert.equal(result.success, true);
     assert.equal(typeof result.data, "string");
     assert.ok(result.data?.startsWith("$"));
   });
 
-  await t.test("readScreen returns translated ASCII text", async () => {
+  await sub(async () => {
     const screen = await client.readScreen();
     assert.ok(screen.includes("READY."));
   });
 
-  await t.test("SID: set volume, note on/off, and silence all", async () => {
+  await sub(async () => {
     // Volume write should produce a write to $D418
     const vol = await client.sidSetVolume(12);
     assert.equal(vol.success, true);
@@ -192,7 +192,7 @@ test("C64Client against mock server", async (t) => {
     assert.equal(mock.state.lastWrite.bytes[0], 0x00);
   });
 
-  await t.test("write message to high RAM and read back", async () => {
+  await sub(async () => {
     const message = "HELLO FROM MCP";
     const length = message.length.toString(10);
 
@@ -214,7 +214,7 @@ test("C64Client against mock server", async (t) => {
     }
   });
 
-  await t.test("runPrg uploads a raw PRG payload", async () => {
+  await sub(async () => {
     const prg = basicToPrg('10 PRINT "RAW"');
     const before = mock.state.runCount;
     const result = await client.runPrg(prg);
@@ -222,31 +222,31 @@ test("C64Client against mock server", async (t) => {
     assert.equal(mock.state.runCount, before + 1);
   });
 
-  await t.test("reset returns success", async () => {
+  await sub(async () => {
     const result = await client.reset();
     assert.equal(result.success, true);
     assert.equal(mock.state.resets, 1);
   });
 
-  await t.test("reboot triggers firmware endpoint", async () => {
+  await sub(async () => {
     const result = await client.reboot();
     assert.equal(result.success, true);
     assert.equal(mock.state.reboots, 1);
   });
 
-  await t.test("writeMemory writes bytes to mock memory", async () => {
+  await sub(async () => {
     const result = await client.writeMemory("$0400", "$AA55");
     assert.equal(result.success, true);
     assert.deepEqual(Array.from(mock.state.lastWrite.bytes), [0xaa, 0x55]);
   });
 
-  await t.test("readMemory returns hex string with prefix", async () => {
+  await sub(async () => {
     const result = await client.readMemory("%0000010000000000", "2");
     assert.equal(result.success, true);
     assert.equal(result.data, "$AA55");
   });
 
-  await t.test("readMemory requests binary and falls back to JSON", async () => {
+  await sub(async () => {
     const r = await client.readMemory("$0400", "4");
     assert.equal(r.success, true);
     assert.equal(typeof r.data, "string");
@@ -255,7 +255,7 @@ test("C64Client against mock server", async (t) => {
     assert.ok(accept.includes("application/octet-stream"));
   });
 
-  await t.test("writeMemory uses POST for >128 bytes", async () => {
+  await sub(async () => {
     const big = Buffer.alloc(200, 0x42); // 'B'
     const hex = `$${big.toString("hex").toUpperCase()}`;
     const res = await client.writeMemory("$C100", hex);
@@ -266,26 +266,26 @@ test("C64Client against mock server", async (t) => {
 });
 
 test("C64Client against real C64", async (t) => {
+  const sub = async (fn) => await fn();
   if (target !== "real") {
-    t.skip("real target disabled");
     return;
   }
 
   const baseUrl = injectedBaseUrl ?? "http://c64u";
   const client = new C64Client(baseUrl);
 
-  await t.test("reset real C64", async () => {
+  await sub(async () => {
     const response = await client.reset();
     assert.equal(response.success, true, `Reset failed: ${JSON.stringify(response.details)}`);
   });
 
-  await t.test("upload program to real C64", async () => {
+  await sub(async () => {
     const program = '10 PRINT "MCP!"\n20 END';
     const response = await client.uploadAndRunBasic(program);
     assert.equal(response.success, true, `Upload failed: ${JSON.stringify(response.details)}`);
   });
 
-  await t.test("read screen from real C64", async () => {
+  await sub(async () => {
     const screen = await client.readScreen();
     assert.equal(typeof screen, "string");
     assert.ok(screen.length > 0, "Screen buffer empty");
@@ -314,7 +314,7 @@ test("C64Client against real C64", async (t) => {
   //   }
   // });
 
-  await t.test("reboot real C64", async () => {
+  await sub(async () => {
     const response = await client.reboot();
     assert.equal(response.success, true, `Reboot failed: ${JSON.stringify(response.details)}`);
   });

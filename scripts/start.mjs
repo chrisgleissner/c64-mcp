@@ -1,11 +1,10 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Flexible launcher for the MCP server.
  *
- * - Prefer running the TypeScript sources via ts-node when they are available
- *   (local development workflow).
+ * - Prefer running the TypeScript sources directly when available (Bun supports TS).
  * - Fall back to the compiled JavaScript in dist/ when the package is
- *   consumed from npm, where the sources and dev dependencies are omitted.
+ *   consumed from npm, where the sources are omitted.
  */
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -44,19 +43,8 @@ async function launch() {
   const distEntry = path.resolve(projectRoot, 'dist/index.js');
 
   if (await fileExists(srcEntry)) {
-    try {
-      await import('./register-ts-node.mjs');
-      await import(pathToFileURL(srcEntry).href);
-      return;
-    } catch (error) {
-      if (isModuleNotFound(error)) {
-        console.warn('[start] ts-node not available; falling back to compiled output.');
-      } else {
-        console.error('[start] Failed to launch TypeScript sources:', error);
-        process.exitCode = 1;
-        return;
-      }
-    }
+    await import(pathToFileURL(srcEntry).href);
+    return;
   }
 
   if (await fileExists(distEntry)) {
@@ -65,7 +53,7 @@ async function launch() {
   }
 
   console.error('[start] Unable to locate server entry point: dist/index.js or src/index.ts.');
-  console.error('[start] Build the project with `npm run build` or install dev dependencies for ts-node.');
+  console.error('[start] Build the project with `bun run build`.');
   process.exitCode = 1;
 }
 
