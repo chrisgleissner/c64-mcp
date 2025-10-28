@@ -200,3 +200,85 @@ test("modplay_file delegates to C64 client", async () => {
   assert.equal(calls[0], "/music/song.mod");
   assert.equal(result.metadata.path, "/music/song.mod");
 });
+
+test("music_compile_and_play handles C64 firmware failure for PRG", async () => {
+  const ctx = {
+    client: {
+      runPrg: async () => {
+        return { success: false, details: { error: "firmware error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_compile_and_play",
+    { sidwave: buildSidwaveDoc() },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("music_compile_and_play handles C64 firmware failure for SID", async () => {
+  const ctx = {
+    client: {
+      sidplayAttachment: async () => {
+        return { success: false, details: { error: "firmware error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_compile_and_play",
+    { sidwave: buildSidwaveDoc(), output: "sid" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("music_compile_and_play validates sidwave input", async () => {
+  const ctx = {
+    client: {
+      runPrg: async () => ({ success: true }),
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_compile_and_play",
+    { sidwave: null },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("sidwave or cpg"));
+});
+
+test("music_compile_and_play respects dryRun flag", async () => {
+  let runPrgCalled = false;
+  const ctx = {
+    client: {
+      runPrg: async () => {
+        runPrgCalled = true;
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_compile_and_play",
+    { sidwave: buildSidwaveDoc(), dryRun: true },
+    ctx,
+  );
+
+  assert.equal(result.content[0].type, "text");
+  assert.equal(result.metadata.ranOnC64, false);
+  assert.equal(result.metadata.dryRun, true);
+  assert.equal(runPrgCalled, false);
+});

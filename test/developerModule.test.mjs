@@ -168,3 +168,123 @@ test("version returns firmware payload", async () => {
   assert.equal(result.structuredContent?.type, "json");
   assert.deepEqual(result.structuredContent?.data, { version: "1.2.3" });
 });
+
+test("config_set with firmware failure", async () => {
+  const ctx = {
+    client: {
+      async configSet() {
+        return { success: false, details: { error: "invalid value" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke(
+    "config_set",
+    { category: "Test", item: "Item", value: "bad" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("config_batch_update with firmware failure", async () => {
+  const ctx = {
+    client: {
+      async configBatchUpdate() {
+        return { success: false, details: { error: "batch failed" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke(
+    "config_batch_update",
+    { Audio: { Volume: "10" } },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("batch configuration update"));
+});
+
+test("config_load_from_flash success", async () => {
+  const ctx = {
+    client: {
+      async configLoadFromFlash() {
+        return { success: true, details: { loaded: true } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("config_load_from_flash", {}, ctx);
+
+  assert.equal(result.content[0].type, "text");
+  assert.equal(result.metadata.success, true);
+});
+
+test("config_load_from_flash failure", async () => {
+  const ctx = {
+    client: {
+      async configLoadFromFlash() {
+        return { success: false, details: { error: "flash read error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("config_load_from_flash", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("config_save_to_flash success", async () => {
+  const ctx = {
+    client: {
+      async configSaveToFlash() {
+        return { success: true, details: { saved: true } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("config_save_to_flash", {}, ctx);
+
+  assert.equal(result.content[0].type, "text");
+  assert.equal(result.metadata.success, true);
+});
+
+test("config_save_to_flash failure", async () => {
+  const ctx = {
+    client: {
+      async configSaveToFlash() {
+        return { success: false, details: { error: "flash write error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("config_save_to_flash", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("config_reset_to_default failure", async () => {
+  const ctx = {
+    client: {
+      async configResetToDefault() {
+        return { success: false, details: { error: "reset failed" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await developerModule.invoke("config_reset_to_default", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
