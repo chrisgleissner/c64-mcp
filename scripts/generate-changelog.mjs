@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Generate or extend CHANGELOG.md from commit messages since the last tag,
  * following a Conventional Commits-like format.
@@ -108,7 +108,7 @@ async function main() {
   const exists = existsSync(changelogPath);
   const existing = exists ? await readFile(changelogPath, 'utf8') : '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
 
-  const headerVersion = version || run('node -p "require(\'./package.json\').version"');
+const headerVersion = version || JSON.parse(await (await import('node:fs/promises')).readFile('./package.json', 'utf8')).version;
   const section = renderSection(headerVersion, nowDate, groups);
 
   // Prepend the new section after a top-level title if present

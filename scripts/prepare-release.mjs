@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { execSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -16,11 +16,11 @@ const updateJsonFile = async (relativePath, updater) => {
   await writeFile(filePath, JSON.stringify(updated, null, 2) + '\n');
 };
 
-const usage = `Usage: npm run release:prepare -- <new-version|major|minor|patch>
+const usage = `Usage: bun run release:prepare -- <new-version|major|minor|patch>
 
 Examples:
-  npm run release:prepare -- 0.2.0
-  npm run release:prepare -- minor`;
+  bun run release:prepare -- 0.2.0
+  bun run release:prepare -- minor`;
 
 const arg = process.argv[2];
 if (!arg) {
@@ -30,7 +30,7 @@ if (!arg) {
 }
 
 try {
-  run(`npm version ${arg} --no-git-tag-version`);
+  run(`bunx json -I -f package.json -e "this.version='${arg}'"`);
 } catch (error) {
   console.error('npm version failed.');
   process.exit(error.status || 1);
@@ -49,7 +49,7 @@ await updateJsonFile('mcp.json', async (data) => ({
 
 // Update CHANGELOG.md from commits since last tag using Conventional Commits subjects.
 try {
-  run(`node scripts/generate-changelog.mjs ${newVersion}`);
+  run(`bun scripts/generate-changelog.mjs ${newVersion}`);
 } catch (e) {
   console.warn('WARN: Failed to generate CHANGELOG.md. You can run it manually: npm run changelog:generate');
 }

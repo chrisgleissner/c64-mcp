@@ -8,25 +8,19 @@
     "c64bridge": "scripts/cli.js"
   },
   "scripts": {
-    "start": "node scripts/start.mjs",
-    "mcp": "node --loader ts-node/esm src/mcp-server.ts",
-    "mcp:build": "npm run build && node dist/mcp-server.js",
-    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts",
-    "lint": "npm run check",
-    "test": "node scripts/run-tests.mjs",
-    "coverage": "c8 -r text -r lcov node scripts/run-tests.mjs",
-    "check:package": "node scripts/check-package.mjs",
-    "check:run-local": "bash scripts/run-mcp-check.sh local 5",
-    "check:run-npm": "bash scripts/run-mcp-check.sh npm 5",
-    "check": "npm run build && npm test",
-    "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
-    "api:generate": "npx --yes swagger-typescript-api@12.0.4 -p doc/rest/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
+    "start": "bun src/mcp-server.ts",
+    "mcp": "bun src/mcp-server.ts",
+    "build": "bun run tsc -p tsconfig.json && bun scripts/postbuild.mjs && bun scripts/update-readme.ts",
+    "test": "bun test",
+    "coverage": "bun test --coverage",
+    "check": "bun run build && bun test",
+    "build:rag": "bun scripts/rag-rebuild.mjs",
+    "api:generate": "bunx swagger-typescript-api@12.0.4 -p doc/rest/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",
-    "rag:rebuild": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
-    "rag:fetch": "node scripts/fetch-external-sources.mjs",
-    "rag:discover": "node --import ./scripts/register-ts-node.mjs src/rag/discover.ts",
-    "changelog:generate": "node scripts/generate-changelog.mjs",
-    "release:prepare": "node scripts/prepare-release.mjs"
+    "rag:rebuild": "bun scripts/rag-rebuild.mjs",
+    "rag:fetch": "bun scripts/fetch-external-sources.mjs",
+    "rag:discover": "bun src/rag/discover.ts",
+    "changelog:generate": "bun scripts/generate-changelog.mjs"
   },
   "keywords": [
     "mcp",
@@ -42,7 +36,7 @@
   "author": "Christian Gleissner",
   "license": "GPL-2.0-only",
   "engines": {
-    "node": ">=18"
+    "bun": ">=1.1.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.2",
@@ -60,9 +54,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.23",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.4.5",
-    "c8": "^9.1.0"
+    "typescript": "^5.4.5"
   },
   "files": [
     "mcp.json",
@@ -76,5 +68,5 @@
     "generated/**/*.js",
     ".github/prompts/**"
   ],
-  "prepack": "npm run build"
+  "prepack": "bun run build"
 }

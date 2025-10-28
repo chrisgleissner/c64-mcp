@@ -1,4 +1,4 @@
-name: Check NPM Package
+name: Check Package (Bun)
 
 on:
   workflow_call:
@@ -30,44 +30,33 @@ jobs:
   verify:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
     defaults:
       run:
         shell: bash
     env:
       PACKAGE_SOURCE: ${{ inputs.package_source }}
       PACKAGE_VERSION: ${{ inputs.package_version }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - name: Install dependencies (local source)
         if: ${{ env.PACKAGE_SOURCE == 'local' }}
-        run: npm ci
-
+        run: bun install --frozen-lockfile || bun install
       - name: Build package (local source)
         if: ${{ env.PACKAGE_SOURCE == 'local' }}
-        run: npm run build
-
+        run: bun run build
       - name: Pack package
         id: pack
         run: |
           set -euo pipefail
-          if [ "${PACKAGE_SOURCE}" = "local" ]; then
-            TARBALL=$(npm_config_ignore_scripts=false npm pack --silent)
-          else
-            PKG="c64bridge"
-            if [ -n "${PACKAGE_VERSION}" ]; then
-              PKG="${PKG}@${PACKAGE_VERSION}"
-            fi
-            TARBALL=$(npm pack "$PKG" --silent)
-          fi
+          # Pack with npm for registry-compatible tarball structure
+          TARBALL=$(npm_config_ignore_scripts=false npm pack --silent)
           echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
-
       - name: Extract package
         id: extract
         run: |
@@ -76,27 +65,24 @@ jobs:
           mkdir -p package_extract
           tar -xzf "$TARFILE" -C package_extract
           echo "pkg_dir=$(realpath package_extract/package)" >> "$GITHUB_OUTPUT"
-
       - name: Verify packaged contents
         run: |
           set -euo pipefail
           PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
-          node scripts/verify-package.mjs "$PKG_DIR"
-
+          bun scripts/verify-package.mjs "$PKG_DIR"
       - name: Install runtime dependencies inside package
         run: |
           set -euo pipefail
           PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
           cd "$PKG_DIR"
-          npm install --omit=dev
-
+          bun install --production
       - name: Start mock C64 server
         id: mock
         run: |
           set -euo pipefail
           MOCK_ADDR_FILE=$(mktemp)
           echo "MOCK_ADDR_FILE=$MOCK_ADDR_FILE" >> "$GITHUB_ENV"
-          node scripts/start-mock-c64.mjs "$MOCK_ADDR_FILE" > mock-server.log 2>&1 &
+          bun scripts/start-mock-c64.mjs "$MOCK_ADDR_FILE" > mock-server.log 2>&1 &
           MOCK_PID=$!
           echo "MOCK_PID=$MOCK_PID" >> "$GITHUB_ENV"
           sleep 1
@@ -109,7 +95,6 @@ jobs:
           echo "Mock server listening at $MOCK_BASE_URL"
           echo "MOCK_BASE_URL=$MOCK_BASE_URL" >> "$GITHUB_ENV"
           cat mock-server.log
-
       - name: Run MCP server smoke test
         id: smoke
         env:
@@ -119,8 +104,8 @@ jobs:
           PKG_DIR="${{ steps.extract.outputs.pkg_dir }}"
           LOGFILE=$(mktemp)
           CONFIG_FILE=$(mktemp)
-          HOST_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "${MOCK_BASE_URL}")
-          PORT_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "${MOCK_BASE_URL}")
+          HOST_VALUE=$(bun -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "${MOCK_BASE_URL}")
+          PORT_VALUE=$(bun -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "${MOCK_BASE_URL}")
           cat <<EOF > "$CONFIG_FILE"
           {"c64u":{"host":"${HOST_VALUE}","port":${PORT_VALUE}}}
           EOF
@@ -128,13 +113,8 @@ jobs:
           export PACKAGE_DIR="$PKG_DIR"
           export LOGFILE="$LOGFILE"
           export PORT=0
-          if [ "${PACKAGE_SOURCE}" = "local" ]; then
-            bash scripts/smoke-run.sh local 5
-          else
-            bash scripts/smoke-run.sh npm 5
-          fi
+          bash scripts/smoke-run.sh local 5
           echo "log=$LOGFILE" >> "$GITHUB_OUTPUT"
-
       - name: Validate MCP server logs
         run: |
           set -euo pipefail
@@ -151,7 +131,6 @@ jobs:
             exit 1
           fi
           echo "Connectivity check confirmed in log"
-
       - name: Stop mock C64 server
         if: always()
         run: |
@@ -165,7 +144,6 @@ jobs:
           if [ -n "$LOGFILE_OUTPUT" ]; then
             rm -f "$LOGFILE_OUTPUT" || true
           fi
-
       - name: Upload smoke log artifact on failure
         if: failure() && steps.smoke.outputs.log
         uses: actions/upload-artifact@v4

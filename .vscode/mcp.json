@@ -2,8 +2,8 @@
     "servers": {
         "c64bridge": {
             "type": "stdio",
-            "command": "npm",
-            "args": ["start"],
+            "command": "bun",
+            "args": ["src/mcp-server.ts"],
             "cwd": ".",
             "env": {
                 "LOG_LEVEL": "info"

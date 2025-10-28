@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { after } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -22,9 +22,6 @@ let shutdownInFlight;
 async function setupSharedServer() {
   const mockServer = await startMockC64Server();
 
-  const registerLoader = pathToFileURL(
-    path.join(repoRoot, "scripts", "register-ts-node.mjs"),
-  ).href;
   const serverEntrypoint = path.join(repoRoot, "src", "mcp-server.ts");
 
   const configPath = path.join(
@@ -41,8 +38,8 @@ async function setupSharedServer() {
   fs.writeFileSync(configPath, JSON.stringify(configPayload), "utf8");
 
   const transport = new StdioClientTransport({
-    command: process.execPath,
-    args: ["--import", registerLoader, serverEntrypoint],
+    command: "bun",
+    args: [serverEntrypoint],
     cwd: repoRoot,
     env: {
       ...process.env,

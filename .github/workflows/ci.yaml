@@ -53,7 +53,7 @@ jobs:
     secrets: inherit
 
   package-check:
-    name: Package check
+    name: Package check (Bun)
     needs:
       - detect-changes
       - docker-image

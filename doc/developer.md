@@ -15,7 +15,7 @@ Concise reference for contributors working on the MCP server that bridges LLM wo
     - `types/` and `context.ts` for shared type definitions and session context helpers.
     - `petscii*.ts`, `basicConverter.ts`, `assemblyConverter.ts`, and `chargen.ts` for Commodore-specific encoders and assets.
     - `knowledge.ts` for resource wiring and `config.ts` for environment resolution.
-- `scripts/` — Node/TypeScript utilities for starting the server, rebuilding docs, running tests, regenerating embeddings, packaging releases, and providing the CLI shim used by `c64bridge`.
+- `scripts/` — Bun/TypeScript utilities for starting the server, rebuilding docs, running tests, regenerating embeddings, packaging releases, and providing the CLI shim used by `c64bridge`.
 - `doc/` — documentation set (developer guide, REST references, troubleshooting, task notes).
 - `data/` — knowledge corpus, embeddings, and example programs consumed by the RAG pipeline.
 - `test/` — Node test suites plus mock server helpers; includes real-hardware toggles.
@@ -33,14 +33,13 @@ Key documentation:
 
 ## Prerequisites
 
-- Node.js 18+ (20+ recommended); ESM TypeScript via `ts-node`.
-- npm for dependency management.
+- Bun 1.1+ for runtime and package management.
 - Optional: Ultimate 64 hardware (or compatible REST device) for real tests.
 
 ## Setup
 
 ```bash
-npm install
+bun install
 ```
 
 Configuration resolution (first match wins):
@@ -51,32 +50,28 @@ Configuration resolution (first match wins):
 
 `loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`), and caches the resolved structure for subsequent calls.
 
-## Useful npm Scripts
+## Useful Bun Scripts
 
 **Core server flows**
 
-- `npm start` launches the stdio MCP server with hot TypeScript support (`scripts/start.mjs`).
-- `npm run mcp` runs the TypeScript entry point directly via `ts-node`; `npm run mcp:build` compiles to `dist/` first, then executes the bundled server for parity testing.
-- `npm run build` compiles TypeScript, runs post-build normalization, and regenerates `README.md` tool/resource tables via `scripts/update-readme.ts`.
-- `npm run lint` maps to `npm run check` for quick consistency with CI.
+- `bun start` launches the stdio MCP server using TypeScript sources directly.
+- `bun run build` compiles TypeScript, runs post-build normalization, and regenerates `README.md` tool/resource tables via `scripts/update-readme.ts`.
 
 **Quality gates**
 
-- `npm test` drives `scripts/run-tests.mjs` against the mock C64 server; pass `-- --real [--base-url=http://host]` to exercise actual hardware.
-- `npm run check` executes `npm run build` followed by the mock test suite; `npm run coverage` wraps the same runner with c8.
-- `npm run check:package` validates packaging metadata, while `npm run check:run-local` / `npm run check:run-npm` execute `scripts/run-mcp-check.sh` against local and packaged installs.
+- `bun test` runs the mock-backed test suite; pass `-- --real [--base-url=http://host]` to exercise actual hardware.
+- `bun run check` executes `bun run build` followed by tests.
+- Packaging checks are performed via `bun scripts/verify-package.mjs` in CI.
 
 **RAG workflows**
 
-- `npm run rag:rebuild` (alias `npm run build:rag`) rebuilds embeddings; `npm run rag:fetch` pulls external corpora declared in `src/rag/sources.csv`.
-- `npm run rag:discover` performs experimental GitHub discovery using `src/rag/discover.ts` (requires credentials in `.env`).
+- `bun run rag:rebuild` (alias `bun run build:rag`) rebuilds embeddings; `bun run rag:fetch` pulls external corpora declared in `src/rag/sources.csv`.
+- `bun run rag:discover` performs experimental GitHub discovery using `src/rag/discover.ts` (requires credentials in `.env`).
 
 **Tooling and release**
 
-- `npm run c64:tool` opens the interactive helper for PRG conversion and upload; `npm run api:generate` refreshes the generated REST client.
-- `npm run changelog:generate` distills Conventional Commit history, and `npm run release:prepare -- <semver>` orchestrates version bumps plus manifest regeneration.
-
-Invoke `node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts` directly when you need to refresh documentation tables without a full rebuild.
+- `bun run c64:tool` opens the interactive helper for PRG conversion and upload; `bun run api:generate` refreshes the generated REST client.
+- `bun run changelog:generate` distills Conventional Commit history, and `bun run release:prepare -- <semver>` orchestrates version bumps plus manifest regeneration.
 
 The test driver in `scripts/run-tests.mjs` accepts additional flags: `--mock` (default) to use `test/mockC64Server.mjs`, `--real` to target hardware (`C64_TEST_TARGET=real`), and `--base-url` to override the REST endpoint during real runs.
 
@@ -148,9 +143,9 @@ flowchart LR
 
 ## Fast Development Workflow
 
-1. `npm run build` to validate types.
-2. `npm test` against the mock server.
-3. `npm test -- --real` when hardware is available.
+1. `bun run build` to validate types.
+2. `bun test` against the mock server.
+3. `bun test -- --real` when hardware is available.
 4. Update `doc/` and keep `doc/rest/c64-openapi.yaml` in sync with code.
 
 ## Release Workflow

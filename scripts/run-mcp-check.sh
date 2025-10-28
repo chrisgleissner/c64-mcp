@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Start a mock C64U server, point MCP at it, then launch MCP for a short time.
-# Usage: scripts/run-mcp-check.sh [local|npm] [duration_seconds]
+# Usage: scripts/run-mcp-check.sh [local|pkg] [duration_seconds]
 # - local: runs the local build (dist/index.js)
-# - npm:   runs the published package via npx (c64bridge)
+# - pkg:   runs the packaged build (from tarball extract)
 
 MODE="${1:-local}"
 DURATION="${2:-5}"
@@ -26,7 +26,7 @@ cleanup() {
 trap cleanup EXIT
 
 # 1) Start mock server and wait for baseUrl
-node "$ROOT_DIR/scripts/start-mock.mjs" "$MOCK_INFO" &
+bun "$ROOT_DIR/scripts/start-mock.mjs" "$MOCK_INFO" &
 MOCK_PID=$!
 
 for i in {1..50}; do
@@ -39,14 +39,14 @@ if [[ ! -f "$MOCK_INFO" ]]; then
   exit 1
 fi
 
-BASE_URL=$(node -e "const fs=require('fs'); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log(j.baseUrl || '');" "$MOCK_INFO")
+BASE_URL=$(bun -e "const fs=require('fs'); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log(j.baseUrl || '');" "$MOCK_INFO")
 if [[ -z "$BASE_URL" ]]; then
   echo "ERROR: mock baseUrl not found." >&2
   exit 1
 fi
 
-HOST_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "$BASE_URL")
-PORT_VALUE=$(node -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "$BASE_URL")
+HOST_VALUE=$(bun -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.hostname);" "$BASE_URL")
+PORT_VALUE=$(bun -e "const { URL } = require('url'); const u = new URL(process.argv[1]); console.log(u.port ? Number(u.port) : 80);" "$BASE_URL")
 
 # 2) Write MCP config pointing to mock
 cat >"$CFG_FILE" <<EOF
@@ -68,18 +68,17 @@ echo "==> Starting MCP server in '$MODE' mode for $DURATION seconds..."
 echo "==> Logs will be written to: $(realpath "$LOGFILE")"
 
 if [[ "$MODE" == "local" ]]; then
-  (cd "$ROOT_DIR" && npm run build)
-  VERSION=$(node -p "require('$ROOT_DIR/package.json').version")
+  (cd "$ROOT_DIR" && bun run build)
+  VERSION=$(bun -e "console.log(JSON.parse(require('fs').readFileSync('$ROOT_DIR/package.json','utf8')).version)")
   echo "==> Running local build version $VERSION"
-  (cd "$ROOT_DIR" && node dist/index.js) 2>&1 | tee "$LOGFILE" &
+  (cd "$ROOT_DIR" && bun dist/index.js) 2>&1 | tee "$LOGFILE" &
   MCP_PID=$!
-elif [[ "$MODE" == "npm" ]]; then
-  VERSION=$(npm view c64bridge version --silent || echo "unknown")
-  echo "==> Downloading c64bridge@$VERSION from npm registry..."
-  C64BRIDGE_CONFIG="$CFG_FILE" npx --yes c64bridge 2>&1 | tee "$LOGFILE" &
+elif [[ "$MODE" == "pkg" ]]; then
+  echo "==> Running packaged build from dist/ ..."
+  (cd "$ROOT_DIR" && bun dist/index.js) 2>&1 | tee "$LOGFILE" &
   MCP_PID=$!
 else
-  echo "Usage: $0 [local|npm] [duration_seconds]" >&2
+  echo "Usage: $0 [local|pkg] [duration_seconds]" >&2
   exit 1
 fi
 

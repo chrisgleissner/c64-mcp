@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Lightweight CLI launcher for the compiled server
-// Usage: `npx c64bridge` or after local install `c64bridge`
+// Usage: `c64bridge` (installed) or run via `bun scripts/cli.js`
 
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -25,7 +25,7 @@ async function findEntry() {
 		}
 	}
 
-	// Fallback: try reading package.json's main field
+    // Fallback: try reading package.json's main field
 	try {
 		const pkgPath = path.resolve(here, '../package.json');
 		const raw = await readFile(pkgPath, 'utf8');
@@ -55,7 +55,7 @@ if (!entry) {
 	console.error(' - Or wait for a patched release that includes compiled artifacts.');
 	process.exitCode = 1;
 } else {
-	// import the resolved entry
+    // import the resolved entry
 	const entryUrl = new URL(`file://${entry}`);
 	await import(entryUrl.href);
 }

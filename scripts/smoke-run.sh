@@ -28,7 +28,7 @@ case "$MODE" in
     fi
     (
       cd "$PACKAGE_DIR" || exit 1
-  timeout --signal=TERM "$DURATION" node dist/index.js
+  timeout --signal=TERM "$DURATION" bun dist/index.js
     ) 2>&1 | tee "$LOGFILE"
     STATUS=${PIPESTATUS[0]}
     ;;
@@ -43,7 +43,7 @@ case "$MODE" in
     fi
     (
       cd "$PACKAGE_DIR" || exit 1
-      timeout --signal=TERM "$DURATION" node dist/index.js
+      timeout --signal=TERM "$DURATION" bun dist/index.js
     ) 2>&1 | tee "$LOGFILE"
     STATUS=${PIPESTATUS[0]}
     ;;

@@ -1,4 +1,4 @@
-name: Release NPM Package
+name: Release Package (Bun)
 
 on:
   push:
@@ -15,8 +15,13 @@ jobs:
   release:
     needs: verify_local
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
     permissions:
       contents: write
       packages: read
@@ -26,16 +31,11 @@ jobs:
       pkg_version: ${{ steps.version.outputs.version }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile || bun install
 
       - name: Build project
-        run: npm run build
+        run: bun run build
 
       - name: Determine tag version
         id: version
@@ -48,8 +48,8 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           CLEAN="${TAG#v}"
-          PKG_VER=$(node -p "require('./package.json').version")
-          MCP_VER=$(node -p "require('./mcp.json').version")
+          PKG_VER=$(bun -e "console.log(JSON.parse(require('fs').readFileSync('./package.json','utf8')).version)")
+          MCP_VER=$(bun -e "console.log(JSON.parse(require('fs').readFileSync('./mcp.json','utf8')).version)")
           if [ "$CLEAN" != "$PKG_VER" ]; then
             echo "Tag version $CLEAN does not match package.json version $PKG_VER" >&2
             exit 1
@@ -58,20 +58,22 @@ jobs:
             echo "Tag version $CLEAN does not match mcp.json version $MCP_VER" >&2
             exit 1
           fi
-
-      - name: Publish to npm
+      - name: Pack artifact
+        id: pack
         run: |
-          if [ -z "${NPM_TOKEN:-}" ]; then
-            echo "NPM_TOKEN secret not set" >&2
-            exit 1
-          fi
-          npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
-          npm publish --access public
+          set -euo pipefail
+          TARBALL=$(npm_config_ignore_scripts=false npm pack --silent)
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+      - name: Upload package tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: c64bridge-tarball
+          path: ${{ steps.pack.outputs.tarball }}
 
   verify_npm:
     needs:
       - release
     uses: ./.github/workflows/package-check.yaml
     with:
-      package_source: npm
+      package_source: local
       package_version: ${{ needs.release.outputs.pkg_version }}

@@ -8,15 +8,14 @@ This guide targets engineers and advanced users who need to bring the C64 Bridge
 
 ## Prerequisites
 
-- Node.js 18 or newer (Node 20 recommended)
-- npm (ships with Node)
+- Bun 1.1+ installed (`https://bun.sh`)
 - Optional: Ultimate 64 or Commodore 64 Ultimate hardware reachable over HTTP
 - macOS, Linux, or WSL are fully supported. Windows works when the shell supports stdio transports.
 
 ## 1. Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 The install step pulls the MCP SDK, test tooling, and the generated REST client stubs.
@@ -45,15 +44,12 @@ Recommended configuration file:
 For active development against TypeScript sources:
 
 ```bash
-npm start
+bun start
 ```
 
-`npm start` locates `src/mcp-server.ts`, loads the config, and launches the stdio transport. Successful startup prints:
+`bun start` locates `src/mcp-server.ts`, loads the config, and launches the stdio transport. Successful startup prints:
 
 ```text
-> c64bridge@0.4.0 start
-> node scripts/start.mjs
-
 Starting c64bridge MCP server...
 [c64u] GET http://192.168.1.64 status=200 bytes=41608 latencyMs=177
 Connectivity check succeeded for c64 device at http://192.168.1.64
@@ -62,14 +58,12 @@ Zero-page probe @ $0000: $00
 c64bridge MCP server running on stdio
 ```
 
-When TypeScript is unavailable (for example inside a packaged release tarball) use the compiled entry point:
+When TypeScript is precompiled, you can also use the compiled entry point:
 
 ```bash
-npm run build
-node dist/index.js
+bun run build
+bun dist/index.js
 ```
-
-The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an installed binary launches the same stdio server.
 
 ## 4. Connect an MCP Client
 
@@ -78,7 +72,7 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
 1. Enable MCP support: Settings > Extensions > GitHub Copilot > Chat > Experimental: MCP.
 2. Add the server entry (Command Palette > Preferences: Open Settings (JSON)).
 
-   When running from the cloned repository after `npm run build`:
+   When running from the cloned repository after `bun run build`:
 
    ```json
    {
@@ -86,8 +80,8 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
        "servers": [
          {
            "name": "c64bridge",
-           "command": "node",
-           "args": ["./dist/index.js"],
+          "command": "bun",
+          "args": ["./dist/index.js"],
            "type": "stdio"
          }
        ]
@@ -95,7 +89,7 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
    }
    ```
 
-   When using the published npm package instead of the local build:
+   When using a packaged build artifact instead of the local build:
 
    ```json
    {
@@ -103,8 +97,8 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
        "servers": [
          {
            "name": "c64bridge",
-           "command": "node",
-           "args": ["./node_modules/c64bridge/dist/index.js"],
+          "command": "bun",
+          "args": ["./dist/index.js"],
            "type": "stdio"
          }
        ]
@@ -112,7 +106,7 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
    }
    ```
 
-3. Keep `npm start` or the CLI running in the background.
+3. Keep `bun start` running in the background.
 4. In Copilot Chat, reference tools naturally (for example, "Read the current screen" or "Upload and run this BASIC program").
 
 ## 5. Verify Operation
@@ -120,22 +114,22 @@ The npm package also exposes a CLI named `c64bridge`; `npx c64bridge` or an inst
 Run the automated test suites against the mock hardware:
 
 ```bash
-npm test
+bun test
 ```
 
 To exercise a real device, ensure your config points at the desired host/port and append `-- --real`:
 
 ```bash
-npm test -- --real
+bun test -- --real
 ```
 
 `npm run coverage` captures c8 coverage for CI parity.
 
 ## 6. Common Tasks
 
-- Rebuild TypeScript output: `npm run build`
-- Regenerate REST client from OpenAPI: `npm run api:generate`
-- Refresh RAG embeddings after updating `data/`: `npm run rag:rebuild`
+-- Rebuild TypeScript output: `bun run build`
+-- Regenerate REST client from OpenAPI: `bun run api:generate`
+-- Refresh RAG embeddings after updating `data/`: `bun run rag:rebuild`
 - Smoke test the packaged tarball (used in CI): `npm run verify-package`
 
 ## 7. Troubleshooting

@@ -11,28 +11,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
-
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.sha }}
-
-      - run: npm ci
-      - run: npm run build
-      - name: Run test coverage (c8)
-        run: npm run coverage
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+      - uses: oven-sh/setup-bun@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          bun-version: latest
+      - run: bun install --frozen-lockfile || bun install
+      - run: bun run build
+      - name: Run tests with coverage
+        run: bun test --coverage
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-lcov
           path: |
-            coverage/lcov.info
-            coverage/coverage-final.json
+            coverage/**
           if-no-files-found: warn

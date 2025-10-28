@@ -4,7 +4,7 @@
 
 Your AI Command Bridge for the Commodore 64.
 
-[![npm](https://img.shields.io/npm/v/c64bridge.svg)](https://www.npmjs.com/package/c64bridge)
+[![bun](https://img.shields.io/badge/runtime-bun-%2300b4b6?logo=bun&logoColor=white)](https://bun.sh)
 [![Build](https://img.shields.io/github/actions/workflow/status/chrisgleissner/c64bridge/ci.yaml)](https://github.com/chrisgleissner/c64bridge/actions/workflows/ci.yaml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-forestgreen)](doc/developer.md)
@@ -59,58 +59,26 @@ The following image shows the final output, using the [C64 Stream](https://githu
 
 ## Installation 📦
 
-The installation consists of two steps: Installing Node.js and then installing and running the MCP server.
+This project uses Bun exclusively.
 
-### Install Node.js
+### Install Bun
 
-Requires Node.js 18+ (20+ recommended) and npm.
-
-- Linux (Ubuntu/Debian)
-
-  ```bash
-  sudo apt update
-  sudo apt install -y curl ca-certificates
-  # Option A: distro packages (may be older)
-  sudo apt install -y nodejs npm
-  # Option B (recommended): NodeSource LTS (20.x)
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-  sudo apt install -y nodejs
-  ```
-
-- macOS
-
-  ```bash
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" # if Homebrew not installed
-  brew install node@20
-  brew link --overwrite node@20
-  ```
-
-- Windows
-
-  ```powershell
-  # Option A: winget (Windows 10/11)
-  winget install OpenJS.NodeJS.LTS
-  # Option B: Chocolatey
-  choco install nodejs-lts -y
-  ```
+- Linux/macOS: see `https://bun.sh/docs/installation`
+- Windows: `https://bun.sh/docs/installation#windows`
 
 Verify:
 
 ```bash
-node --version  # v18+ (v20+ recommended)
-
+bun --version
 ```
 
-### Install and Run the MCP Server
+### Run the MCP Server
 
-You have three options to install and run the MCP server: quick start with npx, persistent install via npm, or install from source via GitHub if you want to run tests and contribute.
+From source checkout:
 
-#### Quick start (npx, zero-setup)
-
-Run the prebuilt server without creating a project. npx downloads the package and expands all bundled files on disk for this session.
-
-```sh
-npx -y c64bridge@latest
+```bash
+bun install
+bun start
 ```
 
 By default, the MCP server looks for `~/.c64bridge.json`. To target your device, create:
@@ -124,66 +92,20 @@ By default, the MCP server looks for `~/.c64bridge.json`. To target your device,
 }
 ```
 
-#### Persistent install (npm)
-
-This installs the prebuilt `c64bridge` Node package from [npm](https://www.npmjs.com/package/c64bridge) and then runs the server. No build step required.
-
-1. Create a folder (or use an existing project) and install the package:
-
-```bash
-mkdir -p ~/c64bridge && cd ~/c64bridge
-npm init -y
-npm install c64bridge
-```
-
-1. Configure your C64 target (optional but recommended):
-
-Create `~/.c64bridge.json` with your device settings:
-
-```json
-{ "c64u": { "host": "c64u" } }
-```
-
-1. Start the server (stdio MCP):
-
-```bash
-node ./node_modules/c64bridge/dist/index.js
-```
-
-**Notes**
-
-- Works fully offline. The npm package bundles `doc/`, `data/`, and `mcp.json`.
-- All environment flags (e.g., `RAG_BUILD_ON_START=1`) apply the same as in a source checkout.
-- Using npx or a local install both place the package contents on the filesystem in expanded form.
-
-#### Install from source (GitHub)
-
-Use this path if you plan to run tests or contribute code; `npm start` automatically prefers the TypeScript sources (via ts-node) when they are available and falls back to the compiled JavaScript otherwise.
-
-1. Clone and install dependencies
+#### Build from source
 
 ```bash
 git clone https://github.com/chrisgleissner/c64bridge.git
 cd c64bridge
-npm install
-```
-
-1. Start the development server
-
-```bash
-npm start
-```
-
-The dev server runs via ts-node; to build the compiled output, you can run:
-
-```bash
-npm run build
+bun install
+bun run build
+bun start
 ```
 
 By default the server speaks MCP over stdio, which is the recommended mode for local editor integrations such as GitHub Copilot. If you need to expose the server to other machines, you can bridge it over HTTP with:
 
 ```bash
-npm start -- --http [<port>]
+bun start -- --http [<port>]
 ```
 
 Omitting the port uses `8000`. Only switch to HTTP when remote clients require it; stdio remains the preferred option because it avoids extra networking and keeps tool discovery automatic inside your editor.
@@ -331,10 +253,10 @@ Please note that all logs use `stderr` since `stdout` is reserved for the MCP pr
 
 ## Build & Test 🧪
 
-- `npm run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
-- `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
-- `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64bridge.json` or `C64BRIDGE_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
-- `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
+- `bun run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
+- `bun test` — run the integration tests against an in-process mock that emulates the c64 REST API.
+- `bun test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64bridge.json` or `C64BRIDGE_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
+- `bun run check` — convenience command that runs both the type-check and the mock-backed test suite.
 
 The test runner accepts the following options:
 
@@ -597,5 +519,5 @@ Quick diagnosis commands:
 
 ```bash
 # Start stdio server
-npm start
+bun start
 ```
