@@ -9,7 +9,7 @@ import { printerModule } from "./printer.js";
 import { ragModule } from "./rag.js";
 import { developerModule } from "./developer.js";
 import { streamingModule } from "./streaming.js";
-import { metaModule } from "./meta.js";
+import { metaModule } from "./meta/index.js";
 import { getPlatformStatus, setPlatform } from "../platform.js";
 
 interface RegisteredTool {

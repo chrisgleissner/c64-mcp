@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { metaModule } from "../src/tools/meta.js";
+import { metaModule } from "../src/tools/meta/index.js";
 
 function createLogger() {
   return { debug() {}, info() {}, warn() {}, error() {} };
