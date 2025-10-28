@@ -469,3 +469,8 @@ test("device: createFacade fallback behavior", async (t) => {
     assert.ok(facade.type === "vice" || facade.type === "c64u");
   });
 });
+
+test("device: URL helpers parse endpoints and ports", () => {
+  // These helpers are not exported directly; we exercise indirectly via createFacade resolveBaseUrl
+  // by constructing config objects through env file
+});

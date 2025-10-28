@@ -147,6 +147,22 @@ test("background tasks persist and complete iterations", async () => {
   assert.ok(Array.isArray(data.tasks));
 });
 
+test("background tasks handle unknown operation and stop all", async () => {
+  const { file, dir } = tmpPath("background2", "tasks.json");
+  await fs.mkdir(dir, { recursive: true });
+  process.env.C64_TASK_STATE_FILE = file;
+  const ctx = { client: {}, logger: createLogger() };
+
+  // start a task with unknown op (no-op) and then stop all
+  let res = await metaModule.invoke("start_background_task", { name: "noop", operation: "unknown_op", intervalMs: 5, maxIterations: 1 }, ctx);
+  assert.equal(res.metadata?.success, true);
+  await new Promise((r) => setTimeout(r, 20));
+  res = await metaModule.invoke("stop_all_background_tasks", {}, ctx);
+  assert.equal(res.metadata?.success, true);
+  const list = await metaModule.invoke("list_background_tasks", {}, ctx);
+  assert.equal(list.metadata?.success, true);
+});
+
 // --- find_paths_by_name ---
 
 test("find_paths_by_name filters by substring and extension", async () => {
@@ -160,6 +176,31 @@ test("find_paths_by_name filters by substring and extension", async () => {
   assert.equal(res.metadata?.success, true);
   const results = res.structuredContent?.data?.results;
   assert.deepEqual(results.sort(), ["/games/demo.prg", "/music/demo.sid"].sort());
+});
+
+test("find_paths_by_name supports object payload shape from firmware", async () => {
+  const ctx = {
+    client: {
+      async filesInfo() { return { paths: ["/USB0/Demo1.PRG", "/USB0/Readme.TXT"] }; },
+    },
+    logger: createLogger(),
+  };
+  // case-insensitive search
+  const res = await metaModule.invoke("find_paths_by_name", { root: "/USB0", nameContains: "demo", caseInsensitive: true }, ctx);
+  assert.equal(res.metadata?.success, true);
+  const results = res.structuredContent?.data?.results;
+  assert.ok(results.includes("/USB0/Demo1.PRG"));
+});
+
+test("find_paths_by_name limits by maxResults and honors case sensitive flag", async () => {
+  const paths = ["/a/demo.prg", "/b/DEMO.prg", "/c/demo.sid", "/d/other.txt"];
+  const ctx = { client: { async filesInfo() { return paths; } }, logger: createLogger() };
+  const res1 = await metaModule.invoke("find_paths_by_name", { root: "/", nameContains: "demo", maxResults: 2 }, ctx);
+  assert.equal(res1.metadata?.count <= 2, true);
+  const res2 = await metaModule.invoke("find_paths_by_name", { root: "/", nameContains: "DEMO", caseInsensitive: false }, ctx);
+  const results2 = res2.structuredContent?.data?.results;
+  // only exact-case match when caseInsensitive=false
+  assert.deepEqual(results2, ["/b/DEMO.prg"]);
 });
 
 // --- memory_dump_to_file ---
@@ -214,6 +255,42 @@ test("config_snapshot_and_restore snapshot and restore", async () => {
   const restore = await metaModule.invoke("config_snapshot_and_restore", { action: "restore", path: file, applyToFlash: true }, ctx);
   assert.equal(restore.metadata?.success, true);
   assert.equal(batchUpdated, true);
+});
+
+test("config_snapshot_and_restore diff reports changes", async () => {
+  const { file, dir } = tmpPath("config", "config-diff.json");
+  await fs.mkdir(dir, { recursive: true });
+  // Write a snapshot with one category
+  const snapshot = {
+    createdAt: new Date().toISOString(),
+    version: { v: 1 },
+    info: { device: "u64" },
+    categories: { Audio: { Volume: "10" } },
+  };
+  await fs.writeFile(file, JSON.stringify(snapshot, null, 2), "utf8");
+
+  const ctx = {
+    client: {
+      async configsList() { return { categories: ["Audio"] }; },
+      async configGet(cat) { return cat === "Audio" ? { Volume: "11" } : {}; },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("config_snapshot_and_restore", { action: "diff", path: file }, ctx);
+  assert.equal(res.metadata?.success, true);
+  assert.equal(res.metadata?.changed, 1);
+  const diff = res.structuredContent?.data?.diff;
+  assert.ok(diff.Audio);
+});
+
+test("config_snapshot_and_restore validates snapshot input", async () => {
+  const { file, dir } = tmpPath("config", "invalid.json");
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(file, "not json", "utf8");
+  const ctx = { client: {}, logger: createLogger() };
+  const res = await metaModule.invoke("config_snapshot_and_restore", { action: "restore", path: file }, ctx);
+  assert.equal(res.isError, true);
 });
 
 // --- Phase 1 tests ---

@@ -241,6 +241,18 @@ test("music_compile_and_play handles C64 firmware failure for SID", async () => 
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
+test("music_compile_and_play wraps unexpected errors", async () => {
+  const ctx = {
+    client: {
+      runPrg: async () => { throw new Error("unexpected boom"); },
+    },
+    logger: createLogger(),
+  };
+  const result = await audioModule.invoke("music_compile_and_play", { sidwave: buildSidwaveDoc() }, ctx);
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("unexpected boom"));
+});
+
 test("music_compile_and_play validates sidwave input", async () => {
   const ctx = {
     client: {
@@ -281,4 +293,103 @@ test("music_compile_and_play respects dryRun flag", async () => {
   assert.equal(result.metadata.ranOnC64, false);
   assert.equal(result.metadata.dryRun, true);
   assert.equal(runPrgCalled, false);
+});
+
+// --- Additional coverage for audio tools ---
+
+test("sid_volume clamps and normalizes address", async () => {
+  const ctx = {
+    client: {
+      sidSetVolume: async () => ({ success: true, details: { address: 0xD418 } }),
+    },
+    logger: createLogger(),
+  };
+  const res = await audioModule.invoke("sid_volume", { volume: 12.9 }, ctx);
+  assert.equal(res.isError, undefined);
+  assert.equal(res.metadata.appliedVolume, 12);
+  assert.equal(res.metadata.address, "$D418");
+});
+
+test("sid_volume reports firmware failure", async () => {
+  const ctx = { client: { sidSetVolume: async () => ({ success: false, details: { reason: "denied" } }) }, logger: createLogger() };
+  const res = await audioModule.invoke("sid_volume", { volume: 10 }, ctx);
+  assert.equal(res.isError, true);
+});
+
+test("sid_volume wraps unexpected errors", async () => {
+  const ctx = { client: { sidSetVolume: async () => { throw "bad"; } }, logger: createLogger() };
+  const res = await audioModule.invoke("sid_volume", { volume: 5 }, ctx);
+  assert.equal(res.isError, true);
+});
+
+test("sid_reset soft and hard", async () => {
+  let hard = 0; let soft = 0;
+  const ctx = {
+    client: {
+      sidReset: async (isHard) => { isHard ? hard++ : soft++; return { success: true }; },
+    },
+    logger: createLogger(),
+  };
+  const softRes = await audioModule.invoke("sid_reset", {}, ctx);
+  const hardRes = await audioModule.invoke("sid_reset", { hard: true }, ctx);
+  assert.equal(softRes.isError, undefined);
+  assert.equal(hardRes.isError, undefined);
+  assert.equal(soft, 1);
+  assert.equal(hard, 1);
+});
+
+test("sid_note_on passes parameters and returns metadata", async () => {
+  const calls = [];
+  const ctx = {
+    client: {
+      sidNoteOn: async (p) => { calls.push(p); return { success: true }; },
+    },
+    logger: createLogger(),
+  };
+  const res = await audioModule.invoke("sid_note_on", { voice: 2, note: "A4", waveform: "tri", pulseWidth: 1000, attack: 2, decay: 3, sustain: 4, release: 5 }, ctx);
+  assert.equal(res.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(res.metadata.voice, 2);
+  assert.equal(res.metadata.waveform, "tri");
+});
+
+test("sid_note_on surfaces firmware failure", async () => {
+  const ctx = { client: { sidNoteOn: async () => ({ success: false, details: { e: 1 } }) }, logger: createLogger() };
+  const res = await audioModule.invoke("sid_note_on", { voice: 1, frequencyHz: 440 }, ctx);
+  assert.equal(res.isError, true);
+});
+
+test("sid_note_off and silence_all", async () => {
+  const ctx = {
+    client: {
+      sidNoteOff: async () => ({ success: true }),
+      sidSilenceAll: async () => ({ success: true }),
+    },
+    logger: createLogger(),
+  };
+  const off = await audioModule.invoke("sid_note_off", { voice: 1 }, ctx);
+  const silence = await audioModule.invoke("sid_silence_all", {}, ctx);
+  assert.equal(off.isError, undefined);
+  assert.equal(silence.isError, undefined);
+});
+
+test("analyze_audio returns guidance when no keywords detected", async () => {
+  const res = await audioModule.invoke("analyze_audio", { request: "just print status" }, { client: {} });
+  assert.equal(res.isError, undefined);
+  assert.ok(res.content[0].text.includes("No audio verification keywords"));
+});
+
+test("analyze_audio wraps backend errors when keywords present", async () => {
+  const res = await audioModule.invoke("analyze_audio", { request: "please check if the music sounds right" }, { client: {} });
+  assert.equal(res.isError, true);
+});
+
+test("record_and_analyze_audio returns error when backend missing", async () => {
+  const res = await audioModule.invoke("record_and_analyze_audio", { durationSeconds: 0.5 }, { client: {} });
+  assert.equal(res.isError, true);
+});
+
+test("music_generate validates pattern input", async () => {
+  const res = await audioModule.invoke("music_generate", { root: "C4", pattern: "", steps: 1, tempoMs: 50, waveform: "pulse" }, { client: {} });
+  assert.equal(res.isError, true);
 });
