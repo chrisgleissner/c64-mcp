@@ -141,3 +141,80 @@ test("create_petscii_image dry run skips upload", async () => {
   assert.equal(payload.ranOnC64, false);
   assert.equal(payload.success, true);
 });
+
+test("generate_sprite_prg handles firmware failure", async () => {
+  const sprite = Buffer.alloc(63, 0x11).toString("base64");
+  const ctx = {
+    client: {
+      async generateAndRunSpritePrg() {
+        return { success: false, details: { error: "sprite error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await graphicsModule.invoke(
+    "generate_sprite_prg",
+    { sprite, index: 0, x: 100, y: 100, color: 1 },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("render_petscii_screen handles firmware failure", async () => {
+  const ctx = {
+    client: {
+      async renderPetsciiScreenAndRun() {
+        return { success: false, details: { error: "render error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await graphicsModule.invoke(
+    "render_petscii_screen",
+    { text: "TEST" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("create_petscii_image handles upload failure", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunBasic() {
+        return { success: false, details: { error: "upload error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await graphicsModule.invoke(
+    "create_petscii_image",
+    { text: "TEST" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("create_petscii_image validates input requirements", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunBasic() {
+        throw new Error("should not be called");
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await graphicsModule.invoke("create_petscii_image", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata.error.kind, "validation");
+});

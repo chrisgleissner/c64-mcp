@@ -115,3 +115,95 @@ test("run_crt_file reports firmware failure", async () => {
   assert.equal(result.metadata.error.kind, "execution");
   assert.deepEqual(result.metadata.error.details, { code: "FAIL" });
 });
+
+test("run_prg_file reports firmware failure", async () => {
+  const ctx = {
+    client: {
+      async runPrgFile() {
+        return { success: false, details: { error: "prg error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke(
+    "run_prg_file",
+    { path: "//USB0/test.prg" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("upload_and_run_basic validates program input", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunBasic() {
+        throw new Error("should not run");
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke("upload_and_run_basic", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata.error.kind, "validation");
+});
+
+test("upload_and_run_basic handles firmware failure", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunBasic() {
+        return { success: false, details: { error: "upload failed" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_basic",
+    { program: "10 PRINT" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+test("upload_and_run_asm validates source input", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunAsm() {
+        throw new Error("should not run");
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke("upload_and_run_asm", {}, ctx);
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata.error.kind, "validation");
+});
+
+test("upload_and_run_asm handles firmware failure", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunAsm() {
+        return { success: false, details: { error: "asm upload failed" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_asm",
+    { source: "NOP", loadAddress: 2048 },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware") || result.content[0].text.includes("failure") || result.content[0].text.includes("failed"));
+});
