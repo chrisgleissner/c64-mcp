@@ -69,15 +69,15 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 
 ### Phase 1 — Orchestration and assertions
 
-- [ ] `program_shuffle` — Implementation notes:
+- [x] `program_shuffle` — Implementation notes:
   - Discover PRG/CRT under root; run each for a duration; capture screen; soft reset.
   - Persist a light run log per program.
-- [ ] `batch_run_with_assertions` — Implementation notes:
+- [x] `batch_run_with_assertions` — Implementation notes:
   - Accept assertions: screen contains text, memory equals byte, SID silent.
   - Produce junit-like results; stop on failure or continue-on-error per flag.
-- [ ] `bundle_run_artifacts` — Implementation notes:
+- [x] `bundle_run_artifacts` — Implementation notes:
   - Gather screen, memory snapshot, debugreg; structure outputs per run id.
-- [ ] `compile_run_verify_cycle` — Implementation notes:
+- [x] `compile_run_verify_cycle` — Implementation notes:
   - Support BASIC/ASM/SID build routes; then run and verify via screen/audio.
   - Archive artifacts in a run folder.
 

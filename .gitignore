@@ -16,3 +16,5 @@ test/tmp/
 publish/
 generated/**/*.js
 generated/**/*.js.map
+coverage/
+.nyc_output/
