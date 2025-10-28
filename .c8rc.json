@@ -11,7 +11,17 @@
     "**/*.test.mjs",
     "**/*.spec.ts",
     "dist/**",
-    "node_modules/**"
+    "node_modules/**",
+    "src/index.ts",
+    "src/context.ts",
+    "src/mcp-server.ts",
+    "src/viceRunner.ts",
+    "src/bootstrap/**",
+    "src/rag/discover.ts",
+    "src/rag/init.ts",
+    "src/rag/loggingRetriever.ts",
+    "src/rag/types.ts",
+    "src/types/**"
   ],
   "reporter": [
     "text",
