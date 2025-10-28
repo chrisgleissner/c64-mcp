@@ -91,3 +91,101 @@ test("returns structure with global metrics and voices", async () => {
   assert.ok(Array.isArray(res.analysis.voices));
   assert.ok("average_pitch_deviation" in res.analysis.global_metrics);
 });
+
+test("handles expectedSidwave with patterns", async () => {
+  const c4 = genSine(261.63, 0.5, SR);
+  const expectedSidwave = {
+    voices: [
+      {
+        patterns: {
+          intro: {
+            notes: ["C4", "D4", "E4"]
+          }
+        }
+      }
+    ]
+  };
+  const res = await analyzePcmForTest(c4, SR, expectedSidwave);
+  assert.ok(res.analysis.voices.length > 0);
+  const notes = res.analysis.voices[0].detected_notes.filter((n) => n.note);
+  assert.ok(notes.length > 0);
+  // Should have deviation_cents since we provided expectedSidwave
+  const hasDeviation = notes.some((n) => typeof n.deviation_cents === "number");
+  assert.ok(hasDeviation);
+});
+
+test("handles expectedSidwave with groove instead of notes", async () => {
+  const e4 = genSine(329.63, 0.5, SR);
+  const expectedSidwave = {
+    voices: [
+      {
+        patterns: {
+          main: {
+            groove: ["E4", "F4", "G4"]
+          }
+        }
+      }
+    ]
+  };
+  const res = await analyzePcmForTest(e4, SR, expectedSidwave);
+  assert.ok(res.analysis.voices.length > 0);
+});
+
+test("handles invalid expectedSidwave gracefully", async () => {
+  const a4 = genSine(440, 0.3, SR);
+  const invalidSidwave = "not a valid sidwave";
+  const res = await analyzePcmForTest(a4, SR, invalidSidwave);
+  assert.ok(res.analysis.voices.length > 0);
+  // Should still work without crashing
+});
+
+test("parses note names with sharps and flats", async () => {
+  const fSharp4 = genSine(369.99, 0.3, SR);
+  const expectedSidwave = {
+    voices: [
+      {
+        patterns: {
+          test: {
+            notes: ["F#4", "Bb3", "C#5"]
+          }
+        }
+      }
+    ]
+  };
+  const res = await analyzePcmForTest(fSharp4, SR, expectedSidwave);
+  assert.ok(res.analysis.voices.length > 0);
+});
+
+test("handles patterns without notes or groove", async () => {
+  const a4 = genSine(440, 0.3, SR);
+  const expectedSidwave = {
+    voices: [
+      {
+        patterns: {
+          empty: {
+            // no notes or groove
+          }
+        }
+      }
+    ]
+  };
+  const res = await analyzePcmForTest(a4, SR, expectedSidwave);
+  assert.ok(res.analysis.voices.length > 0);
+});
+
+test("handles invalid note names in expected sidwave", async () => {
+  const a4 = genSine(440, 0.3, SR);
+  const expectedSidwave = {
+    voices: [
+      {
+        patterns: {
+          test: {
+            notes: ["INVALID", "Z99", ""]
+          }
+        }
+      }
+    ]
+  };
+  const res = await analyzePcmForTest(a4, SR, expectedSidwave);
+  assert.ok(res.analysis.voices.length > 0);
+});

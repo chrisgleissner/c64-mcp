@@ -1,0 +1,35 @@
+{
+  "all": true,
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "generated/**",
+    "scripts/**",
+    "test/**",
+    "**/*.test.ts",
+    "**/*.test.mjs",
+    "**/*.spec.ts",
+    "dist/**",
+    "node_modules/**",
+    "src/index.ts",
+    "src/context.ts",
+    "src/mcp-server.ts",
+    "src/viceRunner.ts",
+    "src/bootstrap/**",
+    "src/rag/discover.ts",
+    "src/rag/init.ts",
+    "src/rag/loggingRetriever.ts",
+    "src/rag/types.ts",
+    "src/types/**"
+  ],
+  "reporter": [
+    "text",
+    "lcov"
+  ],
+  "check-coverage": false,
+  "lines": 95,
+  "functions": 95,
+  "branches": 95,
+  "statements": 95
+}
