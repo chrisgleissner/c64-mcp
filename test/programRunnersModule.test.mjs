@@ -200,10 +200,10 @@ test("upload_and_run_asm handles firmware failure", async () => {
 
   const result = await programRunnersModule.invoke(
     "upload_and_run_asm",
-    { source: "NOP", loadAddress: 2048 },
+    { program: "NOP" },
     ctx,
   );
 
   assert.equal(result.isError, true);
-  assert.ok(result.content[0].text.includes("firmware") || result.content[0].text.includes("failure") || result.content[0].text.includes("failed"));
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
