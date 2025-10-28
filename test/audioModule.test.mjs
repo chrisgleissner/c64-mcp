@@ -282,3 +282,167 @@ test("music_compile_and_play respects dryRun flag", async () => {
   assert.equal(result.metadata.dryRun, true);
   assert.equal(runPrgCalled, false);
 });
+
+test("record_and_analyze_audio delegates to recordAndAnalyzeAudio", async () => {
+  const ctx = {
+    client: {},
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "record_and_analyze_audio",
+    { durationSeconds: 1.0 },
+    ctx,
+  );
+
+  // Should fail due to missing naudiodon but validates the flow
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("Audio backend not available"));
+});
+
+test("record_and_analyze_audio handles expectedSidwave parameter", async () => {
+  const ctx = {
+    client: {},
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "record_and_analyze_audio",
+    { durationSeconds: 1.0, expectedSidwave: buildSidwaveDoc() },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("Audio backend not available"));
+});
+
+test("analyze_audio with explicit trigger", async () => {
+  const ctx = {
+    client: {},
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "analyze_audio",
+    { trigger: true, durationSeconds: 2.0 },
+    ctx,
+  );
+
+  // Should fail due to missing naudiodon
+  assert.equal(result.isError, true);
+});
+
+test("analyze_audio with auto-detection of verification intent", async () => {
+  const ctx = {
+    client: {},
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "analyze_audio",
+    { userMessage: "Can you verify the playback?" },
+    ctx,
+  );
+
+  // Should trigger recording due to verification keywords
+  assert.equal(result.isError, true);
+});
+
+test("analyze_audio skips when no verification intent", async () => {
+  const ctx = {
+    client: {},
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "analyze_audio",
+    { userMessage: "Just playing some music" },
+    ctx,
+  );
+
+  // Should skip recording
+  assert.equal(result.content[0].type, "text");
+  assert.ok(result.content[0].text.includes("skipped"));
+});
+
+test("music_generate handles error in playback", async () => {
+  const ctx = {
+    client: {
+      sidSetVolume: async () => {
+        throw new Error("SID error");
+      },
+      sidNoteOn: async () => ({ success: true }),
+      sidNoteOff: async () => ({ success: true }),
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_generate",
+    { root: "C4", pattern: "0", steps: 1, tempoMs: 40, waveform: "tri" },
+    ctx,
+  );
+
+  // Should still return success even if playback fails
+  assert.equal(result.content[0].type, "text");
+  assert.equal(result.isError, undefined);
+});
+
+test("music_compile_and_play accepts cpg parameter", async () => {
+  let runPrgCalls = 0;
+
+  const ctx = {
+    client: {
+      runPrg: async () => {
+        runPrgCalls += 1;
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_compile_and_play",
+    { cpg: buildSidwaveDoc() },
+    ctx,
+  );
+
+  assert.equal(result.content[0].type, "text");
+  assert.equal(result.isError, undefined);
+  assert.equal(runPrgCalls, 1);
+});
+
+test("music_compile_and_play handles unknown error", async () => {
+  const ctx = {
+    client: {
+      runPrg: async () => {
+        throw "string error";
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_compile_and_play",
+    { sidwave: buildSidwaveDoc() },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+});
+
+test("record_and_analyze_audio wraps non-ToolError exceptions", async () => {
+  const ctx = {
+    client: {},
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "record_and_analyze_audio",
+    { durationSeconds: NaN },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.length > 0);
+});
