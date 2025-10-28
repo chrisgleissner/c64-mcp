@@ -302,6 +302,76 @@ test("device: ViceBackend unsupported operations", async (t) => {
       return true;
     });
   });
+
+  await t.test("modplayFile throws unsupported", async () => {
+    await assert.rejects(() => facade.modplayFile("/tmp/test.mod"), (err) => {
+      assert.ok(err.message.includes("modplayFile"));
+      return true;
+    });
+  });
+
+  await t.test("runPrg executes program", async () => {
+    const result = await facade.runPrg(new Uint8Array([0x01, 0x08, 0x00, 0x00]));
+    assert.equal(result.success, true);
+  });
+
+  await t.test("runPrgFile executes file", async () => {
+    const tmpFile = path.join(os.tmpdir(), `test-${Date.now()}.prg`);
+    fs.writeFileSync(tmpFile, Buffer.from([0x01, 0x08, 0x00, 0x00]));
+    
+    t.after(() => {
+      try { fs.unlinkSync(tmpFile); } catch {}
+    });
+
+    const result = await facade.runPrgFile(tmpFile);
+    assert.equal(result.success, true);
+  });
+
+  await t.test("ping returns true", async () => {
+    const result = await facade.ping();
+    assert.equal(result, true);
+  });
+});
+
+test("device: C64u config resolution", async (t) => {
+  const oldMode = process.env.C64_MODE;
+  const oldUrl = process.env.C64U_BASE_URL;
+  delete process.env.C64_MODE;
+  
+  t.after(() => {
+    if (oldMode !== undefined) process.env.C64_MODE = oldMode;
+    else delete process.env.C64_MODE;
+    if (oldUrl !== undefined) process.env.C64U_BASE_URL = oldUrl;
+    else delete process.env.C64U_BASE_URL;
+  });
+
+  await t.test("uses C64U_BASE_URL env var", async () => {
+    process.env.C64U_BASE_URL = "http://test.local";
+    const { facade } = await createFacade();
+    assert.equal(facade.type, "c64u");
+  });
+
+  await t.test("reads config from file", async () => {
+    // Create a temp config file
+    const configPath = path.join(os.tmpdir(), `.c64bridge-${Date.now()}.json`);
+    fs.writeFileSync(configPath, JSON.stringify({
+      c64u: { host: "testhost", port: 8080 }
+    }));
+    
+    t.after(() => {
+      try { fs.unlinkSync(configPath); } catch {}
+    });
+
+    process.env.C64BRIDGE_CONFIG = configPath;
+    const { facade } = await createFacade();
+    assert.equal(facade.type, "c64u");
+    delete process.env.C64BRIDGE_CONFIG;
+  });
+});
+      assert.ok(err.message.includes("filesCreateDnp"));
+      return true;
+    });
+  });
 });
 
 test("device: createFacade with config file", async (t) => {
