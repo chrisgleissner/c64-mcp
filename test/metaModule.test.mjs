@@ -147,6 +147,22 @@ test("background tasks persist and complete iterations", async () => {
   assert.ok(Array.isArray(data.tasks));
 });
 
+test("background tasks handle unknown operation and stop all", async () => {
+  const { file, dir } = tmpPath("background2", "tasks.json");
+  await fs.mkdir(dir, { recursive: true });
+  process.env.C64_TASK_STATE_FILE = file;
+  const ctx = { client: {}, logger: createLogger() };
+
+  // start a task with unknown op (no-op) and then stop all
+  let res = await metaModule.invoke("start_background_task", { name: "noop", operation: "unknown_op", intervalMs: 5, maxIterations: 1 }, ctx);
+  assert.equal(res.metadata?.success, true);
+  await new Promise((r) => setTimeout(r, 20));
+  res = await metaModule.invoke("stop_all_background_tasks", {}, ctx);
+  assert.equal(res.metadata?.success, true);
+  const list = await metaModule.invoke("list_background_tasks", {}, ctx);
+  assert.equal(list.metadata?.success, true);
+});
+
 // --- find_paths_by_name ---
 
 test("find_paths_by_name filters by substring and extension", async () => {
