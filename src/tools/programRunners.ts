@@ -1,8 +1,8 @@
 import { assemblyToPrg, AssemblyError } from "../assemblyConverter.js";
 import { basicToPrg } from "../basicConverter.js";
-import { defineToolModule } from "./types.js";
+import { defineToolModule, type ToolRunResult } from "./types.js";
 import { objectSchema, stringSchema } from "./schema.js";
-import { jsonResult, textResult } from "./responses.js";
+import { textResult } from "./responses.js";
 import {
   ToolExecutionError,
   ToolError,
@@ -29,6 +29,216 @@ function toRecord(details: unknown): Record<string, unknown> | undefined {
     return details as Record<string, unknown>;
   }
   return { value: details };
+}
+
+const BASIC_MAX_LINE = 63999;
+
+type BasicRuntimeError = {
+  readonly line: number;
+  readonly type?: string;
+  readonly raw: string;
+};
+
+type BasicAutoFixChange = {
+  readonly line: number;
+  readonly notes: readonly string[];
+};
+
+type BasicAutoFixResult = {
+  readonly program: string;
+  readonly changes: readonly BasicAutoFixChange[];
+};
+
+type StructuredRuntimeError = {
+  readonly line: number;
+  readonly type?: string;
+  readonly text: string;
+};
+
+function parseBasicRuntimeErrors(screen: string): readonly BasicRuntimeError[] {
+  const errors: BasicRuntimeError[] = [];
+  const seen = new Set<number>();
+  const rows = screen.replace(/\r\n?/g, "\n").split("\n");
+
+  for (const row of rows) {
+    if (!row || !row.toUpperCase().includes("ERROR IN")) {
+      continue;
+    }
+
+    const match = /ERROR\s+IN\s+(\d{1,5})/i.exec(row);
+    if (!match) {
+      continue;
+    }
+
+    const lineNumber = Number.parseInt(match[1] ?? "", 10);
+    if (!Number.isInteger(lineNumber) || lineNumber < 1 || lineNumber > BASIC_MAX_LINE) {
+      continue;
+    }
+    if (seen.has(lineNumber)) {
+      continue;
+    }
+    seen.add(lineNumber);
+
+    const typeMatch = /\?([A-Z ?]+?)\s+ERROR\s+IN/i.exec(row.toUpperCase());
+    const type = typeMatch?.[1]?.trim().replace(/\s+/g, " ") || undefined;
+
+    errors.push({
+      line: lineNumber,
+      type,
+      raw: row.trim(),
+    });
+  }
+
+  return errors;
+}
+
+function attemptAutoFixBasicProgram(
+  program: string,
+  errors: readonly BasicRuntimeError[],
+): BasicAutoFixResult | undefined {
+  if (errors.length === 0) {
+    return undefined;
+  }
+
+  const normalized = program.replace(/\r\n?/g, "\n");
+  const lines = normalized.split("\n");
+  const indexByLine = new Map<number, number>();
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
+    if (!rawLine) {
+      continue;
+    }
+    const match = /^\s*(\d+)\s*(.*)$/u.exec(rawLine);
+    if (!match) {
+      continue;
+    }
+    const lineNumber = Number.parseInt(match[1] ?? "", 10);
+    if (!Number.isInteger(lineNumber)) {
+      continue;
+    }
+    if (!indexByLine.has(lineNumber)) {
+      indexByLine.set(lineNumber, index);
+    }
+  }
+
+  const changes: BasicAutoFixChange[] = [];
+
+  for (const error of errors) {
+    const index = indexByLine.get(error.line);
+    if (index === undefined) {
+      continue;
+    }
+
+    const rawLine = lines[index] ?? "";
+    const match = /^\s*(\d+)\s*(.*)$/u.exec(rawLine);
+    if (!match) {
+      continue;
+    }
+
+    const lineNumber = Number.parseInt(match[1] ?? "", 10);
+    let content = match[2] ?? "";
+    const notes: string[] = [];
+
+    const quoteAdjusted = content.replace(/""/g, "");
+    const quoteCount = (quoteAdjusted.match(/"/g) ?? []).length;
+    if (quoteCount % 2 !== 0) {
+      content = `${content}"`;
+      notes.push('appended missing closing quote (")');
+    }
+
+    const sanitized = stripRemarks(stripStrings(content));
+    const openParens = (sanitized.match(/\(/g) ?? []).length;
+    const closeParens = (sanitized.match(/\)/g) ?? []).length;
+    if (openParens > closeParens) {
+      const deficit = openParens - closeParens;
+      content = `${content}${")".repeat(deficit)}`;
+      notes.push(`appended ${deficit} closing parenthesis${deficit > 1 ? "es" : ""}`);
+    }
+
+    if (notes.length > 0) {
+      const updated = content.length > 0 ? `${lineNumber} ${content}` : `${lineNumber}`;
+      lines[index] = updated;
+      changes.push({
+        line: lineNumber,
+        notes,
+      });
+    }
+  }
+
+  if (changes.length === 0) {
+    return undefined;
+  }
+
+  return {
+    program: lines.join("\n"),
+    changes,
+  };
+}
+
+function stripStrings(content: string): string {
+  let result = "";
+  let inString = false;
+
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index]!;
+    if (char === '"') {
+      if (inString && content[index + 1] === '"') {
+        index += 1;
+        continue;
+      }
+      inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      result += char;
+    }
+  }
+
+  return result;
+}
+
+function stripRemarks(content: string): string {
+  const upper = content.toUpperCase();
+  const remIndex = upper.search(/(^|:)\s*REM\b/);
+  if (remIndex >= 0) {
+    return content.slice(0, remIndex);
+  }
+  return content;
+}
+
+function normalizeRuntimeErrors(errors: readonly BasicRuntimeError[]): readonly StructuredRuntimeError[] {
+  return errors.map((error) => ({
+    line: error.line,
+    ...(error.type ? { type: error.type } : {}),
+    text: error.raw,
+  }));
+}
+
+function structuredExecutionError(
+  message: string,
+  data: Record<string, unknown>,
+): ToolRunResult {
+  return {
+    content: [
+      {
+        type: "text",
+        text: message,
+      },
+    ],
+    metadata: {
+      error: {
+        kind: "execution",
+        details: data,
+      },
+    },
+    structuredContent: {
+      type: "json",
+      data,
+    },
+    isError: true,
+  };
 }
 
 const uploadBasicArgsSchema = objectSchema({
@@ -120,16 +330,146 @@ export const programRunnersModule = defineToolModule({
           const parsed = uploadBasicArgsSchema.parse(args);
           ctx.logger.info("Uploading BASIC program", { sourceLength: parsed.program.length });
 
-          // Compute PRG locally to expose structured metadata
-          const prg = basicToPrg(parsed.program);
-          const entryAddress = prg.readUInt16LE(0);
+          const originalProgram = parsed.program;
 
-          const result = await ctx.client.uploadAndRunBasic(parsed.program);
+          // Compute PRG locally to expose structured metadata
+          let activeProgram = originalProgram;
+          let prg = basicToPrg(activeProgram);
+          let entryAddress = prg.readUInt16LE(0);
+
+          const runBasic = async (source: string) => ctx.client.uploadAndRunBasic(source);
+
+          let result = await runBasic(activeProgram);
           if (!result.success) {
             throw new ToolExecutionError("C64 firmware reported failure while running BASIC program", {
               details: extractFailureDetails(result.details),
             });
           }
+
+          let screenOutput: string | undefined;
+          try {
+            screenOutput = await ctx.client.readScreen();
+          } catch (screenError) {
+            ctx.logger.warn("Unable to read screen after BASIC execution", toRecord(screenError));
+          }
+
+          let autoFixInfo:
+            | {
+                readonly changes: readonly BasicAutoFixChange[];
+                readonly originalErrors: readonly BasicRuntimeError[];
+              }
+            | undefined;
+
+          if (screenOutput) {
+            const errors = parseBasicRuntimeErrors(screenOutput);
+            if (errors.length > 0) {
+              ctx.logger.warn("Detected BASIC runtime errors", {
+                errors: errors.map((error) => ({ line: error.line, type: error.type })),
+              });
+
+              const normalizedErrors = normalizeRuntimeErrors(errors);
+              const fixAttempt = attemptAutoFixBasicProgram(activeProgram, errors);
+              if (!fixAttempt) {
+                const data = {
+                  kind: "basic_runtime_error" as const,
+                  programSource: originalProgram,
+                  errors: normalizedErrors,
+                  ...(screenOutput ? { screen: screenOutput } : {}),
+                  autoFix: {
+                    attempted: false,
+                  },
+                };
+                return structuredExecutionError("Detected BASIC runtime errors after execution.", data);
+              }
+
+              ctx.logger.info("Attempting BASIC auto-fix", {
+                changes: fixAttempt.changes.map((change) => ({
+                  line: change.line,
+                  notes: change.notes,
+                })),
+              });
+
+              const retryResult = await ctx.client.uploadAndRunBasic(fixAttempt.program);
+              if (!retryResult.success) {
+                const data = {
+                  kind: "basic_runtime_error" as const,
+                  programSource: originalProgram,
+                  errors: normalizedErrors,
+                  ...(screenOutput ? { screen: screenOutput } : {}),
+                  autoFix: {
+                    attempted: true,
+                    changes: fixAttempt.changes,
+                    programSource: fixAttempt.program,
+                    failure: {
+                      reason: "firmware_failure",
+                      details: extractFailureDetails(retryResult.details),
+                    },
+                  },
+                };
+                return structuredExecutionError(
+                  "Auto-fix failed due to firmware error while re-running BASIC program.",
+                  data,
+                );
+              }
+
+              let retryScreen: string | undefined;
+              try {
+                retryScreen = await ctx.client.readScreen();
+              } catch (retryScreenError) {
+                ctx.logger.warn("Unable to read screen after BASIC auto-fix execution", toRecord(retryScreenError));
+              }
+
+              const remainingErrors = retryScreen ? parseBasicRuntimeErrors(retryScreen) : [];
+              if (remainingErrors.length > 0) {
+                const data = {
+                  kind: "basic_runtime_error" as const,
+                  programSource: originalProgram,
+                  errors: normalizedErrors,
+                  ...(screenOutput ? { screen: screenOutput } : {}),
+                  autoFix: {
+                    attempted: true,
+                    changes: fixAttempt.changes,
+                    programSource: fixAttempt.program,
+                    resultingErrors: normalizeRuntimeErrors(remainingErrors),
+                    ...(retryScreen ? { screen: retryScreen } : {}),
+                  },
+                };
+                return structuredExecutionError(
+                  "BASIC program still reports errors after auto-fix attempt.",
+                  data,
+                );
+              }
+
+              activeProgram = fixAttempt.program;
+              prg = basicToPrg(activeProgram);
+              entryAddress = prg.readUInt16LE(0);
+              result = retryResult;
+              screenOutput = retryScreen;
+              autoFixInfo = {
+                changes: fixAttempt.changes,
+                originalErrors: errors,
+              };
+            }
+          }
+
+          const message = autoFixInfo
+            ? "Detected BASIC errors on execution; applied auto-fix and re-ran successfully."
+            : "BASIC program uploaded and executed successfully.";
+
+          const metadata = {
+            success: true,
+            details: result.details ?? null,
+            ...(screenOutput ? { screen: screenOutput } : {}),
+            ...(autoFixInfo
+              ? {
+                  autoFix: {
+                    applied: true,
+                    changes: autoFixInfo.changes,
+                    originalErrors: autoFixInfo.originalErrors,
+                  },
+                }
+              : {}),
+          };
 
           const data = {
             kind: "upload_and_run_basic" as const,
@@ -137,11 +477,18 @@ export const programRunnersModule = defineToolModule({
             entryAddress,
             prgSize: prg.length,
             resources: ["c64://specs/basic", "c64://context/bootstrap"],
+            ...(screenOutput ? { screen: screenOutput } : {}),
+            ...(autoFixInfo
+              ? {
+                  autoFix: {
+                    changes: autoFixInfo.changes,
+                    originalErrors: autoFixInfo.originalErrors,
+                  },
+                }
+              : {}),
           };
-          const base = textResult("BASIC program uploaded and executed successfully.", {
-            success: true,
-            details: result.details ?? null,
-          });
+
+          const base = textResult(message, metadata);
           return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
           if (error instanceof ToolError) {

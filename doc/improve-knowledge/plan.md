@@ -79,7 +79,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
-| S1 | Provide a runnable, reproducible container (Node 20 LTS, non-root user, `npm ci`, `npm start`), not just apt base. | Current Dockerfile doesn’t copy/build/run: `Dockerfile:1-12` | M | 3 | Larger image and CI time; greatly simplifies reproducibility. |
+| S1 | Provide a reproducible container workflow anchored on Node 20 LTS (bookworm-slim), create a non-root runtime user, run `npm ci` during build, and set `npm start` as the default command; document how to build/run it. | Current Dockerfile doesn’t copy/build/run: `Dockerfile:1-12` | M | 3 | Larger image and CI time; greatly simplifies reproducibility. |
 | S2 | Replace license name and URL with SPDX identifier in structured RAG refs (map when possible; omit if unknown). | License metadata recorded: `src/rag/indexer.ts:592-699` | S | 3 | Normalizes licensing with a single standard field. |
 
 \* Effort: S (small), M (medium), L (large)  
@@ -96,7 +96,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | 5 | M2 | Standardize structured JSON outputs for runners | M | 4 | Improves determinism and follow-up automation. |
 | 6 | T1 | Tests for PAL/NTSC and new music defaults | S | 4 | Locks in audible quality and tuning accuracy. |
 | 7 | M1 | Remove `read_screen` pre-req coupling | S | 3 | Avoids confusing plans; reduces unnecessary steps. |
-| 8 | S1 | Ship a runnable container | M | 3 | Eases local/CI reproducibility and onboarding. |
+| 8 | S1 | Ship a runnable container with the exact steps above (Dockerfile, README section, and reference in rollout notes). | M | 3 | Eases local/CI reproducibility and onboarding. |
 
 ### 3b) Additional Prioritized Improvements (Next Phases)
 
