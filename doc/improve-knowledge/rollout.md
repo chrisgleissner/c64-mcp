@@ -53,7 +53,16 @@ For every checklist item below, execute the following sub-steps in order (these 
 
 ## Phase 4 — Reproducibility & Packaging
 
-- [ ] S1: Produce a runnable, reproducible container path (Node 20 LTS, non-root user, `npm ci`, `npm start`) updating `Dockerfile` and associated docs.
+> Implementation guardrails for S1  
+> • Base image must be `node:20-bookworm-slim` (or newer 20.x digest) to keep parity with local tooling.  
+> • Create a dedicated non-root user (e.g., `bridge`) with home `/app` and run the container as that user.  
+> • Copy `package.json`, `package-lock.json`, and `npm ci` during build before adding the rest of the repo to leverage caching.  
+> • Switch `WORKDIR` to `/app`, copy the code, and set `CMD ["npm","start"]`.  
+> • Ensure the container runs `npm start` without extra flags, reading configuration from env vars.  
+> • Update `README.md` (Containers section) and `doc/improve-knowledge/notes.md` with build/run examples (`docker build` / `docker run`).  
+> • Validate locally via `docker build` + `docker run --rm c64bridge:dev` before checking the box.
+
+- [ ] S1: Produce the reproducible container workflow described above, updating `Dockerfile`, README, and notes so future operators can rebuild and run the MCP server in that container.
 - [ ] S2: Replace license name and URL with SPDX identifier in structured RAG refs (ensure `origin`, `uri`, `spdxId` fields are present; map when possible) (`src/rag/indexer.ts`, `src/rag/retriever.ts`, `src/tools/rag.ts`).
 - [ ] D1: Add a concise “What changed” MCP summary to README/resource index after build; link the platform status resource (`README.md`, `src/mcp-server.ts`).
 - [ ] D2: Cross-link prompts to key resources (SID best-practices, VIC-II, PETSCII/charset quickrefs) for richer in-editor guidance (`src/prompts/registry.ts`).
