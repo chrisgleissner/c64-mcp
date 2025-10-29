@@ -7,6 +7,63 @@
 
 
 
+
+## 0.5.1 - 2025-10-29
+
+### Features
+
+- Add new tests for audio and meta modules (6bec2d5)
+- add comprehensive tests for logger module (bfbdfca)
+- add comprehensive tests for loggingHttpClient (6029ade)
+- add comprehensive tests for platform module (f3d611e)
+- add comprehensive tests for storage module (df0a745)
+- add comprehensive tests for machineControl and memory modules (7df9f88)
+- modularize meta.ts and add experimental tags (01bc020)
+- implement meta tools phase 1 with comprehensive tests (bc8d1bf)
+- Add bin scripts for various packages (7a9e49e)
+- Add meta tools module for orchestration (dde23ac)
+- Add tests for MCP resource content (a3cf6ed)
+- Add meta tools catalog documentation (2a60209)
+
+### Bug Fixes
+
+- Improved docs on MCP server start (58c1bff)
+- Improved docs on MCP server start (29d2d40)
+- Use test/tmp folder for tmp test data (bd8d8ae)
+- Test no longer tries to create /workspace (695d6a6)
+
+### Refactoring
+
+- Simplify timestamp parsing and formatting (610507e)
+- Enhance filesystem tools for container awareness (97f22a5)
+
+### Documentation
+
+- add concise expert improvement report for C64 MCP server (0786aab)
+- prepare for meta tools phase 1 implementation (fa64db6)
+
+### Tests
+
+- Add tests for device, metaModule, and C64Client invalid inputs (2b9c2c5)
+- add tests for prompts registry (73.5% → 93.6%) (6578ea2)
+- add tests for tools registry (68% → 95%) (0eed45c)
+- hardcode expected MCP resource URIs and enforce min content size (782cf8a)
+
+### Chores
+
+- remove old monolithic meta.ts file (48e13a3)
+- exclude coverage reports from git tracking (c53d898)
+- sync lockfile after adding date-fns (c6b810d)
+- remove tracked .c64bridge tasks.json and ignore state dir (22564b0)
+
+### Other
+
+- use namespaced temp dirs under .tmp-meta-tests/metaModule (82e2904)
+- simplify date handling; use Date + date-fns addMilliseconds (536e75a)
+- remove backwards-compat code and spec-alignment comments (0b6054c)
+- align background task persistence with agent-state-spec (13cd6b7)
+- Add agent state spec (31919b0)
+
 ## 0.5.0 - 2025-10-26
 
 - No notable changes in this release.
