@@ -43,13 +43,13 @@ For every checklist item below, execute the following sub-steps in order (these 
 
 ## Phase 2 — Creative Defaults & Validation
 
-- [ ] G1: Update `music_generate` defaults to triangle waveform with recommended ADSR profile; document the new “musical expression” preset (`src/tools/audio.ts`, `src/c64Client.ts`, best-practices doc). Preserve options to request legacy pulse behavior.
-- [ ] T1: Add automated tests verifying the new SID defaults (PAL/NTSC pitch accuracy and ADSR adherence) (`test/audioAnalysis.test.mjs` or adjacent suites).
+- [x] G1: Update `music_generate` defaults to triangle waveform with recommended ADSR profile; document the new “musical expression” preset (`src/tools/audio.ts`, `src/c64Client.ts`, best-practices doc). Preserve options to request legacy pulse behavior.
+- [x] T1: Add automated tests verifying the new SID defaults (PAL/NTSC pitch accuracy and ADSR adherence) (`test/audioAnalysis.test.mjs` or adjacent suites).
 
 ## Phase 3 — MCP Surface Improvements
 
-- [ ] M2: Standardize structured JSON outputs for all program runners, including entry addresses, artifacts, and URIs while retaining human-readable summaries (`src/tools/programRunners.ts`, `src/tools/types.ts`).
-- [ ] M1: Remove the artificial dependency between `upload_and_run_basic` and `read_screen`, ensuring documentation reflects independent usage (`src/tools/memory.ts`, related docs or schemas).
+- [x] M2: Standardize structured JSON outputs for all program runners, including entry addresses, artifacts, and URIs while retaining human-readable summaries (`src/tools/programRunners.ts`, `src/tools/types.ts`).
+- [x] M1: Remove the artificial dependency between `upload_and_run_basic` and `read_screen`, ensuring documentation reflects independent usage (`src/tools/memory.ts`, related docs or schemas).
 
 ## Phase 4 — Reproducibility & Packaging
 

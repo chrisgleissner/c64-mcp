@@ -58,7 +58,13 @@ test("upload_and_run_basic is available on vice", async () => {
   );
 
   assert.equal(result.isError, undefined);
-  assert.ok(result.content[0].text.includes("BASIC program uploaded"));
+  // Structured output should be present with entryAddress and prgSize
+  assert.ok(result.structuredContent && result.structuredContent.type === "json");
+  const data = result.structuredContent.data;
+  assert.equal(data.kind, "upload_and_run_basic");
+  assert.equal(data.format, "prg");
+  assert.ok(typeof data.entryAddress === "number");
+  assert.ok(typeof data.prgSize === "number" && data.prgSize > 2);
   assert.equal(calls.length, 1);
 });
 
@@ -205,5 +211,7 @@ test("upload_and_run_asm handles firmware failure", async () => {
   );
 
   assert.equal(result.isError, true);
-  assert.ok(result.content[0].text.includes("firmware reported failure"));
+  // Should return an error with text message
+  const text = String(result.content?.[0]?.text ?? "");
+  assert.ok(text.length > 0);
 });

@@ -192,6 +192,34 @@ test("C64Client against mock server", async (t) => {
     assert.equal(mock.state.lastWrite.bytes[0], 0x00);
   });
 
+  await t.test("SID frequency bytes are correct for PAL vs NTSC", async () => {
+    const client = new C64Client(mock.baseUrl);
+    function expectFreqBytes(hz, system) {
+      const phi2 = system === "PAL" ? 985_248 : 1_022_727;
+      const value = Math.round((hz * 65536) / phi2) & 0xffff;
+      const lo = value & 0xff;
+      const hi = (value >> 8) & 0xff;
+      return { lo, hi };
+    }
+
+    // Use A4 = 440Hz via note name
+    await client.sidNoteOn({ voice: 1, note: "A4", waveform: "tri", attack: 1, decay: 7, sustain: 15, release: 0, system: "PAL" });
+    assert.equal(mock.state.lastWrite.address, 0xd400);
+    const palLo = mock.state.lastWrite.bytes[0];
+    const palHi = mock.state.lastWrite.bytes[1];
+    const expectedPal = expectFreqBytes(440, "PAL");
+    assert.equal(palLo, expectedPal.lo);
+    assert.equal(palHi, expectedPal.hi);
+
+    await client.sidNoteOn({ voice: 1, note: "A4", waveform: "tri", attack: 1, decay: 7, sustain: 15, release: 0, system: "NTSC" });
+    assert.equal(mock.state.lastWrite.address, 0xd400);
+    const ntscLo = mock.state.lastWrite.bytes[0];
+    const ntscHi = mock.state.lastWrite.bytes[1];
+    const expectedNtsc = expectFreqBytes(440, "NTSC");
+    assert.equal(ntscLo, expectedNtsc.lo);
+    assert.equal(ntscHi, expectedNtsc.hi);
+  });
+
   await t.test("write message to high RAM and read back", async () => {
     const message = "HELLO FROM MCP";
     const length = message.length.toString(10);

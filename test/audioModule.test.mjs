@@ -90,6 +90,42 @@ test("music_generate builds timeline and triggers SID sequence", async () => {
   assert.deepEqual(noteCalls.map((call) => call.note), ["C4", "E4"]);
 });
 
+test("music_generate defaults to triangle waveform and best-practice ADSR", async () => {
+  const volumeCalls = [];
+  const noteCalls = [];
+  let noteOffCount = 0;
+
+  const ctx = {
+    client: {
+      sidSetVolume: async (v) => { volumeCalls.push(v); return { success: true }; },
+      sidNoteOn: async (p) => { noteCalls.push(p); return { success: true }; },
+      sidNoteOff: async () => { noteOffCount += 1; return { success: true }; },
+    },
+    logger: createLogger(),
+  };
+
+  // Omit waveform and ADSR to exercise defaults
+  const result = await audioModule.invoke(
+    "music_generate",
+    { root: "C4", pattern: "0", steps: 1, tempoMs: 30 },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  // Wait a tick for the fire-and-forget playback
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  assert.equal(volumeCalls.length, 1);
+  assert.equal(noteCalls.length, 1);
+  const call = noteCalls[0];
+  assert.equal(call.waveform, "tri");
+  assert.equal(call.attack, 1);
+  assert.equal(call.decay, 7);
+  assert.equal(call.sustain, 15);
+  assert.equal(call.release, 0);
+  assert.equal(noteOffCount, 1);
+});
+
 test("music_compile_and_play compiles SIDWAVE to PRG and runs on C64", async () => {
   let runPrgCalls = 0;
   let sidAttachmentCalls = 0;
