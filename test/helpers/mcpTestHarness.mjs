@@ -44,6 +44,36 @@ function resolveNodeExecutable() {
   return process.execPath;
 }
 
+function resolveBunExecutable() {
+  if (typeof globalThis.Bun !== "undefined") {
+    return process.execPath;
+  }
+
+  const candidates = [
+    process.env.C64BRIDGE_TEST_BUN_BIN,
+    process.env.C64BRIDGE_BUN_BIN,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return "bun";
+}
+
+function ensureDistEntrypoint(entryPath) {
+  try {
+    fs.accessSync(entryPath, fs.constants.F_OK);
+    return entryPath;
+  } catch {
+    throw new Error(
+      "[mcpTestHarness] dist/mcp-server.js missing. Build the project before running Node compatibility tests.",
+    );
+  }
+}
+
 let sharedSetupPromise;
 let executionQueue = Promise.resolve();
 let cleanupRegistered = false;
@@ -54,11 +84,11 @@ let shutdownInFlight;
 async function setupSharedServer() {
   const mockServer = await startMockC64Server();
 
-  const registerLoader = pathToFileURL(
-    path.join(repoRoot, "scripts", "register-ts-node.mjs"),
-  ).href;
-  const serverEntrypoint = path.join(repoRoot, "src", "mcp-server.ts");
+  const useBunRunner = typeof globalThis.Bun !== "undefined";
+  const serverEntrypointTs = path.join(repoRoot, "src", "mcp-server.ts");
+  const serverEntrypointDist = path.join(repoRoot, "dist", "mcp-server.js");
   const nodeExecutable = resolveNodeExecutable();
+  const bunExecutable = resolveBunExecutable();
 
   const configPath = path.join(
     os.tmpdir(),
@@ -74,8 +104,10 @@ async function setupSharedServer() {
   fs.writeFileSync(configPath, JSON.stringify(configPayload), "utf8");
 
   const transport = new StdioClientTransport({
-    command: nodeExecutable,
-    args: ["--import", registerLoader, serverEntrypoint],
+    command: useBunRunner ? bunExecutable : nodeExecutable,
+    args: useBunRunner
+      ? [serverEntrypointTs]
+      : [ensureDistEntrypoint(serverEntrypointDist)],
     cwd: repoRoot,
     env: {
       ...process.env,

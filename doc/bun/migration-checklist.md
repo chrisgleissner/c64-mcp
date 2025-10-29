@@ -24,14 +24,14 @@
 
 ## 4. Coverage & Reporting
 
-- [ ] **4.1** Replace `c8` with Bun’s coverage tooling and export lcov output.
-- [ ] **4.2** Verify Codecov integration with the new coverage artifacts.
+- [x] **4.1** Replace `c8` with Bun’s coverage tooling and export lcov output. *(bun coverage emits `coverage/lcov.info`, 2025-10-29)*
+- [x] **4.2** Verify Codecov integration with the new coverage artifacts. *(workflow uploads Bun lcov, 2025-10-29)*
 
 ## 5. Scripts & Utilities
 
-- [ ] **5.1** Port repository scripts (`scripts/*.mjs`) from Node-specific loaders/`ts-node` to Bun-native execution.
-- [ ] **5.2** Replace `register-ts-node` usage with Bun-compatible module loading.
-- [ ] **5.3** Update shell helpers (e.g., `run-mcp-check.sh`, `c64-tool.sh`) to call Bun commands by default.
+- [x] **5.1** Port repository scripts (`scripts/*.mjs`) from Node-specific loaders/`ts-node` to Bun-native execution. *(start, rag, CLI now Bun-aware; Node fallbacks use dist, 2025-10-29)*
+- [x] **5.2** Replace `register-ts-node` usage with Bun-compatible module loading. *(ts-node loader inlined; helper removed, 2025-10-29)*
+- [x] **5.3** Update shell helpers (e.g., `run-mcp-check.sh`, `c64-tool.sh`) to call Bun commands by default. *(preferred Bun paths with Node fallback, 2025-10-29)*
 
 ## 6. Automation & CI
 

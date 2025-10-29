@@ -63,7 +63,7 @@ Configuration resolution (first match wins):
 **Quality gates**
 
 - `npm test` drives `scripts/run-tests.mjs` against the mock C64 server; pass `-- --real [--base-url=http://host]` to exercise actual hardware.
-- `npm run check` executes `npm run build` followed by the mock test suite; `npm run coverage` wraps the same runner with c8.
+- `npm run check` executes `npm run build` followed by the mock test suite; `npm run coverage` now invokes the Bun runner with `--coverage`, producing `coverage/lcov.info` for Codecov.
 - `npm run check:package` validates packaging metadata, while `npm run check:run-local` / `npm run check:run-npm` execute `scripts/run-mcp-check.sh` against local and packaged installs.
 
 **RAG workflows**
@@ -76,7 +76,7 @@ Configuration resolution (first match wins):
 - `npm run c64:tool` opens the interactive helper for PRG conversion and upload; `npm run api:generate` refreshes the generated REST client.
 - `npm run changelog:generate` distills Conventional Commit history, and `npm run release:prepare -- <semver>` orchestrates version bumps plus manifest regeneration.
 
-Invoke `node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts` directly when you need to refresh documentation tables without a full rebuild.
+Invoke `bun scripts/update-readme.ts` directly when you need to refresh documentation tables without a full rebuild.
 
 The test driver in `scripts/run-tests.mjs` accepts additional flags: `--mock` (default) to use `test/mockC64Server.mjs`, `--real` to target hardware (`C64_TEST_TARGET=real`), and `--base-url` to override the REST endpoint during real runs.
 
@@ -141,7 +141,7 @@ flowchart LR
 ## Testing Notes
 
 - Node’s built-in test runner (`node --test`) is wrapped by `scripts/run-tests.mjs`.
-- Use `npm run coverage` (c8) to capture coverage without double-running tests.
+- Use `npm run coverage` (Bun runner) to capture coverage without double-running tests. The command emits `coverage/lcov.info`, which CI uploads to Codecov.
 - `test/basicConverter.test.mjs`: byte-level PRG output validation.
 - `test/c64Client.test.mjs`: REST client and mock-server integration; `--real` toggles hardware.
 - `test/suites/mcpServer*.mjs`: End-to-end MCP surface coverage (tools, resources, prompts).
@@ -303,9 +303,9 @@ For advanced options (depth semantics, throttling/limits, adaptive rate limiting
 - Advanced users can call the underlying CLI directly:
 
   ```bash
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
+  bun scripts/c64-cli.mjs convert-basic --input path/to/program.bas
+  bun scripts/c64-cli.mjs run-basic --input path/to/program.bas
+  bun scripts/c64-cli.mjs run-prg --input artifacts/program.prg
   ```
 
 Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64bridge.json` (or `C64BRIDGE_CONFIG`) points at your c64 device before using the run options.

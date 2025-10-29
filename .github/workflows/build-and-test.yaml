@@ -21,18 +21,17 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-      - name: Run test coverage (c8)
+      - name: Run test coverage (Bun)
         run: npm run coverage
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-lcov
-          path: |
-            coverage/lcov.info
-            coverage/coverage-final.json
+          path: coverage/lcov.info
           if-no-files-found: warn
