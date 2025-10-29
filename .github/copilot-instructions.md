@@ -18,7 +18,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 ## Coding Standards
 
 - **Test-Driven Development**: write or update tests in `test/` alongside feature work. When fixing bugs, add regression coverage first.
-- **Code Coverage**: maintain or improve overall coverage (check `npm test -- --coverage`) which must exceed 80%.
+- **Code Coverage**: maintain or improve overall coverage (check `npm test -- --coverage`) which must exceed 80%, but aim for 85%+.
 - **KISS & DRY**: keep implementations simple, avoid duplication, and refactor shared logic into helpers when needed.
 - **Maintainability**: prefer readable, well-structured code; limit cleverness; include succinct comments only where the intent is not obvious.
 - **TypeScript**: use strict typing (strict mode enabled). Leverage type definitions and avoid `any` unless absolutely required.
