@@ -508,6 +508,7 @@ async function buildIndexForCategory(
       licenseName: entry.licenseName,
       licenseUrl: entry.licenseUrl,
       attribution: entry.attribution,
+      origin: entry.origin,
     });
   }
   return { dim: model.dim, model: model.constructor.name, records };

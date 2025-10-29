@@ -70,14 +70,14 @@ LOOP    STA $D020
     await t.test('retrieves BASIC refs', async () => {
       const refs = await rag.retrieve('draw a sine wave', 3, 'basic');
       assert.ok(Array.isArray(refs) && refs.length > 0);
-      assert.ok(refs.some((text) => /POKE|PRINT|SIN|TAB|GOTO/i.test(text)));
+      assert.ok(refs.some((ref) => /POKE|PRINT|SIN|TAB|GOTO/i.test(ref.snippet)));
     });
 
     await t.test('retrieves ASM refs for raster/border', async () => {
       const refs = await rag.retrieve('cycle border colors', 3, 'asm');
       assert.ok(refs.length > 0);
-      const hasBorderColour = refs.some((text) => /\$d020|\$D020|border colour|border color/i.test(text));
-      const hasAsmOps = refs.some((text) => /\b(JMP|LDA|STA|ADC|AND)\b/.test(text));
+      const hasBorderColour = refs.some((ref) => /\$d020|\$D020|border colour|border color/i.test(ref.snippet));
+      const hasAsmOps = refs.some((ref) => /\b(JMP|LDA|STA|ADC|AND)\b/.test(ref.snippet));
       assert.ok(hasBorderColour || hasAsmOps, 'expected at least one reference touching border colour logic');
     });
 
@@ -154,6 +154,52 @@ LOOP    STA $D020
         indexes = await loadIndexes({ embeddingsDir });
         rag = new LocalRagRetriever(model, indexes);
       }
+    });
+
+    await t.test('derives URIs and trims provenance comments', async () => {
+      const provenanceText = '<!-- Source: c64://docs/example#Section -->\n10 PRINT "PROVENANCE"';
+      const externalText = 'LDX #$00\nSTX $0400';
+      const provenanceVector = Array.from(await model.embed(provenanceText));
+      const externalVector = Array.from(await model.embed(externalText));
+
+      const provenanceRecord = {
+        name: 'docs/example.md',
+        language: 'basic',
+        vector: provenanceVector,
+        text: provenanceText,
+        sourcePath: 'docs/example.md',
+        sourceMtimeMs: Date.now(),
+        sourceUrl: 'https://example.com/docs/example',
+      };
+
+      const externalRecord = {
+        name: 'asm/external.asm',
+        language: 'asm',
+        vector: externalVector,
+        text: externalText,
+        sourcePath: 'asm/external.asm',
+        sourceMtimeMs: Date.now(),
+        sourceRepoUrl: 'https://repo.local/asm/external.asm',
+      };
+
+      const indexes = {
+        basic: { dim: model.dim, model: model.constructor.name, records: [provenanceRecord] },
+        asm: { dim: model.dim, model: model.constructor.name, records: [externalRecord] },
+        mixed: { dim: model.dim, model: model.constructor.name, records: [] },
+        hardware: { dim: model.dim, model: model.constructor.name, records: [] },
+        other: { dim: model.dim, model: model.constructor.name, records: [] },
+      };
+
+      const localRag = new LocalRagRetriever(model, indexes);
+      const provRefs = await localRag.retrieve('provenance', 1, 'basic');
+      assert.equal(provRefs[0].origin, 'c64://docs/example#Section');
+      assert.equal(provRefs[0].uri, 'c64://docs/example#Section');
+      assert.equal(provRefs[0].snippet, '10 PRINT "PROVENANCE"');
+
+      const asmRefs = await localRag.retrieve('border', 1, 'asm');
+      assert.equal(asmRefs[0].origin, undefined);
+      assert.equal(asmRefs[0].uri, 'https://repo.local/asm/external.asm');
+      assert.match(asmRefs[0].snippet, /LDX #\$00/);
     });
   } finally {
     restoreEnv('RAG_EMBEDDINGS_DIR', originalEmbeddingsDir);

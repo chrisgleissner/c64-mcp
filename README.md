@@ -565,7 +565,13 @@ The test runner accepts the following options:
 | `c64://specs/sid` | Register map, waveform behaviour, and ADSR envelopes for expressive SID playback. |
 | `c64://specs/sidwave` | Defines the SIDWAVE interchange format used by the SID composer workflow. |
 | `c64://docs/sid/file-structure` | Explains PSID/RSID headers, metadata blocks, and compatibility notes for imported music. |
+| `c64://docs/sid/best-practices` | Captures proven waveforms, ADSR presets, phrasing, and verification workflow for pleasant SID music. |
 | `c64://specs/vic` | Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II. |
+| `c64://specs/memory-map` | Page-by-page breakdown of the 64 KB address space with hardware, ROM, and RAM regions. |
+| `c64://specs/memory-low` | Documents zero-page variables, BASIC pointers, and KERNAL workspace addresses. |
+| `c64://specs/memory-kernal` | Lists KERNAL ROM vectors and service routines for OS-level functionality. |
+| `c64://specs/io` | Covers VIC-II, SID, CIA, and system control registers with address ranges and usage notes. |
+| `c64://specs/cia` | Details CIA 1/2 registers, timers, interrupts, and keyboard matrix layout. |
 | `c64://specs/printer` | Covers device setup, control codes, and Ultimate 64 integration for printers. |
 | `c64://docs/printer/guide` | Quick-look workflow covering setup, troubleshooting, and sample jobs for both printer families. |
 | `c64://docs/printer/commodore-text` | Character sets, control codes, and formatting for Commodore MPS text output. |

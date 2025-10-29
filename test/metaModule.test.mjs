@@ -16,6 +16,24 @@ function tmpPath(subdir, name) {
 
 await fs.mkdir("test/tmp/metaModule", { recursive: true });
 
+async function waitForTaskCompletion(name, ctx, { timeoutMs = 10000, pollIntervalMs = 20 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastMatch = null;
+  while (Date.now() < deadline) {
+    const result = await metaModule.invoke("list_background_tasks", {}, ctx);
+    const tasks = result.structuredContent?.data?.tasks ?? [];
+    const match = tasks.find((task) => task.name === name);
+    if (match) {
+      lastMatch = match;
+      if (match.status !== "running") {
+        return match;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+  return lastMatch;
+}
+
 // --- firmware_info_and_healthcheck ---
 
 test("firmware_info_and_healthcheck reports healthy when endpoints work", async () => {
@@ -120,6 +138,7 @@ test("verify_and_write_memory aborts on pre-verify mismatch", async () => {
 test("background tasks persist and complete iterations", async () => {
   const { file, dir } = tmpPath("background", "tasks.json");
   await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(file, JSON.stringify({ tasks: [] }, null, 2));
   process.env.C64_TASK_STATE_FILE = file;
   const ctx = {
     client: {
@@ -131,14 +150,9 @@ test("background tasks persist and complete iterations", async () => {
   let result = await metaModule.invoke("start_background_task", { name: "t1", operation: "read_memory", arguments: { address: "$0400", length: 1 }, intervalMs: 5, maxIterations: 2 }, ctx);
   assert.equal(result.metadata?.success, true);
 
-  // wait for completion
-  await new Promise((r) => setTimeout(r, 40));
-
-  result = await metaModule.invoke("list_background_tasks", {}, ctx);
-  const tasks = result.structuredContent?.data?.tasks;
-  const t1 = tasks.find((t) => t.name === "t1");
-  assert.ok(t1);
-  assert.equal(t1.status === "completed" || t1.status === "stopped", true);
+  const t1 = await waitForTaskCompletion("t1", ctx);
+  assert.ok(t1, "background task t1 should be present after completion window");
+  assert.ok(t1.status === "completed" || t1.status === "stopped", `unexpected status ${String(t1.status)}`);
 
   const stopped = await metaModule.invoke("stop_background_task", { name: "t1" }, ctx);
   assert.equal(stopped.metadata?.success, true);
@@ -704,4 +718,3 @@ test("program_shuffle with CRT files", async () => {
   const data = res.structuredContent?.data;
   assert.equal(data?.programs, 1);
 });
-

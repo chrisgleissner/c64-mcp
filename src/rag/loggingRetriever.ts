@@ -1,5 +1,5 @@
 import { formatErrorMessage, formatPayloadForDebug, loggerFor, payloadByteLength, type PrefixedLogger } from "../logger.js";
-import type { RagRetriever, RagLanguage } from "./types.js";
+import type { RagRetriever, RagLanguage, RagReference } from "./types.js";
 
 export class LoggingRagRetriever implements RagRetriever {
   private readonly inner: RagRetriever;
@@ -10,7 +10,7 @@ export class LoggingRagRetriever implements RagRetriever {
     this.log = logger;
   }
 
-  async retrieve(query: string, topK?: number, filterLanguage?: RagLanguage): Promise<string[]> {
+  async retrieve(query: string, topK?: number, filterLanguage?: RagLanguage): Promise<RagReference[]> {
     const startedAt = Date.now();
 
     if (this.log.isDebugEnabled()) {

@@ -1,4 +1,4 @@
-import type { RagLanguage } from "../rag/types.js";
+import type { RagLanguage, RagReference } from "../rag/types.js";
 import { listKnowledgeResources } from "../rag/knowledgeIndex.js";
 import { defineToolModule, type ToolExecutionContext } from "./types.js";
 import { objectSchema, optionalSchema, stringSchema, numberSchema } from "./schema.js";
@@ -89,7 +89,7 @@ function createRagTool(language: RagLanguage, options: { description: string; su
           limit,
         });
 
-        let refs: string[];
+        let refs: RagReference[];
         try {
           refs = await ctx.rag.retrieve(parsed.q, limit, language);
         } catch (error) {
@@ -108,7 +108,7 @@ function createRagTool(language: RagLanguage, options: { description: string; su
           : ["- No curated resources found."];
 
         const ragLines = ragCount
-          ? refs.map((ref, index) => `${index + 1}. ${ref}`)
+          ? refs.map((ref, index) => formatReference(index, ref))
           : ["No supplemental RAG references were found."];
 
         const text = [
@@ -137,7 +137,7 @@ function createRagTool(language: RagLanguage, options: { description: string; su
                 name: entry.name,
                 summary: entry.metadata.summary,
               })),
-              refs,
+              refs: refs.map(serializeReference),
             },
           },
         };
@@ -149,6 +149,52 @@ function createRagTool(language: RagLanguage, options: { description: string; su
       }
     },
   } as const;
+}
+
+function formatReference(index: number, ref: RagReference): string {
+  const locationParts: string[] = [];
+  if (ref.origin) {
+    locationParts.push(ref.origin);
+  }
+  if (ref.uri && ref.uri !== ref.origin) {
+    locationParts.push(`link: ${ref.uri}`);
+  } else if (!ref.origin && ref.uri) {
+    locationParts.push(ref.uri);
+  }
+  if (!locationParts.length && ref.sourcePath) {
+    locationParts.push(ref.sourcePath);
+  }
+  const location = locationParts.length ? locationParts.join(" | ") : "origin: unknown";
+  const scoreLabel = Number.isFinite(ref.score) ? ref.score.toFixed(3) : "n/a";
+  const snippet = summariseSnippet(ref.snippet);
+  const header = `${index + 1}. ${location} (score=${scoreLabel})`;
+  return snippet ? `${header}\n   ${snippet}` : header;
+}
+
+function summariseSnippet(snippet: string, limit = 240): string {
+  const normalized = snippet.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  return normalized.length <= limit ? normalized : `${normalized.slice(0, limit - 3)}...`;
+}
+
+function serializeReference(ref: RagReference): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    snippet: ref.snippet,
+    score: ref.score,
+  };
+  if (ref.origin) payload.origin = ref.origin;
+  if (ref.uri) payload.uri = ref.uri;
+  if (ref.sourcePath) payload.sourcePath = ref.sourcePath;
+  if (ref.sourceUrl) payload.sourceUrl = ref.sourceUrl;
+  if (ref.sourceRepoUrl) payload.sourceRepoUrl = ref.sourceRepoUrl;
+  if (ref.license) payload.license = ref.license;
+  if (ref.licenseSpdxId) payload.licenseSpdxId = ref.licenseSpdxId;
+  if (ref.licenseName) payload.licenseName = ref.licenseName;
+  if (ref.licenseUrl) payload.licenseUrl = ref.licenseUrl;
+  if (ref.attribution) payload.attribution = ref.attribution;
+  return payload;
 }
 
 export const ragModule = defineToolModule({
