@@ -192,7 +192,6 @@ Tips:
 - Skip “Merge …” subjects; they are filtered automatically.
 - Run `npm run changelog:generate` to regenerate locally; it prepends a new section for the current `package.json` version using commits since the last tag.
 
-
 ## Local RAG
 
 ### Overview
