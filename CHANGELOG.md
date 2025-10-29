@@ -12,23 +12,13 @@
 
 ### Features
 
-- Add new tests for audio and meta modules (6bec2d5)
-- add comprehensive tests for logger module (bfbdfca)
-- add comprehensive tests for loggingHttpClient (6029ade)
-- add comprehensive tests for platform module (f3d611e)
-- add comprehensive tests for storage module (df0a745)
-- add comprehensive tests for machineControl and memory modules (7df9f88)
-- modularize meta.ts and add experimental tags (01bc020)
-- implement meta tools phase 1 with comprehensive tests (bc8d1bf)
-- Add bin scripts for various packages (7a9e49e)
+- Modularize meta.ts and add experimental tags (01bc020)
+- Implement meta tools phase 1 with comprehensive tests (bc8d1bf)
 - Add meta tools module for orchestration (dde23ac)
-- Add tests for MCP resource content (a3cf6ed)
-- Add meta tools catalog documentation (2a60209)
 
 ### Bug Fixes
 
 - Improved docs on MCP server start (58c1bff)
-- Improved docs on MCP server start (29d2d40)
 - Use test/tmp folder for tmp test data (bd8d8ae)
 - Test no longer tries to create /workspace (695d6a6)
 
@@ -37,16 +27,11 @@
 - Simplify timestamp parsing and formatting (610507e)
 - Enhance filesystem tools for container awareness (97f22a5)
 
-### Documentation
-
-- add concise expert improvement report for C64 MCP server (0786aab)
-- prepare for meta tools phase 1 implementation (fa64db6)
-
 ### Tests
 
 - Add tests for device, metaModule, and C64Client invalid inputs (2b9c2c5)
-- add tests for prompts registry (73.5% → 93.6%) (6578ea2)
-- add tests for tools registry (68% → 95%) (0eed45c)
+- add tests for prompts registry (6578ea2)
+- add tests for tools registry (0eed45c)
 - hardcode expected MCP resource URIs and enforce min content size (782cf8a)
 
 ### Chores
