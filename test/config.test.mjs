@@ -1,8 +1,8 @@
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { test } from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { loadConfig, __resetConfigCacheForTests } from "../src/config.ts";
 
 function writeTempConfig(contents) {

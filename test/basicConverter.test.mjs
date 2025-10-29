@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { basicToPrg } from "../src/basicConverter.js";

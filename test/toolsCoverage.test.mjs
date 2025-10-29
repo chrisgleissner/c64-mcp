@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { Buffer } from "node:buffer";
 import { C64Client } from "../src/c64Client.js";
 

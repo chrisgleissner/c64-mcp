@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";

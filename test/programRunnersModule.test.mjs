@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { programRunnersModule } from "../src/tools/programRunners.js";
 import { ToolUnsupportedPlatformError } from "../src/tools/errors.js";
 

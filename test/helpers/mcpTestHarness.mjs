@@ -3,7 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { after } from "node:test";
+const registerAfterAll = typeof globalThis.Bun !== "undefined"
+  ? (await import("bun:test")).afterAll
+  : (await import("node:test")).after;
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { startMockC64Server } from "../mockC64Server.mjs";
@@ -11,6 +13,36 @@ import { startMockC64Server } from "../mockC64Server.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../..");
+
+function resolveNodeExecutable() {
+  const candidates = [
+    process.env.C64BRIDGE_TEST_NODE_BIN,
+    process.env.C64BRIDGE_NODE_BIN,
+    process.env.NODE_BINARY,
+    process.env.NODE_EXEC_PATH,
+    process.env.npm_node_execpath,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  if (typeof globalThis.Bun !== "undefined") {
+    try {
+      const which = globalThis.Bun.which?.("node");
+      if (which) {
+        return which;
+      }
+    } catch {
+      // ignore lookup errors; fall back to plain "node"
+    }
+    return "node";
+  }
+
+  return process.execPath;
+}
 
 let sharedSetupPromise;
 let executionQueue = Promise.resolve();
@@ -26,6 +58,7 @@ async function setupSharedServer() {
     path.join(repoRoot, "scripts", "register-ts-node.mjs"),
   ).href;
   const serverEntrypoint = path.join(repoRoot, "src", "mcp-server.ts");
+  const nodeExecutable = resolveNodeExecutable();
 
   const configPath = path.join(
     os.tmpdir(),
@@ -41,7 +74,7 @@ async function setupSharedServer() {
   fs.writeFileSync(configPath, JSON.stringify(configPayload), "utf8");
 
   const transport = new StdioClientTransport({
-    command: process.execPath,
+    command: nodeExecutable,
     args: ["--import", registerLoader, serverEntrypoint],
     cwd: repoRoot,
     env: {
@@ -196,7 +229,7 @@ export function withSharedMcpClient(callback) {
 export function registerHarnessSuite(id = import.meta?.url ?? `suite-${Date.now()}`) {
   activeSuites += 1;
 
-  after(() => {
+registerAfterAll(() => {
     activeSuites = Math.max(0, activeSuites - 1);
     if (pendingUsers === 0 && activeSuites === 0) {
       scheduleShutdown();
@@ -237,4 +270,3 @@ if (!cleanupRegistered) {
   cleanupRegistered = true;
   registerProcessCleanup();
 }
-

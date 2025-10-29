@@ -18,9 +18,9 @@
 
 ## 3. Test Suite
 
-- [ ] **3.1** Migrate test runner to `bun test`, converting assertion helpers and harness utilities.
-- [ ] **3.2** Ensure `bun test` runs the full suite with the same semantics (mock servers, fixtures, CLI tools).
-- [ ] **3.3** Provide an explicit npm/node compatibility test (e.g., `npm test` wrapper or integration smoke test).
+- [x] **3.1** Migrate test runner to `bun test`, converting assertion helpers and harness utilities. *(bun harness + timeout guardrails, 2025-10-29)*
+- [x] **3.2** Ensure `bun test` runs the full suite with the same semantics (mock servers, fixtures, CLI tools). *(`bun scripts/run-tests.ts --mock`, 2025-10-29)*
+- [x] **3.3** Provide an explicit npm/node compatibility test (e.g., `npm test` wrapper or integration smoke test). *(`npm run test:node`, 2025-10-29)*
 
 ## 4. Coverage & Reporting
 
