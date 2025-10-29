@@ -151,6 +151,28 @@ test("music_generate expression preset uses varied durations and reports preset"
   assert.deepEqual(durations, [250, 180, 180, 400]);
 });
 
+test("music_generate survives playback error and logs", async () => {
+  let noteOnCalls = 0;
+  const ctx = {
+    client: {
+      sidSetVolume: async () => ({ success: true }),
+      sidNoteOn: async () => { noteOnCalls += 1; throw new Error("boom"); },
+      sidNoteOff: async () => ({ success: true }),
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_generate",
+    { root: "C4", pattern: "0", steps: 1, tempoMs: 30 },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  await new Promise((r) => setTimeout(r, 40));
+  assert.equal(noteOnCalls, 1);
+});
+
 test("music_compile_and_play compiles SIDWAVE to PRG and runs on C64", async () => {
   let runPrgCalls = 0;
   let sidAttachmentCalls = 0;

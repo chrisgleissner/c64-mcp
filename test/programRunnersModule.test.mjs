@@ -223,6 +223,26 @@ test("run_prg_file reports firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
+test("load_prg_file reports firmware failure", async () => {
+  const ctx = {
+    client: {
+      async loadPrgFile() {
+        return { success: false, details: { error: "load error" } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke(
+    "load_prg_file",
+    { path: "//USB0/demo.prg" },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
 test("upload_and_run_basic validates program input", async () => {
   const ctx = {
     client: {
@@ -295,4 +315,32 @@ test("upload_and_run_asm handles firmware failure", async () => {
   // Should return an error with text message
   const text = String(result.content?.[0]?.text ?? "");
   assert.ok(text.length > 0);
+});
+
+test("upload_and_run_asm returns structured content on success", async () => {
+  const calls = [];
+  const ctx = {
+    client: {
+      async uploadAndRunAsm(program) {
+        calls.push(program);
+        return { success: true, details: { ok: true } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_asm",
+    { program: ".org $0801\n rts" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.ok(result.structuredContent && result.structuredContent.type === "json");
+  const data = result.structuredContent.data;
+  assert.equal(data.kind, "upload_and_run_asm");
+  assert.equal(data.format, "prg");
+  assert.ok(typeof data.entryAddress === "number");
+  assert.ok(typeof data.prgSize === "number" && data.prgSize > 2);
+  assert.equal(calls.length, 1);
 });
