@@ -1,9 +1,22 @@
+# C64 Bridge Improvement Plan
+
+This plan aims to identify and prioritize improvements to the C64 Bridge MCP server.
+
+The main goal is to enhance the server's effectiveness when used with LLMs for code generation, music creation, graphics, and general C64 programming tasks.
+
+The focus is on improving the MCP surface, knowledge base, RAG capabilities, generator defaults, and overall developer experience.
+
 ### 1) Executive Summary
-The server exposes a rich, well-typed MCP surface with clear schemas, strong logging, a deterministic local RAG, and extensive tests. The biggest gaps affecting LLM effectiveness are: (1) RAG results are returned as raw text rather than structured, referenceable snippets; (2) key domain docs (memory/IO maps, SID best-practices) are not exposed as MCP resources; (3) creative defaults (e.g., SID waveform/ADSR) aren’t aligned with the repo’s own musical best-practices. Addressing these will materially improve determinism, provenance, and the quality of BASIC/ASM/graphics/SID outputs.
+
+The server exposes a rich, well-typed MCP surface with clear schemas, strong logging, a deterministic local RAG, and extensive tests. The biggest gaps affecting LLM effectiveness are: 
+- (1) RAG results are returned as raw text rather than structured, referenceable snippets; 
+- (2) key domain docs (memory/IO maps, SID best-practices) are not exposed as MCP resources; 
+- (3) creative defaults (e.g., SID waveform/ADSR) aren’t aligned with the repo’s own musical best-practices. Addressing these will materially improve determinism, provenance, and the quality of BASIC/ASM/graphics/SID outputs.
 
 ### 2) Recommendations (Grouped by Topic)
 
 #### MCP Surface & Tooling
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | M1 | Remove `upload_and_run_basic` as a prerequisite for `read_screen` to avoid misleading LLM plans (screen read works independently). | `src/tools/memory.ts:81-99`, `88-89` | S | 3 | Slightly changes listed workflow hints; no runtime impact. |
@@ -13,6 +26,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | M5 | Add explicit tool tags and related resources for PAL/NTSC-sensitive tools (SID, graphics) to nudge LLM to check system differences. | `src/tools/audio.ts:94-101`, `src/knowledge.ts:368-438` | S | 3 | Slight metadata churn; improves prompt-tool alignment. |
 
 #### Knowledge Base & Resources
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | K1 | Add memory/IO maps and low-memory docs as MCP resources (critical grounding for ASM/memory tools). | Missing under `src/rag/knowledgeIndex.ts:55-299`; candidate docs: `data/memory/*.md`, `data/io/*.md` | S | 5 | Larger resource list; very high grounding value for LLMs. |
@@ -20,6 +34,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | K3 | Add a short “BASIC pitfalls” quickref (quoting, line length, tokenization) and link from runners. | Tokenizer: `src/basicConverter.ts`; hints exist but not resource-linked | M | 4 | Minor doc work; reduces BASIC generation errors. |
 
 #### RAG & Retrieval
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | R1 | Return structured refs from RAG: `[uri|origin, snippet, score]` instead of only text. Parse `<!-- Source: ... -->` and include score. | Text returned: `src/tools/rag.ts:82-128`; retriever: `src/rag/retriever.ts:37-80`; provenance comment injected: `src/rag/indexer.ts:769-772` | M | 5 | Requires minor client-side changes reading structured refs. |
@@ -27,6 +42,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | R3 | Add diversity heuristic (basic+asm mixed fallback already exists) and simple duplicate suppression in top-K. | `src/rag/retriever.ts:70-76,78-80` | S | 3 | Keeps refs varied; minimal complexity. |
 
 #### Generators & Creative Pipelines (BASIC/ASM/Graphics/SID)
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | G1 | Change `music_generate` defaults to triangle waveform and best-practice ADSR; optionally expose a “musical expression” preset. | Current defaults pulse+ADSR: `src/tools/audio.ts:747-756,783-801`; PAL/NTSC in client: `src/c64Client.ts:773-786`; best-practices doc: `data/audio/sid-programming-best-practices.md` | S | 5 | Slight change to expected timbre; add arg to opt back to pulse. |
@@ -35,6 +51,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | G4 | For PETSCII, surface chosen glyph/codes and a miniature preview in structured output (already present; ensure docs highlight usage). | Already included: `src/tools/graphics.ts:489-515` | S | 3 | Doc-only; improves downstream use. |
 
 #### Validation, Testing & CI
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | T1 | Add tests asserting `music_generate` new defaults (tri/ADSR) and pitch accuracy by PAL/NTSC. | Audio analysis tests exist: `test/audioAnalysis.test.mjs:56-141`; `hzToSidFrequency`: `src/c64Client.ts:773-778` | S | 4 | Keeps musical defaults from regressing. |
@@ -42,12 +59,14 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | T3 | Quick test to ensure `read_screen` works without prior `upload_and_run_basic`. | `src/tools/memory.ts:81-99` | S | 3 | Guards against accidental pre-req regressions. |
 
 #### Developer Experience & Documentation
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | D1 | Add a “What changed” MCP summary to README or resource index after build (already partially auto-generated) and link platform status resource. | Auto-generated API in `README.md:346-589`; platform resource in `src/mcp-server.ts:371-432` | S | 3 | Keeps LLM and humans in sync with tool/resource changes. |
 | D2 | Cross-link prompts to resources (e.g., SID prompts to best-practices) for richer in-editor help. | Prompt registry references tools/resources: `src/prompts/registry.ts:369-547` | S | 3 | Small doc metadata lift; improves LLM contextual grounding. |
 
 #### Security/Licensing & Reproducibility
+
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | S1 | Provide a runnable, reproducible container (Node 20 LTS, non-root user, `npm ci`, `npm start`), not just apt base. | Current Dockerfile doesn’t copy/build/run: `Dockerfile:1-12` | M | 3 | Larger image and CI time; greatly simplifies reproducibility. |
@@ -57,6 +76,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 \** Benefit: 1–5 (5 = highest impact)
 
 ### 3) Ranked Shortlist (Cross-Topic)
+
 | Rank | ID | Title | Effort | Benefit | One-line Justification |
 |------|----|-------|--------|---------|------------------------|
 | 1 | R1 | Structured RAG refs with URIs and scores | M | 5 | Makes retrieval actionable and referenceable for LLMs. |
@@ -69,6 +89,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | 8 | S1 | Ship a runnable container | M | 3 | Eases local/CI reproducibility and onboarding. |
 
 ### 4) Top Three Priorities
+
 - Implement structured RAG results (URIs, origin, score) and wire `ReadResource` for direct follow-ups.  
 - Add memory/IO maps and SID best-practices to the exposed MCP resources to improve grounding.  
 - Switch `music_generate` defaults to triangle + recommended ADSR, and add tests for PAL/NTSC tuning.
