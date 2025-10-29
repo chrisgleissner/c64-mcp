@@ -367,8 +367,173 @@ Constants: `π`, `TI`, `TI$`.
 
 ---
 
-## 10. Summary
+## 10. Performance and Optimisation Guidelines
 
-Commodore 64 BASIC V2 provides a concise, tokenised interpreted environment optimised for 38911 bytes of user program space.  
-Understanding its **7-byte variable format**, **descending string heap**, and **linked-line structure** allows efficient use of limited memory.  
-BASIC’s abbreviation system permits ultra-compact source entry, fitting dense code into the 80-character line width while remaining fully token-compatible with standard BASIC V2.
+C64 BASIC V2 is fully interpreted and float-based. Optimise by reducing parsing, conversions, and heap movement. Every line lookup and variable access incurs cost; fast programs minimise interpreter work.
+
+### 10.1 Execution Model
+
+- Each line is linked; `GOTO`, `GOSUB`, `IF` search from start. Keep hot loops in low line numbers.
+- Keywords are tokenised; variables and literals parsed at runtime.
+- Numeric work is float unless explicitly integer; type conversions are slow.
+
+### 10.2 Variables
+
+- Only first two name letters count—use short names.
+- Define scalars before arrays; new scalars shift arrays by 7 B each.
+- Floats faster than integers; mixed arithmetic incurs conversion.
+- `FRE(0)` scans all variables—use sparingly.
+- Use 0 and −1 for Boolean logic.
+
+### 10.3 Arrays
+
+- Always `DIM`; undeclared arrays auto-DIM 11 elements per dimension.
+- Re-DIM → error; index 0–32767 only.
+- Keep dimensions small and fixed; leftmost index varies fastest.
+
+### 10.4 Arithmetic
+
+- Replace `^` with multiplication; pre-compute constants and function results.
+- `INT(X)` faster than truncation math; avoid mixing ints/floats.
+- Keep loops tight; each iteration re-parses expressions.
+
+### 10.5 Strings
+
+- Heap grows downward, no garbage collection.
+- Avoid `A$=A$+B$` in loops; prefer `PRINT A$;B$`.
+- Reuse string vars; overwrite via `MID$` instead of reallocating.
+- Use `CLR` to reclaim heap; `LEFT$/RIGHT$/MID$` create new descriptors—use sparingly.
+
+### 10.6 Control Flow
+
+- Prefer `FOR…NEXT` to manual `GOTO` loops.
+- Keep `IF` expressions short; parser re-evaluates every branch.
+- Combine short statements with `:` (< 80 chars per line).
+- Limit nesting depth (< 5) for readability and speed.
+
+### 10.7 Program Structure & I/O
+
+- Put constants/setup early; `DATA` and rarely used routines last.
+- Remove `REM` in loops; still parsed.
+- Minimise disk/tape/printer I/O; buffer in memory.
+- `CMD` redirection is slow—set once.
+- Avoid frequent `TI$`; use loop counters instead.
+- Use `SYS` for time-critical routines.
+
+### 10.8 Memory Use
+
+- Each scalar = 7 B; arrays store only element data.
+- Pack short related statements on one line.
+- Use abbreviations (`?`, `gO`, `sT`) to stay within 80 chars.
+- Maintain ≥ 50 % free RAM for string heap stability.
+- Call `CLR` to drop unused variables.
+
+### 10.9 Summary
+
+Fast BASIC = minimal parsing, fixed data, short names, reused strings, few allocations.  
+Define vars early, pre-DIM arrays, keep loops shallow, and avoid heap churn.  
+Typical speed gain: 2–5× over unoptimised code.
+
+---
+
+## 11. Writing Games Efficiently in BASIC
+
+C64 BASIC games rely on careful screen, input, and timing control. Interpreter speed limits frame rate; optimise for responsiveness, not raw throughput.
+
+### 11.1 Core Strategy
+
+- BASIC handles logic; graphics/sound via `POKE` to hardware.
+- Use fixed variables and arrays; avoid runtime string creation.
+- Keep main loop short and predictable.
+
+### 11.2 Screen Handling
+
+- Screen RAM $0400 (1024 dec); Colour RAM $D800 (55296 dec).
+- `PRINT` is slow; use direct writes:
+
+  ```basic
+  POKE1024+X+40*Y,CHR
+  POKE55296+X+40*Y,COLOR
+  ```
+
+- Redraw only modified cells; update deltas, not full screen.
+- For static backgrounds, draw once, then update moving parts.
+- To clear screen, loop over $0400/$D800 ranges.
+
+### 11.3 Delta Updates
+
+- Track old/new positions; erase previous cell, draw new one.
+- Use flags or small arrays for active objects only.
+- Skip unchanged elements; BASIC loops are costly.
+
+### 11.4 Timing (Delays)
+
+- **Do not delay by default**—BASIC is slower than 50 Hz refresh.
+- Add timing only for pacing (slow motion, animation rhythm, cross-platform consistency, or sync with music).  
+- Implement fixed-step gating, not busy-waits:
+
+  ```basic
+  IF TI-T0>=N THEN T0=TI:GOSUB UPDATE
+  ```
+
+  → limits maximum update rate without freezing input.
+- Avoid `FOR T=1 TO N:NEXT` and tight wait loops; they waste CPU.
+- If the game already runs slower than `N`, no wait occurs.
+
+### 11.5 Movement & Input
+
+- Move by arithmetic deltas (`X=X+DX`); keep signed `DX/DY`.
+- Keyboard: `GET A$` (non-blocking). Avoid `INPUT`.
+
+  ```basic
+  GETK$:IFK$<>""THEN...
+  ```
+
+- Joystick port 2 @ $DC00 (56320):
+
+  | Bit | Function | Mask |
+  |------|-----------|------|
+  | 0 | Up | 1 |
+  | 1 | Down | 2 |
+  | 2 | Left | 4 |
+  | 3 | Right | 8 |
+  | 4 | Fire | 16 |
+  Example:  
+  `J=PEEK(56320):IF(JAND1)=0THENPY=PY-1`
+
+### 11.6 Sprites & Graphics
+
+- VIC sprite enable $D015; positions $D000–$D00F; colours $D027–$D02E.
+- Pre-load sprite data; update only X/Y each frame via `POKE`.
+- VIC renders asynchronously—BASIC handles motion logic only.
+
+### 11.7 Sound
+
+- SID base $D400.  
+- Store freq/envelope tables in DATA or arrays; `POKE` directly each frame.
+
+### 11.8 Memory & Performance
+
+- Use integer arrays for coordinates/counters.  
+- Keep < 26 variables for faster lookup.  
+- Avoid `PRINT` during play; write HUD directly to screen RAM.  
+- For scrolling, shift indices or viewport pointers instead of copying memory.  
+- Reuse data structures; avoid new strings inside loop.
+
+### 11.9 Example Loop Skeleton
+
+```basic
+10 T0=TI:GETK$
+20 GOSUB1000:REM LOGIC
+30 GOSUB2000:REM DRAW
+40 IF TI-T0<2 THEN GOTO40
+50 GOTO10
+```
+
+→ adds frame pacing only if motion needs slowing.
+
+### 11.10 Summary
+
+Efficient BASIC games minimise interpreter overhead.  
+Use `POKE/PEEK` for graphics and input, delta redraw for movement, fixed-step gating only when required, and pre-allocated variables for state.  
+Result: smooth, responsive gameplay within BASIC’s limits.
