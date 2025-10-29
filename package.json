@@ -4,6 +4,7 @@
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
+  "packageManager": "bun@1.3.1",
   "bin": {
     "c64bridge": "scripts/cli.js"
   },
@@ -19,6 +20,7 @@
     "check:run-local": "bash scripts/run-mcp-check.sh local 5",
     "check:run-npm": "bash scripts/run-mcp-check.sh npm 5",
     "check": "npm run build && npm test",
+    "check:node-compat": "node scripts/check-node-compat.mjs",
     "build:rag": "node --import ./scripts/register-ts-node.mjs scripts/rag-rebuild.mjs",
     "api:generate": "npx --yes swagger-typescript-api@12.0.4 -p doc/rest/c64-openapi.yaml -o generated/c64 -n index.ts --axios --single-http-client --module-name-first-tag",
     "c64:tool": "bash scripts/c64-tool.sh",

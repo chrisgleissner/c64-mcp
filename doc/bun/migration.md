@@ -12,6 +12,13 @@ Our goal is to adopt Bun everywhere it improves speed (local dev, CI, container 
 4. **Update automation and docs** once Bun passes all checks.
 5. **Retain Node smoke tests** to ensure published artifacts remain consumable by Node users.
 
+### Current Status (2025-10-29)
+
+- Baseline Node metrics captured (`npm run build` ~10.44 s, `npm test` ~47.61 s) in `doc/bun/baseline-metrics.md`.
+- Bun toolchain bootstrapped alongside Node (`bun.lock`, `packageManager`, smoke `bun install`).
+- Added `npm run check:node-compat` (packs the module, installs via npm, and imports key ESM modules with Node) to guard compatibility as we iterate.
+- `bun run build` verified to produce the same `dist/` output as the Node workflow.
+
 ---
 
 ## Guardrails

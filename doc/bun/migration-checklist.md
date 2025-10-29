@@ -7,14 +7,14 @@
 
 ## 1. Foundations
 
-- [ ] **1.1** Capture baseline metrics (install/build/test timings, coverage reports) for comparison.
-- [ ] **1.2** Introduce Bun toolchain alongside existing Node workflow (lockfile, `packageManager`, basic `bun install` smoke test).
+- [x] **1.1** Capture baseline metrics (install/build/test timings, coverage reports) for comparison. *(doc/bun/baseline-metrics.md, 2025-10-29)*
+- [x] **1.2** Introduce Bun toolchain alongside existing Node workflow (lockfile, `packageManager`, basic `bun install` smoke test).
 
 ## 2. Package & Tooling
 
-- [ ] **2.1** Update `package.json` scripts to use Bun equivalents while keeping Node fallbacks where required.
-- [ ] **2.2** Ensure `bun run build` reproduces the existing `dist/` layout (compare key artifacts).
-- [ ] **2.3** Add an automated check that validates the published package still runs under `npm install` + `node`.
+- [x] **2.1** Update `package.json` scripts to use Bun equivalents while keeping Node fallbacks where required. *(added Bun packageManager + `check:node-compat`)*
+- [x] **2.2** Ensure `bun run build` reproduces the existing `dist/` layout (compare key artifacts). *(verified 2025-10-29)*
+- [x] **2.3** Add an automated check that validates the published package still runs under `npm install` + `node`. *(npm script + compatibility harness)*
 
 ## 3. Test Suite
 
