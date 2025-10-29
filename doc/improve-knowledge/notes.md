@@ -12,3 +12,18 @@
 - **Memory/IO resource exposure (K1)**: Memory maps and IO reference docs under `data/memory` and `data/io` must be published as MCP resources with appropriate metadata for retrieval and grounding.
 - **SID best-practices resource (K2)**: `data/audio/sid-programming-best-practices.md` must be surfaced as a first-class MCP resource to guide audio tools and prompts.
 - **Validation gates**: Each improvement requires incremental changes with companion tests or documentation updates, followed by a successful `npm run check` prior to marking tasks complete.
+
+## Additional Acceptance Criteria (New Tasks)
+
+- **License info in RAG (S2)**: Structured RAG outputs expose `spdxId` only (replaces license name/URL), along with `uri`, `origin`, `snippet`, and `score`.
+- **What changed summary (D1)**: README or resource index contains a concise, auto-updated summary of tool/resource changes with a link to platform status.
+- **Prompt cross-links (D2)**: Prompts referencing SID/graphics/PETSCII include `relatedResources` pointing to best-practices and quickrefs.
+- **BASIC pitfalls resource (K3)**: A brief, actionable quickref exists and is listed in the knowledge index; BASIC runners reference it.
+- **PETSCII/charset quickrefs (K4)**: PETSCII char codes and glyph mapping are published as resources; retrieval returns URIs to them.
+- **VIC-II quickref (K5)**: Register quickref is exposed as a resource and linked from graphics tools.
+- **Sprite & Charset workflows doc (K6)**: New doc published and exposed; graphics tools and prompts link to it.
+- **RAG URIs (R2)**: RAG results consistently include `c64://` resource URIs where applicable; `ReadResource` can open them.
+- **Retrieval diversity (R3)**: Top-K results have basic de-duplication and domain diversity; tests cover presence of varied domains.
+- **PETSCII presets docs (G5)**: Documented style presets exist; prompts mention how to select them.
+- **Hires bitmap PRG generator (G6)**: A tool exists to render a static bitmap; a minimal example and test verify it runs and captures a screen.
+- **Graphics tests (T4/T5)**: PETSCII generation and sprite preview PRG flows have e2e tests asserting key structured fields and behavior.
