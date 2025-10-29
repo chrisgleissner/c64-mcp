@@ -39,11 +39,16 @@ function isModuleNotFound(error) {
 }
 
 async function launch() {
-  const srcEntry = path.resolve(projectRoot, 'src/index.ts');
+  const srcServer = path.resolve(projectRoot, 'src/mcp-server.ts');
+  const srcBootstrap = path.resolve(projectRoot, 'src/bootstrap/stdio-logger.ts');
   const distEntry = path.resolve(projectRoot, 'dist/index.js');
 
-  if (await fileExists(srcEntry)) {
-    await import(pathToFileURL(srcEntry).href);
+  if (await fileExists(srcServer)) {
+    // Ensure stdio logger bootstrap is applied in dev runs
+    if (await fileExists(srcBootstrap)) {
+      await import(pathToFileURL(srcBootstrap).href);
+    }
+    await import(pathToFileURL(srcServer).href);
     return;
   }
 
