@@ -126,6 +126,31 @@ test("music_generate defaults to triangle waveform and best-practice ADSR", asyn
   assert.equal(noteOffCount, 1);
 });
 
+test("music_generate expression preset uses varied durations and reports preset", async () => {
+  const ctx = {
+    client: {
+      sidSetVolume: async () => ({ success: true }),
+      sidNoteOn: async () => ({ success: true }),
+      sidNoteOff: async () => ({ success: true }),
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke(
+    "music_generate",
+    { root: "C4", pattern: "0,4,7", steps: 4, preset: "expression", tempoMs: 50 },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(result.metadata.preset, "expression");
+  const timeline = result.metadata.timeline;
+  assert.equal(Array.isArray(timeline), true);
+  // Expect the first four durations to match the expressive pattern
+  const durations = timeline.slice(0, 4).map((e) => e.durationMs);
+  assert.deepEqual(durations, [250, 180, 180, 400]);
+});
+
 test("music_compile_and_play compiles SIDWAVE to PRG and runs on C64", async () => {
   let runPrgCalls = 0;
   let sidAttachmentCalls = 0;
