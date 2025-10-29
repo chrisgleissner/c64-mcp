@@ -1,4 +1,4 @@
-# C64 Bridge Improvement Plan
+# Knowledge Improvement Plan
 
 This plan aims to identify and prioritize improvements to the C64 Bridge MCP server.
 
