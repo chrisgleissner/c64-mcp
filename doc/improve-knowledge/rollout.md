@@ -37,9 +37,9 @@ For every checklist item below, execute the following sub-steps in order (these 
 
 ## Phase 1 — Retrieval & Knowledge Grounding (highest-priority shortlist items)
 
-- [ ] R1: Implement structured RAG results with URI, origin, and score metadata (`src/tools/rag.ts`, `src/rag/retriever.ts`, `src/rag/indexer.ts`). Ensure responses expose resource URIs compatible with `ReadResource`.
-- [ ] K1: Expose memory and IO documentation as MCP resources (`src/rag/knowledgeIndex.ts`, `src/mcp-server.ts`, `data/memory/*`, `data/io/*`). Add schema entries if needed.
-- [ ] K2: Publish SID best-practices as an accessible MCP resource (`data/audio/sid-programming-best-practices.md`, resource registry).
+- [x] R1: Implement structured RAG results with URI, origin, and score metadata (`src/tools/rag.ts`, `src/rag/retriever.ts`, `src/rag/indexer.ts`). Ensure responses expose resource URIs compatible with `ReadResource`.
+- [x] K1: Expose memory and IO documentation as MCP resources (`src/rag/knowledgeIndex.ts`, `src/mcp-server.ts`, `data/memory/*`, `data/io/*`). Add schema entries if needed.
+- [x] K2: Publish SID best-practices as an accessible MCP resource (`data/audio/sid-programming-best-practices.md`, resource registry).
 
 ## Phase 2 — Creative Defaults & Validation
 

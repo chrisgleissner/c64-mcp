@@ -28,8 +28,15 @@ const EXPECTED_RESOURCE_URIS = [
   "c64://specs/sid",
   "c64://specs/sidwave",
   "c64://docs/sid/file-structure",
+  "c64://docs/sid/best-practices",
   // Graphics / VIC-II
   "c64://specs/vic",
+  // Memory & I/O
+  "c64://specs/memory-map",
+  "c64://specs/memory-low",
+  "c64://specs/memory-kernal",
+  "c64://specs/io",
+  "c64://specs/cia",
   // Printers
   "c64://specs/printer",
   "c64://docs/printer/guide",

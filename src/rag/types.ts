@@ -5,8 +5,23 @@ GPL-2.0-only
 
 export type RagLanguage = "basic" | "asm" | "mixed" | "hardware" | "other";
 
+export interface RagReference {
+  snippet: string;
+  origin?: string;
+  uri?: string;
+  score: number;
+  sourcePath?: string;
+  sourceUrl?: string;
+  sourceRepoUrl?: string;
+  license?: string;
+  licenseSpdxId?: string;
+  licenseName?: string;
+  licenseUrl?: string;
+  attribution?: string;
+}
+
 export interface RagRetriever {
-  retrieve(query: string, topK?: number, filterLanguage?: RagLanguage): Promise<string[]>;
+  retrieve(query: string, topK?: number, filterLanguage?: RagLanguage): Promise<RagReference[]>;
 }
 
 export interface EmbeddingRecord {

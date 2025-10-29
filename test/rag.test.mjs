@@ -70,14 +70,14 @@ LOOP    STA $D020
     await t.test('retrieves BASIC refs', async () => {
       const refs = await rag.retrieve('draw a sine wave', 3, 'basic');
       assert.ok(Array.isArray(refs) && refs.length > 0);
-      assert.ok(refs.some((text) => /POKE|PRINT|SIN|TAB|GOTO/i.test(text)));
+      assert.ok(refs.some((ref) => /POKE|PRINT|SIN|TAB|GOTO/i.test(ref.snippet)));
     });
 
     await t.test('retrieves ASM refs for raster/border', async () => {
       const refs = await rag.retrieve('cycle border colors', 3, 'asm');
       assert.ok(refs.length > 0);
-      const hasBorderColour = refs.some((text) => /\$d020|\$D020|border colour|border color/i.test(text));
-      const hasAsmOps = refs.some((text) => /\b(JMP|LDA|STA|ADC|AND)\b/.test(text));
+      const hasBorderColour = refs.some((ref) => /\$d020|\$D020|border colour|border color/i.test(ref.snippet));
+      const hasAsmOps = refs.some((ref) => /\b(JMP|LDA|STA|ADC|AND)\b/.test(ref.snippet));
       assert.ok(hasBorderColour || hasAsmOps, 'expected at least one reference touching border colour logic');
     });
 
