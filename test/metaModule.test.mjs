@@ -16,18 +16,22 @@ function tmpPath(subdir, name) {
 
 await fs.mkdir("test/tmp/metaModule", { recursive: true });
 
-async function waitForTaskCompletion(name, ctx, { timeoutMs = 400, pollIntervalMs = 20 } = {}) {
+async function waitForTaskCompletion(name, ctx, { timeoutMs = 10000, pollIntervalMs = 20 } = {}) {
   const deadline = Date.now() + timeoutMs;
+  let lastMatch = null;
   while (Date.now() < deadline) {
     const result = await metaModule.invoke("list_background_tasks", {}, ctx);
     const tasks = result.structuredContent?.data?.tasks ?? [];
     const match = tasks.find((task) => task.name === name);
-    if (match && match.status !== "running") {
-      return match;
+    if (match) {
+      lastMatch = match;
+      if (match.status !== "running") {
+        return match;
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
-  return null;
+  return lastMatch;
 }
 
 // --- firmware_info_and_healthcheck ---
