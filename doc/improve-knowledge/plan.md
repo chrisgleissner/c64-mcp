@@ -80,7 +80,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | S1 | Provide a runnable, reproducible container (Node 20 LTS, non-root user, `npm ci`, `npm start`), not just apt base. | Current Dockerfile doesn’t copy/build/run: `Dockerfile:1-12` | M | 3 | Larger image and CI time; greatly simplifies reproducibility. |
-| S2 | Add SPDX identifier in structured RAG refs alongside existing license name and URL (preserve current metadata; map when possible). | License metadata recorded: `src/rag/indexer.ts:592-699` | S | 3 | Clarifies provenance/licensing with a standard identifier. |
+| S2 | Replace license name and URL with SPDX identifier in structured RAG refs (map when possible; omit if unknown). | License metadata recorded: `src/rag/indexer.ts:592-699` | S | 3 | Normalizes licensing with a single standard field. |
 
 \* Effort: S (small), M (medium), L (large)  
 \** Benefit: 1–5 (5 = highest impact)
@@ -112,7 +112,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 | 16 | K6 | Sprite/charset workflows guide | M | 4 | Teaches robust workflows for assets. |
 | 17 | G6 | Hires bitmap PRG generator | M | 4 | Enables hires demos and previews. |
 | 18 | D3 | Creative quickstarts and guides | M | 4 | Guides LLMs and users to success paths. |
-| 19 | S2 | SPDX id in RAG refs (alongside name/URL) | S | 3 | Adds standard id; preserves existing license fields. |
+| 19 | S2 | SPDX id in RAG refs (replace name/URL) | S | 3 | Single normalized field; reduces duplication. |
 
 ### 4) Top Three Priorities
 

@@ -15,7 +15,7 @@
 
 ## Additional Acceptance Criteria (New Tasks)
 
-- **License info in RAG (S2)**: Structured RAG outputs include `spdxId` when available, alongside `uri`, `origin`, `snippet`, and `score`.
+- **License info in RAG (S2)**: Structured RAG outputs expose `spdxId` only (replaces license name/URL), along with `uri`, `origin`, `snippet`, and `score`.
 - **What changed summary (D1)**: README or resource index contains a concise, auto-updated summary of tool/resource changes with a link to platform status.
 - **Prompt cross-links (D2)**: Prompts referencing SID/graphics/PETSCII include `relatedResources` pointing to best-practices and quickrefs.
 - **BASIC pitfalls resource (K3)**: A brief, actionable quickref exists and is listed in the knowledge index; BASIC runners reference it.

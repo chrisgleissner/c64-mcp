@@ -54,14 +54,14 @@ For every checklist item below, execute the following sub-steps in order (these 
 ## Phase 4 — Reproducibility & Packaging
 
 - [ ] S1: Produce a runnable, reproducible container path (Node 20 LTS, non-root user, `npm ci`, `npm start`) updating `Dockerfile` and associated docs.
-- [ ] S2: Surface SPDX license info in RAG structured refs when available (ensure `origin`, `uri`, `spdxId` fields are present) (`src/rag/indexer.ts`, `src/rag/retriever.ts`, `src/tools/rag.ts`).
+- [ ] S2: Replace license name and URL with SPDX identifier in structured RAG refs (ensure `origin`, `uri`, `spdxId` fields are present; map when possible) (`src/rag/indexer.ts`, `src/rag/retriever.ts`, `src/tools/rag.ts`).
 - [ ] D1: Add a concise “What changed” MCP summary to README/resource index after build; link the platform status resource (`README.md`, `src/mcp-server.ts`).
 - [ ] D2: Cross-link prompts to key resources (SID best-practices, VIC-II, PETSCII/charset quickrefs) for richer in-editor guidance (`src/prompts/registry.ts`).
 
 ## Phase 5 — Knowledge Exposure & Retrieval Enhancements
 
 - [ ] K3: Add “BASIC pitfalls” quickref and publish as MCP resource; link from BASIC runners (`data/basic/basic-pitfalls.md`, `src/rag/knowledgeIndex.ts`, `src/tools/programRunners.ts`).
-- [ ] K4: Publish PETSCII/charset quickrefs (char codes, glyph map) as MCP resources (`data/video/character-set.csv`, `src/rag/knowledgeIndex.ts`).
+- [ ] K4: Publish PETSCII/charset quickrefs (char codes, glyph map) as MCP resources; dynamically generate Markdown table from `data/video/character-set.csv` (build-time or runtime) to avoid duplicate sources (`src/rag/knowledgeIndex.ts`).
 - [ ] K5: Publish VIC-II register quickref as MCP resource and ensure graphics tools reference it (`data/video/vic-spec.md`, `src/tools/graphics.ts`).
 - [ ] R2: Include bundle/resource URIs in RAG results when matches originate from docs (`src/rag/retriever.ts`, `src/tools/rag.ts`).
 - [ ] R3: Add retrieval diversity and simple duplicate suppression in top-K (`src/rag/retriever.ts`).
