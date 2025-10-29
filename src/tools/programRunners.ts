@@ -1,7 +1,8 @@
-import { AssemblyError } from "../assemblyConverter.js";
+import { assemblyToPrg, AssemblyError } from "../assemblyConverter.js";
+import { basicToPrg } from "../basicConverter.js";
 import { defineToolModule } from "./types.js";
 import { objectSchema, stringSchema } from "./schema.js";
-import { textResult } from "./responses.js";
+import { jsonResult, textResult } from "./responses.js";
 import {
   ToolExecutionError,
   ToolError,
@@ -119,6 +120,10 @@ export const programRunnersModule = defineToolModule({
           const parsed = uploadBasicArgsSchema.parse(args);
           ctx.logger.info("Uploading BASIC program", { sourceLength: parsed.program.length });
 
+          // Compute PRG locally to expose structured metadata
+          const prg = basicToPrg(parsed.program);
+          const entryAddress = prg.readUInt16LE(0);
+
           const result = await ctx.client.uploadAndRunBasic(parsed.program);
           if (!result.success) {
             throw new ToolExecutionError("C64 firmware reported failure while running BASIC program", {
@@ -126,12 +131,18 @@ export const programRunnersModule = defineToolModule({
             });
           }
 
+          const data = {
+            kind: "upload_and_run_basic" as const,
+            format: "prg" as const,
+            entryAddress,
+            prgSize: prg.length,
+            resources: ["c64://specs/basic", "c64://context/bootstrap"],
+          };
           const base = textResult("BASIC program uploaded and executed successfully.", {
             success: true,
             details: result.details ?? null,
           });
-
-          return base;
+          return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
           if (error instanceof ToolError) {
             return toolErrorResult(error);
@@ -166,17 +177,31 @@ export const programRunnersModule = defineToolModule({
           const parsed = uploadAsmArgsSchema.parse(args);
           ctx.logger.info("Uploading assembly program", { sourceLength: parsed.program.length });
 
+          // Assemble locally to expose structured metadata
+          const prg = assemblyToPrg(parsed.program);
+          const entryAddress = prg.readUInt16LE(0);
+
           const result = await ctx.client.uploadAndRunAsm(parsed.program);
           if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while running assembly program", {
-              details: extractFailureDetails(result.details),
-            });
+            return toolErrorResult(
+              new ToolExecutionError("C64 firmware reported failure while running assembly program", {
+                details: extractFailureDetails(result.details),
+              }),
+            );
           }
 
-          return textResult("Assembly program assembled, uploaded, and executed successfully.", {
+          const data = {
+            kind: "upload_and_run_asm" as const,
+            format: "prg" as const,
+            entryAddress,
+            prgSize: prg.length,
+            resources: ["c64://specs/assembly", "c64://context/bootstrap"],
+          };
+          const base = textResult("Assembly program assembled, uploaded, and executed successfully.", {
             success: true,
             details: result.details ?? null,
           });
+          return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
           if (error instanceof ToolError) {
             return toolErrorResult(error);
@@ -228,11 +253,19 @@ export const programRunnersModule = defineToolModule({
             });
           }
 
-          return textResult(`PRG ${parsed.path} loaded into memory.`, {
+          const data = {
+            kind: "load_prg_file" as const,
+            format: "prg" as const,
+            path: parsed.path,
+            entryAddress: null as number | null,
+            resources: ["c64://context/bootstrap"],
+          };
+          const base = textResult(`PRG ${parsed.path} loaded into memory.`, {
             success: true,
             path: parsed.path,
             details: toRecord(result.details) ?? null,
           });
+          return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
           if (error instanceof ToolError) {
             return toolErrorResult(error);
@@ -273,11 +306,19 @@ export const programRunnersModule = defineToolModule({
             });
           }
 
-          return textResult(`PRG ${parsed.path} loaded and executed.`, {
+          const data = {
+            kind: "run_prg_file" as const,
+            format: "prg" as const,
+            path: parsed.path,
+            entryAddress: null as number | null,
+            resources: ["c64://context/bootstrap"],
+          };
+          const base = textResult(`PRG ${parsed.path} loaded and executed.`, {
             success: true,
             path: parsed.path,
             details: toRecord(result.details) ?? null,
           });
+          return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
           if (error instanceof ToolError) {
             return toolErrorResult(error);
@@ -317,11 +358,19 @@ export const programRunnersModule = defineToolModule({
             });
           }
 
-          return textResult(`CRT ${parsed.path} mounted and started.`, {
+          const data = {
+            kind: "run_crt_file" as const,
+            format: "crt" as const,
+            path: parsed.path,
+            entryAddress: null as number | null,
+            resources: ["c64://context/bootstrap"],
+          };
+          const base = textResult(`CRT ${parsed.path} mounted and started.`, {
             success: true,
             path: parsed.path,
             details: toRecord(result.details) ?? null,
           });
+          return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
           if (error instanceof ToolError) {
             return toolErrorResult(error);

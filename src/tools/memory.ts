@@ -85,7 +85,7 @@ export const memoryModule = defineToolModule({
       relatedResources: ["c64://context/bootstrap", "c64://specs/basic"],
       relatedPrompts: ["memory-debug", "basic-program", "assembly-program"],
       tags: ["screen", "memory"],
-      prerequisites: ["upload_and_run_basic"],
+      prerequisites: [],
       examples: [
         {
           name: "Capture screen",

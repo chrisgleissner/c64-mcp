@@ -217,8 +217,12 @@ const musicGenerateArgsSchema = objectSchema({
     waveform: stringSchema({
       description: "Waveform for playback.",
       enum: ["pulse", "saw", "tri", "noise"],
-      default: "pulse",
+      default: "tri",
     }),
+    preset: optionalSchema(stringSchema({
+      description: "Optional musical preset to influence timing/expression.",
+      enum: ["classic", "expression"],
+    }), "classic"),
   },
   additionalProperties: false,
 });
@@ -754,7 +758,8 @@ export const audioModule = defineToolModule({
       tags: ["sid", "music", "generator"],
       prerequisites: ["sid_volume"],
       examples: [
-        { name: "C major", description: "C4 arpeggio", arguments: { root: "C4", pattern: "0,4,7", steps: 8, tempoMs: 120, waveform: "pulse" } },
+        { name: "C major", description: "C4 arpeggio (triangle)", arguments: { root: "C4", pattern: "0,4,7", steps: 8, tempoMs: 120, waveform: "tri" } },
+        { name: "Expressive C major", description: "C4 arpeggio with phrasing", arguments: { root: "C4", pattern: "0,4,7", steps: 8, preset: "expression" } },
       ],
       workflowHints: [
         "Offer as a quick inspiration loop when the user wants to hear something immediately; explain how to tweak pattern or tempo.",
@@ -763,13 +768,15 @@ export const audioModule = defineToolModule({
         try {
           const parsed = musicGenerateArgsSchema.parse(args ?? {});
           const intervals = parseIntervals(parsed.pattern);
-          const timeline: Array<{ t: number; note: string }> = [];
+          const timeline: Array<{ t: number; note: string; durationMs: number }> = [];
           let timestamp = 0;
+          const expressiveDurations = [250, 180, 180, 400];
           for (let i = 0; i < parsed.steps; i += 1) {
             const iv = intervals[i % intervals.length]!;
             const note = transposeNote(parsed.root, iv);
-            timeline.push({ t: timestamp, note });
-            timestamp += parsed.tempoMs;
+            const durationMs = parsed.preset === "expression" ? expressiveDurations[i % expressiveDurations.length]! : parsed.tempoMs;
+            timeline.push({ t: timestamp, note, durationMs });
+            timestamp += durationMs;
           }
 
           ctx.logger.info("Scheduling SID arpeggio", {
@@ -789,14 +796,15 @@ export const audioModule = defineToolModule({
                 await ctx.client.sidNoteOn({
                   voice: 1,
                   note,
-                  waveform: parsed.waveform as "pulse" | "saw" | "tri" | "noise",
+                  waveform: (parsed.waveform ?? "tri") as "pulse" | "saw" | "tri" | "noise",
                   pulseWidth: 0x0800,
                   attack: 1,
-                  decay: 2,
-                  sustain: 8,
-                  release: 3,
+                  decay: 7,
+                  sustain: 15,
+                  release: 0,
                 });
-                await sleep(parsed.tempoMs);
+                const durationMs = parsed.preset === "expression" ? expressiveDurations[i % expressiveDurations.length]! : parsed.tempoMs;
+                await sleep(durationMs);
               }
               await ctx.client.sidNoteOff(1);
             } catch (playbackError) {
@@ -811,7 +819,8 @@ export const audioModule = defineToolModule({
             intervals,
             steps: parsed.steps,
             tempoMs: parsed.tempoMs,
-            waveform: parsed.waveform,
+            waveform: parsed.waveform ?? "tri",
+            preset: parsed.preset ?? "classic",
             timeline,
           });
         } catch (error) {
