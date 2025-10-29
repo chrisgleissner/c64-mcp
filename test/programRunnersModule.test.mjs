@@ -289,8 +289,8 @@ test("upload_and_run_basic handles firmware failure", async () => {
 test("upload_and_run_basic auto-fixes missing closing quote", async () => {
   const calls = [];
   const screens = [
-    "?SYNTAX ERROR IN 10\nREADY.\n",
-    "READY.\n",
+    { kind: "value", value: "?SYNTAX ERROR IN 10\nREADY.\n" },
+    { kind: "error", error: new Error("screen offline after retry") },
   ];
   const ctx = {
     client: {
@@ -299,7 +299,14 @@ test("upload_and_run_basic auto-fixes missing closing quote", async () => {
         return { success: true };
       },
       async readScreen() {
-        return screens.shift() ?? "READY.\n";
+        const next = screens.shift();
+        if (!next) {
+          return "READY.\n";
+        }
+        if (next.kind === "error") {
+          throw next.error;
+        }
+        return next.value;
       },
     },
     logger: createLogger(),
@@ -351,6 +358,113 @@ test("upload_and_run_basic reports failure when auto-fix not possible", async ()
   assert.equal(data.autoFix.attempted, false);
   assert.equal(data.errors[0].line, 20);
   assert.ok(String(data.errors[0].text).includes("ERROR IN 20"));
+});
+
+test("upload_and_run_basic reports firmware failure after auto-fix retry", async () => {
+  const uploads = [];
+  const screens = [
+    "?SYNTAX ERROR IN 10\nREADY.\n",
+  ];
+  const ctx = {
+    client: {
+      async uploadAndRunBasic(program) {
+        uploads.push(program);
+        if (uploads.length === 1) {
+          return { success: true };
+        }
+        return { success: false, details: { error: "still broken" } };
+      },
+      async readScreen() {
+        const value = screens.shift();
+        if (value === undefined) return "READY.\n";
+        return value;
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const program = '10 PRINT "HELLO\n20 END';
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_basic",
+    { program },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata.error.kind, "execution");
+  assert.ok(result.structuredContent && result.structuredContent.type === "json");
+  const data = result.structuredContent.data;
+  assert.equal(data.kind, "basic_runtime_error");
+  assert.equal(data.autoFix.attempted, true);
+  assert.equal(data.autoFix.failure.reason, "firmware_failure");
+  assert.equal(data.autoFix.changes[0].line, 10);
+  assert.equal(uploads.length, 2);
+});
+
+test("upload_and_run_basic reports remaining errors after auto-fix retry", async () => {
+  const uploads = [];
+  const screens = [
+    "?SYNTAX ERROR IN 10\nREADY.\n",
+    "?TYPE MISMATCH ERROR IN 10\nREADY.\n",
+  ];
+  const ctx = {
+    client: {
+      async uploadAndRunBasic(program) {
+        uploads.push(program);
+        return { success: true };
+      },
+      async readScreen() {
+        const value = screens.shift();
+        if (value === undefined) return "READY.\n";
+        return value;
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const program = '10 PRINT "HELLO\n20 END';
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_basic",
+    { program },
+    ctx,
+  );
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata.error.kind, "execution");
+  assert.ok(result.structuredContent && result.structuredContent.type === "json");
+  const data = result.structuredContent.data;
+  assert.equal(data.kind, "basic_runtime_error");
+  assert.equal(data.autoFix.attempted, true);
+  assert.ok(Array.isArray(data.autoFix.resultingErrors));
+  assert.equal(data.autoFix.resultingErrors[0].line, 10);
+  assert.equal(uploads.length, 2);
+});
+
+test("upload_and_run_basic handles screen read failures without errors", async () => {
+  const uploads = [];
+  const ctx = {
+    client: {
+      async uploadAndRunBasic(program) {
+        uploads.push(program);
+        return { success: true };
+      },
+      async readScreen() {
+        throw new Error("screen read failed");
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const program = '10 PRINT "HI"\n20 END';
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_basic",
+    { program },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.ok(result.content[0].text.includes("BASIC program uploaded"));
+  assert.equal(uploads.length, 1);
 });
 
 test("upload_and_run_asm validates source input", async () => {
