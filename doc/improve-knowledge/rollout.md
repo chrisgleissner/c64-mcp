@@ -33,7 +33,7 @@ For every checklist item below, execute the following sub-steps in order (these 
 
 ## Phase 0 — Rollout Initialization
 
-- [ ] Confirm all documents in “Required Reading” are reviewed and summarize key acceptance criteria from `doc/improve-knowledge/plan.md` in your working notes.
+- [x] Confirm all documents in “Required Reading” are reviewed and summarize key acceptance criteria from `doc/improve-knowledge/plan.md` in your working notes.
 
 ## Phase 1 — Retrieval & Knowledge Grounding (highest-priority shortlist items)
 

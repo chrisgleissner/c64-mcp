@@ -8,9 +8,10 @@ The focus is on improving the MCP surface, knowledge base, RAG capabilities, gen
 
 ### 1) Executive Summary
 
-The server exposes a rich, well-typed MCP surface with clear schemas, strong logging, a deterministic local RAG, and extensive tests. The biggest gaps affecting LLM effectiveness are: 
-- (1) RAG results are returned as raw text rather than structured, referenceable snippets; 
-- (2) key domain docs (memory/IO maps, SID best-practices) are not exposed as MCP resources; 
+The server exposes a rich, well-typed MCP surface with clear schemas, strong logging, a deterministic local RAG, and extensive tests. The biggest gaps affecting LLM effectiveness are:
+
+- (1) RAG results are returned as raw text rather than structured, referenceable snippets;
+- (2) key domain docs (memory/IO maps, SID best-practices) are not exposed as MCP resources;
 - (3) creative defaults (e.g., SID waveform/ADSR) aren’t aligned with the repo’s own musical best-practices. Addressing these will materially improve determinism, provenance, and the quality of BASIC/ASM/graphics/SID outputs.
 
 ### 2) Recommendations (Grouped by Topic)
