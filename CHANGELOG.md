@@ -1,12 +1,44 @@
 # Changelog
 
+## 0.6.0 - 2025-10-30
 
+### Features
 
+- Expanded ASM crash detection with low-memory, stack, and hardware monitoring plus post-run polling validation.
+- Added comprehensive developer guides: sprite and charset workflows, PETSCII style and colour guide, BASIC pitfalls quickref.
+- Introduced dynamically generated MCP resources for PETSCII and BASIC references.
+- Enhanced RAG system with retrieval diversity, URI mapping, duplicate suppression, and SPDX-based metadata.
+- Migrated CI and development tooling to Bun with reproducible Node 20 container workflow.
+- Improved program runner outputs, audio generation, and metadata (including PRG and PAL/NTSC tags).
+- Added new knowledge resources, developer examples, and improved LLM guidance.
 
+### Bug Fixes
 
+- Updated Docker base to Ubuntu 24.04 and installed Node 20 via `n`.
+- Added native build dependencies (build-essential, python3) for Copilot setup.
+- Fixed coverage configuration and reporting for Bun.
+- Minor test and formatting corrections.
 
+### Refactoring
 
+- Optimized memory access by merging low-memory and screen RAM reads.
+- Streamlined test execution and tooling using Bun.
 
+### Documentation
+
+- Reorganized and clarified meta tools, PETSCII, and Copilot documentation.
+- Improved PETSCII code accuracy, VIC-II timing notes, and LLM readability.
+- Updated rollout documentation for completed phases.
+- Clarified Bun and npm compatibility.
+
+### Tests
+
+- Expanded test coverage across knowledge index, PETSCII, sprite workflows, and ASM polling.
+- Added structured content and error handling verification.
+
+### Other
+
+- Improved BASIC specification and adjusted coverage targets.
 
 ## 0.5.1 - 2025-10-29
 
@@ -75,7 +107,6 @@
 ### Bug Fixes
 
 - post-package mcp check (d91e0f4)
-
 
 ### Chores
 
