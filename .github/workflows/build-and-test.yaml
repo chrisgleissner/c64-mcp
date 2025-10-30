@@ -39,10 +39,3 @@ jobs:
           files: coverage/lcov.info
           fail_ci_if_error: true
           verbose: true
-      - name: Upload coverage artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/**
-          if-no-files-found: warn
