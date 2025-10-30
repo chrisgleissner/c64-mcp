@@ -67,7 +67,7 @@ describe("meta/audio", () => {
 
     const result = await metaModule.invoke(
       "silence_and_verify",
-      {},
+      { waitBeforeCaptureMs: 0, durationSeconds: 0.5 },
       ctx,
     );
 
@@ -81,7 +81,7 @@ describe("meta/audio", () => {
 
     const result = await metaModule.invoke(
       "silence_and_verify",
-      {},
+      { waitBeforeCaptureMs: 0, durationSeconds: 0.5 },
       ctx,
     );
 

@@ -15,7 +15,7 @@ const compileRunVerifyCycleArgsSchema = objectSchema({
     source: stringSchema({ description: "Source code to compile", minLength: 1 }),
     verifyScreen: optionalSchema(stringSchema({ description: "Expected screen text pattern (regex or substring)", minLength: 1 })),
     verifyAudio: optionalSchema(booleanSchema({ description: "Analyze audio output", default: false }), false),
-    durationMs: optionalSchema(numberSchema({ description: "Duration to run program", integer: true, minimum: 100, default: 2000 }), 2000),
+    durationMs: optionalSchema(numberSchema({ description: "Duration to run program", integer: true, minimum: 1, default: 2000 }), 2000),
     outputPath: optionalSchema(stringSchema({ description: "Output directory for artifacts", minLength: 1 })),
   },
   required: ["sourceType", "source"],

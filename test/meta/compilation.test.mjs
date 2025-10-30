@@ -19,7 +19,7 @@ test("compile_run_verify_cycle compiles and verifies BASIC", async () => {
     sourceType: "basic",
     source: "10 PRINT \"HELLO WORLD\"",
     verifyScreen: "HELLO",
-    durationMs: 100,
+    durationMs: 5,
     outputPath: dir,
   }, ctx);
 
@@ -45,7 +45,7 @@ test("compile_run_verify_cycle handles ASM source", async () => {
     sourceType: "asm",
     source: "LDA #$00",
     verifyScreen: "ASM",
-    durationMs: 100,
+    durationMs: 5,
     outputPath: dir,
   }, ctx);
 
@@ -70,7 +70,7 @@ test("compile_run_verify_cycle detects verification failure", async () => {
     sourceType: "basic",
     source: "10 PRINT \"TEST\"",
     verifyScreen: "EXPECTED",
-    durationMs: 100,
+    durationMs: 5,
     outputPath: dir,
   }, ctx);
 
@@ -93,7 +93,7 @@ test("compile_run_verify_cycle handles SIDWAVE source", async () => {
   const res = await metaModule.invoke("compile_run_verify_cycle", {
     sourceType: "sidwave",
     source: "note C4 100",
-    durationMs: 100,
+    durationMs: 5,
     outputPath: dir,
   }, ctx);
 
@@ -116,7 +116,7 @@ test("compile_run_verify_cycle succeeds without verification", async () => {
   const res = await metaModule.invoke("compile_run_verify_cycle", {
     sourceType: "basic",
     source: "10 PRINT \"TEST\"",
-    durationMs: 100,
+    durationMs: 5,
     outputPath: dir,
   }, ctx);
 
@@ -139,7 +139,7 @@ test("compile_run_verify_cycle handles compile errors", async () => {
   const res = await metaModule.invoke("compile_run_verify_cycle", {
     sourceType: "basic",
     source: "INVALID BASIC",
-    durationMs: 100,
+    durationMs: 5,
     outputPath: dir,
   }, ctx);
 
