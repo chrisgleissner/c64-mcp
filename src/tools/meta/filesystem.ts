@@ -540,7 +540,7 @@ export const tools: ToolDefinition[] = [
           const candidates: string[] = [];
 
           for (const ext of extensions) {
-            const pattern = `${root}/**/*${parsed.nameContains}*.${ext}`;
+            const pattern = `${root}/**/*${needle}*.${ext}`;
             try {
               const info = await (ctx.client as any).filesInfo(pattern);
               const paths = extractPaths(info);
