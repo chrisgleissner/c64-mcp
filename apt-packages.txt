@@ -1,5 +1,7 @@
 ca-certificates
 curl
 git
+nodejs
+npm
 unzip
 xvfb

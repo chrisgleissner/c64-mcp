@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM ubuntu:24.04
 
 # Copy dependency list into image
 COPY apt-packages.txt /tmp/apt-packages.txt
@@ -7,6 +7,11 @@ COPY apt-packages.txt /tmp/apt-packages.txt
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive xargs -a /tmp/apt-packages.txt apt-get install -y && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 using n version manager
+RUN npm install -g n && \
+    n 20 && \
+    node -v
 
 # Install Bun (system-wide under /usr/local)
 ENV BUN_INSTALL=/usr/local

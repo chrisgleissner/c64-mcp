@@ -98,7 +98,7 @@ docker run --rm \
   c64bridge:dev
 ```
 
-The container uses `node:20-bookworm-slim` as the base image with Bun installed, runs as a non-root user (`c64bridge`), and starts the MCP server with `npm start`. Configure the C64 connection through environment variables (`C64_HOST`, `C64_PORT`, `C64_BACKEND`) as needed.
+The container uses `ubuntu:24.04` as the base image with Node.js 20 (installed via `n` version manager) and Bun, runs as a non-root user (`c64bridge`), and starts the MCP server with `npm start`. Configure the C64 connection through environment variables (`C64_HOST`, `C64_PORT`, `C64_BACKEND`) as needed.
 
 For development or testing, you can mount a volume to access logs or temporary files:
 
