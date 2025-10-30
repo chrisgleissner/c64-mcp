@@ -17,6 +17,7 @@ test("ASM program with screen changes is detected as ok", async () => {
     "RUN\nSYS 2061\n",
     "HELLO FROM ASM\n", // Screen changed
   ];
+  let memoryCallCount = 0;
   
   const ctx = {
     client: {
@@ -27,6 +28,14 @@ test("ASM program with screen changes is detected as ok", async () => {
         const screen = screens.shift();
         if (!screen) return "READY.\n";
         return screen;
+      },
+      async readMemoryRaw(address, length) {
+        memoryCallCount++;
+        // Simulate hardware activity by changing values after first poll
+        if (memoryCallCount <= 3) {
+          return new Uint8Array(length).fill(0);
+        }
+        return new Uint8Array(length).fill(1);
       },
     },
     logger: createLogger(),
@@ -62,6 +71,10 @@ test("ASM program with no screen changes is detected as crashed", async () => {
         if (!screen) return "RUN\nSYS 2061\n";
         return screen;
       },
+      async readMemoryRaw(address, length) {
+        // Return same values every time (no activity)
+        return new Uint8Array(length).fill(0);
+      },
     },
     logger: createLogger(),
   };
@@ -96,6 +109,10 @@ test("ASM polling respects environment variables", async () => {
         const screen = screens.shift();
         if (!screen) return "RUN\nSYS 2061\n";
         return screen;
+      },
+      async readMemoryRaw(address, length) {
+        // Return same values (no activity)
+        return new Uint8Array(length).fill(0);
       },
     },
     logger: createLogger(),

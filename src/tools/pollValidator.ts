@@ -74,6 +74,45 @@ function computeScreenHash(screen: string): string {
 }
 
 /**
+ * Compute fast 32-bit CRC32 checksum of buffer for change detection.
+ */
+function computeCrc32(buffer: Uint8Array): number {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < buffer.length; i++) {
+    crc ^= buffer[i]!;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
+    }
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+/**
+ * Compare two Uint8Arrays for equality.
+ */
+function buffersEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Concatenate multiple Uint8Arrays into a single buffer.
+ */
+function concatBuffers(...buffers: Uint8Array[]): Uint8Array {
+  const totalLength = buffers.reduce((sum, buf) => sum + buf.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const buf of buffers) {
+    result.set(buf, offset);
+    offset += buf.length;
+  }
+  return result;
+}
+
+/**
  * Extract BASIC error information from screen text.
  * Looks for patterns like "?SYNTAX ERROR" or "SYNTAX ERROR IN 120".
  */
@@ -165,8 +204,9 @@ async function pollBasicOutcome(
 }
 
 /**
- * Poll for Assembly program outcome by detecting screen changes.
- * First waits for RUN to appear, then monitors for screen changes.
+ * Poll for Assembly program outcome by detecting hardware and screen activity.
+ * Monitors VIC-II, SID, CIA, jiffy clock, and screen memory to determine if program is alive or crashed.
+ * First waits for RUN to appear, then monitors for activity across multiple memory regions.
  */
 async function pollAsmOutcome(
   client: C64Client,
@@ -177,55 +217,29 @@ async function pollAsmOutcome(
   let pollCount = 0;
   let runDetected = false;
   
-  logger.debug("Starting ASM outcome polling", { maxMs: config.maxMs, intervalMs: config.intervalMs });
+  logger.debug("Starting ASM outcome polling with hardware monitoring", { maxMs: config.maxMs, intervalMs: config.intervalMs });
   
-  // Capture initial screen hash
-  let initialHash: string | null = null;
-  
-  while (Date.now() - startTime < config.maxMs) {
-    pollCount++;
-    
+  // Wait for RUN to appear first
+  while (Date.now() - startTime < config.maxMs && !runDetected) {
     try {
       const screen = await client.readScreen();
-      const currentHash = computeScreenHash(screen);
       const upperScreen = screen.toUpperCase();
       
-      // Check if RUN appeared (indicating execution started)
-      if (!runDetected && upperScreen.includes("RUN")) {
+      if (upperScreen.includes("RUN") || upperScreen.includes("ERROR")) {
         runDetected = true;
-        initialHash = currentHash;
-        logger.debug("RUN detected, initial screen hash captured", { hash: initialHash, pollCount });
-        continue; // Continue to next iteration
-      }
-      
-      // If we haven't detected RUN yet but see screen content, capture it as initial
-      if (!runDetected && !initialHash) {
-        initialHash = currentHash;
-      }
-      
-      // Once RUN is detected, check for screen changes
-      if (runDetected && initialHash && currentHash !== initialHash) {
-        logger.debug("ASM screen change detected", { 
-          initialHash, 
-          currentHash, 
-          pollCount, 
-          elapsed: Date.now() - startTime 
-        });
-        return {
-          status: "ok",
-          type: "ASM",
-        };
+        logger.debug("RUN detected, starting 100ms stabilization", { elapsed: Date.now() - startTime });
+        // Wait 100ms for stabilization as per spec
+        await delay(100);
+        break;
       }
     } catch (error) {
-      logger.debug("Failed to read screen during ASM polling", { error, pollCount });
+      logger.debug("Failed to read screen while waiting for RUN", { error });
     }
     
     await delay(config.intervalMs);
   }
   
-  logger.debug("ASM polling timeout", { pollCount, elapsed: Date.now() - startTime, runDetected });
-  
-  // If RUN was never detected, assume program executed instantly (success)
+  // If RUN never appeared, assume instant execution (success)
   if (!runDetected) {
     logger.debug("RUN never detected, assuming instant execution");
     return {
@@ -234,12 +248,76 @@ async function pollAsmOutcome(
     };
   }
   
-  // If RUN was detected but no screen change, consider it crashed
-  logger.debug("ASM screen unchanged after RUN detection");
+  // Now poll hardware regions to detect activity
+  let prevIoSignature: number | null = null;
+  let prevJiffyClock: Uint8Array | null = null;
+  let alive = false;
+  
+  const pollDeadline = Date.now() + config.maxMs;
+  
+  while (Date.now() < pollDeadline && !alive) {
+    pollCount++;
+    
+    try {
+      // Read I/O regions in optimized batches as per comment #3466803675
+      // All of $D000-$DFFF in a single call (covers VIC-II, SID, CIA1, CIA2)
+      const ioRegions = await client.readMemoryRaw(0xD000, 0x1000); // $D000-$DFFF
+      
+      // Read jiffy clock at $00A0-$00A2 (3 bytes)
+      const jiffyClock = await client.readMemoryRaw(0x00A0, 3);
+      
+      // Read screen memory at $0400-$07E7 (1000 bytes)
+      const screenMem = await client.readMemoryRaw(0x0400, 0x3E8);
+      
+      // Concatenate all regions and compute signature
+      const combinedBuffer = concatBuffers(ioRegions, screenMem);
+      const ioSignature = computeCrc32(combinedBuffer);
+      
+      // Check for any activity
+      if (prevIoSignature !== null && ioSignature !== prevIoSignature) {
+        logger.debug("Hardware or screen activity detected", { 
+          pollCount, 
+          elapsed: Date.now() - startTime,
+          signatureChanged: true
+        });
+        alive = true;
+        break;
+      }
+      
+      if (prevJiffyClock !== null && !buffersEqual(jiffyClock, prevJiffyClock)) {
+        logger.debug("Jiffy clock advanced", { 
+          pollCount, 
+          elapsed: Date.now() - startTime,
+          clockChanged: true
+        });
+        alive = true;
+        break;
+      }
+      
+      prevIoSignature = ioSignature;
+      prevJiffyClock = jiffyClock;
+      
+    } catch (error) {
+      logger.debug("Failed to read memory during ASM polling", { error, pollCount });
+    }
+    
+    await delay(config.intervalMs);
+  }
+  
+  if (alive) {
+    logger.debug("ASM program alive - hardware or screen progressing", { pollCount, elapsed: Date.now() - startTime });
+    return {
+      status: "ok",
+      type: "ASM",
+    };
+  }
+  
+  // No activity detected - consider it crashed
+  logger.debug("ASM program crashed - no VIC/CIA/TI/screen progression", { pollCount, elapsed: Date.now() - startTime });
   return {
     status: "crashed",
     type: "ASM",
-    reason: "no screen change detected",
+    reason: "no VIC/CIA/TI/screen progression within window",
   };
 }
 

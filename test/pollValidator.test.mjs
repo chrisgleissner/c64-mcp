@@ -172,18 +172,26 @@ test("pollForProgramOutcome BASIC detects TYPE MISMATCH error", async () => {
 });
 
 test("pollForProgramOutcome ASM detects screen change", async () => {
-  const screens = [
-    "READY.\n",
-    "RUN\nSYS 2061\n",
-    "RUN\nSYS 2061\n", // Same as initial
-    "HELLO FROM ASM\n", // Changed!
-  ];
-  
+  let screenCallCount = 0;
+  let memoryCallCount = 0;
   const client = {
     async readScreen() {
-      const screen = screens.shift();
-      if (!screen) return "READY.\n";
-      return screen;
+      screenCallCount++;
+      if (screenCallCount === 1) return "READY.\n";
+      if (screenCallCount === 2) return "RUN\nSYS 2061\n";
+      return "READY.\n";
+    },
+    async readMemoryRaw(address, length) {
+      memoryCallCount++;
+      // Simulate hardware activity by returning different values after first poll cycle
+      // Each poll cycle calls readMemoryRaw 3 times (I/O, jiffy, screen)
+      // So after 3 calls, start returning different values
+      if (memoryCallCount <= 3) {
+        // First poll cycle - stable
+        return new Uint8Array(length).fill(0);
+      }
+      // Later reads - changed (simulating activity)
+      return new Uint8Array(length).fill(1);
     },
   };
   
@@ -212,6 +220,10 @@ test("pollForProgramOutcome ASM detects crash when no screen change", async () =
       if (!screen) return "RUN\nSYS 2061\n";
       return screen;
     },
+    async readMemoryRaw(address, length) {
+      // Return same values every time (no activity)
+      return new Uint8Array(length).fill(0);
+    },
   };
   
   const result = await pollForProgramOutcome(
@@ -223,7 +235,7 @@ test("pollForProgramOutcome ASM detects crash when no screen change", async () =
   
   assert.equal(result.status, "crashed");
   assert.equal(result.type, "ASM");
-  assert.equal(result.reason, "no screen change detected");
+  assert.equal(result.reason, "no VIC/CIA/TI/screen progression within window");
 });
 
 test("pollForProgramOutcome handles screen read failures gracefully", async () => {
