@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **74 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **75 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -551,6 +551,7 @@ This MCP server exposes **74 tools**, **25 resources**, and **7 prompts** for co
 | `bundle_run_artifacts` | Gather screen capture, memory snapshots, and debugreg into a structured bundle for a run. | `meta`, `orchestration`, `experimental`, `artifacts`, `debugging` |
 | `compile_run_verify_cycle` | Compile source (BASIC/ASM/SIDWAVE), run, verify via screen/audio, and archive artifacts. | `meta`, `orchestration`, `experimental`, `compile`, `verify` |
 | `config_snapshot_and_restore` | Read all configuration categories and write a versioned snapshot, or restore from a snapshot; supports diff mode. | `meta`, `orchestration`, `experimental`, `config`, `snapshot` |
+| `find_and_run_program_by_name` | Search under a root for the first PRG/CRT whose name contains a substring and run it. | `meta`, `orchestration`, `experimental`, `files`, `discover`, `programs` |
 | `find_paths_by_name` | Return device paths whose names contain a substring; supports simple extension filters and wildcard-aware firmware search. | `meta`, `orchestration`, `experimental`, `files`, `discover` |
 | `firmware_info_and_healthcheck` | Fetch firmware version and info, probe zero-page read, and return readiness with latencies. | `meta`, `orchestration`, `experimental`, `diagnostics` |
 | `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |

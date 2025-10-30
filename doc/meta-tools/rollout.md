@@ -88,7 +88,7 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 
 Rationale: These tools provide maximum value with minimal implementation effort. They enable core agent capabilities: finding programs, composing music, and understanding file collections. See `doc/meta-tools/analysis.md` for detailed impact analysis.
 
-- [ ] `find_and_run_program_by_name` — Implementation notes:
+- [x] `find_and_run_program_by_name` — Implementation notes:
   - **Priority #1** — Most requested feature; enables agents to search and run programs from disk collections.
   - Search under a root (including inside `.d64/.d71/.d81/.t64`) for the first program whose filename contains a substring; run it.
   - Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).

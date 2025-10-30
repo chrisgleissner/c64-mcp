@@ -217,6 +217,105 @@ test("find_paths_by_name limits by maxResults and honors case sensitive flag", a
   assert.deepEqual(results2, ["/b/DEMO.prg"]);
 });
 
+test("find_and_run_program_by_name runs first matching PRG and records state", async () => {
+  const { file, dir } = tmpPath("findrun", "state.json");
+  await fs.mkdir(dir, { recursive: true });
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+
+  try {
+    let runPath = null;
+    const ctx = {
+      client: {
+        async filesInfo(pattern) {
+          if (pattern.toLowerCase().includes(".prg")) {
+            return ["/games/Alpha.PRG", "/games/Beta.PRG"];
+          }
+          return [];
+        },
+        async runPrgFile(path) {
+          runPath = path;
+          return { success: true };
+        },
+      },
+      logger: createLogger(),
+    };
+
+    const res = await metaModule.invoke("find_and_run_program_by_name", { root: "/games", nameContains: "alpha" }, ctx);
+    assert.equal(res.metadata?.success, true);
+    assert.equal(runPath, "/games/Alpha.PRG");
+
+    const stateFile = path.join(dir, "meta", "find_and_run_program_by_name.json");
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+    assert.equal(state.lastRunPath, "/games/Alpha.PRG");
+    assert.equal(Array.isArray(state.recentSearches), true);
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
+});
+
+test("find_and_run_program_by_name honors alphabetical sort and CRT extension", async () => {
+  const { file, dir } = tmpPath("findrun", "state2.json");
+  await fs.mkdir(dir, { recursive: true });
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+
+  try {
+    let crtPath = null;
+    let prgCalls = 0;
+    const ctx = {
+      client: {
+        async filesInfo(pattern) {
+          if (pattern.toLowerCase().includes(".crt")) {
+            return ["/games/ZZZ.CRT", "/games/Alpha.CRT", "/games/omega.crt"];
+          }
+          if (pattern.toLowerCase().includes(".prg")) {
+            return ["/games/Zeta.PRG"];
+          }
+          return [];
+        },
+        async runCrtFile(path) {
+          crtPath = path;
+          return { success: true };
+        },
+        async runPrgFile() {
+          prgCalls += 1;
+          return { success: true };
+        },
+      },
+      logger: createLogger(),
+    };
+
+    const res = await metaModule.invoke("find_and_run_program_by_name", {
+      root: "/games",
+      nameContains: "a",
+      extensions: ["crt"],
+      sort: "alphabetical",
+    }, ctx);
+
+    assert.equal(res.metadata?.success, true);
+    assert.equal(crtPath, "/games/Alpha.CRT");
+    assert.equal(prgCalls, 0);
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
+});
+
+test("find_and_run_program_by_name reports error when no program matches", async () => {
+  const ctx = {
+    client: {
+      async filesInfo() { return []; },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("find_and_run_program_by_name", { root: "/games", nameContains: "missing" }, ctx);
+  assert.equal(res.isError, true);
+  assert.equal(res.metadata?.error?.kind, "execution");
+});
+
 // --- memory_dump_to_file ---
 
 test("memory_dump_to_file writes hex and manifest", async () => {
