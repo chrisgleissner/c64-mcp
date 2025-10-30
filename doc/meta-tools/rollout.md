@@ -243,11 +243,11 @@ These tools remain in the catalog for future implementation based on user demand
 ### Phase 5 — Debug Stream Workflows (post‑GA)
 
 **Infrastructure Prerequisites** (must be satisfied before starting this phase):
-  - UDP ingest pipeline with backpressure and packet‑loss handling (~40 hours)
-  - Sampling/windowing design for high‑rate streams and summary accuracy (~8 hours)
-  - Performance targets validated via load and soak tests (~8 hours)
-  - Observability and failure‑mode coverage (metrics, logs, alerts, drop counters) (~16 hours)
-  - **Total infrastructure work: ~72 hours**
+  - UDP ingest pipeline with backpressure and packet‑loss handling (~40 hours — estimate includes design, implementation, testing)
+  - Sampling/windowing design for high‑rate streams and summary accuracy (~8 hours — research and prototyping)
+  - Performance targets validated via load and soak tests (~8 hours — test infrastructure and benchmarking)
+  - Observability and failure‑mode coverage (metrics, logs, alerts, drop counters) (~16 hours — instrumentation and monitoring setup)
+  - **Total infrastructure work: ~72 hours** (estimates based on similar streaming pipeline projects)
 
 **Rationale for Deferral**: Debug streaming tools are extremely valuable for assembly program verification (comparing expected vs actual execution) but require significant infrastructure work. Better to ship high-value, low-complexity features first (Phases 2a-3), then revisit debug streaming as a dedicated infrastructure project.
 

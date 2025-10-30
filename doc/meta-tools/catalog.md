@@ -168,8 +168,8 @@ Container-aware traversal: All tools in this group recurse into disk/tape contai
 
 File-Type Determination (CBM directory and PRG content):
 - Step 1: Fetch metadata/listing for host files; detect container types (`.d64/.d71/.d81/.t64`).
-- Step 2: For containers, parse directory entries (CBM type byte at offset $02) to classify `SEQ/PRG/USR/REL/UNKNOWN`.
-- Step 3: If type is `PRG`, inspect first bytes of file data: load address, plausible next-line pointer, and presence of tokens ≥ $80 before `00 00` termination → classify as `BASIC`; else `PRG-MC`.
+- Step 2: For containers, parse directory entries: CBM file type byte at offset $02 (0x02 = SEQ, 0x82 = PRG, etc.) to classify `SEQ/PRG/USR/REL/UNKNOWN`.
+- Step 3: If type is `PRG`, inspect first bytes of file data: load address, plausible next-line pointer, and presence of BASIC tokens (≥ $80) before `00 00` (end-of-program marker) → classify as `BASIC`; else `PRG-MC` (machine code).
 - Practical note: When byte reads are not supported by firmware for host files, use `load_prg` (non-running) + `readmem` to examine the loaded header without executing.
 
 - "dedup_scan"

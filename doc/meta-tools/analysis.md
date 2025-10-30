@@ -241,7 +241,7 @@ Debug streaming tools (Phase 5) are incredibly valuable but require:
 - Observability & monitoring (~8 hours)
 - Integration testing (~16 hours)
 
-**Total infrastructure: ~72 hours** before first debug tool can ship
+**Total infrastructure: ~72 hours** before first debug tool can ship (see `rollout.md` Phase 5 for detailed breakdown)
 
 **Decision**: Ship high-value, low-complexity features first (Phases 2a-3), then revisit debug streaming as a separate project with dedicated infrastructure sprint.
 
