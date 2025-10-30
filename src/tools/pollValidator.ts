@@ -264,18 +264,15 @@ async function pollAsmOutcome(
       // All of $D000-$DFFF in a single call (covers VIC-II, SID, CIA1, CIA2)
       const ioRegions = await client.readMemoryRaw(0xD000, 0x1000); // $D000-$DFFF
       
-      // Read jiffy clock at $00A0-$00A2 (3 bytes)
-      const jiffyClock = await client.readMemoryRaw(0x00A0, 3);
+      // Read low memory through screen RAM in a single call: $0000-$07E7
+      // This covers zero page, stack, jiffy clock ($00A0-$00A2), and screen memory
+      const lowMemAndScreen = await client.readMemoryRaw(0x0000, 0x7E8); // $0000-$07E7
       
-      // Read screen memory at $0400-$07E7 (1000 bytes)
-      const screenMem = await client.readMemoryRaw(0x0400, 0x3E8);
-      
-      // Read low memory (zero page + stack) at $0000-$01FF (512 bytes)
-      // Secondary activity hint for additional crash detection sensitivity
-      const lowMem = await client.readMemoryRaw(0x0000, 0x0200);
+      // Extract jiffy clock for separate comparison (at offset $00A0 in the buffer)
+      const jiffyClock = lowMemAndScreen.slice(0xA0, 0xA3);
       
       // Concatenate all regions and compute signature
-      const combinedBuffer = concatBuffers(ioRegions, screenMem, lowMem);
+      const combinedBuffer = concatBuffers(ioRegions, lowMemAndScreen);
       const ioSignature = computeCrc32(combinedBuffer);
       
       // Check for any activity
