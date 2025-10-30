@@ -17,9 +17,10 @@ Meta tools reduce round-trips between client and server by bundling multiple RES
 
 ### Current Status
 
-**Implemented (11 tools)**:
+**Implemented (Phase 0-2a quick wins)**:
 - Foundation tools (Phase 0): firmware health checks, screen polling, memory verification, background tasks
 - Orchestration (Phase 1): program shuffle, batch assertions, artifact bundling, compile-run-verify cycles
+- Quick wins (Phase 2a): find-and-run program by name, silence-and-verify SID output, filesystem stats by extension
 
 **Not Implemented (~60 tools)**: See catalog.md for full list
 

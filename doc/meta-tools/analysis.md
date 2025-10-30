@@ -4,7 +4,7 @@ Purpose: Analyze unimplemented meta tools to identify high-impact, low-effort ca
 
 ## Current Implementation Status
 
-### Implemented (Phase 0-1): 11 tools
+### Implemented (Phases 0-2a quick wins)
 - ✅ `firmware_info_and_healthcheck` — Verify firmware readiness
 - ✅ `wait_for_screen_text` — Poll screen for text/regex matches
 - ✅ `verify_and_write_memory` — Safe memory write with verification
@@ -16,6 +16,9 @@ Purpose: Analyze unimplemented meta tools to identify high-impact, low-effort ca
 - ✅ `batch_run_with_assertions` — Run programs with validation
 - ✅ `bundle_run_artifacts` — Collect run artifacts
 - ✅ `compile_run_verify_cycle` — Complete build-test cycle
+- ✅ `find_and_run_program_by_name` — Discover and run programs by substring
+- ✅ `silence_and_verify` — SID silence guard/verification workflow
+- ✅ `filesystem_stats_by_extension` — Filesystem and container stats aggregation
 
 ### Not Implemented: ~60 tools across multiple domains
 

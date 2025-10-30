@@ -8,9 +8,10 @@ Meta tools are high-level orchestration tools that compose multiple MCP operatio
 
 ## Current State (as of 2025-10-30)
 
-### Implemented Tools (11)
+### Implemented Tools (12)
 - Phase 0 foundations: firmware_info_and_healthcheck, wait_for_screen_text, verify_and_write_memory, background task suite, find_paths_by_name, memory_dump_to_file, config_snapshot_and_restore
 - Phase 1 orchestration: program_shuffle, batch_run_with_assertions, bundle_run_artifacts, compile_run_verify_cycle
+- Phase 2 quick wins: find_and_run_program_by_name, silence_and_verify, filesystem_stats_by_extension
 
 ### File Organization
 - Source: `src/tools/meta/` with submodules by domain (diagnostics, screen, memory, background, filesystem, config, program, artifacts, compilation)

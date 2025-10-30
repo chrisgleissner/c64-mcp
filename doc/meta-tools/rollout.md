@@ -84,6 +84,24 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 
 ---
 
+### Phase 2 — Remaining Topics Snapshot (2025-10-30)
+
+- **Completed with tests**
+  - `find_and_run_program_by_name` — Covered by `test/meta/filesystem.test.mjs`
+  - `silence_and_verify` — Covered by `test/meta/audio.test.mjs`
+  - `filesystem_stats_by_extension` — Covered by `test/meta/filesystem.test.mjs`
+- **Pending (add tests during implementation)**
+  - `music_compile_play_analyze` — Add end-to-end audio workflow coverage (recommended alongside `test/meta/audio.test.mjs`).
+  - `extract_sprites_from_ram` — Add sprite extraction scenarios (extend `test/meta/screen.test.mjs` or create a dedicated graphics suite).
+  - `rip_charset_from_ram` — Add charset export cases (extend `test/meta/screen.test.mjs`).
+  - `drive_mount_and_verify` — Add drive lifecycle coverage (extend `test/meta/program.test.mjs` or create `test/meta/drive.test.mjs` when introduced).
+  - `classify_prg_basic_or_mc` — Add classification logic tests (extend `test/meta/filesystem.test.mjs`).
+  - `screen_capture_timeline` — Add timeline sampling coverage (extend `test/meta/screen.test.mjs`).
+  - `sid_param_sweep` — Add SID parameter sweep coverage (extend `test/meta/audio.test.mjs`).
+  - `create_and_mount_blank_d64` — Add disk creation coverage (extend `test/meta/filesystem.test.mjs`).
+  - `memory_snapshot_and_diff` — Add snapshot/diff coverage (extend `test/meta/memory.test.mjs`).
+  - `disassemble_ram_region` — Add disassembly coverage (extend `test/meta/memory.test.mjs`).
+
 ### Phase 2a — Quick Wins (high-impact, low-effort tools for immediate agent effectiveness)
 
 Rationale: These tools provide maximum value with minimal implementation effort. They enable core agent capabilities: finding programs, composing music, and understanding file collections. See `doc/meta-tools/analysis.md` for detailed impact analysis.
@@ -103,7 +121,7 @@ Rationale: These tools provide maximum value with minimal implementation effort.
   - REST: PUT|POST /v1/machine:writemem (SID reset), optional streams
   - Dependencies: None
   - Effort: 35 minutes
-- [ ] `filesystem_stats_by_extension` — Implementation notes:
+- [x] `filesystem_stats_by_extension` — Implementation notes:
   - **Priority #3** — Provides context for file operations; helps agents understand collections.
   - Walk all files beneath a root—including files inside disk/tape images—and compute counts and size statistics (total, min, max, mean) per extension.
   - Agent state: cached directory index, prior stats snapshots for trend comparisons.

@@ -125,3 +125,104 @@ test("find_and_run_program_by_name reports error when no program matches", async
   assert.equal(res.isError, true);
   assert.equal(res.metadata?.error?.kind, "execution");
 });
+
+test("filesystem_stats_by_extension aggregates counts and bytes", async () => {
+  const ctx = {
+    client: {
+      async filesInfo(pattern) {
+        assert.equal(pattern, "/games/**/*");
+        return [
+          { path: "/games/Alpha.PRG", size: 4096 },
+          { path: "/games/Beta.sid", size: 2048 },
+          {
+            path: "/games/Collection.d64",
+            size: 174848,
+            entries: [
+              { path: "/games/Collection.d64#DRAGON.PRG", size: 8192 },
+              { path: "/games/Collection.d64#README.TXT", size: 512 },
+            ],
+          },
+        ];
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("filesystem_stats_by_extension", { root: "/games" }, ctx);
+  assert.equal(res.metadata?.success, true);
+  const data = res.structuredContent?.data ?? {};
+  assert.equal(data.totals.files, 5);
+  assert.equal(data.insideContainerEntries, 2);
+
+  const prgStats = (data.extensions ?? []).find((entry) => entry.extension === "prg");
+  assert.ok(prgStats, "expected prg stats");
+  assert.equal(prgStats.count, 2);
+  assert.equal(prgStats.totalBytes, 4096 + 8192);
+
+  const d64Stats = (data.extensions ?? []).find((entry) => entry.extension === "d64");
+  assert.ok(d64Stats, "expected d64 stats");
+  assert.equal(d64Stats.count, 1);
+  assert.equal(d64Stats.totalBytes, 174848);
+
+  const containerStats = (data.containers ?? []).find((entry) => entry.container === "/games/Collection.d64");
+  assert.ok(containerStats, "expected container stats");
+  assert.equal(containerStats.totalBytes, 8192 + 512);
+});
+
+test("filesystem_stats_by_extension filters extensions and skips containers when requested", async () => {
+  const patterns = [];
+  const ctx = {
+    client: {
+      async filesInfo(pattern) {
+        patterns.push(pattern);
+        return [
+          { path: "/games/ALPHA.PRG", size: 4096 },
+          { path: "/games/collection.d64", size: 174848, entries: [{ path: "/games/collection.d64#BETA.PRG", size: 2048 }] },
+          { path: "/games/readme.txt", size: 128 },
+        ];
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("filesystem_stats_by_extension", {
+    root: "/games/",
+    extensions: ["prg", ".PRG"],
+    includeContainers: false,
+  }, ctx);
+
+  assert.equal(res.metadata?.success, true);
+  const data = res.structuredContent?.data ?? {};
+  assert.equal(data.totals.files, 2);
+  assert.equal(data.insideContainerEntries, 1);
+
+  const prgStats = (data.extensions ?? []).find((entry) => entry.extension === "prg");
+  assert.ok(prgStats, "expected prg stats");
+  assert.equal(prgStats.count, 2);
+  assert.equal(prgStats.totalBytes, 4096 + 2048);
+
+  const hasD64 = (data.extensions ?? []).some((entry) => entry.extension === "d64");
+  assert.equal(hasD64, false, "containers should be skipped when includeContainers is false");
+
+  assert.deepEqual([...new Set(patterns)], ["/games/**/*.prg"]);
+});
+
+test("filesystem_stats_by_extension handles entries without size", async () => {
+  const ctx = {
+    client: {
+      async filesInfo() {
+        return ["/games/UNKNOWN"];
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("filesystem_stats_by_extension", { root: "/games" }, ctx);
+  assert.equal(res.metadata?.success, true);
+  const data = res.structuredContent?.data ?? {};
+  assert.equal(data.totals.files, 1);
+  const noneStats = (data.extensions ?? []).find((entry) => entry.extension === "(none)");
+  assert.ok(noneStats, "expected (none) extension stats");
+  assert.equal(noneStats.knownSizes, 0);
+  assert.equal(noneStats.unknownSizes, 1);
+});
