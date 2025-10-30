@@ -33,7 +33,7 @@ Key documentation:
 
 ## Prerequisites
 
-- Node.js 18+ (20+ recommended) or Bun 1.1+
+- Node.js 24+ or Bun 1.1+
 - npm (for user installation) or Bun (for development)
 - Optional: Ultimate 64 hardware (or compatible REST device) for real tests
 
@@ -215,7 +215,7 @@ flowchart LR
 
 ## Release Workflow
 
-Releases are prepared using **npm/node** to ensure the published package works correctly on the target platform (Node.js 18+), even though development uses Bun for speed.
+For **release preparation**, npm/node is used to ensure everything works correctly on the target platform, as Node.js remains our primary deployment target.
 
 1. Create a short-lived branch (for example `release/X.Y.Z`) from the target commit.
 2. Run `npm run release:prepare -- <semver>` to bump versions (`major`, `minor`, `patch`, or explicit like `0.2.0`). This updates `package.json`, `package-lock.json`, `mcp.json`, and prepends a new section to `CHANGELOG.md` from commit messages since the last tag.

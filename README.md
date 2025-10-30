@@ -64,7 +64,7 @@ The installation consists of two steps: Installing Node.js and then installing a
 
 ### Install Node.js
 
-Requires Node.js 18+ (20+ recommended) and npm.
+Requires Node.js 24+ and npm.
 
 - Linux (Ubuntu/Debian)
 
@@ -73,8 +73,8 @@ Requires Node.js 18+ (20+ recommended) and npm.
   sudo apt install -y curl ca-certificates
   # Option A: distro packages (may be older)
   sudo apt install -y nodejs npm
-  # Option B (recommended): NodeSource LTS (20.x)
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  # Option B (recommended): NodeSource LTS (24.x)
+  curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
   sudo apt install -y nodejs
   ```
 
@@ -82,8 +82,8 @@ Requires Node.js 18+ (20+ recommended) and npm.
 
   ```bash
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" # if Homebrew not installed
-  brew install node@20
-  brew link --overwrite node@20
+  brew install node@24
+  brew link --overwrite node@24
   ```
 
 - Windows

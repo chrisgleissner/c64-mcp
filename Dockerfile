@@ -8,9 +8,9 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive xargs -a /tmp/apt-packages.txt apt-get install -y && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20 using n version manager
+# Install Node.js 24 using n version manager
 RUN npm install -g n && \
-    n 20 && \
+    n 24 && \
     node -v
 
 # Install Bun (system-wide under /usr/local)

@@ -50,7 +50,7 @@
   "author": "Christian Gleissner",
   "license": "GPL-2.0-only",
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.2",
@@ -67,7 +67,7 @@
     "naudiodon": "^2.3.6"
   },
   "devDependencies": {
-    "@types/node": "^20.19.23",
+    "@types/node": "^24.9.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
