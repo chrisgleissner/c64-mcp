@@ -8,6 +8,10 @@ import { resolve as resolvePath, join as joinPath, dirname } from "node:path";
 import { formatTimestampSpec } from "./util.js";
 import { getTasksHomeDir } from "./background.js";
 
+// Reusable collators to avoid repeated instantiation overhead
+const CASE_INSENSITIVE_COLLATOR = new Intl.Collator(undefined, { sensitivity: "base" });
+const CASE_SENSITIVE_COLLATOR = new Intl.Collator(undefined, { sensitivity: "variant" });
+
 const findPathsByNameArgsSchema = objectSchema({
   description: "Find device paths with names containing a substring. Uses firmware wildcard file info.",
   properties: {
@@ -564,7 +568,7 @@ export const tools: ToolDefinition[] = [
           }
 
           if ((parsed.sort ?? "discovered") === "alphabetical") {
-            const collator = new Intl.Collator(undefined, { sensitivity: caseInsensitive ? "base" : "variant" });
+            const collator = caseInsensitive ? CASE_INSENSITIVE_COLLATOR : CASE_SENSITIVE_COLLATOR;
             candidates.sort((a, b) => collator.compare(a, b));
           }
 
