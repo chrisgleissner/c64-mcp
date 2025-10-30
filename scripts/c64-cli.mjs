@@ -1,12 +1,39 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, basename, resolve } from "node:path";
 import { Buffer } from "node:buffer";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import process from "node:process";
-import { basicToPrg } from "../src/basicConverter.ts";
-import { loadConfig } from "../src/config.ts";
-import { C64Client } from "../src/c64Client.ts";
 
 const booleanFlags = new Set(["run"]);
+const here = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(here, "..");
+
+let basicToPrg;
+let loadConfig;
+let C64Client;
+
+async function loadCoreModules() {
+  if (basicToPrg && loadConfig && C64Client) {
+    return;
+  }
+
+  if (typeof globalThis.Bun !== "undefined") {
+    ({ basicToPrg } = await import("../src/basicConverter.ts"));
+    ({ loadConfig } = await import("../src/config.ts"));
+    ({ C64Client } = await import("../src/c64Client.ts"));
+    return;
+  }
+
+  const distPath = resolve(projectRoot, "dist");
+  try {
+    ({ basicToPrg } = await import(pathToFileURL(resolve(distPath, "basicConverter.js")).href));
+    ({ loadConfig } = await import(pathToFileURL(resolve(distPath, "config.js")).href));
+    ({ C64Client } = await import(pathToFileURL(resolve(distPath, "c64Client.js")).href));
+  } catch (error) {
+    console.error("[c64-cli] Unable to load compiled modules from dist/. Build the project first with `bun run build` or `npm run build`.");
+    throw error;
+  }
+}
 
 function parseOptions(args) {
   const options = new Map();
@@ -94,7 +121,8 @@ async function runPrgOnHardware(prg) {
 
 function printHelp() {
   console.log(`Usage:
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs <command> [options]
+  bun scripts/c64-cli.mjs <command> [options]
+  # or after building: node dist/scripts/c64-cli.js <command> [options]
 
 Commands:
   convert-basic   Convert a BASIC text file into a PRG. Options: --input <path> [--output <path>] [--run]
@@ -102,9 +130,9 @@ Commands:
   run-prg         Upload and run an existing PRG file. Options: --input <path>
 
 Examples:
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input demos/hello.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input demos/hello.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/demo-basic.prg
+  bun scripts/c64-cli.mjs convert-basic --input demos/hello.bas
+  bun scripts/c64-cli.mjs run-basic --input demos/hello.bas
+  bun scripts/c64-cli.mjs run-prg --input artifacts/demo-basic.prg
 `);
 }
 
@@ -112,6 +140,13 @@ async function main() {
   const [command, ...rest] = process.argv.slice(2);
   if (!command || command === "--help" || command === "-h") {
     printHelp();
+    return;
+  }
+
+  try {
+    await loadCoreModules();
+  } catch (error) {
+    process.exitCode = 1;
     return;
   }
 

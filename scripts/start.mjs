@@ -27,36 +27,13 @@ async function fileExists(filePath) {
   }
 }
 
-function isModuleNotFound(error) {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const err = error;
-  if (err.code === 'ERR_MODULE_NOT_FOUND') {
-    return true;
-  }
-  const message = typeof err.message === 'string' ? err.message : '';
-  return message.includes('Cannot find module');
-}
-
 async function launch() {
   const srcEntry = path.resolve(projectRoot, 'src/index.ts');
   const distEntry = path.resolve(projectRoot, 'dist/index.js');
 
-  if (await fileExists(srcEntry)) {
-    try {
-      await import('./register-ts-node.mjs');
-      await import(pathToFileURL(srcEntry).href);
-      return;
-    } catch (error) {
-      if (isModuleNotFound(error)) {
-        console.warn('[start] ts-node not available; falling back to compiled output.');
-      } else {
-        console.error('[start] Failed to launch TypeScript sources:', error);
-        process.exitCode = 1;
-        return;
-      }
-    }
+  if (typeof globalThis.Bun !== 'undefined' && await fileExists(srcEntry)) {
+    await import(pathToFileURL(srcEntry).href);
+    return;
   }
 
   if (await fileExists(distEntry)) {

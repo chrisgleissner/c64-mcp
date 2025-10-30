@@ -33,14 +33,42 @@ Key documentation:
 
 ## Prerequisites
 
-- Node.js 18+ (20+ recommended); ESM TypeScript via `ts-node`.
-- npm for dependency management.
-- Optional: Ultimate 64 hardware (or compatible REST device) for real tests.
+- Node.js 18+ (20+ recommended) or Bun 1.1+
+- npm (for user installation) or Bun (for development)
+- Optional: Ultimate 64 hardware (or compatible REST device) for real tests
+
+## Development Tooling
+
+This project uses **Bun** for building and testing during development due to its significantly higher performance compared to npm/node. However, the published npm package remains **fully compatible with both Bun and npm/node**, ensuring that end users can install and run it using standard Node.js tooling.
+
+For **release preparation**, npm/node is used to ensure everything works correctly on the target platform, as Node.js remains our primary deployment target.
+
+### Bun vs npm Command Reference
+
+Common development commands are available for both toolchains:
+
+| Task | Bun Command | npm Command |
+|------|-------------|-------------|
+| Install dependencies | `bun install` | `npm install` |
+| Build project | `bun run build` | `npm run build` |
+| Run tests | `bun test` or `npm test` | `npm test` |
+| Run with coverage | `bun test --coverage` or `npm run coverage` | `npm run coverage` |
+| Start MCP server | `npm start` | `npm start` |
+| Run single script | `bun scripts/script-name.ts` | `node scripts/invoke-bun.mjs scripts/script-name.ts` |
+
+**Notes:**
+- Bun can execute TypeScript files directly without transpilation
+- npm scripts internally use Bun where configured via `scripts/invoke-bun.mjs` wrapper
+- Both toolchains produce identical `dist/` output for packaging
 
 ## Setup
 
 ```bash
+# For end users (npm)
 npm install
+
+# For contributors (Bun - faster)
+bun install
 ```
 
 Configuration resolution (first match wins):
@@ -51,7 +79,9 @@ Configuration resolution (first match wins):
 
 `loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`), and caches the resolved structure for subsequent calls.
 
-## Useful npm Scripts
+## npm Scripts Reference
+
+All commands below work with both `npm run <script>` and `bun run <script>`. For consistency with user documentation, npm syntax is shown.
 
 **Core server flows**
 
@@ -63,7 +93,7 @@ Configuration resolution (first match wins):
 **Quality gates**
 
 - `npm test` drives `scripts/run-tests.mjs` against the mock C64 server; pass `-- --real [--base-url=http://host]` to exercise actual hardware.
-- `npm run check` executes `npm run build` followed by the mock test suite; `npm run coverage` wraps the same runner with c8.
+- `npm run check` executes `npm run build` followed by the mock test suite; `npm run coverage` now invokes the Bun runner with `--coverage`, producing `coverage/lcov.info` for Codecov.
 - `npm run check:package` validates packaging metadata, while `npm run check:run-local` / `npm run check:run-npm` execute `scripts/run-mcp-check.sh` against local and packaged installs.
 
 **RAG workflows**
@@ -76,7 +106,7 @@ Configuration resolution (first match wins):
 - `npm run c64:tool` opens the interactive helper for PRG conversion and upload; `npm run api:generate` refreshes the generated REST client.
 - `npm run changelog:generate` distills Conventional Commit history, and `npm run release:prepare -- <semver>` orchestrates version bumps plus manifest regeneration.
 
-Invoke `node --import ./scripts/register-ts-node.mjs scripts/update-readme.ts` directly when you need to refresh documentation tables without a full rebuild.
+Invoke `bun scripts/update-readme.ts` directly when you need to refresh documentation tables without a full rebuild.
 
 The test driver in `scripts/run-tests.mjs` accepts additional flags: `--mock` (default) to use `test/mockC64Server.mjs`, `--real` to target hardware (`C64_TEST_TARGET=real`), and `--base-url` to override the REST endpoint during real runs.
 
@@ -141,7 +171,7 @@ flowchart LR
 ## Testing Notes
 
 - Node’s built-in test runner (`node --test`) is wrapped by `scripts/run-tests.mjs`.
-- Use `npm run coverage` (c8) to capture coverage without double-running tests.
+- Use `npm run coverage` (Bun runner) to capture coverage without double-running tests. The command emits `coverage/lcov.info`, which CI uploads to Codecov.
 - `test/basicConverter.test.mjs`: byte-level PRG output validation.
 - `test/c64Client.test.mjs`: REST client and mock-server integration; `--real` toggles hardware.
 - `test/suites/mcpServer*.mjs`: End-to-end MCP surface coverage (tools, resources, prompts).
@@ -154,6 +184,8 @@ flowchart LR
 4. Update `doc/` and keep `doc/rest/c64-openapi.yaml` in sync with code.
 
 ## Release Workflow
+
+Releases are prepared using **npm/node** to ensure the published package works correctly on the target platform (Node.js 18+), even though development uses Bun for speed.
 
 1. Create a short-lived branch (for example `release/X.Y.Z`) from the target commit.
 2. Run `npm run release:prepare -- <semver>` to bump versions (`major`, `minor`, `patch`, or explicit like `0.2.0`). This updates `package.json`, `package-lock.json`, `mcp.json`, and prepends a new section to `CHANGELOG.md` from commit messages since the last tag.
@@ -303,9 +335,9 @@ For advanced options (depth semantics, throttling/limits, adaptive rate limiting
 - Advanced users can call the underlying CLI directly:
 
   ```bash
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs convert-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-basic --input path/to/program.bas
-  node --import ./scripts/register-ts-node.mjs scripts/c64-cli.mjs run-prg --input artifacts/program.prg
+  bun scripts/c64-cli.mjs convert-basic --input path/to/program.bas
+  bun scripts/c64-cli.mjs run-basic --input path/to/program.bas
+  bun scripts/c64-cli.mjs run-prg --input artifacts/program.prg
   ```
 
 Generated binaries are written to the `artifacts/` directory by default (ignored by git) so you can transfer them to real hardware or flash media. Make sure your `~/.c64bridge.json` (or `C64BRIDGE_CONFIG`) points at your c64 device before using the run options.

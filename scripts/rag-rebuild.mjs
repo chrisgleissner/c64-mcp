@@ -21,24 +21,22 @@ async function main() {
   let LocalMiniHashEmbedding;
   let buildAllIndexes;
 
-  if (await fileExists(distEmbeddings) && await fileExists(distIndexer)) {
+  const isBun = typeof globalThis.Bun !== 'undefined';
+
+  if (!isBun && await fileExists(distEmbeddings) && await fileExists(distIndexer)) {
     const em = await import(pathToFileURL(distEmbeddings).href);
     const ix = await import(pathToFileURL(distIndexer).href);
     LocalMiniHashEmbedding = em.LocalMiniHashEmbedding;
     buildAllIndexes = ix.buildAllIndexes;
+  } else if (isBun) {
+    const em = await import(pathToFileURL(path.join(projectRoot, 'src', 'rag', 'embeddings.ts')).href);
+    const ix = await import(pathToFileURL(path.join(projectRoot, 'src', 'rag', 'indexer.ts')).href);
+    LocalMiniHashEmbedding = em.LocalMiniHashEmbedding;
+    buildAllIndexes = ix.buildAllIndexes;
   } else {
-    // Fall back to TypeScript sources via ts-node when available
-    try {
-      await import('./register-ts-node.mjs');
-      const em = await import(pathToFileURL(path.join(projectRoot, 'src', 'rag', 'embeddings.ts')).href);
-      const ix = await import(pathToFileURL(path.join(projectRoot, 'src', 'rag', 'indexer.ts')).href);
-      LocalMiniHashEmbedding = em.LocalMiniHashEmbedding;
-      buildAllIndexes = ix.buildAllIndexes;
-    } catch (err) {
-      console.error('[rag-rebuild] Unable to load RAG modules from dist or src:', err);
-      process.exit(1);
-      return;
-    }
+    console.error('[rag-rebuild] Unable to locate compiled artifacts. Run `bun run build` (or `npm run build`) before invoking this script under Node.');
+    process.exit(1);
+    return;
   }
 
   const dim = Number(process.env.RAG_EMBED_DIM ?? 384);

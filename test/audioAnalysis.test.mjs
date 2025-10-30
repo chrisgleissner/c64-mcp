@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { analyzePcmForTest } from "../src/audio/record_and_analyze_audio.js";
 
 function genSine(freq, seconds, sampleRate) {

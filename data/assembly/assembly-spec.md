@@ -194,3 +194,27 @@ Modes (columns): `A  #  ZP ZPX ZPY ABS ABSX ABSY IND IZX IZY REL IMP`
 - Data: `.byte expr[,…]`, `.word expr[,…]`  
 - Symbols: `name = expr` / `.equ name, expr`  
 - Alignment/fill (assembler‑specific): `.align n`, `.fill count, value`
+
+## Tips and Tricks
+
+### Basic Start Header
+
+- PRG file = 2-byte little-endian load address + bytes
+- Place a tokenized BASIC line at $0801, e.g. `10 SYS 4096` (token SYS = $9E) to jump to $1000
+- Ensure load-address at PRG start matches where BASIC was placed (e.g. $01 $08)
+- Machine code may live at $1000 or directly after BASIC; adjust SYS target accordingly
+
+### Display Text on Screen
+
+1) KERNAL CHROUT (portable)
+   - Put PETSCII byte in A; JSR $FFD2 to print at cursor. Handles charset mapping.
+   - Use for portability and when charset may vary.
+2) Direct screen writes (fast)
+   - STA $0400,X writes VIC-II screen codes directly. Use when you control charset and need speed.
+   - Color via STA $D800,X (4-bit color index).
+
+Screen-code conversion
+
+- If input is ASCII uppercase 'A'..'Z', convert: screen = PETSCII - $40 (e.g. $41→$01). Implement in a small loop if needed.
+
+This file is intentionally minimal: use `basicConverter` / `assemblyConverter` in `src/` for tokenization/PRG building and `data/video/character-set.csv` for exact screen-code mappings.

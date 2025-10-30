@@ -46,7 +46,6 @@ function assertSpotChecks() {
     'generated/c64/index.js',
     'scripts/cli.js',
     'scripts/start.mjs',
-    'scripts/register-ts-node.mjs',
   ];
   const dirs = [
     'doc',

@@ -15,6 +15,14 @@ TMPDIR=$(mktemp -d)
 MOCK_INFO="$TMPDIR/mock-info.json"
 CFG_FILE="$TMPDIR/.c64bridge.json"
 
+if command -v bun >/dev/null 2>&1; then
+  BUILD_CMD=(bun run build)
+elif [[ -x "${HOME}/.bun/bin/bun" ]]; then
+  BUILD_CMD=("${HOME}/.bun/bin/bun" run build)
+else
+  BUILD_CMD=(npm run build)
+fi
+
 cleanup() {
   set +e
   [[ -n "${MCP_PID:-}" ]] && kill -TERM "$MCP_PID" 2>/dev/null || true
@@ -68,7 +76,7 @@ echo "==> Starting MCP server in '$MODE' mode for $DURATION seconds..."
 echo "==> Logs will be written to: $(realpath "$LOGFILE")"
 
 if [[ "$MODE" == "local" ]]; then
-  (cd "$ROOT_DIR" && npm run build)
+  (cd "$ROOT_DIR" && "${BUILD_CMD[@]}")
   VERSION=$(node -p "require('$ROOT_DIR/package.json').version")
   echo "==> Running local build version $VERSION"
   (cd "$ROOT_DIR" && node dist/index.js) 2>&1 | tee "$LOGFILE" &

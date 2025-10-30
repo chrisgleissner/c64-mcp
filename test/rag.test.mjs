@@ -1,6 +1,6 @@
 // @ts-check
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import assert from '#test/assert';
+import test from '#test/runner';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

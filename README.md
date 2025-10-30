@@ -332,10 +332,16 @@ Please note that all logs use `stderr` since `stdout` is reserved for the MCP pr
 
 ## Build & Test 🧪
 
-- `npm run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
+- `bun install` — install dependencies for development (fast path). Node users can continue to use `npm install`.
+- `bun run build` — type-check the TypeScript sources, normalize the dist layout for packaging, and regenerate the MCP API tables in `README.md`.
 - `npm test` — run the integration tests against an in-process mock that emulates the c64 REST API.
 - `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64bridge.json` or `C64BRIDGE_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
+- `npm run coverage` — runs the Bun-powered test harness with coverage enabled and emits `coverage/lcov.info` (CI uploads to Codecov).
+
+**Development Tooling**
+
+This project uses [Bun](https://bun.sh/) for building and testing due to its high performance (significantly faster than npm/node for development workflows). The npm package remains fully compatible with Node.js 18+ and can be installed and run using standard npm commands. For release preparation, npm/node is still used to ensure everything works correctly on the target platform.
 
 The test runner accepts the following options:
 

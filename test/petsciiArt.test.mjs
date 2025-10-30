@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { bitmapToHexRows, bitmapToPetsciiCodes, createPetsciiArt } from "../src/petsciiArt.js";
 import { findGlyphByBasicChar } from "../src/chargen.js";
 

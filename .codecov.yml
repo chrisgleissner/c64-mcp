@@ -8,3 +8,10 @@ coverage:
       default:
         target: "85%"
         threshold: "5%"
+
+ignore:
+  - "test/**"
+  - "scripts/**"
+  - "**/*.test.ts"
+  - "**/*.test.mjs"
+  - "**/*.spec.ts"

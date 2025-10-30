@@ -1,5 +1,5 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import test from "#test/runner";
+import assert from "#test/assert";
 import { assemblyToPrg, AssemblyError } from "../src/assemblyConverter.js";
 
 test("assemblyToPrg assembles simple program with default load address", () => {
