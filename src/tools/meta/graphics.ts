@@ -139,6 +139,76 @@ const extractSpritesArgsSchema = objectSchema({
   additionalProperties: false,
 });
 
+interface CharsetAnalysis {
+  address: string;
+  sizeBytes: number;
+  entropy: number;
+  nonEmptyChars: number;
+  averageSetBits: number;
+}
+
+function analyzeCharset(bytes: Uint8Array, startAddress: number): CharsetAnalysis {
+  const charsetSize = bytes.length;
+  const numChars = charsetSize / 8;
+  let nonEmptyChars = 0;
+  let totalSetBits = 0;
+  const charEntropies: number[] = [];
+
+  for (let charIndex = 0; charIndex < numChars; charIndex += 1) {
+    const charBytes = bytes.subarray(charIndex * 8, (charIndex + 1) * 8);
+    let charSetBits = 0;
+    for (const byte of charBytes) {
+      charSetBits += countBits(byte);
+    }
+    totalSetBits += charSetBits;
+    if (charSetBits > 0) {
+      nonEmptyChars += 1;
+    }
+
+    // Calculate entropy for this character
+    const bitCounts = new Array(2).fill(0);
+    for (const byte of charBytes) {
+      for (let bit = 0; bit < 8; bit += 1) {
+        bitCounts[(byte >> bit) & 1] += 1;
+      }
+    }
+    const total = bitCounts[0] + bitCounts[1];
+    let entropy = 0;
+    for (const count of bitCounts) {
+      if (count > 0) {
+        const p = count / total;
+        entropy -= p * Math.log2(p);
+      }
+    }
+    charEntropies.push(entropy);
+  }
+
+  const averageEntropy = charEntropies.reduce((sum, e) => sum + e, 0) / charEntropies.length;
+  const averageSetBits = totalSetBits / numChars;
+
+  return {
+    address: `$${formatAddressHex(startAddress)}`,
+    sizeBytes: charsetSize,
+    entropy: averageEntropy,
+    nonEmptyChars,
+    averageSetBits,
+  };
+}
+
+const ripCharsetArgsSchema = objectSchema({
+  description: "Locate and extract character set data from RAM.",
+  properties: {
+    address: optionalSchema(stringSchema({ description: "Start address to scan ($HHHH or decimal). If not provided, scans common locations.", minLength: 1 })),
+    scanRange: optionalSchema(stringSchema({ description: "Range to scan if address not provided: 'common' or 'full'", enum: ["common", "full"] }), "common"),
+    outputPath: optionalSchema(stringSchema({ description: "File path to write charset binary", minLength: 1 })),
+    pauseDuringRead: optionalSchema(booleanSchema({ description: "Pause the machine during memory read", default: true }), true),
+    minNonEmptyChars: optionalSchema(numberSchema({ description: "Minimum non-empty characters required", integer: true, minimum: 1, maximum: 256, default: 32 }), 32),
+    minEntropy: optionalSchema(numberSchema({ description: "Minimum average entropy threshold", minimum: 0, maximum: 1, default: 0.3 }), 0.3),
+  },
+  required: [],
+  additionalProperties: false,
+});
+
 export const tools: ToolDefinition[] = [
   {
     name: "extract_sprites_from_ram",
@@ -228,6 +298,126 @@ export const tools: ToolDefinition[] = [
             },
             sprites,
             outputFiles,
+          }, { success: true });
+        } finally {
+          if (pauseDuringRead) {
+            await (ctx.client as any).resume();
+          }
+        }
+      } catch (error) {
+        if (error instanceof ToolError) return toolErrorResult(error);
+        return unknownErrorResult(error);
+      }
+    },
+  },
+  {
+    name: "rip_charset_from_ram",
+    description: "Locate and extract 2KB character sets from RAM by structure and entropy checks. Exports as binary.",
+    summary: "Extract character set data from RAM.",
+    inputSchema: ripCharsetArgsSchema.jsonSchema,
+    tags: ["graphics", "charset", "extract"],
+    examples: [
+      {
+        name: "Extract charset from custom location",
+        description: "Extract charset from $3000",
+        arguments: { address: "$3000", outputPath: "/tmp/charset.bin" },
+      },
+      {
+        name: "Scan common locations",
+        description: "Scan ROM and RAM for charsets",
+        arguments: { scanRange: "common" },
+      },
+    ],
+    async execute(args, ctx) {
+      try {
+        const parsed = ripCharsetArgsSchema.parse(args ?? {});
+        const pauseDuringRead = parsed.pauseDuringRead !== false;
+        const minNonEmptyChars = parsed.minNonEmptyChars ?? 32;
+        const minEntropy = parsed.minEntropy ?? 0.3;
+        const charsetSize = 2048; // 256 chars * 8 bytes each
+
+        // Common charset locations on C64
+        const commonLocations = [
+          0xD000, // Character ROM (uppercase/graphics)
+          0xD800, // Character ROM (lowercase/uppercase) - accessed via banking
+          0x3000, // Common RAM location for custom charsets
+          0x2000, // Another common RAM location
+        ];
+
+        const scanLocations: number[] = [];
+        if (parsed.address) {
+          scanLocations.push(parseAddressNumeric(parsed.address));
+        } else if (parsed.scanRange === "full") {
+          // Scan entire 64KB in 2KB increments
+          for (let addr = 0; addr <= 0x10000 - charsetSize; addr += 0x800) {
+            scanLocations.push(addr);
+          }
+        } else {
+          // Default: scan common locations
+          scanLocations.push(...commonLocations);
+        }
+
+        const pauseResume = pauseDuringRead
+          ? await (ctx.client as any).pause()
+          : { success: true };
+        if (pauseDuringRead && !pauseResume.success) {
+          throw new ToolExecutionError("Pause failed before charset scan", { details: normalizeErrorDetails(pauseResume.details) });
+        }
+
+        try {
+          const candidates: Array<CharsetAnalysis & { bytes?: Uint8Array }> = [];
+
+          for (const startAddress of scanLocations) {
+            if (startAddress + charsetSize - 1 > 0xFFFF) continue;
+
+            const read = await (ctx.client as any).readMemory(`$${formatAddressHex(startAddress)}`, String(charsetSize));
+            if (!read.success || typeof read.data !== "string") {
+              continue; // Skip this location if read fails
+            }
+
+            const bytes = hexToBytes(read.data);
+            if (bytes.length < charsetSize) continue;
+
+            const analysis = analyzeCharset(bytes, startAddress);
+
+            // Apply heuristics to determine if this looks like a charset
+            if (analysis.nonEmptyChars >= minNonEmptyChars && analysis.entropy >= minEntropy) {
+              candidates.push({ ...analysis, bytes });
+            }
+          }
+
+          if (candidates.length === 0) {
+            return jsonResult({
+              found: false,
+              scanned: scanLocations.length,
+              message: "No valid charsets found matching criteria",
+            }, { success: true });
+          }
+
+          // Sort by non-empty chars descending, then by entropy descending
+          candidates.sort((a, b) => {
+            const diffNonEmpty = b.nonEmptyChars - a.nonEmptyChars;
+            if (diffNonEmpty !== 0) return diffNonEmpty;
+            return b.entropy - a.entropy;
+          });
+
+          const bestCandidate = candidates[0]!;
+
+          let outputFile: { path: string; address: string } | null = null;
+          if (parsed.outputPath && bestCandidate.bytes) {
+            const resolvedPath = resolvePath(String(parsed.outputPath));
+            await fs.mkdir(dirname(resolvedPath), { recursive: true });
+            await fs.writeFile(resolvedPath, Buffer.from(bestCandidate.bytes));
+            outputFile = { path: resolvedPath, address: bestCandidate.address };
+          }
+
+          const { bytes: _, ...analysisWithoutBytes } = bestCandidate;
+
+          return jsonResult({
+            found: true,
+            charset: analysisWithoutBytes,
+            candidates: candidates.length,
+            outputFile,
           }, { success: true });
         } finally {
           if (pauseDuringRead) {
