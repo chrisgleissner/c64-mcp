@@ -114,7 +114,11 @@ export class LocalRagRetriever implements IRagRetriever {
     if (!normalized || normalized === "other") push(this.other);
 
     candidates.sort((a, b) => b.score - a.score);
-    return candidates.slice(0, topK).map((candidate) => ({
+    
+    // Apply duplicate suppression and diversity
+    const deduplicated = deduplicateAndDiversify(candidates, topK);
+    
+    return deduplicated.map((candidate) => ({
       snippet: candidate.snippet,
       origin: candidate.origin,
       uri: candidate.uri,
@@ -126,6 +130,95 @@ export class LocalRagRetriever implements IRagRetriever {
       attribution: candidate.record.attribution,
     }));
   }
+}
+
+function deduplicateAndDiversify<T extends { snippet: string; origin?: string; uri?: string; score: number }>(
+  candidates: T[],
+  topK: number,
+): T[] {
+  // Step 1: Remove near-duplicates based on snippet similarity
+  const results: T[] = [];
+  const seenSnippets = new Set<string>();
+  
+  for (const candidate of candidates) {
+    // Normalize snippet for comparison (lowercase, trim whitespace)
+    const normalizedSnippet = candidate.snippet
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 100); // Compare first 100 chars
+    
+    // Skip if we've seen this snippet before
+    if (seenSnippets.has(normalizedSnippet)) {
+      continue;
+    }
+    
+    // Check for high similarity with existing results
+    let isDuplicate = false;
+    for (const existing of results) {
+      const existingNormalized = existing.snippet
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 100);
+      
+      // Simple Jaccard similarity on words
+      const words1 = new Set(normalizedSnippet.split(/\s+/));
+      const words2 = new Set(existingNormalized.split(/\s+/));
+      const intersection = new Set([...words1].filter((w) => words2.has(w)));
+      const union = new Set([...words1, ...words2]);
+      const similarity = intersection.size / union.size;
+      
+      if (similarity > 0.85) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      results.push(candidate);
+      seenSnippets.add(normalizedSnippet);
+    }
+    
+    // Stop if we have enough results
+    if (results.length >= topK) {
+      break;
+    }
+  }
+  
+  // Step 2: Ensure diversity in origins/resources
+  // If we have fewer results than topK, try to add more from different origins
+  if (results.length < topK && results.length < candidates.length) {
+    const usedOrigins = new Set(results.map((r) => r.origin || r.uri || "unknown"));
+    const remaining = candidates.filter((c) => !results.includes(c));
+    
+    for (const candidate of remaining) {
+      const candidateOrigin = candidate.origin || candidate.uri || "unknown";
+      
+      // Prefer candidates from different origins
+      if (!usedOrigins.has(candidateOrigin)) {
+        results.push(candidate);
+        usedOrigins.add(candidateOrigin);
+        
+        if (results.length >= topK) {
+          break;
+        }
+      }
+    }
+    
+    // Fill remaining slots if still under topK
+    for (const candidate of remaining) {
+      if (!results.includes(candidate)) {
+        results.push(candidate);
+        
+        if (results.length >= topK) {
+          break;
+        }
+      }
+    }
+  }
+  
+  return results.slice(0, topK);
 }
 
 function extractSnippetAndOrigin(text: string): { snippet: string; origin?: string } {
