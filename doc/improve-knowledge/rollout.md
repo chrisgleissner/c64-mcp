@@ -62,21 +62,21 @@ For every checklist item below, execute the following sub-steps in order (these 
 > • Update `README.md` (Containers section) and `doc/improve-knowledge/notes.md` with build/run examples (`docker build` / `docker run`).  
 > • Validate locally via `docker build` + `docker run --rm c64bridge:dev` before checking the box.
 
-- [ ] S1: Produce the reproducible container workflow described above, updating `Dockerfile`, README, and notes so future operators can rebuild and run the MCP server in that container.
-- [ ] S2: Replace license name and URL with SPDX identifier in structured RAG refs (ensure `origin`, `uri`, `spdxId` fields are present; map when possible) (`src/rag/indexer.ts`, `src/rag/retriever.ts`, `src/tools/rag.ts`).
-- [ ] D1: Add a concise “What changed” MCP summary to README/resource index after build; link the platform status resource (`README.md`, `src/mcp-server.ts`).
-- [ ] D2: Cross-link prompts to key resources (SID best-practices, VIC-II, PETSCII/charset quickrefs) for richer in-editor guidance (`src/prompts/registry.ts`).
+- [x] S1: Produce the reproducible container workflow described above, updating `Dockerfile`, README, and notes so future operators can rebuild and run the MCP server in that container.
+- [x] S2: Replace license name and URL with SPDX identifier in structured RAG refs (ensure `origin`, `uri`, `spdxId` fields are present; map when possible) (`src/rag/indexer.ts`, `src/rag/retriever.ts`, `src/tools/rag.ts`).
+- [x] D1: Add a concise “What changed” MCP summary to README/resource index after build; link the platform status resource (`README.md`, `src/mcp-server.ts`).
+- [x] D2: Cross-link prompts to key resources (SID best-practices, VIC-II, PETSCII/charset quickrefs) for richer in-editor guidance (`src/prompts/registry.ts`).
 
 ## Phase 5 — Knowledge Exposure & Retrieval Enhancements
 
-- [ ] K3: Add “BASIC pitfalls” quickref and publish as MCP resource; link from BASIC runners (`data/basic/basic-pitfalls.md`, `src/rag/knowledgeIndex.ts`, `src/tools/programRunners.ts`).
+- [x] K3: Add “BASIC pitfalls” quickref and publish as MCP resource; link from BASIC runners (`data/basic/basic-pitfalls.md`, `src/rag/knowledgeIndex.ts`, `src/tools/programRunners.ts`).
 - [ ] K4: Publish PETSCII/charset quickrefs (char codes, glyph map) as MCP resources; dynamically generate Markdown table from `data/video/character-set.csv` (build-time or runtime) to avoid duplicate sources (`src/rag/knowledgeIndex.ts`).
-- [ ] K5: Publish VIC-II register quickref as MCP resource and ensure graphics tools reference it (`data/video/vic-spec.md`, `src/tools/graphics.ts`).
-- [ ] R2: Include bundle/resource URIs in RAG results when matches originate from docs (`src/rag/retriever.ts`, `src/tools/rag.ts`).
-- [ ] R3: Add retrieval diversity and simple duplicate suppression in top-K (`src/rag/retriever.ts`).
-- [ ] M5: Add PAL/NTSC-sensitive tags to relevant tools (SID, graphics) to nudge system-awareness (`src/tools/audio.ts`, `src/tools/graphics.ts`).
+- [x] K5: Publish VIC-II register quickref as MCP resource and ensure graphics tools reference it (`data/video/vic-spec.md`, `src/tools/graphics.ts`).
+- [x] R2: Include bundle/resource URIs in RAG results when matches originate from docs (`src/rag/retriever.ts`, `src/tools/rag.ts`).
+- [x] R3: Add retrieval diversity and simple duplicate suppression in top-K (`src/rag/retriever.ts`).
+- [x] M5: Add PAL/NTSC-sensitive tags to relevant tools (SID, graphics) to nudge system-awareness (`src/tools/audio.ts`, `src/tools/graphics.ts`).
 - [ ] M4: Audit remaining tools for validation messages and examples; bring to parity (`src/tools/*`).
-- [ ] T2: Add e2e test for `rag_retrieve_*` verifying structured refs open via `ReadResource` (`test/rag.test.mjs`).
+- [x] T2: Add e2e test for `rag_retrieve_*` verifying structured refs open via `ReadResource` (`test/rag.test.mjs`).
 
 ## Phase 6 — Creative Surface: Graphics & SID Workflows
 

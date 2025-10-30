@@ -23,6 +23,7 @@ const EXPECTED_RESOURCE_URIS = [
   "c64://context/bootstrap",
   // Languages
   "c64://specs/basic",
+  "c64://docs/basic/pitfalls",
   "c64://specs/assembly",
   // Audio / SID
   "c64://specs/sid",

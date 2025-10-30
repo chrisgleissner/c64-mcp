@@ -27,4 +27,17 @@
 - **PETSCII presets docs (G5)**: Documented style presets exist; prompts mention how to select them.
 - **Hires bitmap PRG generator (G6)**: A tool exists to render a static bitmap; a minimal example and test verify it runs and captures a screen.
 - **Graphics tests (T4/T5)**: PETSCII generation and sprite preview PRG flows have e2e tests asserting key structured fields and behavior.
-- **Container workflow (S1)**: Dockerfile updated to use `node:20-bookworm-slim`, create a non-root `bridge` user at `/app`, run `npm ci` during build, copy the repo, and set `CMD ["npm","start"]`; README documents `docker build` / `docker run` usage and verification steps.
+- **Container workflow (S1)**: ✅ Dockerfile updated to use `ubuntu:24.04` with Node.js 20 (via `n` version manager) and Bun, create a non-root `c64bridge` user at `/app`, run `npm ci` during build, copy the repo, and set `CMD ["npm","start"]`; doc/developer.md documents `docker build` / `docker run` usage and verification steps.
+
+## Container Build/Run Examples
+
+```bash
+# Build the container
+docker build -t c64bridge:dev .
+
+# Run with environment configuration
+docker run --rm \
+  -e C64_HOST=192.168.1.64 \
+  -e C64_PORT=80 \
+  c64bridge:dev
+```

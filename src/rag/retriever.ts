@@ -11,10 +11,27 @@ import {
   EmbeddingRecord,
 } from "./types.js";
 import { EmbeddingModel, cosineSimilarity } from "./embeddings.js";
+import { listKnowledgeResources } from "./knowledgeIndex.js";
 
 const BASIC_SIGNAL_RE = /(^\s*\d{1,5}\s)|\b(PRINT|POKE|GOTO|GOSUB|RESTORE|READ|DATA|INPUT|CHR\$|TI\$|TAB\()/im;
 const ASM_SIGNAL_RE = /(^\s*(?:[A-Z_][\w]*:)?\s*(?:\.?[A-Z]{2,4})\b)|\$[0-9A-F]{2,4}/im;
 const PROVENANCE_COMMENT_RE = /^\s*<!--\s*Source:\s*(.*?)\s*-->\s*/i;
+
+// Build a mapping from file paths to resource URIs
+function buildPathToUriMap(): Map<string, string> {
+  const resources = listKnowledgeResources();
+  const map = new Map<string, string>();
+  for (const resource of resources) {
+    if (resource.relativePath) {
+      // Normalize the path for matching
+      const normalizedPath = resource.relativePath.replace(/\\/g, "/");
+      map.set(normalizedPath, resource.uri);
+    }
+  }
+  return map;
+}
+
+const PATH_TO_URI_MAP = buildPathToUriMap();
 
 export class LocalRagRetriever implements IRagRetriever {
   private readonly model: EmbeddingModel;
@@ -97,7 +114,11 @@ export class LocalRagRetriever implements IRagRetriever {
     if (!normalized || normalized === "other") push(this.other);
 
     candidates.sort((a, b) => b.score - a.score);
-    return candidates.slice(0, topK).map((candidate) => ({
+    
+    // Apply duplicate suppression and diversity
+    const deduplicated = deduplicateAndDiversify(candidates, topK);
+    
+    return deduplicated.map((candidate) => ({
       snippet: candidate.snippet,
       origin: candidate.origin,
       uri: candidate.uri,
@@ -105,13 +126,99 @@ export class LocalRagRetriever implements IRagRetriever {
       sourcePath: candidate.record.sourcePath,
       sourceUrl: candidate.record.sourceUrl,
       sourceRepoUrl: candidate.record.sourceRepoUrl,
-      license: candidate.record.license,
       licenseSpdxId: candidate.record.licenseSpdxId,
-      licenseName: candidate.record.licenseName,
-      licenseUrl: candidate.record.licenseUrl,
       attribution: candidate.record.attribution,
     }));
   }
+}
+
+function deduplicateAndDiversify<T extends { snippet: string; origin?: string; uri?: string; score: number }>(
+  candidates: T[],
+  topK: number,
+): T[] {
+  // Step 1: Remove near-duplicates based on snippet similarity
+  const results: T[] = [];
+  const seenSnippets = new Set<string>();
+  
+  for (const candidate of candidates) {
+    // Normalize snippet for comparison (lowercase, trim whitespace)
+    const normalizedSnippet = candidate.snippet
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 100); // Compare first 100 chars
+    
+    // Skip if we've seen this snippet before
+    if (seenSnippets.has(normalizedSnippet)) {
+      continue;
+    }
+    
+    // Check for high similarity with existing results
+    let isDuplicate = false;
+    for (const existing of results) {
+      const existingNormalized = existing.snippet
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 100);
+      
+      // Simple Jaccard similarity on words
+      const words1 = new Set(normalizedSnippet.split(/\s+/));
+      const words2 = new Set(existingNormalized.split(/\s+/));
+      const intersection = new Set([...words1].filter((w) => words2.has(w)));
+      const union = new Set([...words1, ...words2]);
+      const similarity = intersection.size / union.size;
+      
+      if (similarity > 0.85) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      results.push(candidate);
+      seenSnippets.add(normalizedSnippet);
+    }
+    
+    // Stop if we have enough results
+    if (results.length >= topK) {
+      break;
+    }
+  }
+  
+  // Step 2: Ensure diversity in origins/resources
+  // If we have fewer results than topK, try to add more from different origins
+  if (results.length < topK && results.length < candidates.length) {
+    const usedOrigins = new Set(results.map((r) => r.origin || r.uri || "unknown"));
+    const remaining = candidates.filter((c) => !results.includes(c));
+    
+    for (const candidate of remaining) {
+      const candidateOrigin = candidate.origin || candidate.uri || "unknown";
+      
+      // Prefer candidates from different origins
+      if (!usedOrigins.has(candidateOrigin)) {
+        results.push(candidate);
+        usedOrigins.add(candidateOrigin);
+        
+        if (results.length >= topK) {
+          break;
+        }
+      }
+    }
+    
+    // Fill remaining slots if still under topK
+    for (const candidate of remaining) {
+      if (!results.includes(candidate)) {
+        results.push(candidate);
+        
+        if (results.length >= topK) {
+          break;
+        }
+      }
+    }
+  }
+  
+  return results.slice(0, topK);
 }
 
 function extractSnippetAndOrigin(text: string): { snippet: string; origin?: string } {
@@ -128,9 +235,33 @@ function extractSnippetAndOrigin(text: string): { snippet: string; origin?: stri
 }
 
 function deriveUri(record: EmbeddingRecord, origin?: string): string | undefined {
+  // If origin is already a c64:// URI, use it
   if (origin && origin.startsWith("c64://")) {
     return origin;
   }
+  
+  // Try to map the file path from origin to a resource URI
+  if (origin) {
+    // Extract the file path (before any '#' anchor)
+    const filePath = origin.split("#")[0];
+    const resourceUri = PATH_TO_URI_MAP.get(filePath);
+    if (resourceUri) {
+      // Preserve any anchor/section from the original origin
+      const anchor = origin.includes("#") ? "#" + origin.split("#")[1] : "";
+      return resourceUri + anchor;
+    }
+  }
+  
+  // Try to map the source path from the record
+  if (record.sourcePath) {
+    const normalizedPath = record.sourcePath.replace(/\\/g, "/");
+    const resourceUri = PATH_TO_URI_MAP.get(normalizedPath);
+    if (resourceUri) {
+      return resourceUri;
+    }
+  }
+  
+  // Fallback to source URLs
   if (record.sourceUrl) {
     return record.sourceUrl;
   }

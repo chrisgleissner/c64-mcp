@@ -321,7 +321,7 @@ export const graphicsModule = defineToolModule({
       inputSchema: spriteArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "assembly-program"],
-      tags: ["sprite", "assembly"],
+      tags: ["sprite", "assembly", "pal-ntsc"],
       prerequisites: ["upload_and_run_asm"],
       examples: [
         {
@@ -436,7 +436,7 @@ export const graphicsModule = defineToolModule({
       inputSchema: petsciiImageArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/basic", "c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "basic-program"],
-      tags: ["petscii", "basic"],
+      tags: ["petscii", "basic", "pal-ntsc"],
       prerequisites: ["upload_and_run_basic"],
       examples: [
         {

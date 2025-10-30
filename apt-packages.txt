@@ -3,7 +3,5 @@ curl
 git
 nodejs
 npm
-sidplayfp
 unzip
-vice
 xvfb
