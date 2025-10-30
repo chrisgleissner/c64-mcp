@@ -431,10 +431,10 @@ export const graphicsModule = defineToolModule({
     },
     {
       name: "create_petscii_image",
-      description: "Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic.",
-      summary: "Synthesises PETSCII art, generates a BASIC program, and uploads it unless dry-run is requested.",
+      description: "Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata including PETSCII codes and glyphs. See c64://specs/basic, c64://specs/vic, and c64://specs/charset.",
+      summary: "Synthesises PETSCII art, generates a BASIC program with preview metadata (petsciiCodes, glyphs, dimensions), and uploads it unless dry-run is requested.",
       inputSchema: petsciiImageArgsSchema.jsonSchema,
-      relatedResources: ["c64://specs/basic", "c64://specs/vic"],
+      relatedResources: ["c64://specs/basic", "c64://specs/vic", "c64://specs/charset"],
       relatedPrompts: ["graphics-demo", "basic-program"],
       tags: ["petscii", "basic", "pal-ntsc"],
       prerequisites: ["upload_and_run_basic"],
@@ -447,6 +447,7 @@ export const graphicsModule = defineToolModule({
       ],
       workflowHints: [
         "Trigger when the user provides creative prompts; clarify whether you ran the art or left it as a dry run.",
+        "Response includes petsciiCodes array and glyphs for character-level inspection.",
         "Provide follow-up suggestions like saving the PRG or capturing the screen after rendering.",
       ],
       async execute(args, ctx) {

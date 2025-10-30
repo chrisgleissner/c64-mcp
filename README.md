@@ -477,7 +477,7 @@ This MCP server exposes **74 tools**, **23 resources**, and **7 prompts** for co
 
 | Name | Description | Tags |
 | --- | --- | --- |
-| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
+| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata including PETSCII codes and glyphs. See c64://specs/basic, c64://specs/vic, and c64://specs/charset. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
 | `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly`, `pal-ntsc` |
 | `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
 
