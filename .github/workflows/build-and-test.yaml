@@ -19,8 +19,12 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      - run: npm ci
-      - run: npm run build
+      - name: Bun version
+        run: bun --version
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build project
+        run: npm run build
       - name: Run test coverage (Bun)
         run: npm run coverage
       - name: Upload coverage reports to Codecov
