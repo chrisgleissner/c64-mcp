@@ -69,9 +69,6 @@ function delay(ms: number): Promise<void> {
 /**
  * Compute SHA-1 hash of screen content for change detection.
  */
-function computeScreenHash(screen: string): string {
-  return createHash("sha1").update(screen).digest("hex");
-}
 
 /**
  * Compute fast 32-bit CRC32 checksum of buffer for change detection.
