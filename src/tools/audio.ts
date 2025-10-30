@@ -561,13 +561,17 @@ export const audioModule = defineToolModule({
           }
 
           const detailRecord = toRecord(result.details) ?? {};
+          const systemNote = parsed.system
+            ? `Using ${parsed.system} timing.`
+            : "Using default PAL timing. For NTSC, pass system: 'NTSC'. Check $02A6 memory location to verify system.";
 
-          return textResult(`Started SID voice ${voice}${parsed.note ? ` with note ${parsed.note.toUpperCase()}` : ""}.`, {
+          return textResult(`Started SID voice ${voice}${parsed.note ? ` with note ${parsed.note.toUpperCase()}` : ""}. ${systemNote}`, {
             success: true,
             voice,
             note: parsed.note ?? null,
             frequencyHz: parsed.frequencyHz ?? null,
             system: parsed.system ?? "PAL",
+            systemReminder: "$02A6 contains PAL/NTSC flag (1=NTSC, 0=PAL)",
             waveform: parsed.waveform ?? "pulse",
             pulseWidth: parsed.pulseWidth,
             envelope: {
