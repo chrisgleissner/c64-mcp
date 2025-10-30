@@ -355,7 +355,7 @@ The test runner accepts the following options:
 
 ### What Changed
 
-This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **74 tools**, **23 resources**, and **7 prompts** for controlling your Commodore 64.
 
 **Platform Status:** Check [`c64://platform/status`](#resources) for active backend, feature flags, and tool compatibility.
 
@@ -587,6 +587,7 @@ This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for co
 | `c64://docs/sid/file-structure` | Explains PSID/RSID headers, metadata blocks, and compatibility notes for imported music. |
 | `c64://docs/sid/best-practices` | Captures proven waveforms, ADSR presets, phrasing, and verification workflow for pleasant SID music. |
 | `c64://specs/vic` | Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II. |
+| `c64://specs/charset` | Character code table mapping PETSCII codes to screen codes, glyphs, and keyboard input. |
 | `c64://specs/memory-map` | Page-by-page breakdown of the 64 KB address space with hardware, ROM, and RAM regions. |
 | `c64://specs/memory-low` | Documents zero-page variables, BASIC pointers, and KERNAL workspace addresses. |
 | `c64://specs/memory-kernal` | Lists KERNAL ROM vectors and service routines for OS-level functionality. |

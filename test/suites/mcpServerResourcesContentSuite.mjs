@@ -32,6 +32,7 @@ const EXPECTED_RESOURCE_URIS = [
   "c64://docs/sid/best-practices",
   // Graphics / VIC-II
   "c64://specs/vic",
+  "c64://specs/charset",
   // Memory & I/O
   "c64://specs/memory-map",
   "c64://specs/memory-low",
@@ -83,7 +84,7 @@ export function registerMcpServerResourcesContentTests(withSharedMcpClient) {
       // Map resource URI -> relativePath (when file-backed)
       const uriToRelativePath = new Map(
         knowledge
-          .filter((r) => typeof r.relativePath === "string" && r.relativePath)
+          .filter((r) => typeof r.relativePath === "string" && r.relativePath && !r.buildContent)
           .map((r) => [r.uri, r.relativePath])
       );
 
