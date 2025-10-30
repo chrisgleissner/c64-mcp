@@ -444,10 +444,10 @@ This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for co
 | `analyze_audio` | Automatically analyze SID playback when the user requests verification feedback. | `sid`, `audio`, `analysis` |
 | `modplay_file` | Play a MOD tracker module stored on the Ultimate filesystem. | `sid`, `audio`, `playback` |
 | `music_compile_and_play` | Compile a SIDWAVE composition to PRG or SID and optionally play it immediately. | `sid`, `audio`, `music`, `compiler` |
-| `music_generate` | Generate a lightweight arpeggio and schedule playback on SID voice 1. | `sid`, `audio`, `music`, `generator` |
+| `music_generate` | Generate a lightweight arpeggio and schedule playback on SID voice 1. | `sid`, `audio`, `music`, `generator`, `pal-ntsc` |
 | `record_and_analyze_audio` | Record audio from the default input device and analyze SID playback characteristics. | `sid`, `audio`, `analysis` |
 | `sid_note_off` | Release a SID voice by clearing its GATE bit. | `sid`, `audio`, `control`, `music` |
-| `sid_note_on` | Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope. See c64://specs/sid. | `sid`, `audio`, `control`, `music` |
+| `sid_note_on` | Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope. See c64://specs/sid. | `sid`, `audio`, `control`, `music`, `pal-ntsc` |
 | `sid_reset` | Reset the SID chip either softly (silence) or with a full register scrub. | `sid`, `audio`, `control` |
 | `sid_silence_all` | Silence all SID voices by clearing control and envelope registers. | `sid`, `audio`, `control` |
 | `sid_volume` | Set the SID master volume register at $D418. See c64://specs/sid. | `sid`, `audio`, `control` |
@@ -507,8 +507,8 @@ This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for co
 
 | Name | Description | Tags |
 | --- | --- | --- |
-| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic. | `graphics`, `vic`, `petscii`, `basic` |
-| `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly` |
+| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
+| `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly`, `pal-ntsc` |
 | `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
 
 #### Printer

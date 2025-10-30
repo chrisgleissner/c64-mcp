@@ -522,7 +522,7 @@ export const audioModule = defineToolModule({
       description: "Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope. See c64://specs/sid.",
       summary: "Resolves note or frequency, clamps parameters, and writes the SID voice registers.",
       inputSchema: sidNoteOnArgsSchema.jsonSchema,
-      tags: ["sid", "control", "music"],
+      tags: ["sid", "control", "music", "pal-ntsc"],
       prerequisites: ["sid_volume"],
       examples: [
         { name: "Note on", description: "Voice 1 C4 triangle", arguments: { voice: 1, note: "C4", waveform: "tri" } },
@@ -755,7 +755,7 @@ export const audioModule = defineToolModule({
       inputSchema: musicGenerateArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/sid"],
       relatedPrompts: ["sid-music"],
-      tags: ["sid", "music", "generator"],
+      tags: ["sid", "music", "generator", "pal-ntsc"],
       prerequisites: ["sid_volume"],
       examples: [
         { name: "C major", description: "C4 arpeggio (triangle)", arguments: { root: "C4", pattern: "0,4,7", steps: 8, tempoMs: 120, waveform: "tri" } },
