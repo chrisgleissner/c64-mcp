@@ -226,3 +226,147 @@ test("filesystem_stats_by_extension handles entries without size", async () => {
   assert.equal(noneStats.knownSizes, 0);
   assert.equal(noneStats.unknownSizes, 1);
 });
+
+test("find_and_run_program_by_name handles malformed state file gracefully", async () => {
+  const { file, dir } = tmpPath("findrun-malformed", "state.json");
+  await fs.mkdir(dir, { recursive: true });
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+  try {
+    const stateDir = path.join(dir, "meta");
+    const stateFile = path.join(stateDir, "find_and_run_program_by_name.json");
+    await fs.mkdir(stateDir, { recursive: true });
+    
+    // Write malformed JSON (not an object)
+    await fs.writeFile(stateFile, JSON.stringify("not an object"), "utf8");
+    
+    let runPath = null;
+    const ctx = {
+      client: {
+        async filesInfo() { return ["/games/Test.PRG"]; },
+        async runPrgFile(p) { runPath = p; return { success: true }; },
+      },
+      logger: createLogger(),
+    };
+
+    const res = await metaModule.invoke("find_and_run_program_by_name", { root: "/games", nameContains: "test" }, ctx);
+    assert.equal(res.metadata?.success, true);
+    assert.equal(runPath, "/games/Test.PRG");
+    
+    // Verify new state was written despite malformed previous state
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+    assert.equal(state.lastRunPath, "/games/Test.PRG");
+    assert.equal(Array.isArray(state.recentSearches), true);
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
+});
+
+test("find_and_run_program_by_name handles state with invalid recentSearches", async () => {
+  const { file, dir } = tmpPath("findrun-invalid-searches", "state.json");
+  await fs.mkdir(dir, { recursive: true });
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+  try {
+    const stateDir = path.join(dir, "meta");
+    const stateFile = path.join(stateDir, "find_and_run_program_by_name.json");
+    await fs.mkdir(stateDir, { recursive: true });
+    
+    // Write state with recentSearches as non-array
+    await fs.writeFile(stateFile, JSON.stringify({ recentSearches: "not an array" }), "utf8");
+    
+    let runPath = null;
+    const ctx = {
+      client: {
+        async filesInfo() { return ["/games/Demo.PRG"]; },
+        async runPrgFile(p) { runPath = p; return { success: true }; },
+      },
+      logger: createLogger(),
+    };
+
+    const res = await metaModule.invoke("find_and_run_program_by_name", { root: "/games", nameContains: "demo" }, ctx);
+    assert.equal(res.metadata?.success, true);
+    assert.equal(runPath, "/games/Demo.PRG");
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
+});
+
+test("find_and_run_program_by_name handles state with entries missing pattern field", async () => {
+  const { file, dir } = tmpPath("findrun-missing-pattern", "state.json");
+  await fs.mkdir(dir, { recursive: true });
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+  try {
+    const stateDir = path.join(dir, "meta");
+    const stateFile = path.join(stateDir, "find_and_run_program_by_name.json");
+    await fs.mkdir(stateDir, { recursive: true });
+    
+    // Write state with entries missing pattern field
+    await fs.writeFile(stateFile, JSON.stringify({
+      recentSearches: [
+        { root: "/games" }, // missing pattern
+        null, // null entry
+        "not an object", // string entry
+        { pattern: "valid", root: "/valid" } // valid entry
+      ],
+      lastRunPath: "/games/Old.PRG"
+    }), "utf8");
+    
+    let runPath = null;
+    const ctx = {
+      client: {
+        async filesInfo() { return ["/games/New.PRG"]; },
+        async runPrgFile(p) { runPath = p; return { success: true }; },
+      },
+      logger: createLogger(),
+    };
+
+    const res = await metaModule.invoke("find_and_run_program_by_name", { root: "/games", nameContains: "new" }, ctx);
+    assert.equal(res.metadata?.success, true);
+    assert.equal(runPath, "/games/New.PRG");
+    
+    // Verify state was updated and invalid entries were filtered out
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+    assert.equal(state.lastRunPath, "/games/New.PRG");
+    assert.equal(Array.isArray(state.recentSearches), true);
+    assert.equal(state.recentSearches.length, 2); // new entry + valid old entry
+    assert.equal(state.recentSearches[1].pattern, "valid");
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
+});
+
+test("find_and_run_program_by_name handles empty state file", async () => {
+  const { file, dir } = tmpPath("findrun-empty", "state.json");
+  await fs.mkdir(dir, { recursive: true });
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+  try {
+    const stateDir = path.join(dir, "meta");
+    const stateFile = path.join(stateDir, "find_and_run_program_by_name.json");
+    await fs.mkdir(stateDir, { recursive: true });
+    
+    // Write empty object
+    await fs.writeFile(stateFile, JSON.stringify({}), "utf8");
+    
+    let runPath = null;
+    const ctx = {
+      client: {
+        async filesInfo() { return ["/games/Test.PRG"]; },
+        async runPrgFile(p) { runPath = p; return { success: true }; },
+      },
+      logger: createLogger(),
+    };
+
+    const res = await metaModule.invoke("find_and_run_program_by_name", { root: "/games", nameContains: "test" }, ctx);
+    assert.equal(res.metadata?.success, true);
+    assert.equal(runPath, "/games/Test.PRG");
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
+});

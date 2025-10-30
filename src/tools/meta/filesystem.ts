@@ -106,14 +106,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-// Type guard for FindRunStateEntry structure
-function isFindRunStateEntry(value: unknown): value is Partial<FindRunStateEntry> {
+// Minimal type for pattern-only validation
+interface FindRunStateEntryWithPattern {
+  pattern: string;
+  root?: string;
+  extensions?: unknown[];
+  matched?: string;
+  timestamp?: string;
+}
+
+// Type guard for FindRunStateEntry structure (validates pattern field only)
+function isFindRunStateEntry(value: unknown): value is FindRunStateEntryWithPattern {
   return isRecord(value) && typeof value.pattern === "string";
 }
 
-// Type guard for FindRunState structure
+// Type guard for FindRunState structure (validates recentSearches property)
 function isFindRunState(value: unknown): value is Partial<FindRunState> {
-  return isRecord(value);
+  return isRecord(value) && (value.recentSearches === undefined || Array.isArray(value.recentSearches));
 }
 
 async function loadState(statePath: string): Promise<FindRunState> {
