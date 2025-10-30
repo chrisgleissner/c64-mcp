@@ -36,9 +36,18 @@ Colour presets and character codes for C64 PETSCII art. Target: LLM optimization
 
 ## Contrast Guidelines
 
-- High contrast: Luminance difference >2 levels (0/1, 6/7, 0/13)
-- Avoid: Grey(12) on Light Grey(15), similar hues (2 on 4)
-- Border matching: Set border=background for seamless look
+**Readable combinations** (luminance difference ≥3):
+- 0/1 (Black/White), 0/7 (Black/Yellow), 0/13 (Black/Lt.Green)
+- 6/1 (Blue/White), 6/7 (Blue/Yellow), 11/1 (Dk.Grey/White)
+
+**Marginal** (luminance difference 2):
+- 0/3 (Black/Cyan), 6/14 (Blue/Lt.Blue), 12/1 (Grey/White)
+
+**Unreadable** (insufficient contrast):
+- 12/15 (Grey/Lt.Grey), 11/12 (Dk.Grey/Grey), 2/4 (Red/Purple)
+- 6/11 (Blue/Dk.Grey), 9/11 (Brown/Dk.Grey)
+
+Border matching: Set border=background for seamless look.
 
 ## PETSCII vs Screen Codes
 
@@ -57,23 +66,23 @@ Conversion: Screen code ≠ PETSCII code. Use charset reference (c64://specs/cha
 | PETSCII | Char | Name | Use |
 |---------|------|------|-----|
 | 32 | (space) | Space | Empty cell |
-| 160 | █ | Full block | Solid fill |
+| 160 | █ | Full block | Solid fill (reverse space) |
 | 65-90 | A-Z | Uppercase | Text |
 | 193-218 | a-z | Lowercase | Text (shifted mode) |
 | 48-57 | 0-9 | Digits | Numbers |
-| 83 | ♥ | Heart | Decoration, life |
-| 90 | ♦ | Diamond | Suit, decoration |
-| 88 | ♣ | Club | Suit, decoration |
-| 65 | ♠ | Spade | Suit, decoration |
+| 115 | ♥ | Heart | Decoration, life |
+| 122 | ♦ | Diamond | Suit, decoration |
+| 120 | ♣ | Club | Suit, decoration |
+| 97 | ♠ | Spade | Suit, decoration |
 | 94 | ↑ | Up arrow | Direction, pointer |
 | 95 | ← | Left arrow | Direction |
-| 64 | ─ | Horizontal line | Borders, dividers |
-| 93 | │ | Vertical line | Borders |
-| 85 | ╭ | Arc top-left | Rounded corners |
-| 73 | ╮ | Arc top-right | Rounded corners |
-| 74 | ╰ | Arc bottom-left | Rounded corners |
-| 75 | ╯ | Arc bottom-right | Rounded corners |
-| 91 | ┼ | Cross | Grid intersection |
+| 96 | ─ | Horizontal line | Borders, dividers |
+| 125 | │ | Vertical line | Borders |
+| 117 | ╭ | Arc top-left | Rounded corners |
+| 105 | ╮ | Arc top-right | Rounded corners |
+| 106 | ╰ | Arc bottom-left | Rounded corners |
+| 107 | ╯ | Arc bottom-right | Rounded corners |
+| 123 | ┼ | Cross | Grid intersection |
 | 66-82 | Various | Block fractions | Dithering, gradients |
 
 ## Tool Integration
