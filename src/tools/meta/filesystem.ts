@@ -623,4 +623,214 @@ export const tools: ToolDefinition[] = [
         }
       },
     },
-];
+    {
+      name: "drive_mount_and_verify",
+      description: "Mount a disk image with retry logic and verification. Powers on drive if needed, mounts image, resets drive, and verifies state.",
+      summary: "Reliably mount and verify disk images with retry logic.",
+      inputSchema: objectSchema({
+        description: "Mount image with optional retries and verification.",
+        properties: {
+          drive: stringSchema({ description: "Drive identifier (e.g., drive8)", minLength: 1 }),
+          imagePath: stringSchema({ description: "Path to disk image on host filesystem", minLength: 1 }),
+          mode: optionalSchema(stringSchema({ description: "Drive mode (1541/1571/1581)", enum: ["1541", "1571", "1581"] })),
+          powerOnIfNeeded: optionalSchema(booleanSchema({ description: "Power on drive if off", default: true }), true),
+          resetAfterMount: optionalSchema(booleanSchema({ description: "Reset drive after mounting", default: true }), true),
+          maxRetries: optionalSchema(numberSchema({ description: "Maximum mount retry attempts", integer: true, minimum: 0, maximum: 5, default: 2 }), 2),
+          retryDelayMs: optionalSchema(numberSchema({ description: "Delay between retries in milliseconds", integer: true, minimum: 0, maximum: 5000, default: 500 }), 500),
+          verifyMount: optionalSchema(booleanSchema({ description: "Verify mount by checking drive list", default: true }), true),
+        },
+        required: ["drive", "imagePath"],
+        additionalProperties: false,
+      }).jsonSchema,
+      tags: ["storage", "drives", "mount"],
+      examples: [
+        {
+          name: "Mount with defaults",
+          description: "Mount image with power-on and verification",
+          arguments: { drive: "drive8", imagePath: "/media/games/test.d64" },
+        },
+        {
+          name: "Mount with mode",
+          description: "Mount 1581 image with specified mode",
+          arguments: { drive: "drive8", imagePath: "/media/work.d81", mode: "1581" },
+        },
+      ],
+      async execute(args, ctx) {
+        try {
+          const parsed = objectSchema({
+            description: "Mount image with optional retries and verification.",
+            properties: {
+              drive: stringSchema({ description: "Drive identifier", minLength: 1 }),
+              imagePath: stringSchema({ description: "Image path", minLength: 1 }),
+              mode: optionalSchema(stringSchema({ description: "Drive mode", enum: ["1541", "1571", "1581"] })),
+              powerOnIfNeeded: optionalSchema(booleanSchema({ description: "Power on if needed", default: true }), true),
+              resetAfterMount: optionalSchema(booleanSchema({ description: "Reset after mount", default: true }), true),
+              maxRetries: optionalSchema(numberSchema({ description: "Max retries", integer: true, minimum: 0, maximum: 5, default: 2 }), 2),
+              retryDelayMs: optionalSchema(numberSchema({ description: "Retry delay ms", integer: true, minimum: 0, maximum: 5000, default: 500 }), 500),
+              verifyMount: optionalSchema(booleanSchema({ description: "Verify mount", default: true }), true),
+            },
+            required: ["drive", "imagePath"],
+            additionalProperties: false,
+          }).parse(args ?? {});
+
+          const drive = String(parsed.drive);
+          const imagePath = String(parsed.imagePath);
+          const mode = parsed.mode as string | undefined;
+          const powerOnIfNeeded = parsed.powerOnIfNeeded !== false;
+          const resetAfterMount = parsed.resetAfterMount !== false;
+          const maxRetries = Math.max(0, parsed.maxRetries ?? 2);
+          const retryDelayMs = Math.max(0, parsed.retryDelayMs ?? 500);
+          const verifyMount = parsed.verifyMount !== false;
+
+          const log: Array<{ step: string; success: boolean; details?: unknown; error?: string }> = [];
+
+          // Step 1: Check if drive exists and power it on if needed
+          if (powerOnIfNeeded) {
+            try {
+              const drives = await (ctx.client as any).drivesList();
+              const targetDrive = Array.isArray(drives) ? drives.find((d: any) => d.id === drive) : null;
+              
+              if (!targetDrive) {
+                log.push({ step: "check_drive_exists", success: false, error: `Drive ${drive} not found` });
+                throw new ToolExecutionError(`Drive ${drive} not found in firmware drive list`, { details: { drive } });
+              }
+
+              if (targetDrive.power === "off" || targetDrive.power === "OFF") {
+                const powerOn = await (ctx.client as any).driveOn(drive);
+                log.push({ step: "power_on", success: powerOn.success === true, details: powerOn.details });
+                if (!powerOn.success) {
+                  throw new ToolExecutionError(`Failed to power on drive ${drive}`, { details: powerOn.details });
+                }
+                // Small delay after power on
+                await new Promise((resolve) => setTimeout(resolve, 200));
+              } else {
+                log.push({ step: "check_power", success: true, details: { power: targetDrive.power } });
+              }
+            } catch (error) {
+              if (error instanceof ToolError) throw error;
+              log.push({ step: "power_check", success: false, error: error instanceof Error ? error.message : String(error) });
+              throw new ToolExecutionError("Failed to check or power on drive", { details: { error: error instanceof Error ? error.message : String(error) } });
+            }
+          }
+
+          // Step 2: Mount with retries
+          let mountSuccess = false;
+          let lastMountError: unknown = null;
+          let attempts = 0;
+
+          for (let attempt = 0; attempt <= maxRetries && !mountSuccess; attempt += 1) {
+            attempts = attempt + 1;
+            try {
+              const mountOptions: any = {};
+              if (mode) {
+                mountOptions.mode = mode;
+              }
+
+              const mount = await (ctx.client as any).driveMount(drive, imagePath, mountOptions);
+              if (mount.success) {
+                mountSuccess = true;
+                log.push({ step: `mount_attempt_${attempts}`, success: true, details: mount.details });
+              } else {
+                lastMountError = mount.details;
+                log.push({ step: `mount_attempt_${attempts}`, success: false, details: mount.details });
+                if (attempt < maxRetries) {
+                  await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+                }
+              }
+            } catch (error) {
+              lastMountError = error;
+              log.push({ 
+                step: `mount_attempt_${attempts}`, 
+                success: false, 
+                error: error instanceof Error ? error.message : String(error) 
+              });
+              if (attempt < maxRetries) {
+                await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+              }
+            }
+          }
+
+          if (!mountSuccess) {
+            throw new ToolExecutionError(`Failed to mount ${imagePath} after ${attempts} attempts`, { 
+              details: { lastError: lastMountError } 
+            });
+          }
+
+          // Step 3: Reset drive if requested
+          if (resetAfterMount) {
+            try {
+              const reset = await (ctx.client as any).driveReset(drive);
+              log.push({ step: "reset", success: reset.success === true, details: reset.details });
+              if (!reset.success) {
+                ctx.logger.warn?.("Drive reset failed after mount", { details: reset.details });
+              }
+            } catch (error) {
+              log.push({ 
+                step: "reset", 
+                success: false, 
+                error: error instanceof Error ? error.message : String(error) 
+              });
+              ctx.logger.warn?.("Drive reset threw error", { error });
+            }
+          }
+
+          // Step 4: Verify mount
+          let verificationResult: any = null;
+          if (verifyMount) {
+            try {
+              const drives = await (ctx.client as any).drivesList();
+              const targetDrive = Array.isArray(drives) ? drives.find((d: any) => d.id === drive) : null;
+              
+              if (!targetDrive) {
+                log.push({ step: "verify", success: false, error: "Drive not found in list" });
+                throw new ToolExecutionError("Drive disappeared after mount", { details: { drive } });
+              }
+
+              const imageMatches = targetDrive.image === imagePath || 
+                                  (typeof targetDrive.image === "string" && targetDrive.image.endsWith(imagePath));
+              
+              verificationResult = {
+                drive: targetDrive.id,
+                power: targetDrive.power,
+                image: targetDrive.image,
+                imageMatches,
+              };
+              
+              log.push({ step: "verify", success: imageMatches, details: verificationResult });
+              
+              if (!imageMatches) {
+                ctx.logger.warn?.("Mount verification: image path mismatch", { 
+                  expected: imagePath, 
+                  actual: targetDrive.image 
+                });
+              }
+            } catch (error) {
+              if (error instanceof ToolError) throw error;
+              log.push({ 
+                step: "verify", 
+                success: false, 
+                error: error instanceof Error ? error.message : String(error) 
+              });
+              throw new ToolExecutionError("Failed to verify mount", { 
+                details: { error: error instanceof Error ? error.message : String(error) } 
+              });
+            }
+          }
+
+          return jsonResult({
+            mounted: true,
+            drive,
+            imagePath,
+            mode,
+            attempts,
+            verification: verificationResult,
+            log,
+          }, { success: true });
+
+        } catch (error) {
+          if (error instanceof ToolError) return toolErrorResult(error);
+          return unknownErrorResult(error);
+        }
+      },
+    },
+  ];

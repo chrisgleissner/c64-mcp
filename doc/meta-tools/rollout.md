@@ -150,20 +150,22 @@ Phase 2a total effort: ~205 minutes (3.4 hours) — High-impact foundation for a
   - Dependencies: `memory_dump_to_file` (✅ implemented)
   - Effort: 80 minutes
   - Coverage: `test/meta/screen.test.mjs`
-- [ ] `rip_charset_from_ram` — Implementation notes:
+- [x] `rip_charset_from_ram` — Implementation notes:
   - **Priority #6** — Extract custom character sets for reuse and font library building.
   - Locate 2KB charsets by structure; export binary and a PNG preview.
   - Agent state: range scan plan, preview images, output paths.
   - REST: GET /v1/machine:readmem, optional PUT /v1/machine:pause|resume
   - Dependencies: `memory_dump_to_file` (✅ implemented)
   - Effort: 75 minutes
-- [ ] `drive_mount_and_verify` — Implementation notes:
+  - Coverage: `test/meta/screen.test.mjs`
+- [x] `drive_mount_and_verify` — Implementation notes:
   - **Priority #7** — Reliable drive mounting with retry logic.
   - Power on if needed; mount; reset; verify via drives list. Retry with backoff.
   - Agent state: retries, final mode, verification snapshot.
   - REST: PUT /v1/drives/{drive}:on, PUT /v1/drives/{drive}:mount, PUT /v1/drives/{drive}:reset, GET /v1/drives
   - Dependencies: `firmware_info_and_healthcheck` (✅ implemented)
   - Effort: 45 minutes
+  - Coverage: `test/meta/filesystem.test.mjs`
 
 Phase 2b total effort: ~200 minutes (3.3 hours) — Graphics extraction and reliable disk handling.
 

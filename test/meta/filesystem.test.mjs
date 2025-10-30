@@ -226,3 +226,209 @@ test("filesystem_stats_by_extension handles entries without size", async () => {
   assert.equal(noneStats.knownSizes, 0);
   assert.equal(noneStats.unknownSizes, 1);
 });
+
+test("drive_mount_and_verify mounts image successfully with defaults", async () => {
+  let powerOnCalled = false;
+  let mountCalled = false;
+  let resetCalled = false;
+  let driveListCalls = 0;
+
+  const ctx = {
+    client: {
+      async drivesList() {
+        driveListCalls += 1;
+        if (driveListCalls === 1) {
+          // Initial check - drive is off
+          return [{ id: "drive8", power: "off", image: null }];
+        } else {
+          // Verification check - drive is on with image
+          return [{ id: "drive8", power: "on", image: "/media/test.d64" }];
+        }
+      },
+      async driveOn(drive) {
+        powerOnCalled = true;
+        assert.equal(drive, "drive8");
+        return { success: true, details: { drive, power: "on" } };
+      },
+      async driveMount(drive, image, opts) {
+        mountCalled = true;
+        assert.equal(drive, "drive8");
+        assert.equal(image, "/media/test.d64");
+        return { success: true, details: { drive, image } };
+      },
+      async driveReset(drive) {
+        resetCalled = true;
+        assert.equal(drive, "drive8");
+        return { success: true, details: { drive } };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("drive_mount_and_verify", {
+    drive: "drive8",
+    imagePath: "/media/test.d64",
+  }, ctx);
+
+  assert.equal(res.metadata?.success, true);
+  assert.equal(powerOnCalled, true);
+  assert.equal(mountCalled, true);
+  assert.equal(resetCalled, true);
+  assert.equal(driveListCalls, 2);
+
+  const data = res.structuredContent?.data;
+  assert.equal(data?.mounted, true);
+  assert.equal(data?.drive, "drive8");
+  assert.equal(data?.imagePath, "/media/test.d64");
+  assert.equal(data?.attempts, 1);
+  assert.ok(data?.verification);
+  assert.equal(data?.verification.imageMatches, true);
+});
+
+test("drive_mount_and_verify retries on mount failure", async () => {
+  let mountAttempts = 0;
+
+  const ctx = {
+    client: {
+      async drivesList() {
+        return [{ id: "drive8", power: "on", image: "/media/test.d64" }];
+      },
+      async driveOn() {
+        return { success: true };
+      },
+      async driveMount() {
+        mountAttempts += 1;
+        if (mountAttempts < 3) {
+          return { success: false, details: { error: "busy" } };
+        }
+        return { success: true, details: { drive: "drive8" } };
+      },
+      async driveReset() {
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("drive_mount_and_verify", {
+    drive: "drive8",
+    imagePath: "/media/test.d64",
+    maxRetries: 2,
+    retryDelayMs: 10,
+  }, ctx);
+
+  assert.equal(res.metadata?.success, true);
+  assert.equal(mountAttempts, 3);
+  const data = res.structuredContent?.data;
+  assert.equal(data?.attempts, 3);
+});
+
+test("drive_mount_and_verify fails after max retries", async () => {
+  const ctx = {
+    client: {
+      async drivesList() {
+        return [{ id: "drive8", power: "on", image: null }];
+      },
+      async driveOn() {
+        return { success: true };
+      },
+      async driveMount() {
+        return { success: false, details: { error: "device error" } };
+      },
+      async driveReset() {
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("drive_mount_and_verify", {
+    drive: "drive8",
+    imagePath: "/media/test.d64",
+    maxRetries: 1,
+    retryDelayMs: 10,
+  }, ctx);
+
+  assert.equal(res.isError, true);
+  assert.equal(res.metadata?.error?.kind, "execution");
+});
+
+test("drive_mount_and_verify fails when drive not found", async () => {
+  const ctx = {
+    client: {
+      async drivesList() {
+        return [{ id: "drive9", power: "on", image: null }];
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("drive_mount_and_verify", {
+    drive: "drive8",
+    imagePath: "/media/test.d64",
+  }, ctx);
+
+  assert.equal(res.isError, true);
+  assert.equal(res.metadata?.error?.kind, "execution");
+});
+
+test("drive_mount_and_verify skips power on when already on", async () => {
+  let powerOnCalled = false;
+
+  const ctx = {
+    client: {
+      async drivesList() {
+        return [{ id: "drive8", power: "on", image: "/media/test.d64" }];
+      },
+      async driveOn() {
+        powerOnCalled = true;
+        return { success: true };
+      },
+      async driveMount() {
+        return { success: true };
+      },
+      async driveReset() {
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("drive_mount_and_verify", {
+    drive: "drive8",
+    imagePath: "/media/test.d64",
+  }, ctx);
+
+  assert.equal(res.metadata?.success, true);
+  assert.equal(powerOnCalled, false);
+});
+
+test("drive_mount_and_verify respects powerOnIfNeeded=false", async () => {
+  let driveListCalled = false;
+
+  const ctx = {
+    client: {
+      async drivesList() {
+        driveListCalled = true;
+        return [];
+      },
+      async driveMount() {
+        return { success: true };
+      },
+      async driveReset() {
+        return { success: true };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const res = await metaModule.invoke("drive_mount_and_verify", {
+    drive: "drive8",
+    imagePath: "/media/test.d64",
+    powerOnIfNeeded: false,
+    verifyMount: false,
+  }, ctx);
+
+  assert.equal(res.metadata?.success, true);
+  assert.equal(driveListCalled, false);
+});
