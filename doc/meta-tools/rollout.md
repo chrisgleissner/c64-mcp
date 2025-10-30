@@ -1,8 +1,8 @@
-## Meta Tools Rollout Plan for c64bridge
+# Meta Tools Rollout Plan for c64bridge
 
 Purpose: Provide a concrete, dependency-aware rollout approach for the meta tools defined in `doc/meta-tools/catalog.md`. This plan gives ordered, checkable task lists and high-level implementation notes. It is written so another LLM can execute the rollout autonomously.
 
-### Required reading
+## Required reading
 
 The following documents need to be read and understood before starting the rollout:
 
@@ -11,7 +11,7 @@ The following documents need to be read and understood before starting the rollo
 - `doc/agent-state-spec.md` — Background task registry and persistence model
 - `doc/developer.md` — Architecture overview and contribution guidelines
 
-### Operator rules for the LLM performing the rollout
+## Operator rules for the LLM performing the rollout
 
 - Always work tasks strictly in order as listed. Do not skip ahead unless a task is cancelled.
 - After each checklist item, run the full build and test suite and proceed only if it passes:
@@ -238,6 +238,7 @@ Phase 2b total effort: ~200 minutes (3.3 hours) — Graphics extraction and reli
   - Effort: 75 minutes
 
 Optional filesystem tools:
+
 - [ ] `sprite_preview_prg_batch` — Generate+run preview PRGs for many sprite blobs; capture screens. (Effort: 60 minutes)
 - [ ] `drive_mode_profile_switch` — Set drive mode with ROM load support. (Effort: 40 minutes)
 - [ ] `eject_and_poweroff_drive` — Remove image and power off drive. (Effort: 25 minutes)
@@ -247,6 +248,7 @@ Optional filesystem tools:
 ### Phase 4 — Additional Orchestration & Workflows (as needed)
 
 Not yet prioritized. See `doc/meta-tools/catalog.md` for full list of additional meta tools including:
+
 - Storage orchestration (batch_on_assets_apply_tools, etc.)
 - Screen/UI automation (menu_navigation_script, wait_for_screen_text extensions)
 - Developer loops (red_green_refactor_loop, multi_range_guardrails, safe_reset_sequence, drive_recovery_sequence)
@@ -261,11 +263,12 @@ These tools remain in the catalog for future implementation based on user demand
 ### Phase 5 — Debug Stream Workflows (post‑GA)
 
 **Infrastructure Prerequisites** (must be satisfied before starting this phase):
-  - UDP ingest pipeline with backpressure and packet‑loss handling (~40 hours — estimate includes design, implementation, testing)
-  - Sampling/windowing design for high‑rate streams and summary accuracy (~8 hours — research and prototyping)
-  - Performance targets validated via load and soak tests (~8 hours — test infrastructure and benchmarking)
-  - Observability and failure‑mode coverage (metrics, logs, alerts, drop counters) (~16 hours — instrumentation and monitoring setup)
-  - **Total infrastructure work: ~72 hours** (estimates based on similar streaming pipeline projects)
+
+- UDP ingest pipeline with backpressure and packet-loss handling (~40 hours — estimate includes design, implementation, testing)
+- Sampling/windowing design for high-rate streams and summary accuracy (~8 hours — research and prototyping)
+- Performance targets validated via load and soak tests (~8 hours — test infrastructure and benchmarking)
+- Observability and failure-mode coverage (metrics, logs, alerts, drop counters) (~16 hours — instrumentation and monitoring setup)
+- **Total infrastructure work: ~72 hours** (estimates based on similar streaming pipeline projects)
 
 **Rationale for Deferral**: Debug streaming tools are extremely valuable for assembly program verification (comparing expected vs actual execution) but require significant infrastructure work. Better to ship high-value, low-complexity features first (Phases 2a-3), then revisit debug streaming as a dedicated infrastructure project.
 
@@ -312,6 +315,7 @@ Optional debug tools (implement after above pass):
 - [ ] `time_bounded_trace_around_event` — Maintain circular buffer and freeze on predicate match. (Effort: 70 minutes)
 
 Notes:
+
 - Debug stream consumes significant bandwidth and cannot run concurrently with video; tools enforce mutual exclusion and strict time limits.
 - Modes supported: 6510, VIC, 6510&VIC, 1541, 6510&1541. Tools select minimal necessary mode for the predicate to reduce load.
 

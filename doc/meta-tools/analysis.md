@@ -5,6 +5,7 @@ Purpose: Analyze unimplemented meta tools to identify high-impact, low-effort ca
 ## Current Implementation Status
 
 ### Implemented (Phases 0-2a quick wins)
+
 - ✅ `firmware_info_and_healthcheck` — Verify firmware readiness
 - ✅ `wait_for_screen_text` — Poll screen for text/regex matches
 - ✅ `verify_and_write_memory` — Safe memory write with verification
@@ -121,6 +122,7 @@ Purpose: Analyze unimplemented meta tools to identify high-impact, low-effort ca
   - **PRIORITY: Post-GA** — Excellent feature but requires debug foundation
 
 **Note**: All debug streaming tools are marked Post-GA because they require:
+
 - UDP packet ingest pipeline with backpressure handling
 - Sampling/windowing for high-rate streams
 - Performance validation via load tests
@@ -161,6 +163,7 @@ Purpose: Analyze unimplemented meta tools to identify high-impact, low-effort ca
 ## Reprioritized Rollout Order
 
 Based on impact analysis focusing on:
+
 1. **Immediate agent effectiveness** (find and run programs, compose music)
 2. **Low-hanging fruit** (small effort, high impact)
 3. **Foundation for future work** (enables other tools)
@@ -169,30 +172,35 @@ Based on impact analysis focusing on:
 ### New High-Priority Sequence
 
 #### Quick Wins (Phase 2a — High Impact, Low Effort)
+
 1. **`find_and_run_program_by_name`** (45min) — Enables program discovery
 2. **`silence_and_verify`** (35min) — Essential for SID work
 3. **`filesystem_stats_by_extension`** (35min) — Context for file operations
 4. **`music_compile_play_analyze`** (90min) — Complete music workflow
 
 #### Graphics & Extraction (Phase 2b — Medium Effort, High Value)
-5. **`extract_sprites_from_ram`** (80min) — Graphics extraction
-6. **`rip_charset_from_ram`** (75min) — Character set extraction
-7. **`drive_mount_and_verify`** (45min) — Reliable disk handling
+
+1. **`extract_sprites_from_ram`** (80min) — Graphics extraction
+2. **`rip_charset_from_ram`** (75min) — Character set extraction
+3. **`drive_mount_and_verify`** (45min) — Reliable disk handling
 
 #### Advanced Features (Phase 2c — Lower Priority)
-8. **`classify_prg_basic_or_mc`** (45min) — Program classification
-9. **`screen_capture_timeline`** (50min) — Timeline recording
-10. **`sid_param_sweep`** (90min) — SID experimentation
-11. **`create_and_mount_blank_d64`** (35min) — Disk creation
-12. **`memory_snapshot_and_diff`** (50min) — Memory comparison
-13. **`disassemble_ram_region`** (60min) — Disassembly
+
+1. **`classify_prg_basic_or_mc`** (45min) — Program classification
+2. **`screen_capture_timeline`** (50min) — Timeline recording
+3. **`sid_param_sweep`** (90min) — SID experimentation
+4. **`create_and_mount_blank_d64`** (35min) — Disk creation
+5. **`memory_snapshot_and_diff`** (50min) — Memory comparison
+6. **`disassemble_ram_region`** (60min) — Disassembly
 
 #### Container & Classification (Phase 3 — When Filesystem Work Needed)
+
 - **`container_aware_walk_and_classify`** (60min)
 - **`dedup_scan`** (60min)
 - **`dedup_plan_and_apply`** (75min)
 
 #### Debug Streaming (Phase 5 — Post Infrastructure)
+
 - All debug stream tools deferred until UDP infrastructure is ready
 - These are high-value but require significant foundation work
 
@@ -211,12 +219,14 @@ Based on impact analysis focusing on:
 ### Impact on Agent Capabilities
 
 After implementing the Phase 2a quick wins, agents will be able to:
+
 - ✅ Find and run any program in a C64 file collection by name
 - ✅ Reliably test SID music with proper silence verification
 - ✅ Understand file collection contents and statistics
 - ✅ Create and verify complete music compositions in one workflow
 
 After Phase 2b graphics tools:
+
 - ✅ Extract sprites and character sets from running programs
 - ✅ Build reusable graphics libraries
 - ✅ Analyze and learn from existing C64 graphics
@@ -224,14 +234,17 @@ After Phase 2b graphics tools:
 ### ROI Summary
 
 **Top 4 Quick Wins (Phase 2a)**: ~205 minutes (3.4 hours)
+
 - Unlocks: Program discovery, music composition, file navigation
 - Impact: Transforms agent from "follow instructions" to "find and create"
 
 **Graphics Suite (Phase 2b)**: ~200 minutes (3.3 hours)
+
 - Unlocks: Sprite/charset extraction, graphics analysis
 - Impact: Enables graphics-focused workflows
 
 **Total High-Priority Work**: ~6.7 hours for 11 tools
+
 - Massive improvement in agent capabilities
 - All low-risk (no infrastructure dependencies)
 - Clear, testable outcomes
@@ -239,6 +252,7 @@ After Phase 2b graphics tools:
 ### Deferred Work: Debug Streaming
 
 Debug streaming tools (Phase 5) are incredibly valuable but require:
+
 - UDP packet ingest infrastructure (~40 hours)
 - Performance validation (~8 hours)
 - Observability & monitoring (~8 hours)
