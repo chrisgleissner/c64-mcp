@@ -355,7 +355,7 @@ The test runner accepts the following options:
 
 ### What Changed
 
-This MCP server exposes **74 tools**, **24 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **74 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 **Platform Status:** Check [`c64://platform/status`](#resources) for active backend, feature flags, and tool compatibility.
 
@@ -589,6 +589,7 @@ This MCP server exposes **74 tools**, **24 resources**, and **7 prompts** for co
 | `c64://specs/vic` | Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II. |
 | `c64://specs/charset` | Character code table mapping PETSCII codes to screen codes, glyphs, and keyboard input. |
 | `c64://docs/petscii-style` | Documents colour palette, readability presets, dithering patterns, and best practices for creating artistic and readable PETSCII displays. |
+| `c64://docs/sprite-charset-workflows` | Documents sprite and charset workflows, memory layout, VIC-II configuration, common pitfalls, and proven techniques for hardware-accelerated graphics. |
 | `c64://specs/memory-map` | Page-by-page breakdown of the 64 KB address space with hardware, ROM, and RAM regions. |
 | `c64://specs/memory-low` | Documents zero-page variables, BASIC pointers, and KERNAL workspace addresses. |
 | `c64://specs/memory-kernal` | Lists KERNAL ROM vectors and service routines for OS-level functionality. |
