@@ -101,40 +101,62 @@ function normalisePath(path: string, caseInsensitive: boolean): string {
   return caseInsensitive ? path.toLowerCase() : path;
 }
 
+// Type guard to check if value is a record-like object
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+// Type guard for FindRunStateEntry structure
+function isFindRunStateEntry(value: unknown): value is Partial<FindRunStateEntry> {
+  return isRecord(value) && typeof value.pattern === "string";
+}
+
+// Type guard for FindRunState structure
+function isFindRunState(value: unknown): value is Partial<FindRunState> {
+  return isRecord(value);
+}
+
 async function loadState(statePath: string): Promise<FindRunState> {
   try {
     const text = await fs.readFile(statePath, "utf8");
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === "object") {
-      const rawRecent = Array.isArray((parsed as any).recentSearches) ? (parsed as any).recentSearches : [];
-      const recent: FindRunStateEntry[] = [];
-      for (const rawEntry of rawRecent) {
-        if (!rawEntry || typeof rawEntry !== "object" || typeof (rawEntry as any).pattern !== "string") continue;
-        const rootValue = typeof (rawEntry as any).root === "string" ? (rawEntry as any).root : "/";
-        const extensionsValue = Array.isArray((rawEntry as any).extensions)
-          ? (rawEntry as any).extensions.map((ext: unknown) => String(ext))
-          : [];
-        const matchedValue = typeof (rawEntry as any).matched === "string" ? (rawEntry as any).matched : undefined;
-        const timestampValue = typeof (rawEntry as any).timestamp === "string" ? (rawEntry as any).timestamp : formatTimestampSpec();
-        recent.push({
-          root: rootValue,
-          pattern: String((rawEntry as any).pattern),
-          extensions: extensionsValue,
-          matched: matchedValue,
-          timestamp: timestampValue,
-        });
-      }
-      return {
-        recentSearches: recent,
-        lastRunPath: typeof (parsed as any).lastRunPath === "string" ? (parsed as any).lastRunPath : undefined,
-      } satisfies FindRunState;
+    const parsed: unknown = JSON.parse(text);
+    
+    if (!isFindRunState(parsed)) {
+      return { recentSearches: [] };
     }
+
+    const rawRecent = Array.isArray(parsed.recentSearches) ? parsed.recentSearches : [];
+    const recent: FindRunStateEntry[] = [];
+    
+    for (const rawEntry of rawRecent) {
+      if (!isFindRunStateEntry(rawEntry)) continue;
+      
+      const rootValue = typeof rawEntry.root === "string" ? rawEntry.root : "/";
+      const extensionsValue = Array.isArray(rawEntry.extensions)
+        ? rawEntry.extensions.map((ext: unknown) => String(ext))
+        : [];
+      const matchedValue = typeof rawEntry.matched === "string" ? rawEntry.matched : undefined;
+      const timestampValue = typeof rawEntry.timestamp === "string" ? rawEntry.timestamp : formatTimestampSpec();
+      
+      recent.push({
+        root: rootValue,
+        pattern: rawEntry.pattern,
+        extensions: extensionsValue,
+        matched: matchedValue,
+        timestamp: timestampValue,
+      });
+    }
+    
+    return {
+      recentSearches: recent,
+      lastRunPath: typeof parsed.lastRunPath === "string" ? parsed.lastRunPath : undefined,
+    };
   } catch (error: any) {
     if (error?.code !== "ENOENT") {
       // Ignore malformed state; caller will write a fresh copy
     }
   }
-  return { recentSearches: [] } satisfies FindRunState;
+  return { recentSearches: [] };
 }
 
 async function persistState(statePath: string, entry: FindRunStateEntry, lastRunPath: string): Promise<void> {
