@@ -385,7 +385,7 @@ The test runner accepts the following options:
 
 ### What Changed
 
-This MCP server exposes **74 tools**, **21 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for controlling your Commodore 64.
 
 **Platform Status:** Check [`c64://platform/status`](#resources) for active backend, feature flags, and tool compatibility.
 
@@ -610,6 +610,7 @@ This MCP server exposes **74 tools**, **21 resources**, and **7 prompts** for co
 | `c64://docs/index` | Explains how to approach each knowledge bundle and when to consult it. |
 | `c64://context/bootstrap` | Step-by-step rules for safe automation, verification, and rollback on the C64. |
 | `c64://specs/basic` | Token definitions, syntax rules, and device I/O guidance for BASIC v2. |
+| `c64://docs/basic/pitfalls` | Quickref covering quotation handling, line length, tokenization, variable names, and other BASIC traps. |
 | `c64://specs/assembly` | Official opcode matrix, addressing modes, and zero-page strategy for the 6510 CPU. |
 | `c64://specs/sid` | Register map, waveform behaviour, and ADSR envelopes for expressive SID playback. |
 | `c64://specs/sidwave` | Defines the SIDWAVE interchange format used by the SID composer workflow. |

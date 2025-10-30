@@ -309,7 +309,7 @@ export const programRunnersModule = defineToolModule({
       description: "Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O.",
       summary: "Uploads Commodore BASIC v2 source and runs it via Ultimate 64 firmware.",
       inputSchema: uploadBasicArgsSchema.jsonSchema,
-      relatedResources: ["c64://specs/basic", "c64://context/bootstrap"],
+      relatedResources: ["c64://specs/basic", "c64://docs/basic/pitfalls", "c64://context/bootstrap"],
       relatedPrompts: ["basic-program"],
       tags: ["basic", "execution"],
       prerequisites: ["read_screen"],
