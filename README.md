@@ -339,9 +339,9 @@ Please note that all logs use `stderr` since `stdout` is reserved for the MCP pr
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 - `npm run coverage` — runs the Bun-powered test harness with coverage enabled and emits `coverage/lcov.info` (CI uploads to Codecov).
 
-Notes:
+**Development Tooling**
 
-- Built and tested with Bun for development speed; published package remains fully compatible with Node.js 18+.
+This project uses [Bun](https://bun.sh/) for building and testing due to its high performance (significantly faster than npm/node for development workflows). The npm package remains fully compatible with Node.js 18+ and can be installed and run using standard npm commands. For release preparation, npm/node is still used to ensure everything works correctly on the target platform.
 
 The test runner accepts the following options:
 

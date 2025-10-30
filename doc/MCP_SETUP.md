@@ -129,7 +129,13 @@ To exercise a real device, ensure your config points at the desired host/port an
 npm test -- --real
 ```
 
-`npm run coverage` runs the Bun-powered test harness with coverage enabled, producing `coverage/lcov.info` for CI parity.
+To run tests with coverage analysis:
+
+```bash
+npm run coverage
+```
+
+Note: The coverage command uses Bun internally for faster execution, but the published package remains fully compatible with Node.js.
 
 ## 6. Common Tasks
 
