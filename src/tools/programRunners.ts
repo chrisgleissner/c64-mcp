@@ -10,6 +10,7 @@ import {
   toolErrorResult,
   unknownErrorResult,
 } from "./errors.js";
+import { pollForProgramOutcome } from "./pollValidator.js";
 
 function extractFailureDetails(details: unknown): Record<string, unknown> | undefined {
   if (details === undefined || details === null) {
@@ -537,6 +538,26 @@ export const programRunnersModule = defineToolModule({
                 details: extractFailureDetails(result.details),
               }),
             );
+          }
+
+          // Poll for ASM execution outcome
+          let pollResult: { status: "ok" | "crashed"; reason?: string } | undefined;
+          try {
+            const outcome = await pollForProgramOutcome("ASM", ctx.client, ctx.logger);
+            if (outcome.status === "crashed") {
+              pollResult = {
+                status: "crashed",
+                reason: outcome.reason,
+              };
+              ctx.logger.warn("Polling detected ASM program crash", pollResult);
+              return toolErrorResult(
+                new ToolExecutionError("Assembly program appears to have crashed (no screen changes detected)", {
+                  details: { reason: outcome.reason },
+                }),
+              );
+            }
+          } catch (pollError) {
+            ctx.logger.debug("Polling encountered an error", toRecord(pollError));
           }
 
           const data = {

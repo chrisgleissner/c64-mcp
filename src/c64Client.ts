@@ -656,8 +656,9 @@ export class C64Client {
   /**
    * Low-level memory read that transparently handles devices returning either
    * raw binary bytes or JSON with a base64 payload.
+   * Public to allow advanced polling and monitoring use cases.
    */
-  private async readMemoryRaw(address: number, length: number): Promise<Uint8Array> {
+  async readMemoryRaw(address: number, length: number): Promise<Uint8Array> {
     try {
       const facade = await this.facadePromise;
       return await facade.readMemory(address, length);
