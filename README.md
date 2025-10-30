@@ -189,6 +189,36 @@ npm start -- --http [<port>]
 
 Omitting the port uses `8000`. Only switch to HTTP when remote clients require it; stdio remains the preferred option because it avoids extra networking and keeps tool discovery automatic inside your editor.
 
+#### Container (Docker)
+
+For reproducible deployments, you can build and run C64 Bridge in a container:
+
+1. Build the container image
+
+```bash
+docker build -t c64bridge:dev .
+```
+
+2. Run the container
+
+```bash
+docker run --rm \
+  -e C64_HOST=192.168.1.64 \
+  -e C64_PORT=80 \
+  c64bridge:dev
+```
+
+The container uses `node:20-bookworm-slim` as the base image, runs as a non-root user (`bridge`), and starts the MCP server with `npm start`. Configure the C64 connection through environment variables (`C64_HOST`, `C64_PORT`, `C64_BACKEND`) as needed.
+
+For development or testing, you can mount a volume to access logs or temporary files:
+
+```bash
+docker run --rm \
+  -e C64_HOST=192.168.1.64 \
+  -v /tmp/c64bridge:/tmp \
+  c64bridge:dev
+```
+
 ### Setup GitHub Copilot in VS Code 💻
 
 VS Code (version 1.102+) and GitHub Copilot Chat (version 1.214+) include native MCP support. To enable C64 Bridge integration:
