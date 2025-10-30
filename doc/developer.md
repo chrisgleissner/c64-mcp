@@ -79,6 +79,36 @@ Configuration resolution (first match wins):
 
 `loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`), and caches the resolved structure for subsequent calls.
 
+## Container (Docker)
+
+For reproducible deployments, you can build and run C64 Bridge in a container:
+
+1. Build the container image
+
+```bash
+docker build -t c64bridge:dev .
+```
+
+2. Run the container
+
+```bash
+docker run --rm \
+  -e C64_HOST=192.168.1.64 \
+  -e C64_PORT=80 \
+  c64bridge:dev
+```
+
+The container uses `node:20-bookworm-slim` as the base image with Bun installed, runs as a non-root user (`c64bridge`), and starts the MCP server with `npm start`. Configure the C64 connection through environment variables (`C64_HOST`, `C64_PORT`, `C64_BACKEND`) as needed.
+
+For development or testing, you can mount a volume to access logs or temporary files:
+
+```bash
+docker run --rm \
+  -e C64_HOST=192.168.1.64 \
+  -v /tmp/c64bridge:/tmp \
+  c64bridge:dev
+```
+
 ## npm Scripts Reference
 
 All commands below work with both `npm run <script>` and `bun run <script>`. For consistency with user documentation, npm syntax is shown.
