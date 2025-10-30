@@ -90,6 +90,7 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
   - `find_and_run_program_by_name` — Covered by `test/meta/filesystem.test.mjs`
   - `silence_and_verify` — Covered by `test/meta/audio.test.mjs`
   - `filesystem_stats_by_extension` — Covered by `test/meta/filesystem.test.mjs`
+  - `music_compile_play_analyze` — Covered by `test/meta/audio.test.mjs`
 - **Pending (add tests during implementation)**
   - `music_compile_play_analyze` — Add end-to-end audio workflow coverage (recommended alongside `test/meta/audio.test.mjs`).
   - `extract_sprites_from_ram` — Add sprite extraction scenarios (extend `test/meta/screen.test.mjs` or create a dedicated graphics suite).
@@ -124,11 +125,11 @@ Rationale: These tools provide maximum value with minimal implementation effort.
 - [x] `filesystem_stats_by_extension` — Implementation notes:
   - **Priority #3** — Provides context for file operations; helps agents understand collections.
   - Walk all files beneath a root—including files inside disk/tape images—and compute counts and size statistics (total, min, max, mean) per extension.
-  - Agent state: cached directory index, prior stats snapshots for trend comparisons.
+  - Agent state: cached directoryg index, prior stats snapshots for trend comparisons.
   - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards); fallback: mount images and scrape directory via BASIC.
   - Dependencies: None
   - Effort: 35 minutes
-- [ ] `music_compile_play_analyze` — Implementation notes:
+- [x] `music_compile_play_analyze` — Implementation notes:
   - **Priority #4** — Complete music development workflow in one tool; high value for composition.
   - Compile SIDWAVE→PRG or SID, play, then record-and-analyze; export analysis JSON and summary.
   - Agent state: compilation cache, expected score, analysis logs.

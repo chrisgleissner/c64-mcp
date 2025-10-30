@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **77 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **78 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -557,6 +557,7 @@ This MCP server exposes **77 tools**, **25 resources**, and **7 prompts** for co
 | `firmware_info_and_healthcheck` | Fetch firmware version and info, probe zero-page read, and return readiness with latencies. | `meta`, `orchestration`, `experimental`, `diagnostics` |
 | `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `memory_dump_to_file` | Chunked memory dump with retries; optional pause/resume; writes hex or binary and a manifest. | `meta`, `orchestration`, `experimental`, `memory`, `dump`, `file` |
+| `music_compile_play_analyze` | Compile a SIDWAVE score, play it on the C64, capture the output, and analyze the recording. | `meta`, `orchestration`, `experimental` |
 | `program_shuffle` | Discover and run PRG/CRT programs under a root path, capturing screens and resetting between runs. | `meta`, `orchestration`, `experimental`, `programs`, `testing` |
 | `silence_and_verify` | Silence all SID voices, capture a short sample, and ensure the output is below an RMS threshold. | `meta`, `orchestration`, `experimental` |
 | `start_background_task` | Start a background task that runs an operation at a fixed interval for N iterations or indefinitely. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
