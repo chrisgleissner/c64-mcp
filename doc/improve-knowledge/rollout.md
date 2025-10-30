@@ -64,7 +64,7 @@ For every checklist item below, execute the following sub-steps in order (these 
 
 - [x] S1: Produce the reproducible container workflow described above, updating `Dockerfile`, README, and notes so future operators can rebuild and run the MCP server in that container.
 - [x] S2: Replace license name and URL with SPDX identifier in structured RAG refs (ensure `origin`, `uri`, `spdxId` fields are present; map when possible) (`src/rag/indexer.ts`, `src/rag/retriever.ts`, `src/tools/rag.ts`).
-- [ ] D1: Add a concise “What changed” MCP summary to README/resource index after build; link the platform status resource (`README.md`, `src/mcp-server.ts`).
+- [x] D1: Add a concise “What changed” MCP summary to README/resource index after build; link the platform status resource (`README.md`, `src/mcp-server.ts`).
 - [ ] D2: Cross-link prompts to key resources (SID best-practices, VIC-II, PETSCII/charset quickrefs) for richer in-editor guidance (`src/prompts/registry.ts`).
 
 ## Phase 5 — Knowledge Exposure & Retrieval Enhancements

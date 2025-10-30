@@ -383,6 +383,19 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
+### What Changed
+
+This MCP server exposes **74 tools**, **21 resources**, and **7 prompts** for controlling your Commodore 64.
+
+**Platform Status:** Check [`c64://platform/status`](#resources) for active backend, feature flags, and tool compatibility.
+
+**Recent Enhancements:**
+- Structured RAG outputs with resource URIs for improved provenance
+- SPDX license identifiers for standardized attribution
+- Expanded knowledge base with memory maps, SID best-practices, and hardware guides
+- Enhanced program runners with structured JSON outputs
+- PAL/NTSC system awareness in audio and graphics tools
+
 ### Tools
 
 #### Programs
