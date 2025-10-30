@@ -205,7 +205,8 @@ async function pollBasicOutcome(
 
 /**
  * Poll for Assembly program outcome by detecting hardware and screen activity.
- * Monitors VIC-II, SID, CIA, jiffy clock, and screen memory to determine if program is alive or crashed.
+ * Monitors VIC-II, SID, CIA, jiffy clock, screen memory, and low memory (zero page + stack)
+ * to determine if program is alive or crashed.
  * First waits for RUN to appear, then monitors for activity across multiple memory regions.
  */
 async function pollAsmOutcome(
@@ -269,8 +270,12 @@ async function pollAsmOutcome(
       // Read screen memory at $0400-$07E7 (1000 bytes)
       const screenMem = await client.readMemoryRaw(0x0400, 0x3E8);
       
+      // Read low memory (zero page + stack) at $0000-$01FF (512 bytes)
+      // Secondary activity hint for additional crash detection sensitivity
+      const lowMem = await client.readMemoryRaw(0x0000, 0x0200);
+      
       // Concatenate all regions and compute signature
-      const combinedBuffer = concatBuffers(ioRegions, screenMem);
+      const combinedBuffer = concatBuffers(ioRegions, screenMem, lowMem);
       const ioSignature = computeCrc32(combinedBuffer);
       
       // Check for any activity
