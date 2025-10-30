@@ -46,7 +46,7 @@ test("background tasks handle unknown operation and stop all", async () => {
 
     let res = await metaModule.invoke("start_background_task", { name: "noop", operation: "unknown_op", intervalMs: 5, maxIterations: 1 }, ctx);
     assert.equal(res.metadata?.success, true);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForTaskCompletion(metaModule, "noop", ctx);
     res = await metaModule.invoke("stop_all_background_tasks", {}, ctx);
     assert.equal(res.metadata?.success, true);
     const list = await metaModule.invoke("list_background_tasks", {}, ctx);
