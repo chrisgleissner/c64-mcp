@@ -91,9 +91,8 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
   - `silence_and_verify` — Covered by `test/meta/audio.test.mjs`
   - `filesystem_stats_by_extension` — Covered by `test/meta/filesystem.test.mjs`
   - `music_compile_play_analyze` — Covered by `test/meta/audio.test.mjs`
+  - `extract_sprites_from_ram` — Covered by `test/meta/screen.test.mjs`
 - **Pending (add tests during implementation)**
-  - `music_compile_play_analyze` — Add end-to-end audio workflow coverage (recommended alongside `test/meta/audio.test.mjs`).
-  - `extract_sprites_from_ram` — Add sprite extraction scenarios (extend `test/meta/screen.test.mjs` or create a dedicated graphics suite).
   - `rip_charset_from_ram` — Add charset export cases (extend `test/meta/screen.test.mjs`).
   - `drive_mount_and_verify` — Add drive lifecycle coverage (extend `test/meta/program.test.mjs` or create `test/meta/drive.test.mjs` when introduced).
   - `classify_prg_basic_or_mc` — Add classification logic tests (extend `test/meta/filesystem.test.mjs`).
@@ -143,13 +142,14 @@ Phase 2a total effort: ~205 minutes (3.4 hours) — High-impact foundation for a
 
 ### Phase 2b — Graphics & Extraction (medium effort, high value for creative work)
 
-- [ ] `extract_sprites_from_ram` — Implementation notes:
+- [x] `extract_sprites_from_ram` — Implementation notes:
   - **Priority #5** — Extract sprites from running programs for analysis and reuse.
   - Search with stride for 63-byte sprite patterns; export `.spr`/hex/base64.
   - Agent state: candidate heuristics, sprite index mapping, output folder.
   - REST: GET /v1/machine:readmem, optional PUT /v1/machine:pause|resume
   - Dependencies: `memory_dump_to_file` (✅ implemented)
   - Effort: 80 minutes
+  - Coverage: `test/meta/screen.test.mjs`
 - [ ] `rip_charset_from_ram` — Implementation notes:
   - **Priority #6** — Extract custom character sets for reuse and font library building.
   - Locate 2KB charsets by structure; export binary and a PNG preview.

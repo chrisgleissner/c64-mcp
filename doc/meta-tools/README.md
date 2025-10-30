@@ -18,6 +18,7 @@ Meta tools reduce round-trips between client and server by bundling multiple RES
 ### Current Status
 
 **Implemented (Phase 0-2a quick wins)**:
+
 - Foundation tools (Phase 0): firmware health checks, screen polling, memory verification, background tasks
 - Orchestration (Phase 1): program shuffle, batch assertions, artifact bundling, compile-run-verify cycles
 - Quick wins (Phase 2a): find-and-run program by name, silence-and-verify SID output, filesystem stats by extension
@@ -29,12 +30,14 @@ Meta tools reduce round-trips between client and server by bundling multiple RES
 See [analysis.md](analysis.md) for detailed rationale.
 
 **Phase 2a — Quick Wins** (~3.4 hours, high impact):
+
 1. `find_and_run_program_by_name` — Find and run programs in disk collections
 2. `silence_and_verify` — SID testing foundation
 3. `filesystem_stats_by_extension` — Understand file collections
 4. `music_compile_play_analyze` — Complete music workflow
 
 **Phase 2b — Graphics & Extraction** (~3.3 hours):
+
 - Extract sprites and character sets from RAM
 - Reliable drive mounting
 
@@ -45,6 +48,7 @@ See [analysis.md](analysis.md) for detailed rationale.
 **Phase 4 — Additional Orchestration**: Developer loops, RAG-coupled tools
 
 **Phase 5 — Debug Streaming** (Post-GA, requires ~72 hours of infrastructure):
+
 - Assembly verification, IRQ validation, bus tracing
 - Deferred until UDP ingest pipeline is ready
 
@@ -58,12 +62,14 @@ See [analysis.md](analysis.md) for detailed rationale.
 ## For Implementers
 
 Start with [rollout.md](rollout.md) which provides:
+
 - Required reading list
 - Operator rules (process strictly in order, run tests after each change)
 - Global implementation template
 - Phase-by-phase checklists with dependencies
 
 Each meta tool entry includes:
+
 - Priority ranking
 - Effort estimate (minutes)
 - Benefit level (high/medium/low)
@@ -74,6 +80,7 @@ Each meta tool entry includes:
 ## For Users
 
 See [catalog.md](catalog.md) for:
+
 - Tool purpose and use cases
 - Agent-managed state
 - Underlying REST/MCP operations
@@ -82,6 +89,7 @@ See [catalog.md](catalog.md) for:
 ## Architecture
 
 Meta tools live in `src/tools/meta/` with submodules:
+
 - `diagnostics.ts` — Health checks, firmware info
 - `screen.ts` — Screen polling, text matching
 - `memory.ts` — Memory dumps, verification, diffs

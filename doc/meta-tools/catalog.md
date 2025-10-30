@@ -3,6 +3,7 @@
 Purpose: Reduce round-trips and keep richer agent-side state by bundling multiple REST calls into single, stateful meta tools. Each entry lists its intent, agent-managed state, and the underlying Ultimate 64 REST endpoints it composes.
 
 Conventions:
+
 - Endpoint notation: METHOD /v1/<route>[:<command>] (see `doc/rest/c64-rest-api.md`).
 - When a meta tool composes MCP tools, these map onto the same REST calls via the `C64Client` facade.
 - Agent-managed state includes timers, queues, background tasks, rolling buffers, snapshots, and derived artifacts written to the agent filesystem.
@@ -167,6 +168,7 @@ Container-aware traversal: All tools in this group recurse into disk/tape contai
   - REST: PUT /v1/runners:load_prg (does not run), GET /v1/machine:readmem (few hundred bytes from load address), optional PUT /v1/machine:reset.
 
 File-Type Determination (CBM directory and PRG content):
+
 - Step 1: Fetch metadata/listing for host files; detect container types (`.d64/.d71/.d81/.t64`).
 - Step 2: For containers, parse directory entries: CBM file type byte at offset $02 (0x02 = SEQ, 0x82 = PRG, etc.) to classify `SEQ/PRG/USR/REL/UNKNOWN`.
 - Step 3: If type is `PRG`, inspect first bytes of file data: load address, plausible next-line pointer, and presence of BASIC tokens (≥ $80) before `00 00` (end-of-program marker) → classify as `BASIC`; else `PRG-MC` (machine code).
@@ -261,6 +263,7 @@ File-Type Determination (CBM directory and PRG content):
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
 
 Notes:
+
 - Debug stream consumes significant bandwidth and cannot run concurrently with video; tools enforce mutual exclusion and strict time limits.
 - Modes supported: 6510, VIC, 6510&VIC, 1541, 6510&1541. Tools select minimal necessary mode for the predicate to reduce load.
 
@@ -350,6 +353,7 @@ Notes:
 ## Notes on composition with existing MCP tools
 
 These meta tools build atop existing MCP tools which already wrap the REST surface:
+
 - Memory: `read_memory`, `write_memory`, `read_screen`
 - Programs: `upload_and_run_basic`, `upload_and_run_asm`, `run_prg_file`, `load_prg_file`, `run_crt_file`
 - Machine control: `reset_c64`, `reboot_c64`, `pause`, `resume`, `menu_button`, `debugreg_read`, `debugreg_write`
