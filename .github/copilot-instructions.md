@@ -4,11 +4,12 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 ## Project Snapshot
 
-- Language & runtime: TypeScript (ESM) targeting Node.js 18+.
+- Language & runtime: TypeScript (ESM) targeting Node.js 18+, with Bun 1.3.1+ for build and test tooling.
 - Entry points:
-  - Development: `npm start` (ts-node executes `src/index.ts`, which loads `src/mcp-server.ts`).
+  - Development: `npm start` (runs via Node for MCP stdio server compatibility, loads `src/mcp-server.ts`).
   - Published CLI: `c64bridge` (imports `dist/index.js`).
-- Build pipeline: `npm run build` emits JavaScript into `dist/`, normalizes the layout, and refreshes README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
+- Build pipeline: `npm run build` invokes TypeScript compiler and Bun scripts to emit JavaScript into `dist/`, normalize the layout, and refresh README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
+- Test pipeline: `npm test` runs tests via Bun's native test runner. Use `npm run coverage` for coverage reports.
 - Key domains:
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
   - Local RAG over `data/` with embeddings.
@@ -18,11 +19,12 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 ## Coding Standards
 
 - **Test-Driven Development**: write or update tests in `test/` alongside feature work. When fixing bugs, add regression coverage first.
-- **Code Coverage**: maintain or improve overall coverage (check `npm test -- --coverage`) which must exceed 80%, but aim for 85%+.
+- **Code Coverage**: maintain or improve overall coverage (check `npm run coverage`) which must exceed 80%, but aim for 85%+.
 - **KISS & DRY**: keep implementations simple, avoid duplication, and refactor shared logic into helpers when needed.
 - **Maintainability**: prefer readable, well-structured code; limit cleverness; include succinct comments only where the intent is not obvious.
 - **TypeScript**: use strict typing (strict mode enabled). Leverage type definitions and avoid `any` unless absolutely required.
 - **Build Output**: ensure compiled files stay under `dist/` only; never commit generated artifacts outside `dist/` or `documents`.
+- **Security**: never commit secrets or credentials; validate all inputs; follow principle of least privilege.
 
 ## Commit Messages & Releases
 
@@ -48,6 +50,26 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 3. Docs amended when user-facing behavior changes.
 4. Commit messages are short, clear, and follow Conventional Commits with clear feat/fix/docs/chore/build/style/refactor/test prefixes.
 5. Code adheres to TDD mindset, KISS, DRY, and maintainability goals.
+6. Security review: no hardcoded secrets, proper input validation, safe dependencies.
+
+## Task Delegation & Scope
+
+- **Ideal Tasks**: Bug fixes, documentation updates, test coverage improvements, refactoring, adding well-defined features with clear acceptance criteria.
+- **Avoid**: High-complexity cross-repository tasks, deep legacy system changes, or tasks requiring extensive domain knowledge not available in context.
+- **Issue Structure**: When creating or working on issues, ensure they have:
+  - Clear problem description or feature request
+  - Specific acceptance criteria
+  - Indication of which files/areas are involved
+  - Whether tests are required
+- **Human Review Required**: All pull requests require human approval. Treat agent contributions like code from a junior developer—review thoroughly, request changes, and iterate.
+
+## Pull Request Guidelines
+
+- Keep PRs focused and minimal—change only what's necessary to address the task.
+- Provide clear descriptions explaining what changed and why.
+- Link to related issues using GitHub keywords (Fixes #123, Closes #456).
+- Ensure CI passes before requesting review.
+- Respond to review feedback promptly and professionally.
 
 Thanks for helping keep the Commodore 64 MCP server robust and user-friendly! 
 
@@ -74,7 +96,7 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 ### Fallback Guidance
 
 - If MCP tooling is unavailable, propose the minimal steps to bring it online:
-  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64bridge`, 3) run `npm start` (or `node ./node_modules/c64bridge/dist/index.js`).
+  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64bridge`, 3) run `npm start` (Node.js provides better stdio/MCP compatibility for production runtime).
 - Avoid performing destructive actions (reset/reboot/power) without explicit confirmation.
 
 ### Example Prompts for Activation
