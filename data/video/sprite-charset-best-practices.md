@@ -107,10 +107,19 @@ You don't need to redefine all 256 characters:
 
 ### Sprite Multiplexing
 
-Reuse sprites across scanlines for more than 8 simultaneous sprites:
-- Use raster interrupts to reposition sprites mid-frame
-- Change sprite pointers between raster lines
-- Requires precise timing (see c64://specs/vic for raster details)
+**Technical implementation**: Once VIC-II completes drawing a sprite (after scanline Y+21), the same physical sprite can be repositioned and redrawn. This maps one physical sprite definition to multiple logical sprite instances across different scanlines.
+
+**Mechanism**:
+- VIC-II fetches sprite data during raster lines Y to Y+20 (21 lines)
+- After line Y+20 completes, sprite registers ($D000-$D00F, $D015, $D027-$D02E) can be modified
+- Same sprite pointer ($07F8-$07FF) reused by updating position/colour for next instance
+- Raster IRQ at Y+21 triggers repositioning code
+- Typical: 20-24 multiplexed sprites achievable with careful timing
+
+**Requirements**:
+- Precise raster interrupt timing (see c64://specs/vic)
+- Fast register updates (< 63 cycles between sprite positions)
+- Pre-calculated Y-coordinate tables for performance
 
 ### Multicolour vs Hires Sprites
 
@@ -148,12 +157,30 @@ Combine text and graphics:
 - Sprite-to-sprite collisions detected via `$D01E`
 - Sprite-to-background collisions via `$D01F`
 
-### Memory Bandwidth
+### Memory Bandwidth and VIC-II Cycles
 
-VIC-II shares memory bus with CPU:
-- Sprite fetches occur during specific cycles
-- More active sprites = more CPU slowdown
-- Plan sprite usage based on performance needs
+**VIC-II "bad lines"** (every 8th raster, lines $30-$F7):
+- VIC-II fetches 40 bytes of screen data + 40 bytes of character data
+- CPU halted for ~40-43 cycles (exact depends on sprite activity)
+- Bad lines occur when lower 3 bits of $D011 match lower 3 bits of raster counter
+
+**Sprite DMA cycles**:
+- Each active sprite costs 2 cycles per raster line for data fetch
+- Sprite X-coordinate at DMA fetch point determines if CPU is blocked
+- 8 sprites active: CPU loses 16 cycles per line
+- Sprite display starts at cycle 11-12 of raster line
+
+**Border timing and precision**:
+- Upper border: Open at raster $30 by writing $D011 bit 3=0 at cycle 56
+- Lower border: Open at raster $F7 by writing $D011 bit 3=1 at cycle 56  
+- Side borders: $D016 bit 3 controls, must write at precise X-coordinate
+- **NOP instruction** ($EA): Used for cycle-exact timing delays in border opening routines
+- Typical pattern: `NOP; NOP; STA $D011` to hit exact cycle 56
+
+**CPU availability**:
+- Normal line: ~63 cycles available
+- Bad line + 8 sprites: ~20 cycles available
+- Critical code: Use raster lines outside $30-$F7 range or disable screen ($D011 bit 4=0)
 
 ### Charset Performance
 

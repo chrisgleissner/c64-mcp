@@ -1,143 +1,96 @@
-# PETSCII Style Guide and Presets
+# PETSCII Style Guide
 
-This guide provides recommended colour combinations and style presets for creating readable and artistic PETSCII art on the Commodore 64.
+Colour presets and character codes for C64 PETSCII art. Target: LLM optimization.
 
-## Colour Palette Reference
+## C64 Colour Palette (0-15)
 
-The C64 has 16 colours (0-15):
+| Index | Name | Luminance | Common Use |
+|-------|------|-----------|------------|
+| 0 | Black | Low | Background, shadows |
+| 1 | White | High | Text, highlights |
+| 2 | Red | Medium | Accents |
+| 3 | Cyan | High | Water, sky |
+| 4 | Purple | Medium | Decorative |
+| 5 | Green | Medium | Nature |
+| 6 | Blue | Low | Sky, UI |
+| 7 | Yellow | High | Highlights |
+| 8 | Orange | Medium | Warm tones |
+| 9 | Brown | Low | Earth |
+| 10 | Light Red | Medium | Soft accents |
+| 11 | Dark Grey | Low | Depth |
+| 12 | Grey | Medium | Neutral |
+| 13 | Light Green | High | Nature highlights |
+| 14 | Light Blue | Medium | UI |
+| 15 | Light Grey | Medium | Borders |
 
-| Index | Name | Usage |
-|-------|------|-------|
-| 0 | Black | Background, shadows |
-| 1 | White | Text, highlights |
-| 2 | Red | Accents, warnings |
-| 3 | Cyan | Water, sky |
-| 4 | Purple | Decorative |
-| 5 | Green | Nature, success |
-| 6 | Blue | Sky, water, UI elements |
-| 7 | Yellow | Highlights, sun |
-| 8 | Orange | Warm tones |
-| 9 | Brown | Earth tones |
-| 10 | Light Red | Soft accents |
-| 11 | Dark Grey | Shadows, depth |
-| 12 | Grey | Neutral elements |
-| 13 | Light Green | Nature highlights |
-| 14 | Light Blue | Soft sky, water |
-| 15 | Light Grey | UI elements, borders |
+## Recommended Colour Presets
 
-## Recommended Presets
+| Preset | Border | Background | Foreground | Use Case |
+|--------|--------|------------|------------|----------|
+| High Contrast | 0 | 0 | 1 | Text, menus, maximum readability |
+| Green Terminal | 0 | 0 | 5 | Retro terminal aesthetic |
+| Ocean | 6 | 6 | 3 | Water scenes |
+| Sunset | 2 | 8 | 7 | Warm scenes |
+| Nature | 5 | 0 | 13 | Outdoor, forest |
+| Professional UI | 6 | 0 | 14 | Applications, tools |
 
-### High Contrast (Readable Text)
-**Best for**: Text displays, menus, data entry
+## Contrast Guidelines
 
-- borderColor: 0 (Black)
-- backgroundColor: 0 (Black)
-- foregroundColor: 1 (White)
+- High contrast: Luminance difference >2 levels (0/1, 6/7, 0/13)
+- Avoid: Grey(12) on Light Grey(15), similar hues (2 on 4)
+- Border matching: Set border=background for seamless look
 
-This classic combination provides maximum readability for text-heavy screens.
+## PETSCII vs Screen Codes
 
-### Retro Terminal (Green Screen)
-**Best for**: Retro computing aesthetics, terminal emulation
+**PETSCII codes** ($00-$FF): Used in BASIC strings, CHR$(), keyboard input, PRINT statements
+**Screen codes** ($00-$FF): Values directly written to screen memory ($0400-$07E7)
 
-- borderColor: 0 (Black)
-- backgroundColor: 0 (Black)
-- foregroundColor: 5 (Green)
+Conversion: Screen code ≠ PETSCII code. Use charset reference (c64://specs/charset) for mapping.
 
-Mimics classic monochrome green terminals.
+**Usage**:
+- BASIC/printing: Use PETSCII codes with CHR$() or PRINT
+- Direct screen memory: Use screen codes with POKE to $0400+offset
+- Tools: `create_petscii_image` returns both `petsciiCodes` array and screen memory data
 
-### Ocean Theme
-**Best for**: Water scenes, cool aesthetics
+## Essential PETSCII Symbols
 
-- borderColor: 6 (Blue)
-- backgroundColor: 6 (Blue)
-- foregroundColor: 3 (Cyan)
-
-Creates a cohesive water/ocean theme.
-
-### Sunset/Warm
-**Best for**: Warm scenes, inviting displays
-
-- borderColor: 2 (Red)
-- backgroundColor: 8 (Orange)
-- foregroundColor: 7 (Yellow)
-
-Provides warm, inviting colour scheme.
-
-### Nature/Forest
-**Best for**: Outdoor scenes, organic themes
-
-- borderColor: 5 (Green)
-- backgroundColor: 0 (Black)
-- foregroundColor: 13 (Light Green)
-
-Good for nature and forest scenes.
-
-### Professional UI
-**Best for**: Applications, professional tools
-
-- borderColor: 6 (Blue)
-- backgroundColor: 0 (Black)
-- foregroundColor: 14 (Light Blue)
-
-Modern, professional appearance for UI elements.
-
-## Contrast and Readability Tips
-
-1. **High Contrast**: Use colours with large luminance differences (e.g., black/white, blue/yellow)
-2. **Avoid Similar Colours**: Don't use Grey (12) on Light Grey (15) - insufficient contrast
-3. **Border Matching**: Set borderColor to match backgroundColor for seamless appearance
-4. **Colour Clash**: Avoid Red (2) on Purple (4) or similar hue combinations that clash
-
-## Dithering and Patterns
-
-When working with PETSCII art:
-
-- Use alternating characters for dithering effects
-- Combine block graphics characters (codes 160-191) for solid fills
-- Mix regular and reverse characters for texture
-- Leverage the character set's built-in patterns
-
-## Character Selection
-
-### Text Characters
-- Standard ASCII: codes 65-90 (A-Z), 97-122 (a-z)
-- Numbers: codes 48-57 (0-9)
-- Symbols: various codes 32-64, 91-96, 123-127
-
-### Block Graphics
-- Full block: code 160
-- Half blocks: codes 161-191
-- Quarter blocks: various combinations
-- Lines and corners: codes 192-223
-
-### Special Graphics
-- Hearts, diamonds, clubs, spades: codes 83-90 (shifted)
-- Custom patterns: codes 91-127
-- Inverse characters: codes 128-255
-
-## Best Practices
-
-1. **Test on Real Hardware**: PAL/NTSC differences affect colour appearance
-2. **Consider Borders**: Border colour frames your art - use it intentionally
-3. **Limit Palette**: Using 3-4 colours creates cohesive designs
-4. **Character Density**: Balance solid and sparse areas for visual interest
-5. **Screen Limits**: Remember the 40×25 character grid limitation
+| PETSCII | Char | Name | Use |
+|---------|------|------|-----|
+| 32 | (space) | Space | Empty cell |
+| 160 | █ | Full block | Solid fill |
+| 65-90 | A-Z | Uppercase | Text |
+| 193-218 | a-z | Lowercase | Text (shifted mode) |
+| 48-57 | 0-9 | Digits | Numbers |
+| 83 | ♥ | Heart | Decoration, life |
+| 90 | ♦ | Diamond | Suit, decoration |
+| 88 | ♣ | Club | Suit, decoration |
+| 65 | ♠ | Spade | Suit, decoration |
+| 94 | ↑ | Up arrow | Direction, pointer |
+| 95 | ← | Left arrow | Direction |
+| 64 | ─ | Horizontal line | Borders, dividers |
+| 93 | │ | Vertical line | Borders |
+| 85 | ╭ | Arc top-left | Rounded corners |
+| 73 | ╮ | Arc top-right | Rounded corners |
+| 74 | ╰ | Arc bottom-left | Rounded corners |
+| 75 | ╯ | Arc bottom-right | Rounded corners |
+| 91 | ┼ | Cross | Grid intersection |
+| 66-82 | Various | Block fractions | Dithering, gradients |
 
 ## Tool Integration
 
-When using `create_petscii_image`:
-
 ```javascript
-{
+create_petscii_image({
   prompt: "cat",
-  borderColor: 0,        // Black border
-  backgroundColor: 6,    // Blue background
-  foregroundColor: 1     // White foreground
-}
+  borderColor: 0,
+  backgroundColor: 6,
+  foregroundColor: 1
+})
 ```
+
+Returns: `petsciiCodes[]`, `bitmapHex`, `rowHex`, `program`, dimensions
 
 ## Related Resources
 
-- `c64://specs/charset` - Complete character code reference
-- `c64://specs/vic` - VIC-II colour and screen control
-- `c64://specs/basic` - BASIC commands for screen manipulation
+- `c64://specs/charset` - Full PETSCII/screen code mappings
+- `c64://specs/vic` - VIC-II registers, colour RAM
+- `c64://specs/basic` - BASIC screen commands
