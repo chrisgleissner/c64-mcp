@@ -55,7 +55,20 @@ if (target === "real" && !env.C64_TEST_BASE_URL) {
 }
 
 const bunExecutable = process.execPath;
-const cmd = [bunExecutable, "test", ...(runCoverage ? ["--coverage"] : []), ...passthrough];
+const cmd = [
+  bunExecutable,
+  "test",
+  ...(runCoverage
+    ? [
+        "--coverage",
+        // Ensure LCOV is emitted for Codecov
+        "--coverage-reporter=lcov",
+        // Text summary helps debugging in CI logs
+        "--coverage-reporter=text-summary",
+      ]
+    : []),
+  ...passthrough,
+];
 const child = Bun.spawn({
   cmd,
   cwd: repoRoot,
