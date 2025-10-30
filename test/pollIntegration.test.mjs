@@ -1,0 +1,139 @@
+import test from "#test/runner";
+import assert from "#test/assert";
+import { programRunnersModule } from "../src/tools/programRunners.js";
+
+function createLogger() {
+  return {
+    debug() {},
+    info() {},
+    warn() {},
+    error() {},
+  };
+}
+
+test("ASM program with screen changes is detected as ok", async () => {
+  const screens = [
+    "READY.\n",
+    "RUN\nSYS 2061\n",
+    "HELLO FROM ASM\n", // Screen changed
+  ];
+  
+  const ctx = {
+    client: {
+      async uploadAndRunAsm(program) {
+        return { success: true };
+      },
+      async readScreen() {
+        const screen = screens.shift();
+        if (!screen) return "READY.\n";
+        return screen;
+      },
+    },
+    logger: createLogger(),
+  };
+  
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_asm",
+    { program: ".org $0801\n lda #$01\n sta $0400\n rts" },
+    ctx,
+  );
+  
+  assert.equal(result.isError, undefined);
+  assert.ok(result.structuredContent && result.structuredContent.type === "json");
+  const data = result.structuredContent.data;
+  assert.equal(data.kind, "upload_and_run_asm");
+});
+
+test("ASM program with no screen changes is detected as crashed", async () => {
+  const screens = [
+    "READY.\n",
+    "RUN\nSYS 2061\n",
+    "RUN\nSYS 2061\n", // No change
+    "RUN\nSYS 2061\n", // No change
+  ];
+  
+  const ctx = {
+    client: {
+      async uploadAndRunAsm(program) {
+        return { success: true };
+      },
+      async readScreen() {
+        const screen = screens.shift();
+        if (!screen) return "RUN\nSYS 2061\n";
+        return screen;
+      },
+    },
+    logger: createLogger(),
+  };
+  
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_asm",
+    { program: ".org $0801\nloop: jmp loop" }, // Infinite loop
+    ctx,
+  );
+  
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("crashed"));
+});
+
+test("ASM polling respects environment variables", async () => {
+  // Set very short timeout
+  process.env.C64BRIDGE_POLL_MAX_MS = "50";
+  process.env.C64BRIDGE_POLL_INTERVAL_MS = "10";
+  
+  const screens = [
+    "READY.\n",
+    "RUN\nSYS 2061\n",
+    "RUN\nSYS 2061\n",
+  ];
+  
+  const ctx = {
+    client: {
+      async uploadAndRunAsm(program) {
+        return { success: true };
+      },
+      async readScreen() {
+        const screen = screens.shift();
+        if (!screen) return "RUN\nSYS 2061\n";
+        return screen;
+      },
+    },
+    logger: createLogger(),
+  };
+  
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_asm",
+    { program: ".org $0801\nrts" },
+    ctx,
+  );
+  
+  // With short timeout, should quickly timeout and report crashed
+  assert.equal(result.isError, true);
+  
+  delete process.env.C64BRIDGE_POLL_MAX_MS;
+  delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+});
+
+test("ASM program that executes instantly without RUN showing is ok", async () => {
+  const ctx = {
+    client: {
+      async uploadAndRunAsm(program) {
+        return { success: true };
+      },
+      async readScreen() {
+        // Program executed so fast RUN never showed
+        return "READY.\n";
+      },
+    },
+    logger: createLogger(),
+  };
+  
+  const result = await programRunnersModule.invoke(
+    "upload_and_run_asm",
+    { program: ".org $0801\nrts" }, // Instant return
+    ctx,
+  );
+  
+  // Should be considered ok (instant execution)
+  assert.equal(result.isError, undefined);
+});
