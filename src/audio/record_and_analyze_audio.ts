@@ -32,6 +32,8 @@ export interface AnalysisResult {
     global_metrics: {
       average_pitch_deviation: number | null;
       detected_bpm: number | null;
+      average_rms: number | null;
+      max_rms: number | null;
     };
   };
 }
@@ -145,6 +147,13 @@ async function analyzePcm(signal: Float32Array, sampleRate: number, expectedSidw
   }
 
   const segments = groupSegments(frames, sampleRate);
+  const rmsValues = frames
+    .map((f) => (Number.isFinite(f.rms) ? Math.max(0, Number(f.rms)) : 0))
+    .filter((v) => Number.isFinite(v));
+  const averageRmsRaw = rmsValues.length ? rmsValues.reduce((acc, v) => acc + v, 0) / rmsValues.length : 0;
+  const maxRmsRaw = rmsValues.length ? Math.max(...rmsValues) : 0;
+  const averageRms = rmsValues.length ? round(averageRmsRaw, 0.0001) : 0;
+  const maxRms = rmsValues.length ? round(maxRmsRaw, 0.0001) : 0;
 
   // Map to detected notes with deviations
   let expected: ReturnType<typeof parseSidwave> | undefined;
@@ -226,6 +235,8 @@ async function analyzePcm(signal: Float32Array, sampleRate: number, expectedSidw
       global_metrics: {
         average_pitch_deviation: avgDev,
         detected_bpm: detected_bpm ? round(detected_bpm, 0.1) : null,
+        average_rms: rmsValues.length ? averageRms : null,
+        max_rms: rmsValues.length ? maxRms : null,
       },
     },
   };

@@ -13,7 +13,7 @@ const programShuffleArgsSchema = objectSchema({
   properties: {
     root: optionalSchema(stringSchema({ description: "Root path to search for programs", minLength: 1 }), "/"),
     extensions: optionalSchema(arraySchema(stringSchema({ description: "File extensions to include (without dot)", minLength: 1 })), ["prg", "crt"] as any),
-    durationMs: optionalSchema(numberSchema({ description: "Duration to run each program in milliseconds", integer: true, minimum: 100, default: 5000 }), 5000),
+    durationMs: optionalSchema(numberSchema({ description: "Duration to run each program in milliseconds", integer: true, minimum: 1, default: 5000 }), 5000),
     captureScreen: optionalSchema(booleanSchema({ description: "Capture screen after each run", default: true }), true),
     maxPrograms: optionalSchema(numberSchema({ description: "Maximum number of programs to run", integer: true, minimum: 1, default: 10 }), 10),
     outputPath: optionalSchema(stringSchema({ description: "Output directory for run logs and captures", minLength: 1 })),
@@ -45,7 +45,7 @@ const batchRunWithAssertionsArgsSchema = objectSchema({
       additionalProperties: false,
     })),
     continueOnError: optionalSchema(booleanSchema({ description: "Continue running programs after assertion failure", default: false }), false),
-    durationMs: optionalSchema(numberSchema({ description: "Duration to run each program before assertions", integer: true, minimum: 100, default: 2000 }), 2000),
+    durationMs: optionalSchema(numberSchema({ description: "Duration to run each program before assertions", integer: true, minimum: 1, default: 2000 }), 2000),
     outputPath: optionalSchema(stringSchema({ description: "Output directory for test results", minLength: 1 })),
   },
   required: ["programs"],

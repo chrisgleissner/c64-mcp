@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **74 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **79 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -551,11 +551,16 @@ This MCP server exposes **74 tools**, **25 resources**, and **7 prompts** for co
 | `bundle_run_artifacts` | Gather screen capture, memory snapshots, and debugreg into a structured bundle for a run. | `meta`, `orchestration`, `experimental`, `artifacts`, `debugging` |
 | `compile_run_verify_cycle` | Compile source (BASIC/ASM/SIDWAVE), run, verify via screen/audio, and archive artifacts. | `meta`, `orchestration`, `experimental`, `compile`, `verify` |
 | `config_snapshot_and_restore` | Read all configuration categories and write a versioned snapshot, or restore from a snapshot; supports diff mode. | `meta`, `orchestration`, `experimental`, `config`, `snapshot` |
+| `extract_sprites_from_ram` | Scan a RAM region, detect sprite blobs, and optionally save them as .spr files. | `meta`, `orchestration`, `experimental`, `graphics`, `sprites`, `extract` |
+| `filesystem_stats_by_extension` | Walk the filesystem (and container contents) under a root and compute counts plus size statistics grouped by extension. | `meta`, `orchestration`, `experimental`, `files`, `discover`, `stats` |
+| `find_and_run_program_by_name` | Search under a root for the first PRG/CRT whose name contains a substring and run it. | `meta`, `orchestration`, `experimental`, `files`, `discover`, `programs` |
 | `find_paths_by_name` | Return device paths whose names contain a substring; supports simple extension filters and wildcard-aware firmware search. | `meta`, `orchestration`, `experimental`, `files`, `discover` |
 | `firmware_info_and_healthcheck` | Fetch firmware version and info, probe zero-page read, and return readiness with latencies. | `meta`, `orchestration`, `experimental`, `diagnostics` |
 | `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `memory_dump_to_file` | Chunked memory dump with retries; optional pause/resume; writes hex or binary and a manifest. | `meta`, `orchestration`, `experimental`, `memory`, `dump`, `file` |
+| `music_compile_play_analyze` | Compile a SIDWAVE score, play it on the C64, capture the output, and analyze the recording. | `meta`, `orchestration`, `experimental` |
 | `program_shuffle` | Discover and run PRG/CRT programs under a root path, capturing screens and resetting between runs. | `meta`, `orchestration`, `experimental`, `programs`, `testing` |
+| `silence_and_verify` | Silence all SID voices, capture a short sample, and ensure the output is below an RMS threshold. | `meta`, `orchestration`, `experimental` |
 | `start_background_task` | Start a background task that runs an operation at a fixed interval for N iterations or indefinitely. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `stop_all_background_tasks` | Stop all active background tasks. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `stop_background_task` | Stop a named background task. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |

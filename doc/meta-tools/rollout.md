@@ -1,8 +1,8 @@
-## Meta Tools Rollout Plan for c64bridge
+# Meta Tools Rollout Plan for c64bridge
 
 Purpose: Provide a concrete, dependency-aware rollout approach for the meta tools defined in `doc/meta-tools/catalog.md`. This plan gives ordered, checkable task lists and high-level implementation notes. It is written so another LLM can execute the rollout autonomously.
 
-### Required reading
+## Required reading
 
 The following documents need to be read and understood before starting the rollout:
 
@@ -11,7 +11,7 @@ The following documents need to be read and understood before starting the rollo
 - `doc/agent-state-spec.md` — Background task registry and persistence model
 - `doc/developer.md` — Architecture overview and contribution guidelines
 
-### Operator rules for the LLM performing the rollout
+## Operator rules for the LLM performing the rollout
 
 - Always work tasks strictly in order as listed. Do not skip ahead unless a task is cancelled.
 - After each checklist item, run the full build and test suite and proceed only if it passes:
@@ -84,11 +84,29 @@ Requirement: After each checkbox completion, run `npm run check` and proceed onl
 
 ---
 
+### Phase 2 — Remaining Topics Snapshot (2025-10-30)
+
+- **Completed with tests**
+  - `find_and_run_program_by_name` — Covered by `test/meta/filesystem.test.mjs`
+  - `silence_and_verify` — Covered by `test/meta/audio.test.mjs`
+  - `filesystem_stats_by_extension` — Covered by `test/meta/filesystem.test.mjs`
+  - `music_compile_play_analyze` — Covered by `test/meta/audio.test.mjs`
+  - `extract_sprites_from_ram` — Covered by `test/meta/screen.test.mjs`
+- **Pending (add tests during implementation)**
+  - `rip_charset_from_ram` — Add charset export cases (extend `test/meta/screen.test.mjs`).
+  - `drive_mount_and_verify` — Add drive lifecycle coverage (extend `test/meta/program.test.mjs` or create `test/meta/drive.test.mjs` when introduced).
+  - `classify_prg_basic_or_mc` — Add classification logic tests (extend `test/meta/filesystem.test.mjs`).
+  - `screen_capture_timeline` — Add timeline sampling coverage (extend `test/meta/screen.test.mjs`).
+  - `sid_param_sweep` — Add SID parameter sweep coverage (extend `test/meta/audio.test.mjs`).
+  - `create_and_mount_blank_d64` — Add disk creation coverage (extend `test/meta/filesystem.test.mjs`).
+  - `memory_snapshot_and_diff` — Add snapshot/diff coverage (extend `test/meta/memory.test.mjs`).
+  - `disassemble_ram_region` — Add disassembly coverage (extend `test/meta/memory.test.mjs`).
+
 ### Phase 2a — Quick Wins (high-impact, low-effort tools for immediate agent effectiveness)
 
 Rationale: These tools provide maximum value with minimal implementation effort. They enable core agent capabilities: finding programs, composing music, and understanding file collections. See `doc/meta-tools/analysis.md` for detailed impact analysis.
 
-- [ ] `find_and_run_program_by_name` — Implementation notes:
+- [x] `find_and_run_program_by_name` — Implementation notes:
   - **Priority #1** — Most requested feature; enables agents to search and run programs from disk collections.
   - Search under a root (including inside `.d64/.d71/.d81/.t64`) for the first program whose filename contains a substring; run it.
   - Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
@@ -96,21 +114,21 @@ Rationale: These tools provide maximum value with minimal implementation effort.
   - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_and_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
   - Dependencies: `find_paths_by_name` (✅ implemented)
   - Effort: 45 minutes
-- [ ] `silence_and_verify` — Implementation notes:
+- [x] `silence_and_verify` — Implementation notes:
   - **Priority #2** — Essential foundation for all SID testing; quick win that unblocks music workflows.
   - Silence all voices, then verify via short audio capture that output drops below a threshold.
   - Agent state: threshold, capture window.
   - REST: PUT|POST /v1/machine:writemem (SID reset), optional streams
   - Dependencies: None
   - Effort: 35 minutes
-- [ ] `filesystem_stats_by_extension` — Implementation notes:
+- [x] `filesystem_stats_by_extension` — Implementation notes:
   - **Priority #3** — Provides context for file operations; helps agents understand collections.
   - Walk all files beneath a root—including files inside disk/tape images—and compute counts and size statistics (total, min, max, mean) per extension.
-  - Agent state: cached directory index, prior stats snapshots for trend comparisons.
+  - Agent state: cached directoryg index, prior stats snapshots for trend comparisons.
   - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards); fallback: mount images and scrape directory via BASIC.
   - Dependencies: None
   - Effort: 35 minutes
-- [ ] `music_compile_play_analyze` — Implementation notes:
+- [x] `music_compile_play_analyze` — Implementation notes:
   - **Priority #4** — Complete music development workflow in one tool; high value for composition.
   - Compile SIDWAVE→PRG or SID, play, then record-and-analyze; export analysis JSON and summary.
   - Agent state: compilation cache, expected score, analysis logs.
@@ -124,13 +142,14 @@ Phase 2a total effort: ~205 minutes (3.4 hours) — High-impact foundation for a
 
 ### Phase 2b — Graphics & Extraction (medium effort, high value for creative work)
 
-- [ ] `extract_sprites_from_ram` — Implementation notes:
+- [x] `extract_sprites_from_ram` — Implementation notes:
   - **Priority #5** — Extract sprites from running programs for analysis and reuse.
   - Search with stride for 63-byte sprite patterns; export `.spr`/hex/base64.
   - Agent state: candidate heuristics, sprite index mapping, output folder.
   - REST: GET /v1/machine:readmem, optional PUT /v1/machine:pause|resume
   - Dependencies: `memory_dump_to_file` (✅ implemented)
   - Effort: 80 minutes
+  - Coverage: `test/meta/screen.test.mjs`
 - [ ] `rip_charset_from_ram` — Implementation notes:
   - **Priority #6** — Extract custom character sets for reuse and font library building.
   - Locate 2KB charsets by structure; export binary and a PNG preview.
@@ -220,6 +239,7 @@ Phase 2b total effort: ~200 minutes (3.3 hours) — Graphics extraction and reli
   - Effort: 75 minutes
 
 Optional filesystem tools:
+
 - [ ] `sprite_preview_prg_batch` — Generate+run preview PRGs for many sprite blobs; capture screens. (Effort: 60 minutes)
 - [ ] `drive_mode_profile_switch` — Set drive mode with ROM load support. (Effort: 40 minutes)
 - [ ] `eject_and_poweroff_drive` — Remove image and power off drive. (Effort: 25 minutes)
@@ -229,6 +249,7 @@ Optional filesystem tools:
 ### Phase 4 — Additional Orchestration & Workflows (as needed)
 
 Not yet prioritized. See `doc/meta-tools/catalog.md` for full list of additional meta tools including:
+
 - Storage orchestration (batch_on_assets_apply_tools, etc.)
 - Screen/UI automation (menu_navigation_script, wait_for_screen_text extensions)
 - Developer loops (red_green_refactor_loop, multi_range_guardrails, safe_reset_sequence, drive_recovery_sequence)
@@ -243,11 +264,12 @@ These tools remain in the catalog for future implementation based on user demand
 ### Phase 5 — Debug Stream Workflows (post‑GA)
 
 **Infrastructure Prerequisites** (must be satisfied before starting this phase):
-  - UDP ingest pipeline with backpressure and packet‑loss handling (~40 hours — estimate includes design, implementation, testing)
-  - Sampling/windowing design for high‑rate streams and summary accuracy (~8 hours — research and prototyping)
-  - Performance targets validated via load and soak tests (~8 hours — test infrastructure and benchmarking)
-  - Observability and failure‑mode coverage (metrics, logs, alerts, drop counters) (~16 hours — instrumentation and monitoring setup)
-  - **Total infrastructure work: ~72 hours** (estimates based on similar streaming pipeline projects)
+
+- UDP ingest pipeline with backpressure and packet-loss handling (~40 hours — estimate includes design, implementation, testing)
+- Sampling/windowing design for high-rate streams and summary accuracy (~8 hours — research and prototyping)
+- Performance targets validated via load and soak tests (~8 hours — test infrastructure and benchmarking)
+- Observability and failure-mode coverage (metrics, logs, alerts, drop counters) (~16 hours — instrumentation and monitoring setup)
+- **Total infrastructure work: ~72 hours** (estimates based on similar streaming pipeline projects)
 
 **Rationale for Deferral**: Debug streaming tools are extremely valuable for assembly program verification (comparing expected vs actual execution) but require significant infrastructure work. Better to ship high-value, low-complexity features first (Phases 2a-3), then revisit debug streaming as a dedicated infrastructure project.
 
@@ -294,6 +316,7 @@ Optional debug tools (implement after above pass):
 - [ ] `time_bounded_trace_around_event` — Maintain circular buffer and freeze on predicate match. (Effort: 70 minutes)
 
 Notes:
+
 - Debug stream consumes significant bandwidth and cannot run concurrently with video; tools enforce mutual exclusion and strict time limits.
 - Modes supported: 6510, VIC, 6510&VIC, 1541, 6510&1541. Tools select minimal necessary mode for the predicate to reduce load.
 

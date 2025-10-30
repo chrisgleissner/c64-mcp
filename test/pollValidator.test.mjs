@@ -80,7 +80,7 @@ test("pollForProgramOutcome BASIC detects syntax error", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 1000, intervalMs: 50 },
+    { maxMs: 200, intervalMs: 20 },
   );
   
   assert.equal(result.status, "error");
@@ -107,7 +107,7 @@ test("pollForProgramOutcome BASIC detects error with line number", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 1000, intervalMs: 50 },
+    { maxMs: 200, intervalMs: 20 },
   );
   
   assert.equal(result.status, "error");
@@ -136,7 +136,7 @@ test("pollForProgramOutcome BASIC returns ok when no error", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 300, intervalMs: 50 },
+    { maxMs: 100, intervalMs: 20 },
   );
   
   assert.equal(result.status, "ok");
@@ -162,7 +162,7 @@ test("pollForProgramOutcome BASIC detects TYPE MISMATCH error", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 1000, intervalMs: 50 },
+    { maxMs: 200, intervalMs: 20 },
   );
   
   assert.equal(result.status, "error");
@@ -199,7 +199,7 @@ test("pollForProgramOutcome ASM detects screen change", async () => {
     "ASM",
     client,
     createLogger(),
-    { maxMs: 1000, intervalMs: 50 },
+    { maxMs: 200, intervalMs: 20 },
   );
   
   assert.equal(result.status, "ok");
@@ -230,7 +230,7 @@ test("pollForProgramOutcome ASM detects crash when no screen change", async () =
     "ASM",
     client,
     createLogger(),
-    { maxMs: 300, intervalMs: 50 },
+    { maxMs: 100, intervalMs: 20 },
   );
   
   assert.equal(result.status, "crashed");
@@ -256,7 +256,7 @@ test("pollForProgramOutcome handles screen read failures gracefully", async () =
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 500, intervalMs: 50 },
+    { maxMs: 150, intervalMs: 20 },
   );
   
   assert.equal(result.status, "ok");
@@ -274,7 +274,7 @@ test("pollForProgramOutcome BASIC returns ok if RUN not detected", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 50 },
+    { maxMs: 50, intervalMs: 10 },
   );
   
   assert.equal(result.status, "ok");
@@ -292,7 +292,7 @@ test("pollForProgramOutcome ASM returns ok if RUN not detected", async () => {
     "ASM",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 50 },
+    { maxMs: 50, intervalMs: 10 },
   );
   
   assert.equal(result.status, "ok");
@@ -318,7 +318,7 @@ test("pollForProgramOutcome BASIC case-insensitive RUN detection", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 1000, intervalMs: 50 },
+    { maxMs: 200, intervalMs: 20 },
   );
   
   assert.equal(result.status, "error");
@@ -344,7 +344,7 @@ test("pollForProgramOutcome detects BASIC error without line number", async () =
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 1000, intervalMs: 50 },
+    { maxMs: 200, intervalMs: 20 },
   );
   
   assert.equal(result.status, "error");
