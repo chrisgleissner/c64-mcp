@@ -8,8 +8,8 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 - Entry points:
   - Development: `npm start` (runs via Node for MCP stdio server compatibility, loads `src/mcp-server.ts`).
   - Published CLI: `c64bridge` (imports `dist/index.js`).
-- Build pipeline: `bun run build` compiles TypeScript into `dist/`, normalizes the layout, and refreshes README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
-- Test pipeline: `bun test` runs tests using Bun's native test runner. Use `bun run coverage` for coverage reports.
+- Build pipeline: `npm run build` invokes TypeScript compiler and Bun scripts to emit JavaScript into `dist/`, normalize the layout, and refresh README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
+- Test pipeline: `npm test` runs tests via Bun's native test runner. Use `npm run coverage` for coverage reports.
 - Key domains:
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
   - Local RAG over `data/` with embeddings.
@@ -19,7 +19,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 ## Coding Standards
 
 - **Test-Driven Development**: write or update tests in `test/` alongside feature work. When fixing bugs, add regression coverage first.
-- **Code Coverage**: maintain or improve overall coverage (check `bun run coverage`) which must exceed 80%, but aim for 85%+.
+- **Code Coverage**: maintain or improve overall coverage (check `npm run coverage`) which must exceed 80%, but aim for 85%+.
 - **KISS & DRY**: keep implementations simple, avoid duplication, and refactor shared logic into helpers when needed.
 - **Maintainability**: prefer readable, well-structured code; limit cleverness; include succinct comments only where the intent is not obvious.
 - **TypeScript**: use strict typing (strict mode enabled). Leverage type definitions and avoid `any` unless absolutely required.
@@ -45,8 +45,8 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 ## Review Checklist
 
-1. Tests added/updated and green (`bun test`).
-2. `bun run build` cleanly rebuilds (emits `dist/`).
+1. Tests added/updated and green (`npm test`).
+2. `npm run build` cleanly rebuilds (emits `dist/`).
 3. Docs amended when user-facing behavior changes.
 4. Commit messages are short, clear, and follow Conventional Commits with clear feat/fix/docs/chore/build/style/refactor/test prefixes.
 5. Code adheres to TDD mindset, KISS, DRY, and maintainability goals.
