@@ -105,10 +105,7 @@ export class LocalRagRetriever implements IRagRetriever {
       sourcePath: candidate.record.sourcePath,
       sourceUrl: candidate.record.sourceUrl,
       sourceRepoUrl: candidate.record.sourceRepoUrl,
-      license: candidate.record.license,
       licenseSpdxId: candidate.record.licenseSpdxId,
-      licenseName: candidate.record.licenseName,
-      licenseUrl: candidate.record.licenseUrl,
       attribution: candidate.record.attribution,
     }));
   }

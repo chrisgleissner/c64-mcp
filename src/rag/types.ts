@@ -13,10 +13,7 @@ export interface RagReference {
   sourcePath?: string;
   sourceUrl?: string;
   sourceRepoUrl?: string;
-  license?: string;
   licenseSpdxId?: string;
-  licenseName?: string;
-  licenseUrl?: string;
   attribution?: string;
 }
 

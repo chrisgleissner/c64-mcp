@@ -189,10 +189,7 @@ function serializeReference(ref: RagReference): Record<string, unknown> {
   if (ref.sourcePath) payload.sourcePath = ref.sourcePath;
   if (ref.sourceUrl) payload.sourceUrl = ref.sourceUrl;
   if (ref.sourceRepoUrl) payload.sourceRepoUrl = ref.sourceRepoUrl;
-  if (ref.license) payload.license = ref.license;
-  if (ref.licenseSpdxId) payload.licenseSpdxId = ref.licenseSpdxId;
-  if (ref.licenseName) payload.licenseName = ref.licenseName;
-  if (ref.licenseUrl) payload.licenseUrl = ref.licenseUrl;
+  if (ref.licenseSpdxId) payload.spdxId = ref.licenseSpdxId;
   if (ref.attribution) payload.attribution = ref.attribution;
   return payload;
 }
