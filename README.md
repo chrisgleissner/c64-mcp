@@ -355,7 +355,7 @@ The test runner accepts the following options:
 
 ### What Changed
 
-This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **74 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 **Platform Status:** Check [`c64://platform/status`](#resources) for active backend, feature flags, and tool compatibility.
 
@@ -477,7 +477,7 @@ This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for co
 
 | Name | Description | Tags |
 | --- | --- | --- |
-| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata. See c64://specs/basic and c64://specs/vic. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
+| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata including PETSCII codes and glyphs. See c64://specs/basic, c64://specs/vic, and c64://specs/charset. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
 | `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly`, `pal-ntsc` |
 | `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
 
@@ -587,6 +587,9 @@ This MCP server exposes **74 tools**, **22 resources**, and **7 prompts** for co
 | `c64://docs/sid/file-structure` | Explains PSID/RSID headers, metadata blocks, and compatibility notes for imported music. |
 | `c64://docs/sid/best-practices` | Captures proven waveforms, ADSR presets, phrasing, and verification workflow for pleasant SID music. |
 | `c64://specs/vic` | Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II. |
+| `c64://specs/charset` | Character code table mapping PETSCII codes to screen codes, glyphs, and keyboard input. |
+| `c64://docs/petscii-style` | Documents colour palette, readability presets, dithering patterns, and best practices for creating artistic and readable PETSCII displays. |
+| `c64://docs/sprite-charset-workflows` | Documents sprite and charset workflows, memory layout, VIC-II configuration, common pitfalls, and proven techniques for hardware-accelerated graphics. |
 | `c64://specs/memory-map` | Page-by-page breakdown of the 64 KB address space with hardware, ROM, and RAM regions. |
 | `c64://specs/memory-low` | Documents zero-page variables, BASIC pointers, and KERNAL workspace addresses. |
 | `c64://specs/memory-kernal` | Lists KERNAL ROM vectors and service routines for OS-level functionality. |

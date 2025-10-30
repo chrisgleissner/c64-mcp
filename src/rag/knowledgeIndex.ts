@@ -1,6 +1,44 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+function generateCharsetQuickref(): string {
+  const csvPath = join(process.cwd(), "data/video/character-set.csv");
+  const csvContent = readFileSync(csvPath, "utf-8");
+  const lines = csvContent.trim().split("\n");
+  const headers = lines[0].split(",");
+  
+  let markdown = "# PETSCII Character Set Reference\n\n";
+  markdown += "Complete reference of C64 character codes, screen codes, and glyphs.\n\n";
+  markdown += "## Character Code Table\n\n";
+  markdown += "| Screen Code | PETSCII | Char | Name | Keyboard |\n";
+  markdown += "|-------------|---------|------|------|----------|\n";
+  
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(",");
+    if (parts.length < 8) continue;
+    
+    const screenCode = parts[0];
+    const petsciiCode = parts[2];
+    const char = parts[4] || " ";
+    const name = parts[6] || "";
+    const keyboard = parts[7] || "";
+    
+    markdown += `| ${screenCode} | ${petsciiCode} | ${char} | ${name} | ${keyboard} |\n`;
+  }
+  
+  markdown += "\n## Usage Notes\n\n";
+  markdown += "- **Screen Code**: Value used in screen memory ($0400-$07E7)\n";
+  markdown += "- **PETSCII Code**: Value used in BASIC strings and CHR$() function\n";
+  markdown += "- **Keyboard**: Key combination to type the character\n";
+  markdown += "\n## Common Patterns\n\n";
+  markdown += "- Uppercase letters: PETSCII $41-$5A (A-Z)\n";
+  markdown += "- Lowercase letters: PETSCII $61-$7A (a-z) in graphics mode\n";
+  markdown += "- Digits: PETSCII $30-$39 (0-9)\n";
+  markdown += "- Graphics characters: Screen codes $60-$7F and $E0-$FF\n";
+  
+  return markdown;
+}
+
 export type ResourcePriority = "critical" | "reference" | "supplemental";
 
 interface BundleResourceDefinition {
@@ -191,8 +229,44 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         summary: "Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II.",
         prompts: ["graphics-demo"],
         tools: ["render_petscii_screen", "generate_sprite_prg", "write_memory"],
-        relatedResources: ["c64://specs/assembly"],
+        relatedResources: ["c64://specs/assembly", "c64://specs/charset", "c64://docs/petscii-style"],
         tags: ["vic", "graphics"],
+      },
+      {
+        uri: "c64://specs/charset",
+        name: "PETSCII Character Set Reference",
+        description: "Complete PETSCII character codes, screen codes, and glyph mappings",
+        relativePath: "data/video/character-set.csv",
+        priority: "reference",
+        summary: "Character code table mapping PETSCII codes to screen codes, glyphs, and keyboard input.",
+        prompts: ["graphics-demo"],
+        tools: ["render_petscii_screen", "create_petscii_image"],
+        relatedResources: ["c64://specs/vic", "c64://docs/petscii-style"],
+        tags: ["petscii", "charset", "graphics"],
+      },
+      {
+        uri: "c64://docs/petscii-style",
+        name: "PETSCII Style Guide and Presets",
+        description: "Colour combinations, contrast guidelines, and recommended presets for PETSCII art",
+        relativePath: "data/video/petscii-style-guide.md",
+        priority: "reference",
+        summary: "Documents colour palette, readability presets, dithering patterns, and best practices for creating artistic and readable PETSCII displays.",
+        prompts: ["graphics-demo"],
+        tools: ["create_petscii_image", "render_petscii_screen"],
+        relatedResources: ["c64://specs/vic", "c64://specs/charset", "c64://docs/sprite-charset-workflows"],
+        tags: ["petscii", "style", "colours", "graphics"],
+      },
+      {
+        uri: "c64://docs/sprite-charset-workflows",
+        name: "Sprite & Charset Workflows Best Practices",
+        description: "Comprehensive guide to creating, managing, and deploying sprites and custom character sets",
+        relativePath: "data/video/sprite-charset-best-practices.md",
+        priority: "reference",
+        summary: "Documents sprite and charset workflows, memory layout, VIC-II configuration, common pitfalls, and proven techniques for hardware-accelerated graphics.",
+        prompts: ["graphics-demo"],
+        tools: ["generate_sprite_prg", "write_memory", "read_memory", "upload_and_run_basic"],
+        relatedResources: ["c64://specs/vic", "c64://specs/charset", "c64://docs/petscii-style", "c64://specs/memory-map"],
+        tags: ["sprites", "charset", "graphics", "workflows"],
       },
     ],
   },
@@ -393,29 +467,38 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
 
 const BASE_RESOURCES: readonly KnowledgeResourceDefinition[] = KNOWLEDGE_BUNDLES.flatMap(
   (bundle, bundleIndex) =>
-    bundle.resources.map((resource, resourceIndex): KnowledgeResourceDefinition => ({
-      uri: resource.uri,
-      name: resource.name,
-      description: resource.description,
-      mimeType: "text/markdown",
-      relativePath: resource.relativePath,
-      metadata: {
-        domain: bundle.id,
-        priority: resource.priority,
-        summary: resource.summary,
-        prompts: resource.prompts,
-        tools: resource.tools,
-        tags: resource.tags ?? [],
-        bundle: {
-          id: bundle.id,
-          title: bundle.title,
-          summary: bundle.summary,
-          order: bundleIndex,
+    bundle.resources.map((resource, resourceIndex): KnowledgeResourceDefinition => {
+      const baseResource = {
+        uri: resource.uri,
+        name: resource.name,
+        description: resource.description,
+        mimeType: "text/markdown" as const,
+        relativePath: resource.relativePath,
+        metadata: {
+          domain: bundle.id,
+          priority: resource.priority,
+          summary: resource.summary,
+          prompts: resource.prompts,
+          tools: resource.tools,
+          tags: resource.tags ?? [],
+          bundle: {
+            id: bundle.id,
+            title: bundle.title,
+            summary: bundle.summary,
+            order: bundleIndex,
+          },
+          order: resourceIndex,
+          relatedResources: resource.relatedResources ?? [],
         },
-        order: resourceIndex,
-        relatedResources: resource.relatedResources ?? [],
-      },
-    })),
+      };
+      
+      // Add buildContent for resources that need dynamic generation
+      if (resource.uri === "c64://specs/charset") {
+        return { ...baseResource, buildContent: generateCharsetQuickref };
+      }
+      
+      return baseResource;
+    }),
 );
 
 const INDEX_RESOURCE: KnowledgeResourceDefinition = {

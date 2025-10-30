@@ -172,6 +172,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "list"],
+      examples: [
+        { name: "List configs", description: "Enumerate configuration categories", arguments: {} },
+      ],
       workflowHints: [
         "Run first to enumerate categories before reading or writing specific settings; summarise the top-level sections for the user.",
       ],
@@ -204,6 +207,10 @@ export const developerModule = defineToolModule({
       inputSchema: configGetArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "read"],
+      examples: [
+        { name: "Get audio config", description: "Read audio category", arguments: { category: "Audio" } },
+        { name: "Get volume", description: "Read specific setting", arguments: { category: "Audio", item: "Volume" } },
+      ],
       workflowHints: [
         "Use after config_list to fetch details; restate category/item so the user can cross-check values before changes.",
       ],
@@ -236,6 +243,9 @@ export const developerModule = defineToolModule({
       inputSchema: configSetArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "write"],
+      examples: [
+        { name: "Set volume", description: "Adjust audio volume", arguments: { category: "Audio", item: "Volume", value: 75 } },
+      ],
       workflowHints: [
         "Confirm the user-supplied value before writing; mention whether a reboot is required for the change to take effect.",
       ],
@@ -281,6 +291,9 @@ export const developerModule = defineToolModule({
       inputSchema: configBatchSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "write"],
+      examples: [
+        { name: "Batch update", description: "Update multiple settings", arguments: { Audio: { Volume: 80, DACMode: "stereo" } } },
+      ],
       workflowHints: [
         "Use when multiple categories must be updated together; remind the user to review validation errors closely.",
       ],
@@ -327,6 +340,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "flash"],
+      examples: [
+        { name: "Load from flash", description: "Restore saved configuration", arguments: {} },
+      ],
       workflowHints: [
         "Use when the user wants to revert to saved flash configuration; warn that unsaved RAM changes are discarded.",
       ],
@@ -361,6 +377,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "flash"],
+      examples: [
+        { name: "Save to flash", description: "Persist current config", arguments: {} },
+      ],
       workflowHints: [
         "Run after configuration changes the user wants to persist; mention that flash writes take a moment.",
       ],
@@ -395,6 +414,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["config", "reset"],
+      examples: [
+        { name: "Reset config", description: "Restore factory defaults", arguments: {} },
+      ],
       workflowHints: [
         "Confirm with the user before wiping settings; note that the firmware must restart to apply defaults fully.",
       ],
@@ -429,6 +451,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["diagnostics", "version"],
+      examples: [
+        { name: "Get version", description: "Check firmware version", arguments: {} },
+      ],
       workflowHints: [
         "Run when the user wonders which firmware build is active; include API and FPGA versions if available.",
       ],
@@ -457,6 +482,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["diagnostics", "info"],
+      examples: [
+        { name: "Get hardware info", description: "Query hardware status", arguments: {} },
+      ],
       workflowHints: [
         "Use to answer hardware capability questions; highlight serials, board revisions, or temperature if present.",
       ],
@@ -485,6 +513,9 @@ export const developerModule = defineToolModule({
       inputSchema: noArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["debug"],
+      examples: [
+        { name: "Read debug register", description: "Check $D7FF value", arguments: {} },
+      ],
       workflowHints: [
         "Read the register when debugging DMA or cartridge interactions; translate the hex value into context for the user.",
       ],
@@ -523,6 +554,9 @@ export const developerModule = defineToolModule({
       inputSchema: debugWriteArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap"],
       tags: ["debug"],
+      examples: [
+        { name: "Write debug register", description: "Set $D7FF to $42", arguments: { value: "42" } },
+      ],
       workflowHints: [
         "Confirm with the user before writing arbitrary values; mention side effects on cartridge or DMA behaviour.",
       ],

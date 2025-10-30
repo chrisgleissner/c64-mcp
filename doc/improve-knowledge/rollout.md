@@ -70,24 +70,24 @@ For every checklist item below, execute the following sub-steps in order (these 
 ## Phase 5 — Knowledge Exposure & Retrieval Enhancements
 
 - [x] K3: Add “BASIC pitfalls” quickref and publish as MCP resource; link from BASIC runners (`data/basic/basic-pitfalls.md`, `src/rag/knowledgeIndex.ts`, `src/tools/programRunners.ts`).
-- [ ] K4: Publish PETSCII/charset quickrefs (char codes, glyph map) as MCP resources; dynamically generate Markdown table from `data/video/character-set.csv` (build-time or runtime) to avoid duplicate sources (`src/rag/knowledgeIndex.ts`).
+- [x] K4: Publish PETSCII/charset quickrefs (char codes, glyph map) as MCP resources; dynamically generate Markdown table from `data/video/character-set.csv` (build-time or runtime) to avoid duplicate sources (`src/rag/knowledgeIndex.ts`).
 - [x] K5: Publish VIC-II register quickref as MCP resource and ensure graphics tools reference it (`data/video/vic-spec.md`, `src/tools/graphics.ts`).
 - [x] R2: Include bundle/resource URIs in RAG results when matches originate from docs (`src/rag/retriever.ts`, `src/tools/rag.ts`).
 - [x] R3: Add retrieval diversity and simple duplicate suppression in top-K (`src/rag/retriever.ts`).
 - [x] M5: Add PAL/NTSC-sensitive tags to relevant tools (SID, graphics) to nudge system-awareness (`src/tools/audio.ts`, `src/tools/graphics.ts`).
-- [ ] M4: Audit remaining tools for validation messages and examples; bring to parity (`src/tools/*`).
+- [x] M4: Audit remaining tools for validation messages and examples; bring to parity (`src/tools/*`).
 - [x] T2: Add e2e test for `rag_retrieve_*` verifying structured refs open via `ReadResource` (`test/rag.test.mjs`).
 
 ## Phase 6 — Creative Surface: Graphics & SID Workflows
 
-- [ ] G2: Auto-detect or remind PAL/NTSC context for `sid_note_on`; reflect in metadata (`src/c64Client.ts`, `src/tools/audio.ts`).
-- [ ] G3: Include PRG metadata (entry addresses, bytes) in program runners’ structured outputs (`src/tools/programRunners.ts`).
-- [ ] G4: Ensure PETSCII structured outputs and docs highlight selected glyphs/codes and miniature preview (`src/tools/graphics.ts`, docs).
-- [ ] G5: Document PETSCII style presets (contrast, dithering, palette) and link from prompts (`src/prompts/registry.ts`, docs under `data/video/`).
+- [x] G2: Auto-detect or remind PAL/NTSC context for `sid_note_on`; reflect in metadata (`src/c64Client.ts`, `src/tools/audio.ts`).
+- [x] G3: Include PRG metadata (entry addresses, bytes) in program runners’ structured outputs (`src/tools/programRunners.ts`).
+- [x] G4: Ensure PETSCII structured outputs and docs highlight selected glyphs/codes and miniature preview (`src/tools/graphics.ts`, docs).
+- [x] G5: Document PETSCII style presets (contrast, dithering, palette) and link from prompts (`src/prompts/registry.ts`, docs under `data/video/`).
 - [ ] G6: Add hires bitmap PRG generator tool and document a minimal usage flow (`src/tools/graphics.ts`, `test/graphicsModule.test.mjs`).
-- [ ] K6: Add “Sprite & Charset workflows best-practices” document and expose as resource (`data/video/sprite-charset-best-practices.md`, `src/rag/knowledgeIndex.ts`).
-- [ ] T4: Add PETSCII generation e2e test verifying preview fields and PRG execution (`test/graphicsModule.test.mjs`).
-- [ ] T5: Add sprite preview PRG test (bytes copied, coords/colour applied, screen captured) (`test/graphicsModule.test.mjs`).
+- [x] K6: Add “Sprite & Charset workflows best-practices” document and expose as resource (`data/video/sprite-charset-best-practices.md`, `src/rag/knowledgeIndex.ts`).
+- [x] T4: Add PETSCII generation e2e test verifying preview fields and PRG execution (`test/graphicsModule.test.mjs`).
+- [x] T5: Add sprite preview PRG test (bytes copied, coords/colour applied, screen captured) (`test/graphicsModule.test.mjs`).
 
 ## Done Definition (before ticking any item)
 

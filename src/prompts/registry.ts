@@ -449,7 +449,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/vic",
           "c64://context/bootstrap",
         ],
-        optionalResources: ["c64://specs/assembly"],
+        optionalResources: ["c64://specs/assembly", "c64://specs/charset", "c64://docs/petscii-style"],
         tools: ["upload_and_run_basic", "upload_and_run_asm", "render_petscii_screen"],
         tags: ["graphics", "vic"],
       },
