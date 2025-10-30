@@ -33,6 +33,7 @@ const EXPECTED_RESOURCE_URIS = [
   // Graphics / VIC-II
   "c64://specs/vic",
   "c64://specs/charset",
+  "c64://docs/petscii-style",
   // Memory & I/O
   "c64://specs/memory-map",
   "c64://specs/memory-low",
