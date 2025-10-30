@@ -76,7 +76,7 @@ For every checklist item below, execute the following sub-steps in order (these 
 - [x] R3: Add retrieval diversity and simple duplicate suppression in top-K (`src/rag/retriever.ts`).
 - [x] M5: Add PAL/NTSC-sensitive tags to relevant tools (SID, graphics) to nudge system-awareness (`src/tools/audio.ts`, `src/tools/graphics.ts`).
 - [ ] M4: Audit remaining tools for validation messages and examples; bring to parity (`src/tools/*`).
-- [ ] T2: Add e2e test for `rag_retrieve_*` verifying structured refs open via `ReadResource` (`test/rag.test.mjs`).
+- [x] T2: Add e2e test for `rag_retrieve_*` verifying structured refs open via `ReadResource` (`test/rag.test.mjs`).
 
 ## Phase 6 — Creative Surface: Graphics & SID Workflows
 

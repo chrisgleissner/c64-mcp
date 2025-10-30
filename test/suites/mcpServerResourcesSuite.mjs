@@ -3,12 +3,14 @@ import assert from "#test/assert";
 import {
   ListResourcesResultSchema,
   ReadResourceResultSchema,
+  CallToolResultSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 const expectedResources = [
   { uri: "c64://docs/index", domain: "overview", priority: "critical", includeInIndex: true },
   { uri: "c64://context/bootstrap", domain: "orientation", priority: "critical", includeInIndex: true },
   { uri: "c64://specs/basic", domain: "languages", priority: "critical", includeInIndex: true },
+  { uri: "c64://docs/basic/pitfalls", domain: "languages", priority: "reference", includeInIndex: true },
   { uri: "c64://specs/assembly", domain: "languages", priority: "critical", includeInIndex: true },
   { uri: "c64://specs/sid", domain: "audio", priority: "critical", includeInIndex: true },
   { uri: "c64://specs/sidwave", domain: "audio", priority: "reference", includeInIndex: true },
@@ -105,6 +107,44 @@ export function registerMcpServerResourcesTests(withSharedMcpClient) {
         }
         assert.ok(indexText.includes(uri), `knowledge index should reference ${uri}`);
       }
+    });
+  });
+
+  test("RAG retrieve returns c64:// URIs that can be opened via ReadResource", async () => {
+    await withSharedMcpClient(async ({ client }) => {
+      // Call rag_retrieve_basic to get RAG results
+      const toolResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "rag_retrieve_basic",
+            arguments: {
+              q: "PRINT statement",
+              k: 3,
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      // Verify the tool returned content
+      assert.ok(toolResult.content, "rag_retrieve_basic should return content");
+      assert.ok(toolResult.content.length > 0, "should have content items");
+      
+      // The RAG tool should include c64://specs/basic in its primary resources
+      // Verify we can read that resource via ReadResource
+      const basicSpecUri = "c64://specs/basic";
+      const readResult = await client.request(
+        { method: "resources/read", params: { uri: basicSpecUri } },
+        ReadResourceResultSchema,
+      );
+
+      // Verify the resource was successfully read
+      assert.ok(readResult.contents.length > 0, `${basicSpecUri} should return content`);
+      const content = readResult.contents[0];
+      assert.equal(content.uri, basicSpecUri, "URI should match requested");
+      assert.ok(content.text.length > 0, "Resource content should not be empty");
+      assert.match(content.text, /PRINT/i, "BASIC spec should mention PRINT");
     });
   });
 }
