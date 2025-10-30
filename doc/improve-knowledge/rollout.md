@@ -71,8 +71,8 @@ For every checklist item below, execute the following sub-steps in order (these 
 
 - [x] K3: Add “BASIC pitfalls” quickref and publish as MCP resource; link from BASIC runners (`data/basic/basic-pitfalls.md`, `src/rag/knowledgeIndex.ts`, `src/tools/programRunners.ts`).
 - [ ] K4: Publish PETSCII/charset quickrefs (char codes, glyph map) as MCP resources; dynamically generate Markdown table from `data/video/character-set.csv` (build-time or runtime) to avoid duplicate sources (`src/rag/knowledgeIndex.ts`).
-- [ ] K5: Publish VIC-II register quickref as MCP resource and ensure graphics tools reference it (`data/video/vic-spec.md`, `src/tools/graphics.ts`).
-- [ ] R2: Include bundle/resource URIs in RAG results when matches originate from docs (`src/rag/retriever.ts`, `src/tools/rag.ts`).
+- [x] K5: Publish VIC-II register quickref as MCP resource and ensure graphics tools reference it (`data/video/vic-spec.md`, `src/tools/graphics.ts`).
+- [x] R2: Include bundle/resource URIs in RAG results when matches originate from docs (`src/rag/retriever.ts`, `src/tools/rag.ts`).
 - [ ] R3: Add retrieval diversity and simple duplicate suppression in top-K (`src/rag/retriever.ts`).
 - [ ] M5: Add PAL/NTSC-sensitive tags to relevant tools (SID, graphics) to nudge system-awareness (`src/tools/audio.ts`, `src/tools/graphics.ts`).
 - [ ] M4: Audit remaining tools for validation messages and examples; bring to parity (`src/tools/*`).
