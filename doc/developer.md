@@ -33,14 +33,42 @@ Key documentation:
 
 ## Prerequisites
 
-- Node.js 18+ (20+ recommended); ESM TypeScript via `ts-node`.
-- npm for dependency management.
-- Optional: Ultimate 64 hardware (or compatible REST device) for real tests.
+- Node.js 18+ (20+ recommended) or Bun 1.1+
+- npm (for user installation) or Bun (for development)
+- Optional: Ultimate 64 hardware (or compatible REST device) for real tests
+
+## Development Tooling
+
+This project uses **Bun** for building and testing during development due to its significantly higher performance compared to npm/node. However, the published npm package remains **fully compatible with both Bun and npm/node**, ensuring that end users can install and run it using standard Node.js tooling.
+
+For **release preparation**, npm/node is used to ensure everything works correctly on the target platform, as Node.js remains our primary deployment target.
+
+### Bun vs npm Command Reference
+
+Common development commands are available for both toolchains:
+
+| Task | Bun Command | npm Command |
+|------|-------------|-------------|
+| Install dependencies | `bun install` | `npm install` |
+| Build project | `bun run build` | `npm run build` |
+| Run tests | `bun test` or `npm test` | `npm test` |
+| Run with coverage | `bun test --coverage` or `npm run coverage` | `npm run coverage` |
+| Start MCP server | `npm start` | `npm start` |
+| Run single script | `bun scripts/script-name.ts` | `node scripts/invoke-bun.mjs scripts/script-name.ts` |
+
+**Notes:**
+- Bun can execute TypeScript files directly without transpilation
+- npm scripts internally use Bun where configured via `scripts/invoke-bun.mjs` wrapper
+- Both toolchains produce identical `dist/` output for packaging
 
 ## Setup
 
 ```bash
+# For end users (npm)
 npm install
+
+# For contributors (Bun - faster)
+bun install
 ```
 
 Configuration resolution (first match wins):
@@ -51,7 +79,9 @@ Configuration resolution (first match wins):
 
 `loadConfig()` normalises IPv6 literals, coerces legacy keys (`c64_host`, `c64_ip`), and caches the resolved structure for subsequent calls.
 
-## Useful npm Scripts
+## npm Scripts Reference
+
+All commands below work with both `npm run <script>` and `bun run <script>`. For consistency with user documentation, npm syntax is shown.
 
 **Core server flows**
 
@@ -154,6 +184,8 @@ flowchart LR
 4. Update `doc/` and keep `doc/rest/c64-openapi.yaml` in sync with code.
 
 ## Release Workflow
+
+Releases are prepared using **npm/node** to ensure the published package works correctly on the target platform (Node.js 18+), even though development uses Bun for speed.
 
 1. Create a short-lived branch (for example `release/X.Y.Z`) from the target commit.
 2. Run `npm run release:prepare -- <semver>` to bump versions (`major`, `minor`, `patch`, or explicit like `0.2.0`). This updates `package.json`, `package-lock.json`, `mcp.json`, and prepends a new section to `CHANGELOG.md` from commit messages since the last tag.
