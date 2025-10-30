@@ -96,7 +96,7 @@ Rationale: These tools provide maximum value with minimal implementation effort.
   - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_and_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
   - Dependencies: `find_paths_by_name` (✅ implemented)
   - Effort: 45 minutes
-- [ ] `silence_and_verify` — Implementation notes:
+- [x] `silence_and_verify` — Implementation notes:
   - **Priority #2** — Essential foundation for all SID testing; quick win that unblocks music workflows.
   - Silence all voices, then verify via short audio capture that output drops below a threshold.
   - Agent state: threshold, capture window.

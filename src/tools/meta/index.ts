@@ -9,6 +9,7 @@ import { tools as configTools } from "./config.js";
 import { tools as programTools } from "./program.js";
 import { tools as artifactsTools } from "./artifacts.js";
 import { tools as compilationTools } from "./compilation.js";
+import { tools as audioTools } from "./audio.js";
 
 // Aggregate all tools from submodules
 const allTools = [
@@ -21,6 +22,7 @@ const allTools = [
   ...programTools,
   ...artifactsTools,
   ...compilationTools,
+  ...audioTools,
 ];
 
 export const metaModule = defineToolModule({

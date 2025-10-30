@@ -90,6 +90,8 @@ test("returns structure with global metrics and voices", async () => {
   assert.ok(res.analysis.durationSeconds > 0);
   assert.ok(Array.isArray(res.analysis.voices));
   assert.ok("average_pitch_deviation" in res.analysis.global_metrics);
+  assert.ok("average_rms" in res.analysis.global_metrics);
+  assert.ok("max_rms" in res.analysis.global_metrics);
 });
 
 test("handles expectedSidwave with patterns", async () => {

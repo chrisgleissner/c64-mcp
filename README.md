@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **75 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **76 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -557,6 +557,7 @@ This MCP server exposes **75 tools**, **25 resources**, and **7 prompts** for co
 | `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `memory_dump_to_file` | Chunked memory dump with retries; optional pause/resume; writes hex or binary and a manifest. | `meta`, `orchestration`, `experimental`, `memory`, `dump`, `file` |
 | `program_shuffle` | Discover and run PRG/CRT programs under a root path, capturing screens and resetting between runs. | `meta`, `orchestration`, `experimental`, `programs`, `testing` |
+| `silence_and_verify` | Silence all SID voices, capture a short sample, and ensure the output is below an RMS threshold. | `meta`, `orchestration`, `experimental` |
 | `start_background_task` | Start a background task that runs an operation at a fixed interval for N iterations or indefinitely. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `stop_all_background_tasks` | Stop all active background tasks. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `stop_background_task` | Stop a named background task. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
