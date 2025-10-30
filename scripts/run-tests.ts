@@ -63,8 +63,8 @@ const cmd = [
         "--coverage",
         // Ensure LCOV is emitted for Codecov
         "--coverage-reporter=lcov",
-        // Text summary helps debugging in CI logs
-        "--coverage-reporter=text-summary",
+        // Use supported console reporter in Bun
+        "--coverage-reporter=text",
       ]
     : []),
   ...passthrough,
