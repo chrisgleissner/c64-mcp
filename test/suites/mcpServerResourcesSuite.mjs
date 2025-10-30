@@ -130,7 +130,7 @@ export function registerMcpServerResourcesTests(withSharedMcpClient) {
       // Verify the tool returned content
       assert.ok(toolResult.content, "rag_retrieve_basic should return content");
       assert.ok(toolResult.content.length > 0, "should have content items");
-      
+
       // The RAG tool should include c64://specs/basic in its primary resources
       // Verify we can read that resource via ReadResource
       const basicSpecUri = "c64://specs/basic";
