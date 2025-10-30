@@ -4,9 +4,9 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 ## Project Snapshot
 
-- Language & runtime: TypeScript (ESM) targeting Node.js 18+, with Bun for build and test tooling.
+- Language & runtime: TypeScript (ESM) targeting Node.js 18+, with Bun 1.3.1+ for build and test tooling.
 - Entry points:
-  - Development: `npm start` (runs via Node, loads `src/mcp-server.ts`).
+  - Development: `npm start` (runs via Node for MCP stdio server compatibility, loads `src/mcp-server.ts`).
   - Published CLI: `c64bridge` (imports `dist/index.js`).
 - Build pipeline: `bun run build` compiles TypeScript into `dist/`, normalizes the layout, and refreshes README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
 - Test pipeline: `bun test` runs tests using Bun's native test runner. Use `bun run coverage` for coverage reports.
@@ -37,9 +37,6 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 - Use `npm run release:prepare -- <semver>` to bump versions in `package.json` / `mcp.json`, regenerate the MCP manifest, and prepend changelog notes distilled from commit history.
 - GitHub Actions release workflow publishes on semantic tags (`X.Y.Z`) and runs a post-publish smoke test via npm.
 - Provide documentation updates (`doc/`, `README.md`, `CHANGELOG.md`) with user-facing changes.
-- Build with: `bun run build` (compiles TypeScript, runs postbuild, updates README).
-- Test with: `bun test` (runs all tests) or `bun run coverage` (generates coverage reports).
-- Development server: `npm start` (uses Node to run the MCP server).
 
 ## Prompts & Personas
 
@@ -99,7 +96,7 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 ### Fallback Guidance
 
 - If MCP tooling is unavailable, propose the minimal steps to bring it online:
-  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64bridge`, 3) run `npm start` (uses Node for runtime compatibility).
+  1) ensure MCP is enabled in Copilot, 2) add the stdio server entry for `c64bridge`, 3) run `npm start` (Node.js provides better stdio/MCP compatibility for production runtime).
 - Avoid performing destructive actions (reset/reboot/power) without explicit confirmation.
 
 ### Example Prompts for Activation
