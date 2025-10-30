@@ -388,7 +388,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/sid",
           "c64://context/bootstrap",
         ],
-        optionalResources: [],
+        optionalResources: ["c64://docs/sid/best-practices"],
         tools: ["upload_and_run_asm", "write_memory", "read_memory", "read_screen"],
         tags: ["assembly", "program"],
       },
@@ -400,6 +400,13 @@ export function createPromptRegistry(): PromptRegistry {
         },
       ],
       prepareArgs: prepareAssemblyArgs,
+      selectOptionalResources: (args) => {
+        const hardware = args.hardware as AssemblyHardware | undefined;
+        if (hardware === "sid" || hardware === "multi") {
+          return ["c64://docs/sid/best-practices"];
+        }
+        return [];
+      },
       buildMessages: (args) => {
         const hardware = args.hardware as AssemblyHardware | undefined;
         return [
@@ -420,6 +427,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/sid",
           "c64://specs/sidwave",
           "c64://docs/sid/file-structure",
+          "c64://docs/sid/best-practices",
         ],
         optionalResources: [],
         tools: ["music_generate", "analyze_audio", "sid_note_on", "sid_volume", "sidplay_file"],
