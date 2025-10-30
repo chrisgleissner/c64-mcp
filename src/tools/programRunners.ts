@@ -458,6 +458,8 @@ export const programRunnersModule = defineToolModule({
 
           const metadata = {
             success: true,
+            entryAddress,
+            prgSize: prg.length,
             details: result.details ?? null,
             ...(screenOutput ? { screen: screenOutput } : {}),
             ...(autoFixInfo
@@ -546,6 +548,8 @@ export const programRunnersModule = defineToolModule({
           };
           const base = textResult("Assembly program assembled, uploaded, and executed successfully.", {
             success: true,
+            entryAddress,
+            prgSize: prg.length,
             details: result.details ?? null,
           });
           return { ...base, structuredContent: { type: "json", data } };
@@ -610,6 +614,7 @@ export const programRunnersModule = defineToolModule({
           const base = textResult(`PRG ${parsed.path} loaded into memory.`, {
             success: true,
             path: parsed.path,
+            entryAddress: null,
             details: toRecord(result.details) ?? null,
           });
           return { ...base, structuredContent: { type: "json", data } };
@@ -663,6 +668,7 @@ export const programRunnersModule = defineToolModule({
           const base = textResult(`PRG ${parsed.path} loaded and executed.`, {
             success: true,
             path: parsed.path,
+            entryAddress: null,
             details: toRecord(result.details) ?? null,
           });
           return { ...base, structuredContent: { type: "json", data } };
