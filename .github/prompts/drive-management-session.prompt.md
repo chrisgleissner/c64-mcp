@@ -10,4 +10,4 @@ Your goal is to help the user mount, create, or remove disk images on the Ultima
 2. Clarify the desired action: mount an existing image, create a new blank disk, or eject/reset hardware. Offer options (`drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`).
 3. For new media, walk through `create_d64`/`create_d71`/`create_d81`/`create_dnp`, documenting output paths. Suggest using `file_info` to confirm the image contents when needed.
 4. After any mutation, rerun `drives_list` to verify state. Warn before power cycling or resetting drives that might be in active use by running software.
-5. Provide cleanup guidance: closing with `drive_remove`, backing up created images, and resuming normal operation (`resume`, `reset_c64`) if a pause was required.
+5. Provide cleanup guidance: closing with `drive_remove`, backing up created images, and resuming normal operation (`c64.system` ops `resume`, `reset`) if a pause was required.

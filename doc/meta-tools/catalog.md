@@ -356,7 +356,7 @@ These meta tools build atop existing MCP tools which already wrap the REST surfa
 
 - Memory: `c64.memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`)
 - Programs: `c64.program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`)
-- Machine control: `reset_c64`, `reboot_c64`, `pause`, `resume`, `menu_button`, `debugreg_read`, `debugreg_write`
+- Machine control: `c64.system` (operations: `pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, `start_task`, `stop_task`, `stop_all_tasks`, `list_tasks`) plus `debugreg_read`, `debugreg_write`
 - Storage: `drives_list`, `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64|d71|d81|dnp`
 - Audio/SID: `c64.sound` (ops `set_volume`, `reset`, `note_on`, `note_off`, `silence_all`, `play_sid_file`, `play_mod_file`, `generate`, `compile_play`, `pipeline`, `record_analyze`, `analyze`)
 - Streaming: `stream_start`, `stream_stop`

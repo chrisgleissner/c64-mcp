@@ -1,7 +1,9 @@
 import test from "#test/runner";
 import assert from "#test/assert";
+import fs from "node:fs/promises";
 import { toolRegistry } from "../src/tools/registry.js";
 import { getPlatformStatus, setPlatform } from "../src/platform.js";
+import { createLogger, tmpPath } from "./meta/helpers.mjs";
 
 const originalPlatform = getPlatformStatus().id;
 
@@ -14,6 +16,7 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64.program"), "c64.program should be registered");
   assert.ok(toolNames.includes("c64.memory"), "c64.memory should be registered");
   assert.ok(toolNames.includes("c64.sound"), "c64.sound should be registered");
+  assert.ok(toolNames.includes("c64.system"), "c64.system should be registered");
 });
 
 test("c64.program run_prg delegates to legacy handler", async () => {
@@ -315,4 +318,78 @@ test("c64.sound silence_all verify runs audio analyzer", async () => {
   assert.equal(result.metadata?.verify, true);
   assert.equal(result.metadata?.verification?.silent, true);
   assert.ok(result.metadata?.verification?.maxRms <= 0.02);
+});
+
+test("c64.system reset delegates to machine control", async () => {
+  const calls = [];
+  const stubClient = {
+    async reset() {
+      calls.push("reset");
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke("c64.system", { op: "reset" }, ctx);
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(calls, ["reset"]);
+  assert.equal(result.metadata?.success, true);
+});
+
+test("c64.system background task lifecycle proxies to meta tools", async () => {
+  const { file, dir } = tmpPath("grouped-system", "tasks.json");
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(file, JSON.stringify({ tasks: [] }, null, 2));
+  const previous = process.env.C64_TASK_STATE_FILE;
+  process.env.C64_TASK_STATE_FILE = file;
+
+  try {
+    const stubClient = {
+      async readMemory() {
+        return { success: true, data: "$00" };
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: createLogger(),
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const start = await toolRegistry.invoke(
+      "c64.system",
+      { op: "start_task", name: "grouped-task", operation: "read_memory", intervalMs: 10, maxIterations: 1 },
+      ctx,
+    );
+    assert.equal(start.metadata?.success, true);
+
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const list = await toolRegistry.invoke("c64.system", { op: "list_tasks" }, ctx);
+    assert.equal(list.metadata?.success, true);
+    const tasks = list.structuredContent?.data?.tasks ?? [];
+    const match = tasks.find((task) => task.name === "grouped-task");
+    assert.ok(match, "background task should be present");
+
+    const stop = await toolRegistry.invoke("c64.system", { op: "stop_all_tasks" }, ctx);
+    assert.equal(stop.metadata?.success, true);
+  } finally {
+    if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
+    else process.env.C64_TASK_STATE_FILE = previous;
+  }
 });

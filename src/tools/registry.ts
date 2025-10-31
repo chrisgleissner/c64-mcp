@@ -139,6 +139,7 @@ const programDescriptorIndex = new Map(programRunnersModule.describeTools().map(
 const audioDescriptorIndex = new Map(audioModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const metaDescriptorIndex = new Map(metaModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const memoryDescriptorIndex = new Map(memoryModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
+const machineDescriptorIndex = new Map(machineControlModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 
 function ensureDescriptor(
   index: Map<string, ToolDescriptor>,
@@ -539,6 +540,168 @@ const groupedSoundModule = soundOperations.length === 0
       ],
     });
 
+const systemOperations: GroupedOperationConfig[] = [
+  {
+    op: "pause",
+    module: machineControlModule,
+    legacyName: "pause",
+    schema: extendSchemaWithOp(
+      "pause",
+      ensureDescriptor(machineDescriptorIndex, "pause").inputSchema,
+      { description: "Pause the machine using DMA halt until resumed." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "resume",
+    module: machineControlModule,
+    legacyName: "resume",
+    schema: extendSchemaWithOp(
+      "resume",
+      ensureDescriptor(machineDescriptorIndex, "resume").inputSchema,
+      { description: "Resume CPU execution after a DMA pause." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "reset",
+    module: machineControlModule,
+    legacyName: "reset_c64",
+    schema: extendSchemaWithOp(
+      "reset",
+      ensureDescriptor(machineDescriptorIndex, "reset_c64").inputSchema,
+      { description: "Issue a soft reset without cutting power." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "reboot",
+    module: machineControlModule,
+    legacyName: "reboot_c64",
+    schema: extendSchemaWithOp(
+      "reboot",
+      ensureDescriptor(machineDescriptorIndex, "reboot_c64").inputSchema,
+      { description: "Trigger a firmware reboot to recover from faults." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "poweroff",
+    module: machineControlModule,
+    legacyName: "poweroff",
+    schema: extendSchemaWithOp(
+      "poweroff",
+      ensureDescriptor(machineDescriptorIndex, "poweroff").inputSchema,
+      { description: "Request a controlled shutdown via the Ultimate firmware." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "menu",
+    module: machineControlModule,
+    legacyName: "menu_button",
+    schema: extendSchemaWithOp(
+      "menu",
+      ensureDescriptor(machineDescriptorIndex, "menu_button").inputSchema,
+      { description: "Toggle the Ultimate menu button for navigation." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "start_task",
+    module: metaModule,
+    legacyName: "start_background_task",
+    schema: extendSchemaWithOp(
+      "start_task",
+      ensureDescriptor(metaDescriptorIndex, "start_background_task").inputSchema,
+      { description: "Start a named background task that runs on an interval." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "stop_task",
+    module: metaModule,
+    legacyName: "stop_background_task",
+    schema: extendSchemaWithOp(
+      "stop_task",
+      ensureDescriptor(metaDescriptorIndex, "stop_background_task").inputSchema,
+      { description: "Stop a specific background task and clear its timer." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "stop_all_tasks",
+    module: metaModule,
+    legacyName: "stop_all_background_tasks",
+    schema: extendSchemaWithOp(
+      "stop_all_tasks",
+      ensureDescriptor(metaDescriptorIndex, "stop_all_background_tasks").inputSchema,
+      { description: "Stop every running background task and persist state." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "list_tasks",
+    module: metaModule,
+    legacyName: "list_background_tasks",
+    schema: extendSchemaWithOp(
+      "list_tasks",
+      ensureDescriptor(metaDescriptorIndex, "list_background_tasks").inputSchema,
+      { description: "List known background tasks with status metadata." },
+    ),
+    transform: dropOpTransform,
+  },
+];
+
+const systemOperationHandlers = createOperationHandlers(systemOperations);
+
+const groupedSystemModule = systemOperations.length === 0
+  ? null
+  : defineToolModule({
+      domain: "system",
+      summary: "Grouped machine control and background task orchestration.",
+      resources: ["c64://context/bootstrap"],
+      prompts: ["memory-debug"],
+      defaultTags: ["system", "control"],
+      workflowHints: [
+        "Use pause/resume around invasive memory changes, and explain the impact of resets or power changes.",
+        "Combine background task operations with list_tasks to monitor long-running diagnostics.",
+      ],
+      tools: [
+        {
+          name: "c64.system",
+          description: "Grouped entry point for power, reset, menu, and background task control.",
+          summary: "Manages machine state (pause, reset, power) and schedules recurring background tasks.",
+          inputSchema: discriminatedUnionSchema({
+            description: "System operations available via the c64.system tool.",
+            variants: systemOperations.map((operation) => operation.schema),
+          }),
+          tags: ["system", "control", "grouped"],
+          examples: [
+            {
+              name: "Soft reset",
+              description: "Issue a soft reset without cutting power",
+              arguments: { op: "reset" },
+            },
+            {
+              name: "Start background screen capture",
+              description: "Launch a recurring read_screen task",
+              arguments: {
+                op: "start_task",
+                name: "screen_poll",
+                operation: "read_screen",
+                intervalMs: 2000,
+              },
+            },
+          ],
+          execute: createOperationDispatcher<GenericOperationMap>(
+            "c64.system",
+            systemOperationHandlers,
+          ),
+        },
+      ],
+    });
+
 const toolModules: ToolModule[] = [
   audioModule,
   machineControlModule,
@@ -553,6 +716,10 @@ const toolModules: ToolModule[] = [
 
 if (groupedSoundModule) {
   toolModules.splice(1, 0, groupedSoundModule);
+}
+
+if (groupedSystemModule) {
+  toolModules.splice(2, 0, groupedSystemModule);
 }
 
 if (groupedProgramModule) {

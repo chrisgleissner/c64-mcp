@@ -280,6 +280,67 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
+  test("c64.system operations operate via MCP", async () => {
+    await withSharedMcpClient(async ({ client, mockServer }) => {
+      const pauseResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64.system",
+            arguments: { op: "pause" },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(pauseResult.metadata?.success, "pause operation should succeed");
+      assert.equal(mockServer.state.paused, true, "machine should be paused");
+
+      const resumeResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64.system",
+            arguments: { op: "resume" },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(resumeResult.metadata?.success, "resume operation should succeed");
+      assert.equal(mockServer.state.paused, false, "machine should be resumed");
+
+      const resetResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64.system",
+            arguments: { op: "reset" },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(resetResult.metadata?.success, "reset operation should succeed");
+      assert.equal(mockServer.state.resets, 1, "reset endpoint should be invoked once");
+
+      const rebootResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64.system",
+            arguments: { op: "reboot" },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(rebootResult.metadata?.success, "reboot operation should succeed");
+      assert.equal(mockServer.state.reboots, 1, "reboot endpoint should be invoked once");
+
+    });
+  });
+
   test("Machine control tools operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const resetResult = await client.request(

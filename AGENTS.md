@@ -24,12 +24,11 @@ npm start
 
 ### Capabilities at a Glance
 
-- **Program runners**: `c64.program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`), plus `sidplay_file`, `modplay_file`.
+- **Program runners**: `c64.program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`).
 - **Screen & memory**: `c64.memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`).
-- **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
+- **System control**: `c64.system` (operations: `pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, `start_task`, `stop_task`, `stop_all_tasks`, `list_tasks`) plus standalone `version`, `info`, `debugreg_read`, `debugreg_write` while consolidation continues.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
-- **SID / music**: `c64.sound` (ops `set_volume`, `note_on`, `generate`, `compile_play`, `pipeline`, `silence_all`). Legacy tool IDs (for example `sid_volume`) stay available until rollout completion. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
-- **Audio analysis**: `analyze_audio` records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
+- **SID / music**: `c64.sound` (operations: `set_volume`, `note_on`, `note_off`, `reset`, `silence_all`, `generate`, `compile_play`, `pipeline`, `play_sid_file`, `play_mod_file`, `analyze`, `record_analyze`). Legacy tool IDs (for example `sid_volume`) stay available until rollout completion. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
 - **Knowledge & RAG**: `basic_spec`, `assembly_spec`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
 Tools and parameters are listed by the server at runtime via ListTools.
@@ -79,7 +78,9 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://localhost:8000/tools/c64.memory | jq
 
 # Reset the machine
-curl -s -X POST http://localhost:8000/tools/reset_c64
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"op":"reset"}' \
+  http://localhost:8000/tools/c64.system
 ```
 
 ### Notes

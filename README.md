@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **76 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **77 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -409,6 +409,34 @@ This MCP server exposes **76 tools**, **25 resources**, and **7 prompts** for co
 | `reset` | Soft or hard reset of SID registers to clear glitches. | — | — |
 | `set_volume` | Set the SID master volume register at $D418 (0-15). | `volume` | — |
 | `silence_all` | Silence all SID voices with optional audio verification. | — | supports verify |
+
+#### System
+> Grouped machine control and background task orchestration.
+
+**Workflow hints:**
+- Use pause/resume around invasive memory changes, and explain the impact of resets or power changes.
+- Combine background task operations with list_tasks to monitor long-running diagnostics.
+
+**Default tags:** `system`, `control`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.system` | Grouped entry point for power, reset, menu, and background task control. | `system`, `control`, `grouped` |
+
+##### Operations: `c64.system`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `list_tasks` | List known background tasks with status metadata. | — | — |
+| `menu` | Toggle the Ultimate menu button for navigation. | — | — |
+| `pause` | Pause the machine using DMA halt until resumed. | — | — |
+| `poweroff` | Request a controlled shutdown via the Ultimate firmware. | — | — |
+| `reboot` | Trigger a firmware reboot to recover from faults. | — | — |
+| `reset` | Issue a soft reset without cutting power. | — | — |
+| `resume` | Resume CPU execution after a DMA pause. | — | — |
+| `start_task` | Start a named background task that runs on an interval. | `name`, `operation` | — |
+| `stop_all_tasks` | Stop every running background task and persist state. | — | — |
+| `stop_task` | Stop a specific background task and clear its timer. | `name` | — |
 
 #### Machine
 > Power, reset, pause/resume, and diagnostic controls for the C64 and Ultimate hardware.
