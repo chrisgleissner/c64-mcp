@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { describeToolModules } from "../src/tools/registry.js";
+import { dirname, join, resolve as resolvePath } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { describeToolModules, type ToolModuleDescriptor } from "../src/tools/registry.js";
+import type { JsonSchema, ToolDescriptor } from "../src/tools/types.js";
 import { listKnowledgeResources } from "../src/rag/knowledgeIndex.js";
 import { createPromptRegistry } from "../src/prompts/registry.js";
 
@@ -40,8 +41,93 @@ function renderTable(headers: readonly string[], rows: readonly (readonly string
   return [headerLine, separator, body].filter(Boolean).join("\n");
 }
 
-function renderToolsSection(): string[] {
-  const modules = describeToolModules();
+type GroupedOperation = {
+  readonly op: string;
+  readonly description: string;
+  readonly required: readonly string[];
+  readonly notes: readonly string[];
+};
+
+type GroupedToolInfo = {
+  readonly tool: ToolDescriptor;
+  readonly operations: readonly GroupedOperation[];
+};
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function toTableValue(values: readonly string[]): string {
+  if (!values.length) {
+    return "—";
+  }
+  return values.join(", ");
+}
+
+function collectGroupedOperations(schema?: JsonSchema): readonly GroupedOperation[] {
+  if (!schema || !isObject(schema)) {
+    return [];
+  }
+
+  const discriminator = (schema as JsonSchema & { discriminator?: { propertyName?: string } }).discriminator;
+  const variants = (schema as JsonSchema & { oneOf?: readonly JsonSchema[] }).oneOf;
+
+  if (!discriminator || discriminator.propertyName !== "op" || !Array.isArray(variants)) {
+    return [];
+  }
+
+  const operations: GroupedOperation[] = [];
+
+  for (const variant of variants) {
+    if (!variant || !isObject(variant)) {
+      continue;
+    }
+
+    const typedVariant = variant as JsonSchema;
+    const properties = (typedVariant.properties ?? {}) as Record<string, JsonSchema | undefined>;
+    const opSchema = properties.op;
+
+    let opName: string | undefined;
+    if (opSchema && isObject(opSchema)) {
+      const constValue = (opSchema as JsonSchema & { const?: unknown }).const;
+      if (typeof constValue === "string" && constValue.length > 0) {
+        opName = constValue;
+      } else if (Array.isArray((opSchema as JsonSchema).enum) && (opSchema as JsonSchema).enum![0]) {
+        const enumValue = (opSchema as JsonSchema).enum![0];
+        if (typeof enumValue === "string") {
+          opName = enumValue;
+        }
+      }
+    }
+
+    if (!opName) {
+      continue;
+    }
+
+    const description = getString(typedVariant.description, getString(opSchema?.description, `Operation ${opName}`));
+    const requiredProps = ((typedVariant.required as readonly string[] | undefined) ?? []).filter((name) => name !== "op");
+
+    const notes: string[] = [];
+    if (properties.verify) {
+      notes.push("supports verify");
+    }
+
+    operations.push({
+      op: opName,
+      description,
+      required: requiredProps,
+      notes,
+    });
+  }
+
+  return operations;
+}
+
+export function renderToolsSection(modules: readonly ToolModuleDescriptor[] = describeToolModules()): string[] {
   const lines: string[] = ["### Tools", ""];
 
   for (const module of modules) {
@@ -61,14 +147,21 @@ function renderToolsSection(): string[] {
       lines.push(`**Default tags:** ${module.defaultTags.map((tag) => `\`${tag}\``).join(", ")}`);
     }
 
+    const groupedTools: GroupedToolInfo[] = [];
     const rows = module.tools
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((tool) => [
-        `\`${tool.name}\``,
-        escapeCell(tool.description),
-        formatTags(tool.metadata.tags),
-      ]);
+      .map((tool) => {
+        const operations = collectGroupedOperations(tool.inputSchema);
+        if (operations.length > 0) {
+          groupedTools.push({ tool, operations });
+        }
+        return [
+          `\`${tool.name}\``,
+          escapeCell(tool.description),
+          formatTags(tool.metadata.tags),
+        ];
+      });
 
     lines.push("");
     if (rows.length) {
@@ -77,12 +170,30 @@ function renderToolsSection(): string[] {
       lines.push("_No tools registered._");
     }
     lines.push("");
+
+    for (const grouped of groupedTools) {
+      lines.push(`##### Operations: \`${grouped.tool.name}\``);
+      lines.push("");
+
+      const operationRows = grouped.operations
+        .slice()
+        .sort((a, b) => a.op.localeCompare(b.op))
+        .map((operation) => [
+          `\`${operation.op}\``,
+          escapeCell(operation.description),
+          escapeCell(toTableValue(operation.required.map((name) => `\`${name}\``))),
+          operation.notes.length ? escapeCell(operation.notes.join(", ")) : "—",
+        ]);
+
+      lines.push(renderTable(["Operation", "Description", "Required Inputs", "Notes"], operationRows));
+      lines.push("");
+    }
   }
 
   return lines;
 }
 
-function renderResourcesSection(): string[] {
+export function renderResourcesSection(): string[] {
   const resources = listKnowledgeResources()
     .slice()
     .sort((a, b) => {
@@ -106,7 +217,7 @@ function renderResourcesSection(): string[] {
   ];
 }
 
-function renderPromptsSection(): string[] {
+export function renderPromptsSection(): string[] {
   const promptRegistry = createPromptRegistry();
   const prompts = promptRegistry
     .list()
@@ -126,7 +237,7 @@ function renderPromptsSection(): string[] {
   ];
 }
 
-function renderSummarySection(): string[] {
+export function renderSummarySection(): string[] {
   const modules = describeToolModules();
   const resources = listKnowledgeResources();
   const promptRegistry = createPromptRegistry();
@@ -142,12 +253,12 @@ function renderSummarySection(): string[] {
   ];
 }
 
-function buildDocumentation(): string {
+export function buildDocumentation(): string {
   const sections = [renderSummarySection(), renderToolsSection(), renderResourcesSection(), renderPromptsSection()];
   return sections.flat().join("\n").trim();
 }
 
-async function updateReadme(): Promise<boolean> {
+export async function updateReadme(): Promise<boolean> {
   const readme = await readFile(README_PATH, "utf8");
   const pattern = new RegExp(
     `${START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s\\S]*?)${END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
@@ -169,12 +280,27 @@ async function updateReadme(): Promise<boolean> {
   return true;
 }
 
-try {
-  const updated = await updateReadme();
-  if (updated) {
-    console.error("README.md updated with MCP documentation.");
+function isMainModule(metaUrl: string): boolean {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
   }
-} catch (error) {
-  console.error("Failed to update README.md:", error);
-  process.exitCode = 1;
+  try {
+    const entryUrl = pathToFileURL(resolvePath(entry)).href;
+    return entryUrl === metaUrl;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule(import.meta.url)) {
+  try {
+    const updated = await updateReadme();
+    if (updated) {
+      console.error("README.md updated with MCP documentation.");
+    }
+  } catch (error) {
+    console.error("Failed to update README.md:", error);
+    process.exitCode = 1;
+  }
 }
