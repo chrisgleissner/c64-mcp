@@ -1,7 +1,7 @@
 import test from "#test/runner";
 import assert from "#test/assert";
 import fs from "node:fs/promises";
-import { toolRegistry } from "../src/tools/registry.js";
+import { toolRegistry } from "../src/tools/registry/index.js";
 import { metaModule } from "../src/tools/meta/index.js";
 import { ToolValidationError } from "../src/tools/errors.js";
 import { getPlatformStatus, setPlatform } from "../src/platform.js";

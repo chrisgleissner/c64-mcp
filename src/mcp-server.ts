@@ -21,7 +21,7 @@ import {
 } from "./rag/knowledgeIndex.js";
 import { initRag } from "./rag/init.js";
 import type { RagRetriever } from "./rag/types.js";
-import { toolRegistry } from "./tools/registry/main.js";
+import { toolRegistry } from "./tools/registry/index.js";
 import { unknownErrorResult } from "./tools/errors.js";
 import type { ToolRunResult } from "./tools/types.js";
 import { createPromptRegistry, type PromptSegment } from "./prompts/registry.js";

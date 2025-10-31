@@ -5,7 +5,7 @@
 - `doc/tool-consolidation/plan.md` — Consolidation objectives, grouped tool mapping, and implementation checklist.
 - `doc/developer.md` — Contribution workflow, testing gates (`npm run check`), and documentation requirements.
 - `README.md` (auto-generated MCP surface section) — Current tool/resource listings to validate documentation updates.
-- `scripts/generate-docs.ts` and `src/tools/registry.ts` — Existing documentation pipeline and registration mechanics to be refactored.
+- `scripts/generate-docs.ts` and `src/tools/registry/index.ts` — Existing documentation pipeline and registration mechanics to be refactored.
 
 ## Key Acceptance Criteria from the Consolidation Plan
 

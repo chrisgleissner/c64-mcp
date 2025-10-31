@@ -1,6 +1,6 @@
 import { listKnowledgeResources } from "../rag/knowledgeIndex.js";
 import type { KnowledgeResourceDefinition } from "../rag/knowledgeIndex.js";
-import { toolRegistry } from "../tools/registry/main.js";
+import { toolRegistry } from "../tools/registry/index.js";
 import type { ToolDescriptor } from "../tools/types.js";
 
 export interface PromptDescriptor {

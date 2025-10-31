@@ -7,7 +7,7 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 - `doc/tool-consolidation/plan.md` — Grouped tool mapping, verification strategy, documentation updates.
 - `doc/tool-consolidation/notes.md` — Working assumptions and acceptance criteria summary.
 - `doc/developer.md` — Contribution workflow, test commands, documentation conventions.
-- `scripts/generate-docs.ts` and `src/tools/registry.ts` — Current implementation details that will be refactored.
+- `scripts/generate-docs.ts` and `src/tools/registry/index.ts` — Current implementation details that will be refactored.
 
 ## Operator Rules (follow throughout)
 
@@ -36,7 +36,7 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 ## Phase 1 — Foundation (Types, Registry, and Doc Scaffold)
 
 - [x] Introduce shared discriminated-union types (`op`, `verify?`) and validation helpers in `src/tools/types.ts` (or adjacent modules); add unit tests covering schema construction.
-- [x] Add grouped tool descriptors to `src/tools/registry.ts`, returning shims that still call the existing single-purpose handlers (no behavior change yet).
+- [x] Add grouped tool descriptors to `src/tools/registry/index.ts`, returning shims that still call the existing single-purpose handlers (no behavior change yet).
 - [x] Update `scripts/update-readme.ts` to understand grouped tools and refresh the README so each `c64.*` entry lists its operations in a clear, structured table; add snapshot-style tests guarding the new output.
 
 ## Phase 2 — High-traffic Tool Migration (Program & Memory)
