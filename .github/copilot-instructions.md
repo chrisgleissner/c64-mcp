@@ -79,7 +79,7 @@ Thanks for helping keep the Commodore 64 MCP server robust and user-friendly!
 
 Use these rules to ensure Copilot reliably engages the `c64bridge` server when the user asks for C64 work.
 
-- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64bridge` (see `doc/MCP_SETUP.md`). If the server is not running, start it.
+- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64bridge` (see `doc/AGENTS.md`). If the server is not running, start it.
 - Treat the following as strong routing signals: "c64", "commodore 64", "ultimate 64", "c64u", "vic", "sid", "petscii", "basic v2", "6510".
 - When such signals appear, prefer MCP tool usage from `c64bridge` without waiting for the user to select a server.
 - If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server automatically, start it (e.g., `npm start` or `node ./node_modules/c64bridge/dist/index.js`).
