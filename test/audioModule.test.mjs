@@ -456,6 +456,56 @@ test("sid_note_off and silence_all", async () => {
   assert.equal(silence.isError, undefined);
 });
 
+test("sid_silence_all verify reports silence metrics", async () => {
+  const ctx = {
+    client: {
+      sidSilenceAll: async () => ({ success: true, details: { address: 0xd400 } }),
+      recordAndAnalyzeAudio: async ({ durationSeconds }) => ({
+        analysis: {
+          durationSeconds,
+          global_metrics: {
+            average_rms: 0.01,
+            max_rms: 0.015,
+          },
+        },
+      }),
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke("sid_silence_all", { verify: true }, ctx);
+
+  assert.equal(result.isError, undefined);
+  assert.ok(result.metadata);
+  assert.equal(result.metadata.verify, true);
+  assert.ok(result.metadata.verification);
+  assert.equal(result.metadata.verification.silent, true);
+  assert.ok(result.metadata.verification.maxRms <= 0.02);
+});
+
+test("sid_silence_all verify fails when residual audio remains", async () => {
+  const ctx = {
+    client: {
+      sidSilenceAll: async () => ({ success: true }),
+      recordAndAnalyzeAudio: async () => ({
+        analysis: {
+          durationSeconds: 1.5,
+          global_metrics: {
+            average_rms: 0.03,
+            max_rms: 0.05,
+          },
+        },
+      }),
+    },
+    logger: createLogger(),
+  };
+
+  const result = await audioModule.invoke("sid_silence_all", { verify: true }, ctx);
+
+  assert.equal(result.isError, true);
+  assert.ok(result.content[0].text.includes("residual audio"));
+});
+
 test("analyze_audio returns guidance when no keywords detected", async () => {
   const res = await audioModule.invoke("analyze_audio", { request: "just print status" }, { client: {} });
   assert.equal(res.isError, undefined);

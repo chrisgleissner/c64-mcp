@@ -178,14 +178,15 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("SID control tools operate via MCP", async () => {
+  test("c64.sound operations operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const volumeResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "sid_volume",
+            name: "c64.sound",
             arguments: {
+              op: "set_volume",
               volume: 12,
             },
           },
@@ -193,7 +194,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.ok(volumeResult.metadata?.success, "sid_volume should succeed");
+  assert.ok(volumeResult.metadata?.success, "set_volume should succeed");
       assert.equal(volumeResult.metadata?.appliedVolume, 12);
       assert.equal(mockServer.state.lastWrite?.address, 0xd418);
       assert.equal(mockServer.state.lastWrite?.bytes[0], 12);
@@ -202,8 +203,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "sid_note_on",
+            name: "c64.sound",
             arguments: {
+              op: "note_on",
               voice: 2,
               note: "C4",
               waveform: "tri",
@@ -218,7 +220,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.ok(noteOnResult.metadata?.success, "sid_note_on should succeed");
+  assert.ok(noteOnResult.metadata?.success, "note_on should succeed");
       assert.equal(noteOnResult.metadata?.voice, 2);
       assert.equal(mockServer.state.lastWrite?.address, 0xd407);
       assert.equal(mockServer.state.lastWrite?.bytes.length, 7);
@@ -227,8 +229,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "sid_note_off",
+            name: "c64.sound",
             arguments: {
+              op: "note_off",
               voice: 2,
             },
           },
@@ -236,7 +239,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.ok(noteOffResult.metadata?.success, "sid_note_off should succeed");
+      assert.ok(noteOffResult.metadata?.success, "note_off should succeed");
       assert.equal(noteOffResult.metadata?.voice, 2);
       assert.equal(mockServer.state.lastWrite?.address, 0xd40b);
       assert.equal(mockServer.state.lastWrite?.bytes[0], 0x00);

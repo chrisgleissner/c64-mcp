@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **75 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **76 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -379,6 +379,36 @@ This MCP server exposes **75 tools**, **25 resources**, and **7 prompts** for co
 | `sid_silence_all` | Silence all SID voices by clearing control and envelope registers. | `sid`, `audio`, `control` |
 | `sid_volume` | Set the SID master volume register at $D418. See c64://specs/sid. | `sid`, `audio`, `control` |
 | `sidplay_file` | Play a SID file stored on the Ultimate filesystem via the firmware player. | `sid`, `audio`, `playback` |
+
+#### Audio
+> Grouped SID control, playback, composition, and analysis operations.
+
+**Workflow hints:**
+- Trigger note_on or generate when the user wants immediate SID playback.
+- Follow up playback changes with analyze or silence verification to provide confident audio feedback.
+
+**Default tags:** `sid`, `audio`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.sound` | Grouped entry point for SID control, playback, composition, and analysis workflows. | `sid`, `audio`, `grouped` |
+
+##### Operations: `c64.sound`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `analyze` | Automatically analyze SID playback when verification is requested. | `request` | — |
+| `compile_play` | Compile SIDWAVE or CPG source and optionally play it immediately. | — | — |
+| `generate` | Generate a lightweight SID arpeggio playback sequence. | — | — |
+| `note_off` | Release a SID voice by clearing its gate bit. | `voice` | — |
+| `note_on` | Trigger a SID voice with configurable waveform, ADSR, and pitch. | — | — |
+| `pipeline` | Compile a SIDWAVE score, play it, and analyze the recording. | — | supports verify |
+| `play_mod_file` | Play a MOD tracker module via the Ultimate SID player. | `path` | — |
+| `play_sid_file` | Play a SID file stored on the Ultimate filesystem. | `path` | — |
+| `record_analyze` | Record audio for a fixed duration and return SID analysis metrics. | `durationSeconds` | — |
+| `reset` | Soft or hard reset of SID registers to clear glitches. | — | — |
+| `set_volume` | Set the SID master volume register at $D418 (0-15). | `volume` | — |
+| `silence_all` | Silence all SID voices with optional audio verification. | — | supports verify |
 
 #### Machine
 > Power, reset, pause/resume, and diagnostic controls for the C64 and Ultimate hardware.

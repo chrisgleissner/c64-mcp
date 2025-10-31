@@ -28,7 +28,7 @@ npm start
 - **Screen & memory**: `c64.memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`).
 - **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
-- **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
+- **SID / music**: `c64.sound` (ops `set_volume`, `note_on`, `generate`, `compile_play`, `pipeline`, `silence_all`). Legacy tool IDs (for example `sid_volume`) stay available until rollout completion. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
 - **Audio analysis**: `analyze_audio` records and analyzes audio output to verify generated music, detects pitch, notes, and provides feedback for iterative composition.
 - **Knowledge & RAG**: `basic_spec`, `assembly_spec`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
 
@@ -92,9 +92,9 @@ curl -s -X POST http://localhost:8000/tools/reset_c64
 
 The server supports an intelligent audio verification workflow for iterative music composition:
 
-1. **Compose**: Use `music_generate` or `c64.program` (op `upload_run_basic`) to create and play SID music.
+1. **Compose**: Use `c64.sound` (op `generate`) or `c64.program` (op `upload_run_basic`) to create and play SID music.
 2. **Verify**: Use natural language like "check the music", "verify the song", or "does it sound right?"
-3. **Analyze**: The `analyze_audio` tool automatically detects verification requests and records/analyzes audio.
+3. **Analyze**: `c64.sound` (op `analyze`) automatically detects verification requests and records/analyzes audio.
 4. **Feedback**: Get detailed analysis including detected notes, pitch accuracy, and musical feedback.
 5. **Iterate**: Use the feedback to refine your composition.
 
@@ -105,13 +105,13 @@ Example workflow:
 ```bash
 # Compose a song
 curl -X POST -H 'Content-Type: application/json' \
-  -d '{"request":"Generate a simple C major scale melody"}' \
-  http://localhost:8000/tools/music_generate
+  -d '{"op":"generate","root":"C4","pattern":"0,4,7","steps":8}' \
+  http://localhost:8000/tools/c64.sound
 
 # Verify the output
 curl -X POST -H 'Content-Type: application/json' \
-  -d '{"request":"check if the music sounds correct"}' \
-  http://localhost:8000/tools/analyze_audio
+  -d '{"op":"analyze","request":"check if the music sounds correct"}' \
+  http://localhost:8000/tools/c64.sound
 ```
 
 ### Children's Songs and Musical Expression

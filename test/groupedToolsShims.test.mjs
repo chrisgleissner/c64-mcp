@@ -13,6 +13,7 @@ test("grouped tools appear in registry list", () => {
   const toolNames = toolRegistry.list().map((descriptor) => descriptor.name);
   assert.ok(toolNames.includes("c64.program"), "c64.program should be registered");
   assert.ok(toolNames.includes("c64.memory"), "c64.memory should be registered");
+  assert.ok(toolNames.includes("c64.sound"), "c64.sound should be registered");
 });
 
 test("c64.program run_prg delegates to legacy handler", async () => {
@@ -236,4 +237,82 @@ test("c64.memory write with verify pauses, writes, and resumes", async () => {
   assert.equal(readCalls.length, 2, "should read before and after write when verify is true");
   assert.equal(readCalls[0].address, "$0400");
   assert.equal(readCalls[1].address, "$0400");
+});
+
+test("c64.sound note_on delegates to legacy handler", async () => {
+  const calls = [];
+  const stubClient = {
+    async sidNoteOn(payload) {
+      calls.push({ method: "sidNoteOn", payload });
+      return { success: true };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.sound",
+    { op: "note_on", voice: 2, note: "G4", waveform: "tri" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, "sidNoteOn");
+  assert.equal(calls[0].payload.voice, 2);
+  assert.equal(calls[0].payload.note, "G4");
+});
+
+test("c64.sound silence_all verify runs audio analyzer", async () => {
+  const stubClient = {
+    async sidSilenceAll() {
+      return { success: true };
+    },
+    async recordAndAnalyzeAudio({ durationSeconds }) {
+      return {
+        analysis: {
+          durationSeconds,
+          global_metrics: {
+            average_rms: 0.01,
+            max_rms: 0.015,
+          },
+        },
+      };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.sound",
+    { op: "silence_all", verify: true },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(result.metadata?.verify, true);
+  assert.equal(result.metadata?.verification?.silent, true);
+  assert.ok(result.metadata?.verification?.maxRms <= 0.02);
 });

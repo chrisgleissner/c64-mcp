@@ -49,7 +49,7 @@ Notes:
 | --- | --- | --- | --- |
 | `basic-program` | `c64.program`, `c64.memory` | `reset_c64` | Remind to reset only if user confirms; highlight PETSCII newline handling. |
 | `assembly-program` | `c64.program`, `c64.memory` | `reset_c64`, `pause`, `resume` | Require IRQ acknowledgement steps for raster code; caution on zero-page writes. |
-| `sid-music` | `music_generate`, `analyze_audio`, `sid_note_on` *(for manual passages)* | `music_compile_and_play`, `sidplay_file`, `sid_volume` | Warn about volume resets (`$D418`) and making backups before overwriting SID memory. |
+| `sid-music` | `c64.sound` (ops `generate`, `note_on`, `analyze`) | `c64.sound` (ops `compile_play`, `play_sid_file`, `set_volume`) | Warn about volume resets (`$D418`) and making backups before overwriting SID memory. |
 | `graphics-demo` | `c64.program`, `c64.memory`, `render_petscii_screen`, `generate_sprite_prg` | `create_petscii_image`, `pause` | Emphasise safe colour RAM usage; mention border side-effects for raster tricks. |
 | `printer-job` | `print_text`, `print_bitmap_commodore`, `print_bitmap_epson` | `define_printer_chars`, `c64.memory` | Remind users to send `CHR$(12)` before closing; confirm `target` (`commodore` vs `epson`) before printing. |
 | `memory-debug` | `c64.memory`, `pause`, `resume` | `reset_c64` | Advise capturing snapshots before writes; include address validation heuristics. |

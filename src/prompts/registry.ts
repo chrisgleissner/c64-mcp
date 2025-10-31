@@ -104,7 +104,7 @@ const BASE_SEGMENTS: Record<string, PromptSegment> = {
     content: [
       "SID feedback loop:",
       "- Compose the sequence, waveform, ADSR, and modulation plan referencing SID register names.",
-      "- Explain how to play it (e.g., `music_generate`, `sid_note_on`, or uploading executable code).",
+  "- Explain how to play it (e.g., `c64.sound` ops `generate` or `note_on`, or uploading executable code).",
       "- After playback, run `analyze_audio` and describe how to adjust envelope, tuning, or rhythm.",
     ].join("\n"),
   },
@@ -430,7 +430,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://docs/sid/best-practices",
         ],
         optionalResources: [],
-        tools: ["music_generate", "analyze_audio", "sid_note_on", "sid_volume", "sidplay_file"],
+        tools: ["c64.sound"],
         tags: ["sid", "music"],
       },
       buildMessages: () => [

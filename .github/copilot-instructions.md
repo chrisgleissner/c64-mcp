@@ -67,7 +67,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 - Keep PRs focused and minimal—change only what's necessary to address the task.
 - Provide clear descriptions explaining what changed and why.
-- Link to related issues using GitHub keywords (Fixes #123, Closes #456).
+- Link to related issues using GitHub keywords (for example, `Fixes issue 123`, `Closes issue 456`).
 - Ensure CI passes before requesting review.
 - Respond to review feedback promptly and professionally.
 
@@ -90,7 +90,7 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 - In C64 mode:
   - Use `upload_and_run_basic` or `upload_and_run_asm` for program execution.
   - Use `read_screen`, `read_memory`, or `write_memory` for inspection or patches.
-  - Use SID/VIC helpers (`music_generate`, `sid_note_on`, `render_petscii_screen`, etc.) when relevant.
+  - Use SID/VIC helpers (`c64.sound` ops such as `generate`, `note_on`, `render_petscii_screen`, etc.) when relevant.
   - Explain intended tool calls briefly before invoking them.
 
 ### Fallback Guidance
@@ -103,4 +103,4 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 
 - "Read the current C64 screen" → connect and call `read_screen`.
 - "/C64 draw a rectangle using BASIC" → generate BASIC, call `upload_and_run_basic`, then `read_screen`.
-- "Play a C major scale on the SID" → call `music_generate`, then `analyze_audio` for verification.
+- "Play a C major scale on the SID" → call `c64.sound` (op `generate`), then `c64.sound` (op `analyze`) for verification.
