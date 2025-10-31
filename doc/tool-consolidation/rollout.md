@@ -71,9 +71,9 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 7 — Release Polish
 
-- [ ] Add the consolidation changelog entry and update version metadata if required.
-- [ ] Run the full verification stack (`npm run check`, targeted e2e flows, documentation generation) and capture results for review.
-- [ ] Update any remaining prompts or resource cross-links that reference retired tool names.
+- [x] Add the consolidation changelog entry and update version metadata if required.
+- [x] Run the full verification stack (`npm run check`, targeted e2e flows, documentation generation) and capture results for review.
+- [x] Update any remaining prompts or resource cross-links that reference retired tool names.
 
 ## Done Definition
 
@@ -96,6 +96,7 @@ A checkbox may be ticked only when all of the following hold for that item:
 - *2025-10-31*: README regeneration rerun via `node scripts/invoke-bun.mjs scripts/update-readme.ts`; no diffs observed, doc automation confirmed idempotent.
 - *2025-10-31*: Manual MCP smoke test completed via `timeout 8 npm start`; connectivity checks passed and timeout exit confirmed non-blocking workflow.
 - *2025-10-31*: Legacy grouped-tool shims removed; registry now delegates via explicit handlers and no longer references legacy tool exports. `npm run test` and `npm run check` must remain green after this change.
+- *2025-10-31*: Phase 7 release polish complete — added v0.7.0 changelog entry, bumped `package.json`/`mcp.json`, reran `npm run check`, rebuilt docs (`node scripts/invoke-bun.mjs scripts/update-readme.ts`), executed `LOGFILE=/tmp/mcp-check-local.log bash scripts/run-mcp-check.sh local 5`, and regenerated embeddings to ensure prompts/resources reference the grouped tool suite only.
 
 ## Post-Rollout Wrap-Up
 

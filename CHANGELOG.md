@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 - 2025-10-31
+
+- **Breaking:** Retired 88 legacy MCP tool identifiers in favor of the consolidated 12 grouped `c64.*` tools; downstream clients must use the new operation dispatch schema.
+- **Features:** Completed grouped-tool rollout with unified registry helpers and per-operation handlers, ensuring consistent runtime telemetry and error metadata.
+- **Tests:** Added regression coverage that verifies only grouped tool names surface through MCP `list_tools`, and ran the full Bun test suite to confirm behavior parity across program, memory, audio, config, and extraction modules.
+- **Documentation:** Regenerated README tool tables and rollout notes to reflect grouped operations exclusively, recording Phase 6 completion in the tool consolidation playbook with smoke-test confirmation.
+
 ## 0.6.0 - 2025-10-30
 
 ### Features
