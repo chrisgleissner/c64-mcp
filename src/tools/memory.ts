@@ -1,5 +1,12 @@
 import { Buffer } from "node:buffer";
-import { defineToolModule } from "./types.js";
+import {
+  defineToolModule,
+  OPERATION_DISCRIMINATOR,
+  type OperationHandlerMap,
+  type OperationMap,
+  type ToolExecutionContext,
+  type ToolRunResult,
+} from "./types.js";
 import { booleanSchema, numberSchema, objectSchema, optionalSchema, stringSchema } from "./schema.js";
 import { textResult } from "./responses.js";
 import {
@@ -160,6 +167,263 @@ const writeMemoryArgsSchema = objectSchema({
   additionalProperties: false,
 });
 
+type OperationlessArgs<T extends Record<string, unknown>> = Omit<T, typeof OPERATION_DISCRIMINATOR>;
+
+function stripOperationDiscriminator<T extends Record<string, unknown>>(
+  value: T,
+): OperationlessArgs<T> {
+  const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = value;
+  return rest as OperationlessArgs<T>;
+}
+
+async function executeReadScreen(rawArgs: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
+  try {
+    readScreenArgsSchema.parse(rawArgs ?? {});
+    ctx.logger.info("Reading C64 screen contents");
+
+    const screen = await ctx.client.readScreen();
+
+    return textResult(`Current screen contents:\n${screen}`, {
+      success: true,
+      screen,
+      length: screen.length,
+    });
+  } catch (error) {
+    if (error instanceof ToolError) {
+      return toolErrorResult(error);
+    }
+    return unknownErrorResult(error);
+  }
+}
+
+async function executeReadMemory(rawArgs: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
+  try {
+    const parsed = readMemoryArgsSchema.parse(rawArgs ?? {});
+    ctx.logger.info("Reading C64 memory", { address: parsed.address, length: parsed.length });
+
+    const result = await ctx.client.readMemory(parsed.address, String(parsed.length));
+    if (!result.success) {
+      throw new ToolExecutionError("C64 firmware reported failure while reading memory", {
+        details: normaliseFailure(result.details),
+      });
+    }
+
+    const detailRecord = toRecord(result.details) ?? {};
+    const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
+    const resolvedLength = resolveLength(detailRecord) ?? parsed.length;
+
+    return textResult(`Read ${resolvedLength} bytes starting at ${resolvedAddress}.`, {
+      success: true,
+      address: resolvedAddress,
+      length: resolvedLength,
+      hexData: result.data ?? null,
+      details: detailRecord,
+    });
+  } catch (error) {
+    if (error instanceof ToolError) {
+      return toolErrorResult(error);
+    }
+    return unknownErrorResult(error);
+  }
+}
+
+async function executeWriteMemory(rawArgs: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
+  try {
+    const parsed = writeMemoryArgsSchema.parse(rawArgs ?? {});
+    ctx.logger.info("Writing C64 memory", { address: parsed.address, bytesLength: parsed.bytes.length });
+
+    const writeInfo = parseUserHex(parsed.bytes, "$.bytes");
+    const expectedInfo = parsed.expected ? parseUserHex(parsed.expected, "$.expected") : undefined;
+    const maskInfo = parsed.mask ? parseUserHex(parsed.mask, "$.mask") : undefined;
+    const shouldVerify = parsed.verify || Boolean(expectedInfo) || Boolean(maskInfo);
+
+    if (!shouldVerify) {
+      const result = await ctx.client.writeMemory(parsed.address, writeInfo.canonical);
+      if (!result.success) {
+        throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
+          details: normaliseFailure(result.details),
+        });
+      }
+
+      const detailRecord = toRecord(result.details) ?? {};
+      const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
+      const resolvedLength = resolveLength(detailRecord);
+
+      return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress}.`, {
+        success: true,
+        address: resolvedAddress,
+        length: resolvedLength ?? null,
+        bytes: writeInfo.canonical,
+        details: detailRecord,
+      });
+    }
+
+    let paused = false;
+    try {
+      const pauseResult = await ctx.client.pause();
+      if (!pauseResult.success) {
+        throw new ToolExecutionError("C64 firmware reported failure while pausing", {
+          details: normaliseFailure(pauseResult.details),
+        });
+      }
+      paused = true;
+
+      const expectedBytes = expectedInfo?.bytes ?? new Uint8Array();
+      const maskBytes = maskInfo?.bytes;
+      const readLength = Math.max(1, Math.max(writeInfo.bytes.length, expectedBytes.length));
+
+      const preRead = await ctx.client.readMemory(parsed.address, String(readLength));
+      if (!preRead.success) {
+        throw new ToolExecutionError("C64 firmware reported failure while reading memory", {
+          details: normaliseFailure(preRead.details),
+        });
+      }
+
+      const preInfo = parseFirmwareHex(preRead.data ?? "$", "pre-read");
+
+      const preMismatches: Array<{ offset: number; expected: string; actual: string; mask?: string }> = [];
+      if (expectedBytes.length > 0) {
+        for (let i = 0; i < expectedBytes.length; i += 1) {
+          const actual = preInfo.bytes[i] ?? 0x00;
+          const expected = expectedBytes[i] ?? 0x00;
+          const mask = maskBytes ? maskBytes[i] ?? 0xFF : 0xFF;
+
+          if ((actual & mask) !== (expected & mask)) {
+            preMismatches.push({
+              offset: i,
+              expected: formatByte(expected),
+              actual: formatByte(actual),
+              ...(maskBytes ? { mask: formatByte(mask) } : {}),
+            });
+          }
+        }
+
+        if (preMismatches.length > 0 && parsed.abortOnMismatch !== false) {
+          throw new ToolExecutionError("Verification failed before write", {
+            details: { mismatches: preMismatches, address: parsed.address },
+          });
+        }
+      }
+
+      const writeResult = await ctx.client.writeMemory(parsed.address, writeInfo.canonical);
+      if (!writeResult.success) {
+        throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
+          details: normaliseFailure(writeResult.details),
+        });
+      }
+
+      const postRead = await ctx.client.readMemory(parsed.address, String(Math.max(1, writeInfo.bytes.length)));
+      if (!postRead.success) {
+        throw new ToolExecutionError("C64 firmware reported failure while reading back memory", {
+          details: normaliseFailure(postRead.details),
+        });
+      }
+
+      const postInfo = parseFirmwareHex(postRead.data ?? "$", "post-read");
+
+      const diffs: Array<{ offset: number; before: string; after: string; expected: string }> = [];
+      for (let i = 0; i < writeInfo.bytes.length; i += 1) {
+        const before = preInfo.bytes[i] ?? 0x00;
+        const after = postInfo.bytes[i] ?? 0x00;
+        const expected = writeInfo.bytes[i] ?? 0x00;
+
+        if (after !== expected) {
+          diffs.push({
+            offset: i,
+            before: formatByte(before),
+            after: formatByte(after),
+            expected: formatByte(expected),
+          });
+        }
+      }
+
+      if (diffs.length > 0) {
+        throw new ToolExecutionError("Post-write verification failed", {
+          details: { address: parsed.address, diffs },
+        });
+      }
+
+      const detailRecord = toRecord(writeResult.details) ?? {};
+      const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
+      const resolvedLength = resolveLength(detailRecord);
+
+      const verificationMetadata: Record<string, unknown> = {
+        written: writeInfo.canonical,
+        preRead: preInfo.canonical,
+        postRead: postInfo.canonical,
+        readLength,
+      };
+
+      if (expectedInfo) {
+        verificationMetadata.expected = expectedInfo.canonical;
+      }
+
+      if (maskInfo) {
+        verificationMetadata.mask = maskInfo.canonical;
+      }
+
+      if (preMismatches.length > 0) {
+        verificationMetadata.preReadMismatches = preMismatches;
+      }
+
+      return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress} (verified).`, {
+        success: true,
+        address: resolvedAddress,
+        length: resolvedLength ?? null,
+        bytes: writeInfo.canonical,
+        details: detailRecord,
+        verified: true,
+        verification: verificationMetadata,
+      });
+    } finally {
+      if (paused) {
+        try {
+          const resumeResult = await ctx.client.resume();
+          if (!resumeResult.success) {
+            ctx.logger.warn("C64 resume reported failure after write", {
+              details: normaliseFailure(resumeResult.details),
+            });
+          }
+        } catch (resumeError) {
+          ctx.logger.warn("Failed to resume C64 after write", {
+            error: resumeError instanceof Error ? {
+              name: resumeError.name,
+              message: resumeError.message,
+            } : { value: resumeError },
+          });
+        }
+      }
+    }
+  } catch (error) {
+    if (error instanceof ToolError) {
+      return toolErrorResult(error);
+    }
+    return unknownErrorResult(error);
+  }
+}
+
+export interface MemoryOperationMap extends OperationMap {
+  readonly read: {
+    readonly address: string;
+    readonly length?: number;
+  };
+  readonly write: {
+    readonly address: string;
+    readonly bytes: string;
+    readonly verify?: boolean;
+    readonly expected?: string;
+    readonly mask?: string;
+    readonly abortOnMismatch?: boolean;
+  };
+  readonly read_screen: Record<string, never>;
+}
+
+export const memoryOperationHandlers: OperationHandlerMap<MemoryOperationMap> = {
+  read: async (args, ctx) => executeReadMemory(stripOperationDiscriminator(args), ctx),
+  write: async (args, ctx) => executeWriteMemory(stripOperationDiscriminator(args), ctx),
+  read_screen: async (args, ctx) => executeReadScreen(stripOperationDiscriminator(args), ctx),
+};
+
 export const memoryModule = defineToolModule({
   domain: "memory",
   summary: "Screen, main memory, and low-level inspection utilities.",
@@ -195,23 +459,7 @@ export const memoryModule = defineToolModule({
         "Call after running a program when the user asks to see what is on screen; echo the captured text back to them.",
       ],
       async execute(args, ctx) {
-        try {
-          readScreenArgsSchema.parse(args ?? {});
-          ctx.logger.info("Reading C64 screen contents");
-
-          const screen = await ctx.client.readScreen();
-
-          return textResult(`Current screen contents:\n${screen}`, {
-            success: true,
-            screen,
-            length: screen.length,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
+        return executeReadScreen(args, ctx);
       },
     },
     {
@@ -235,37 +483,7 @@ export const memoryModule = defineToolModule({
         "Keep reads at or below 4096 bytes; split larger requests into multiple calls if needed.",
       ],
       async execute(args, ctx) {
-        try {
-          const parsed = readMemoryArgsSchema.parse(args ?? {});
-          ctx.logger.info("Reading C64 memory", { address: parsed.address, length: parsed.length });
-
-          const result = await ctx.client.readMemory(parsed.address, String(parsed.length));
-          if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while reading memory", {
-              details: normaliseFailure(result.details),
-            });
-          }
-
-          const detailRecord = toRecord(result.details) ?? {};
-          const resolvedAddress = typeof detailRecord.address === "string" ? detailRecord.address : undefined;
-          const resolvedLength = typeof detailRecord.length === "number" ? detailRecord.length : undefined;
-
-          const addressLabel = resolvedAddress ? `$${resolvedAddress}` : parsed.address;
-          const lengthLabel = resolvedLength ?? parsed.length;
-
-          return textResult(`Read ${lengthLabel} bytes starting at ${addressLabel}.`, {
-            success: true,
-            address: addressLabel,
-            length: lengthLabel,
-            hexData: result.data ?? null,
-            details: detailRecord,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
+        return executeReadMemory(args, ctx);
       },
     },
     {
@@ -289,178 +507,7 @@ export const memoryModule = defineToolModule({
         "Consider reading the region first so they can compare before and after states.",
       ],
       async execute(args, ctx) {
-        try {
-          const parsed = writeMemoryArgsSchema.parse(args ?? {});
-          ctx.logger.info("Writing C64 memory", { address: parsed.address, bytesLength: parsed.bytes.length });
-
-          const writeInfo = parseUserHex(parsed.bytes, "$.bytes");
-          const expectedInfo = parsed.expected ? parseUserHex(parsed.expected, "$.expected") : undefined;
-          const maskInfo = parsed.mask ? parseUserHex(parsed.mask, "$.mask") : undefined;
-          const shouldVerify = parsed.verify || Boolean(expectedInfo) || Boolean(maskInfo);
-
-          if (!shouldVerify) {
-            const result = await ctx.client.writeMemory(parsed.address, writeInfo.canonical);
-            if (!result.success) {
-              throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
-                details: normaliseFailure(result.details),
-              });
-            }
-
-            const detailRecord = toRecord(result.details) ?? {};
-            const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
-            const resolvedLength = resolveLength(detailRecord);
-
-            return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress}.`, {
-              success: true,
-              address: resolvedAddress,
-              length: resolvedLength ?? null,
-              bytes: writeInfo.canonical,
-              details: detailRecord,
-            });
-          }
-
-          let paused = false;
-          try {
-            const pauseResult = await ctx.client.pause();
-            if (!pauseResult.success) {
-              throw new ToolExecutionError("C64 firmware reported failure while pausing", {
-                details: normaliseFailure(pauseResult.details),
-              });
-            }
-            paused = true;
-
-            const expectedBytes = expectedInfo?.bytes ?? new Uint8Array();
-            const maskBytes = maskInfo?.bytes;
-            const readLength = Math.max(1, Math.max(writeInfo.bytes.length, expectedBytes.length));
-
-            const preRead = await ctx.client.readMemory(parsed.address, String(readLength));
-            if (!preRead.success) {
-              throw new ToolExecutionError("C64 firmware reported failure while reading memory", {
-                details: normaliseFailure(preRead.details),
-              });
-            }
-
-            const preInfo = parseFirmwareHex(preRead.data ?? "$", "pre-read");
-
-            const preMismatches: Array<{ offset: number; expected: string; actual: string; mask?: string }> = [];
-            if (expectedBytes.length > 0) {
-              for (let i = 0; i < expectedBytes.length; i += 1) {
-                const actual = preInfo.bytes[i] ?? 0x00;
-                const expected = expectedBytes[i] ?? 0x00;
-                const mask = maskBytes ? maskBytes[i] ?? 0xFF : 0xFF;
-
-                if ((actual & mask) !== (expected & mask)) {
-                  preMismatches.push({
-                    offset: i,
-                    expected: formatByte(expected),
-                    actual: formatByte(actual),
-                    ...(maskBytes ? { mask: formatByte(mask) } : {}),
-                  });
-                }
-              }
-
-              if (preMismatches.length > 0 && parsed.abortOnMismatch !== false) {
-                throw new ToolExecutionError("Verification failed before write", {
-                  details: { mismatches: preMismatches, address: parsed.address },
-                });
-              }
-            }
-
-            const writeResult = await ctx.client.writeMemory(parsed.address, writeInfo.canonical);
-            if (!writeResult.success) {
-              throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
-                details: normaliseFailure(writeResult.details),
-              });
-            }
-
-            const postRead = await ctx.client.readMemory(parsed.address, String(Math.max(1, writeInfo.bytes.length)));
-            if (!postRead.success) {
-              throw new ToolExecutionError("C64 firmware reported failure while reading back memory", {
-                details: normaliseFailure(postRead.details),
-              });
-            }
-
-            const postInfo = parseFirmwareHex(postRead.data ?? "$", "post-read");
-
-            const diffs: Array<{ offset: number; before: string; after: string; expected: string }> = [];
-            for (let i = 0; i < writeInfo.bytes.length; i += 1) {
-              const before = preInfo.bytes[i] ?? 0x00;
-              const after = postInfo.bytes[i] ?? 0x00;
-              const expected = writeInfo.bytes[i] ?? 0x00;
-
-              if (after !== expected) {
-                diffs.push({
-                  offset: i,
-                  before: formatByte(before),
-                  after: formatByte(after),
-                  expected: formatByte(expected),
-                });
-              }
-            }
-
-            if (diffs.length > 0) {
-              throw new ToolExecutionError("Post-write verification failed", {
-                details: { address: parsed.address, diffs },
-              });
-            }
-
-            const detailRecord = toRecord(writeResult.details) ?? {};
-            const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
-            const resolvedLength = resolveLength(detailRecord);
-
-            const verificationMetadata: Record<string, unknown> = {
-              written: writeInfo.canonical,
-              preRead: preInfo.canonical,
-              postRead: postInfo.canonical,
-              readLength,
-            };
-
-            if (expectedInfo) {
-              verificationMetadata.expected = expectedInfo.canonical;
-            }
-
-            if (maskInfo) {
-              verificationMetadata.mask = maskInfo.canonical;
-            }
-
-            if (preMismatches.length > 0) {
-              verificationMetadata.preReadMismatches = preMismatches;
-            }
-
-            return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress} (verified).`, {
-              success: true,
-              address: resolvedAddress,
-              length: resolvedLength ?? null,
-              bytes: writeInfo.canonical,
-              details: detailRecord,
-              verified: true,
-              verification: verificationMetadata,
-            });
-          } finally {
-            if (paused) {
-              try {
-                const resumeResult = await ctx.client.resume();
-                if (!resumeResult.success) {
-                  ctx.logger.warn("C64 resume reported failure after write", {
-                    details: normaliseFailure(resumeResult.details),
-                  });
-                }
-              } catch (resumeError) {
-                ctx.logger.warn("Failed to resume C64 after write", {
-                  error: resumeError instanceof Error ? {
-                    name: resumeError.name,
-                    message: resumeError.message,
-                  } : { value: resumeError },
-                });
-              }
-            }
-          }
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
+        return executeWriteMemory(args, ctx);
       },
     },
   ],

@@ -1,7 +1,7 @@
 import type { JsonSchema, ToolDescriptor, ToolExecutionContext, ToolModule, ToolRunResult } from "./types.js";
 import { createOperationDispatcher, defineToolModule, discriminatedUnionSchema, OPERATION_DISCRIMINATOR } from "./types.js";
 import { programRunnersModule, programOperationHandlers as groupedProgramHandlers } from "./programRunners.js";
-import { memoryModule } from "./memory.js";
+import { memoryModule, memoryOperationHandlers as groupedMemoryHandlers } from "./memory.js";
 import { audioModule } from "./audio.js";
 import { machineControlModule } from "./machineControl.js";
 import { storageModule } from "./storage.js";
@@ -285,7 +285,7 @@ const memoryOperations: GroupedOperationConfig[] = [
       ensureDescriptor(memoryDescriptorIndex, "read_memory").inputSchema,
       { description: "Read a range of bytes and return a hex dump with address metadata." },
     ),
-    transform: dropOpTransform,
+    handler: groupedMemoryHandlers.read,
   },
   {
     op: "write",
@@ -296,7 +296,7 @@ const memoryOperations: GroupedOperationConfig[] = [
       ensureDescriptor(memoryDescriptorIndex, "write_memory").inputSchema,
       { description: "Write a hexadecimal byte sequence into RAM." },
     ),
-    transform: dropOpTransform,
+    handler: groupedMemoryHandlers.write,
   },
   {
     op: "read_screen",
@@ -307,7 +307,7 @@ const memoryOperations: GroupedOperationConfig[] = [
       ensureDescriptor(memoryDescriptorIndex, "read_screen").inputSchema,
       { description: "Return the current 40x25 text screen converted to ASCII." },
     ),
-    transform: dropOpTransform,
+    handler: groupedMemoryHandlers.read_screen,
   },
   {
     op: "wait_for_text",

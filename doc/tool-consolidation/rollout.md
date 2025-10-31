@@ -41,7 +41,7 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 2 — High-traffic Tool Migration (Program & Memory)
 
-- [ ] Implement `c64.program` dispatch logic, migrate legacy program runner handlers, and ensure compatibility stubs continue to export old tool IDs until rollout completion.
+- [x] Implement `c64.program` dispatch logic, migrate legacy program runner handlers, and ensure compatibility stubs continue to export old tool IDs until rollout completion.
 - [ ] Implement `c64.memory` dispatch logic, integrating the `verify` option and consolidating screen read/wait operations; update associated tests.
 - [ ] Remove direct registration of legacy program/memory tools once grouped variants pass all tests and docs reference the new schema.
 

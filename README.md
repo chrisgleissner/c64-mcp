@@ -591,8 +591,8 @@ This MCP server exposes **83 tools**, **25 resources**, and **7 prompts** for co
 | `load_prg` | Load a PRG from Ultimate storage without executing it. | `path` | — |
 | `run_crt` | Mount and run a CRT cartridge image. | `path` | — |
 | `run_prg` | Load and execute a PRG located on the Ultimate filesystem. | `path` | — |
-| `upload_run_asm` | Assemble 6502/6510 source, upload the PRG, and execute it. | `program` | — |
-| `upload_run_basic` | Upload Commodore BASIC v2 source and execute it immediately. | `program` | — |
+| `upload_run_asm` | Assemble 6502/6510 source, upload the PRG, and execute it. | `program` | supports verify |
+| `upload_run_basic` | Upload Commodore BASIC v2 source and execute it immediately. | `program` | supports verify |
 
 #### Memory
 > Grouped memory, screen, and polling operations.
@@ -614,7 +614,7 @@ This MCP server exposes **83 tools**, **25 resources**, and **7 prompts** for co
 | `read` | Read a range of bytes and return a hex dump with address metadata. | `address` | — |
 | `read_screen` | Return the current 40x25 text screen converted to ASCII. | — | — |
 | `wait_for_text` | Poll the screen until a substring or regex appears, or timeout elapses. | `pattern` | — |
-| `write` | Write a hexadecimal byte sequence into RAM. | `address`, `bytes` | — |
+| `write` | Write a hexadecimal byte sequence into RAM. | `address`, `bytes` | supports verify |
 
 ### Resources
 
