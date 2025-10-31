@@ -15,23 +15,8 @@ const __dirname = dirname(__filename);
 const PROJECT_ROOT = join(__dirname, "..");
 const README_PATH = join(PROJECT_ROOT, "README.md");
 
-function titleCase(input: string): string {
-  return input
-    .split(/[\s_-]+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
 function escapeCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n|\r/g, " ").trim();
-}
-
-function formatTags(tags: readonly string[]): string {
-  if (!tags.length) {
-    return "—";
-  }
-  return tags.map((tag) => `\`${tag}\``).join(", ");
 }
 
 function renderTable(headers: readonly string[], rows: readonly (readonly string[])[]): string {
@@ -132,66 +117,42 @@ function collectGroupedOperations(schema?: JsonSchema): readonly GroupedOperatio
 
 export function renderToolsSection(modules: readonly ToolModuleDescriptor[] = describeToolModules()): string[] {
   const lines: string[] = ["### Tools", ""];
+  const groupedTools: GroupedToolInfo[] = [];
 
   for (const module of modules) {
-    lines.push(`#### ${titleCase(module.domain)}`);
-    if (module.summary) {
-      lines.push(`> ${module.summary}`);
-    }
-    if (module.workflowHints.length) {
-      lines.push("");
-      lines.push("**Workflow hints:**");
-      for (const hint of module.workflowHints) {
-        lines.push(`- ${hint}`);
-      }
-    }
-    if (module.defaultTags.length) {
-      lines.push("");
-      lines.push(`**Default tags:** ${module.defaultTags.map((tag) => `\`${tag}\``).join(", ")}`);
-    }
-
-    const groupedTools: GroupedToolInfo[] = [];
-    const rows = module.tools
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((tool) => {
-        const operations = collectGroupedOperations(tool.inputSchema);
-        if (operations.length > 0) {
-          groupedTools.push({ tool, operations });
-        }
-        return [
-          `\`${tool.name}\``,
-          escapeCell(tool.description),
-          formatTags(tool.metadata.tags),
-        ];
-      });
-
-    lines.push("");
-    if (rows.length) {
-      lines.push(renderTable(["Name", "Description", "Tags"], rows));
-    } else {
-      lines.push("_No tools registered._");
-    }
-    lines.push("");
-
-    for (const grouped of groupedTools) {
-      lines.push(`##### Operations: \`${grouped.tool.name}\``);
-      lines.push("");
-
-      const operationRows = grouped.operations
-        .slice()
-        .sort((a, b) => a.op.localeCompare(b.op))
-        .map((operation) => [
-          `\`${operation.op}\``,
-          escapeCell(operation.description),
-          escapeCell(toTableValue(operation.required.map((name) => `\`${name}\``))),
-          operation.notes.length ? escapeCell(operation.notes.join(", ")) : "—",
-        ]);
-
-      lines.push(renderTable(["Operation", "Description", "Required Inputs", "Notes"], operationRows));
-      lines.push("");
+    for (const tool of module.tools) {
+      const operations = collectGroupedOperations(tool.inputSchema);
+      groupedTools.push({ tool, operations });
     }
   }
+
+  groupedTools
+    .slice()
+    .sort((a, b) => a.tool.name.localeCompare(b.tool.name))
+    .forEach(({ tool, operations }) => {
+      lines.push(`#### ${tool.name}`);
+      lines.push("");
+      lines.push(tool.description.trim() || "No description provided.");
+      lines.push("");
+
+      if (operations.length === 0) {
+        lines.push("_No operations defined._");
+      } else {
+        const operationRows = operations
+          .slice()
+          .sort((a, b) => a.op.localeCompare(b.op))
+          .map((operation) => [
+            `\`${operation.op}\``,
+            escapeCell(operation.description),
+            escapeCell(toTableValue(operation.required.map((name) => `\`${name}\``))),
+            operation.notes.length ? escapeCell(operation.notes.join(", ")) : "—",
+          ]);
+
+        lines.push(renderTable(["Operation", "Description", "Required Inputs", "Notes"], operationRows));
+      }
+
+      lines.push("");
+    });
 
   return lines;
 }
