@@ -64,7 +64,7 @@ test('applies default depth=5 and per-URL override', async () => {
     'http://example.com/d.s': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$00' },
   };
 
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 5, request: fakeRequesterFactory(pages), perDomainRps: Infinity });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 5, request: fakeRequesterFactory(pages), perDomainRps: 1000 });
   assert.equal(summaries.length, 2);
   // depth=2 for first seed should allow index -> b.html -> c.bas (2 hops) and index -> a.bas (1 hop)
   const exampleDir = path.join(outDir, 'example.com');

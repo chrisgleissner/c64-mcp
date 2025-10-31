@@ -105,7 +105,7 @@ test("SIDWAVE -> SID -> WAV via sidplayfp, then analyze", async (t) => {
 
   try {
   const mode = (doc.mode || "ntsc").toLowerCase() === "pal" ? "pal" : "ntsc";
-  const res = await runSidToWav({ sidPath, wavPath, mode, limitCycles: 1_500_000 });
+  const res = await runSidToWav({ sidPath, wavPath, mode, limitCycles: 800_000 });
     assert.equal(res.exitCode, 0);
     assert.ok(fs.existsSync(wavPath), "WAV not created");
     const stat = fs.statSync(wavPath);
