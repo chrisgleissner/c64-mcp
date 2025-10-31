@@ -112,7 +112,10 @@ function collectGroupedOperations(schema?: JsonSchema): readonly GroupedOperatio
     const requiredProps = ((typedVariant.required as readonly string[] | undefined) ?? []).filter((name) => name !== "op");
 
     const notes: string[] = [];
-    if (properties.verify) {
+    const hasVerificationProperty = Object.keys(properties).some((name) =>
+      name.toLowerCase().startsWith("verify"),
+    );
+    if (hasVerificationProperty) {
       notes.push("supports verify");
     }
 
