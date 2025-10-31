@@ -61,12 +61,23 @@ async function readJson(req) {
   }
 }
 
+function sendJson(res, payload = {}, statusCode = 200) {
+  res.statusCode = statusCode;
+  res.setHeader("Content-Type", "application/json");
+  const body = { ...payload };
+  if (!Object.prototype.hasOwnProperty.call(body, "errors")) {
+    body.errors = [];
+  }
+  res.end(JSON.stringify(body));
+}
+
 function createInitialState() {
   return {
     lastPrg: null,
     runCount: 0,
     resets: 0,
     reboots: 0,
+  poweroffs: 0,
     memory: new Uint8Array(0x10000),
     lastWrite: null,
     lastRequest: null,
@@ -81,10 +92,15 @@ function createInitialState() {
     modplayCount: 0,
     lastModplay: null,
     paused: false,
+  lastPause: null,
+  lastResume: null,
+  lastPoweroff: null,
     debugreg: "00",
     configs: createDefaultConfigs(),
     flashSnapshot: null,
     lastConfigAction: null,
+  menuToggleCount: 0,
+  lastMenuTarget: null,
     streams: {
       video: { active: false, target: null },
       audio: { active: false, target: null },
@@ -139,27 +155,21 @@ export async function startMockC64Server() {
     state.lastRequest = { method, url, headers: req.headers };
 
     if (method === "GET" && (url === "/" || url.startsWith("/?"))) {
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ status: "ok", host: "mock" }));
+      sendJson(res, { status: "ok", host: "mock" });
       return;
     }
 
     if (method === "GET" && url === "/v1/version") {
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ version: "0.1-mock", errors: [] }));
+      sendJson(res, { version: "0.1-mock" });
       return;
     }
 
     if (method === "GET" && url === "/v1/info") {
-      res.setHeader("Content-Type", "application/json");
-      res.end(
-        JSON.stringify({ product: "U64-MOCK", firmware_version: "3.12-mock", hostname: "mockc64", errors: [] }),
-      );
+      sendJson(res, { product: "U64-MOCK", firmware_version: "3.12-mock", hostname: "mockc64" });
       return;
     }
 
     if (method === "GET" && url === "/v1/drives") {
-      res.setHeader("Content-Type", "application/json");
       const drives = {};
       for (const [driveId, driveState] of Object.entries(state.drives)) {
         drives[driveId] = {
@@ -169,27 +179,41 @@ export async function startMockC64Server() {
           image: driveState.mountedImage,
         };
       }
-      res.end(JSON.stringify({ drives }));
+      sendJson(res, { drives });
       return;
     }
 
     if (method === "PUT" && url === "/v1/machine:pause") {
       state.paused = true;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "paused" }));
+      state.lastPause = Date.now();
+      sendJson(res, { result: "paused" });
       return;
     }
 
     if (method === "PUT" && url === "/v1/machine:resume") {
       state.paused = false;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "resumed" }));
+      state.lastResume = Date.now();
+      sendJson(res, { result: "resumed" });
+      return;
+    }
+
+    if (method === "PUT" && url === "/v1/machine:poweroff") {
+      state.poweroffs += 1;
+      state.lastPoweroff = Date.now();
+      sendJson(res, { result: "poweroff" });
+      return;
+    }
+
+    if (method === "PUT" && url === "/v1/machine:menu_button") {
+      state.menuToggleCount += 1;
+      const target = req.headers["x-target"] ?? null;
+      state.lastMenuTarget = target;
+      sendJson(res, { result: "menu", target });
       return;
     }
 
     if (method === "GET" && url === "/v1/machine:debugreg") {
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ value: state.debugreg ?? "00", errors: [] }));
+      sendJson(res, { value: state.debugreg ?? "00" });
       return;
     }
 
@@ -197,8 +221,7 @@ export async function startMockC64Server() {
       const routeUrl = new URL(url, "http://mock.local");
       const value = (routeUrl.searchParams.get("value") ?? "00").toUpperCase();
       state.debugreg = value;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ value, errors: [] }));
+      sendJson(res, { value });
       return;
     }
 
@@ -212,8 +235,7 @@ export async function startMockC64Server() {
       state.lastPrg = prg;
       state.runCount += 1;
 
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "ok", bytes: prg.length }));
+      sendJson(res, { result: "ok", bytes: prg.length });
       return;
     }
 
@@ -233,8 +255,7 @@ export async function startMockC64Server() {
           const file = routeUrl.searchParams.get("file") ?? "";
           state.sidplayCount += 1;
           state.lastSidplay = { file, songnr };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "sidplay", file, songnr, errors: [] }));
+          sendJson(res, { result: "sidplay", file, songnr });
           return;
         }
 
@@ -247,8 +268,7 @@ export async function startMockC64Server() {
           const attachment = Buffer.concat(chunks);
           state.sidAttachmentCount += 1;
           state.lastSidAttachment = { songnr, bytes: attachment.length };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "sidplay_attachment", bytes: attachment.length, songnr, errors: [] }));
+          sendJson(res, { result: "sidplay_attachment", bytes: attachment.length, songnr });
           return;
         }
       }
@@ -267,8 +287,7 @@ export async function startMockC64Server() {
           const file = routeUrl.searchParams.get("file") ?? "";
           state.modplayCount += 1;
           state.lastModplay = { file };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "modplay", file, errors: [] }));
+          sendJson(res, { result: "modplay", file });
           return;
         }
 
@@ -281,8 +300,7 @@ export async function startMockC64Server() {
           const attachment = Buffer.concat(chunks);
           state.modplayCount += 1;
           state.lastModplay = { file: null, bytes: attachment.length };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "modplay_attachment", bytes: attachment.length, errors: [] }));
+          sendJson(res, { result: "modplay_attachment", bytes: attachment.length });
           return;
         }
       }
@@ -301,24 +319,21 @@ export async function startMockC64Server() {
         res.setHeader("Content-Type", "application/octet-stream");
         res.end(Buffer.from(bytes));
       } else {
-        res.setHeader("Content-Type", "application/json");
         const payload = Buffer.from(bytes).toString("base64");
-        res.end(JSON.stringify({ data: payload }));
+        sendJson(res, { data: payload });
       }
       return;
     }
 
     if (method === "PUT" && url === "/v1/machine:reset") {
       state.resets += 1;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "reset" }));
+      sendJson(res, { result: "reset" });
       return;
     }
 
     if (method === "PUT" && url === "/v1/machine:reboot") {
       state.reboots += 1;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "reboot" }));
+      sendJson(res, { result: "reboot" });
       return;
     }
 
@@ -332,8 +347,7 @@ export async function startMockC64Server() {
       state.memory.set(bytes, address);
       state.lastWrite = { address, bytes };
 
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "wrote", address, length: bytes.length }));
+      sendJson(res, { result: "wrote", address, length: bytes.length });
       return;
     }
 
@@ -351,14 +365,12 @@ export async function startMockC64Server() {
       state.memory.set(bytes, address);
       state.lastWrite = { address, bytes };
 
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "wrote", address, length: bytes.length }));
+      sendJson(res, { result: "wrote", address, length: bytes.length });
       return;
     }
 
     if (method === "GET" && url === "/v1/configs") {
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ categories: Object.keys(state.configs), configs: state.configs }));
+      sendJson(res, { categories: Object.keys(state.configs), configs: state.configs });
       return;
     }
 
@@ -377,8 +389,7 @@ export async function startMockC64Server() {
         }
       }
       state.lastConfigAction = { action: "batch_update", payload };
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ result: "batch_update", categories: Object.keys(payload ?? {}) }));
+      sendJson(res, { result: "batch_update", categories: Object.keys(payload ?? {}) });
       return;
     }
 
@@ -391,24 +402,21 @@ export async function startMockC64Server() {
           state.configs = JSON.parse(JSON.stringify(state.flashSnapshot));
         }
         state.lastConfigAction = { action: "load_from_flash" };
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ result: "loaded", restored: Boolean(state.flashSnapshot) }));
+        sendJson(res, { result: "loaded", restored: Boolean(state.flashSnapshot) });
         return;
       }
 
       if (method === "PUT" && action === "save_to_flash") {
         state.flashSnapshot = JSON.parse(JSON.stringify(state.configs));
         state.lastConfigAction = { action: "save_to_flash" };
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ result: "saved" }));
+        sendJson(res, { result: "saved" });
         return;
       }
 
       if (method === "PUT" && action === "reset_to_default") {
         state.configs = createDefaultConfigs();
         state.lastConfigAction = { action: "reset_to_default" };
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ result: "reset" }));
+        sendJson(res, { result: "reset" });
         return;
       }
     }
@@ -422,8 +430,7 @@ export async function startMockC64Server() {
 
         if (method === "GET") {
           const categoryData = state.configs[category] ?? {};
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(categoryData));
+          sendJson(res, { ...categoryData });
           return;
         }
       }
@@ -433,8 +440,7 @@ export async function startMockC64Server() {
         if (method === "GET") {
           const categoryData = state.configs[category] ?? {};
           const value = categoryData[item];
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ value }));
+          sendJson(res, { value });
           return;
         }
 
@@ -447,8 +453,7 @@ export async function startMockC64Server() {
           }
           state.configs[category][item] = String(value);
           state.lastConfigAction = { action: "set", category, item, value: String(value) };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "updated", category, item, value: String(value) }));
+          sendJson(res, { result: "updated", category, item, value: String(value) });
           return;
         }
       }
@@ -469,16 +474,14 @@ export async function startMockC64Server() {
           const target = routeUrl.searchParams.get("ip") ?? routeUrl.searchParams.get("target") ?? body?.ip ?? body?.target ?? null;
           state.streams[stream] = { active: true, target };
           state.lastStreamAction = { action: "start", stream, target };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "started", stream, target }));
+          sendJson(res, { result: "started", stream, target });
           return;
         }
 
         if (action === "stop" && method === "PUT") {
           state.streams[stream] = { active: false, target: null };
           state.lastStreamAction = { action: "stop", stream };
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: "stopped", stream }));
+          sendJson(res, { result: "stopped", stream });
           return;
         }
       }
@@ -499,8 +502,7 @@ export async function startMockC64Server() {
           const driveState = ensureDriveState(driveId);
 
           const respond = (payload) => {
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify(payload));
+            sendJson(res, payload);
           };
 
           state.lastDriveOperation = {
@@ -579,8 +581,7 @@ export async function startMockC64Server() {
           const decodedPath = decodeURIComponent(encodedPath);
 
           const respond = (payload) => {
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify(payload));
+            sendJson(res, payload);
           };
 
           if (action === "info" && method === "GET") {
