@@ -27,7 +27,7 @@ Our goal is to adopt Bun everywhere it improves speed (local dev, CI, container 
 
 - Sources remain TypeScript, emitting standard ESM/CJS modules compatible with Node.
 - Published code may not depend on Bun-only APIs (no `Bun.file`, `Bun.serve`, etc.).
-- The compiled `dist/` must execute under both **Bun ≥1.1** and **Node ≥18**.
+- The compiled `dist/` must execute under both **Bun ≥1.1** and **Node ≥24**.
 - `package.json` stays valid for npm clients (no Bun-only metadata).
 
 ### 2. CI Strategy (Asymmetric Validation)
@@ -58,7 +58,7 @@ WORKDIR /app
 COPY . .
 RUN bun install && bun run build
 
-FROM node:20-slim
+FROM node:24-slim
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY package.json .
@@ -74,7 +74,7 @@ CMD ["node", "dist/index.js"]
 ### 5. Documentation Messaging
 >
 > Built and tested with **Bun** ⚡  
-> Fully compatible with **Node.js 18+** 🟩
+> Fully compatible with **Node.js 24+** 🟩
 
 ---
 

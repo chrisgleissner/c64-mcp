@@ -54,7 +54,7 @@ For every checklist item below, execute the following sub-steps in order (these 
 ## Phase 4 — Reproducibility & Packaging
 
 > Implementation guardrails for S1  
-> • Base image must be `node:20-bookworm-slim` (or newer 20.x digest) to keep parity with local tooling.  
+> • Base image must be `node:24-bookworm-slim` (or newer 24.x digest) to keep parity with local tooling.  
 > • Create a dedicated non-root user (e.g., `bridge`) with home `/app` and run the container as that user.  
 > • Copy `package.json`, `package-lock.json`, and `npm ci` during build before adding the rest of the repo to leverage caching.  
 > • Switch `WORKDIR` to `/app`, copy the code, and set `CMD ["npm","start"]`.  
