@@ -151,7 +151,7 @@ Create `~/.c64bridge.json` with your device settings:
 node ./node_modules/c64bridge/dist/index.js
 ```
 
-**Notes**
+Notes:
 
 - Works fully offline. The npm package bundles `doc/`, `data/`, and `mcp.json`.
 - All environment flags (e.g., `RAG_BUILD_ON_START=1`) apply the same as in a source checkout.
@@ -200,7 +200,6 @@ VS Code (version 1.102+) and GitHub Copilot Chat (version 1.214+) include native
 - Enable the **MCP** checkbox.
 - Restart VS Code.
 
-
 #### Step 2: Start the MCP Server
 
 Normally it gets started automatically, but if not, you can start it by opening `.vscode/mcp.json` in this repository and clicking on the "Start" icon:
@@ -240,7 +239,7 @@ After a short while, a friendly AI greeting should appear on your C64 screen:
 
 ![VS Code C64 Hello World](./doc/img/vscode/vscode-copilot-hello-world.png)
 
-Well done! You are all set. 
+Well done! You are all set.
 
 ## Documentation 📚
 
@@ -338,16 +337,6 @@ Please note that all logs use `stderr` since `stdout` is reserved for the MCP pr
 - `npm test -- --real` — exercise the same tests against a real c64 device. The runner reuses your MCP config (`~/.c64bridge.json` or `C64BRIDGE_CONFIG`) to determine the REST endpoint. You can also override explicitly with `--base-url=http://<host>`.
 - `npm run check` — convenience command that runs both the type-check and the mock-backed test suite.
 - `npm run coverage` — runs the Bun-powered test harness with coverage enabled and emits `coverage/lcov.info` (CI uploads to Codecov).
-
-**Development Tooling**
-
-This project uses [Bun](https://bun.sh/) for building and testing due to its high performance (significantly faster than npm/node for development workflows). The npm package remains fully compatible with Node.js 18+ and can be installed and run using standard npm commands. For release preparation, npm/node is still used to ensure everything works correctly on the target platform.
-
-The test runner accepts the following options:
-
-- `--mock` (default): use the bundled mock hardware emulator.
-- `--real`: talk to physical hardware (requires reachable C64 device).
-- `--base-url=http://host[:port]`: override the REST endpoint when running with `--real`.
 
 ## MCP API Reference
 
