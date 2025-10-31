@@ -2,7 +2,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { describeToolModules, type ToolModuleDescriptor } from "../src/tools/registry.js";
+import { describeToolModules, type ToolModuleDescriptor } from "../src/tools/registry/main.js";
 import type { JsonSchema, ToolDescriptor } from "../src/tools/types.js";
 import { listKnowledgeResources } from "../src/rag/knowledgeIndex.js";
 import { createPromptRegistry } from "../src/prompts/registry.js";

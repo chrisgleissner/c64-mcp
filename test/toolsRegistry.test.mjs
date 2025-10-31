@@ -1,6 +1,6 @@
 import test from "#test/runner";
 import assert from "#test/assert";
-import { toolRegistry, describeToolModules } from "../src/tools/registry.js";
+import { toolRegistry, describeToolModules } from "../src/tools/registry/main.js";
 import { getPlatformStatus, setPlatform } from "../src/platform.js";
 
 function createStubLogger() {
