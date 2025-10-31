@@ -5,12 +5,15 @@ info:
   summary: REST interface exposed by Ultimate 64 / 1541 Ultimate firmware ≥ 3.11.
   description: |
     This OpenAPI document captures the public HTTP interface described in the
-    official Ultimate 64 REST API documentation. Responses always include an
-    `errors` array unless noted. When a network password is configured, clients
-    must supply the `X-Password` header on every request.
+    official Ultimate 64 REST API documentation at
+    https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html.
+    Responses always include an `errors` array unless noted. When a network
+    password is configured, clients must supply the `X-Password` header on every
+    request. Example payloads were captured against a local Ultimate 64 Elite
+    reachable as `http://c64u` running firmware 3.12a.
 servers:
   - url: http://c64u
-    description: Ultimate 64 on the local network
+    description: Ultimate 64 on the local network (example fixture)
 components:
   securitySchemes:
     NetworkPassword:
@@ -140,19 +143,31 @@ components:
         - $ref: '#/components/schemas/ErrorResponse'
         - type: object
           properties:
-            info:
+            files:
               type: object
+              properties:
+                path:
+                  type: string
+                filename:
+                  type: string
+                size:
+                  type: integer
+                extension:
+                  type: string
               additionalProperties: true
     MachineActionResponse:
-      $ref: '#/components/schemas/ErrorResponse'
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
     RunnerActionResponse:
-      $ref: '#/components/schemas/ErrorResponse'
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
 security:
   - NetworkPassword: []
 paths:
   /v1/version:
     get:
       summary: Get API version
+      description: Returns the firmware-defined REST API semantic version.
       responses:
         '200':
           description: Successful response
@@ -160,9 +175,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VersionResponse'
+              examples:
+                live:
+                  value:
+                    version: "0.1"
+                    errors: []
   /v1/info:
     get:
       summary: Get device information
+      description: >-
+        Returns hardware metadata (product, firmware version, FPGA/core
+        versions, hostname). Available on Ultimate firmware 3.12 and newer. On
+        earlier releases the endpoint responds with HTTP 404.
       responses:
         '200':
           description: Successful response
@@ -170,6 +194,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InfoResponse'
+              examples:
+                live:
+                  value:
+                    product: Ultimate 64 Elite
+                    firmware_version: "3.12a"
+                    fpga_version: "121"
+                    core_version: "1.45"
+                    hostname: c64u
+                    unique_id: 38C1BA
+                    errors: []
   /v1/runners:sidplay:
     put:
       summary: Play SID from filesystem
@@ -352,6 +386,8 @@ paths:
   /v1/configs:
     get:
       summary: List configuration categories
+      description: Enumerates top-level configuration pages as displayed in the
+        Ultimate menu. Supports wildcard queries via URL encoding.
       responses:
         '200':
           description: Categories returned
@@ -359,6 +395,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConfigListResponse'
+              examples:
+                live:
+                  value:
+                    categories:
+                      - Audio Mixer
+                      - SID Sockets Configuration
+                      - UltiSID Configuration
+                      - SID Addressing
+                      - U64 Specific Settings
+                      - C64 and Cartridge Settings
+                      - Clock Settings
+                      - Network Settings
+                      - Ethernet Settings
+                      - WiFi settings
+                      - LED Strip Settings
+                      - Data Streams
+                      - SoftIEC Drive Settings
+                      - Printer Settings
+                      - Modem Settings
+                      - User Interface Settings
+                      - Tape Settings
+                      - Drive A Settings
+                      - Drive B Settings
+                    errors: []
     post:
       summary: Batch update configuration
       requestBody:
@@ -379,6 +439,9 @@ paths:
   /v1/configs/{category}:
     get:
       summary: Inspect category
+      description: Returns all items inside the specified category. Wildcards
+        may match multiple categories; each appears as an object property in the
+        response.
       parameters:
         - in: path
           name: category
@@ -392,6 +455,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConfigCategoryResponse'
+              examples:
+                drive_a:
+                  summary: Drive A Settings (firmware 3.12a)
+                  value:
+                    Drive A Settings:
+                      Drive: Enabled
+                      Drive Type: "1541"
+                      Drive Bus ID: 8
+                      ROM for 1541 mode: 1541.rom
+                      ROM for 1571 mode: 1571.rom
+                      ROM for 1581 mode: 1581.rom
+                      Extra RAM: Disabled
+                      Disk swap delay: 1
+                      Resets when C64 resets: "Yes"
+                      Freezes in menu: "Yes"
+                      GCR Save Align Tracks: "Yes"
+                      Leave Menu on Mount: "Yes"
+                      D64 Geos Copy Protection: none
+                    errors: []
   /v1/configs/{category}/{item}:
     get:
       summary: Inspect configuration item
@@ -577,6 +659,9 @@ paths:
   /v1/machine:readmem:
     get:
       summary: Read memory
+      description: Performs a DMA read at the requested address. Firmware
+        returns either a JSON wrapper or raw bytes. Use `length` to limit the
+        transfer (default 256 bytes).
       parameters:
         - in: query
           name: address
@@ -601,6 +686,11 @@ paths:
               schema:
                 type: string
                 format: binary
+              examples:
+                vic_border:
+                  summary: Raw bytes for $D020-$D021
+                  value: !!binary |
+                    /vY=
   /v1/machine:debugreg:
     get:
       summary: Read debug register
@@ -630,6 +720,8 @@ paths:
   /v1/drives:
     get:
       summary: List internal drives
+      description: Returns current Ultimate-managed drives, images, and service
+        devices (SoftIEC, printer emulation).
       responses:
         '200':
           description: Drive information
@@ -637,6 +729,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DriveListResponse'
+              examples:
+                live:
+                  value:
+                    drives:
+                      - a:
+                          enabled: true
+                          bus_id: 8
+                          type: "1541"
+                          rom: "1541.rom"
+                          image_file: ""
+                          image_path: ""
+                      - b:
+                          enabled: false
+                          bus_id: 9
+                          type: "1541"
+                          rom: "1541.rom"
+                          image_file: ""
+                          image_path: ""
+                      - IEC Drive:
+                          bus_id: 11
+                          enabled: false
+                          type: "DOS emulation"
+                          last_error: "73,U64IEC ULTIMATE DOS V1.1,00,00"
+                          partitions:
+                            - id: 0
+                              path: "/Usb0/"
+                      - Printer Emulation:
+                          bus_id: 4
+                          enabled: false
+                    errors: []
   /v1/drives/{drive}:mount:
     put:
       summary: Mount disk image from filesystem
@@ -885,6 +1007,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FileInfoResponse'
+              examples:
+                live:
+                  value:
+                    files:
+                      path: /Flash/roms/1541.rom
+                      filename: 1541.rom
+                      size: 16384
+                      extension: ROM
+                    errors: []
   /v1/files/{path}:create_d64:
     put:
       summary: Create D64 image
