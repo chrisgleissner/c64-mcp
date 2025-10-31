@@ -331,6 +331,52 @@ test("upload_and_run_basic auto-fixes missing closing quote", async () => {
   assert.equal(data.autoFix.originalErrors[0].line, 10);
 });
 
+test("upload_and_run_basic verify true annotates metadata", async () => {
+  const originalMax = process.env.C64BRIDGE_POLL_MAX_MS;
+  const originalInterval = process.env.C64BRIDGE_POLL_INTERVAL_MS;
+  process.env.C64BRIDGE_POLL_MAX_MS = "30";
+  process.env.C64BRIDGE_POLL_INTERVAL_MS = "1";
+
+  try {
+    let screenReads = 0;
+    const ctx = {
+      client: {
+        async uploadAndRunBasic() {
+          return { success: true };
+        },
+        async readScreen() {
+          screenReads += 1;
+          return "READY.\n";
+        },
+      },
+      logger: createLogger(),
+    };
+
+    const result = await programRunnersModule.invoke(
+      "upload_and_run_basic",
+      { program: '10 PRINT "HI"\n20 END', verify: true },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.ok(screenReads >= 1);
+    assert.equal(result.metadata.verified, true);
+    assert.ok(result.structuredContent && result.structuredContent.type === "json");
+    assert.equal(result.structuredContent.data.verified, true);
+  } finally {
+    if (originalMax === undefined) {
+      delete process.env.C64BRIDGE_POLL_MAX_MS;
+    } else {
+      process.env.C64BRIDGE_POLL_MAX_MS = originalMax;
+    }
+    if (originalInterval === undefined) {
+      delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+    } else {
+      process.env.C64BRIDGE_POLL_INTERVAL_MS = originalInterval;
+    }
+  }
+});
+
 test("upload_and_run_basic reports failure when auto-fix not possible", async () => {
   const ctx = {
     client: {
@@ -531,4 +577,63 @@ test("upload_and_run_asm returns structured content on success", async () => {
   assert.ok(typeof data.entryAddress === "number");
   assert.ok(typeof data.prgSize === "number" && data.prgSize > 2);
   assert.equal(calls.length, 1);
+});
+
+test("upload_and_run_asm verify true annotates metadata", async () => {
+  const originalMax = process.env.C64BRIDGE_POLL_MAX_MS;
+  const originalInterval = process.env.C64BRIDGE_POLL_INTERVAL_MS;
+  process.env.C64BRIDGE_POLL_MAX_MS = "40";
+  process.env.C64BRIDGE_POLL_INTERVAL_MS = "1";
+
+  try {
+    let screenCall = 0;
+    let lowMemCall = 0;
+    const ctx = {
+      client: {
+        async uploadAndRunAsm() {
+          return { success: true };
+        },
+        async readScreen() {
+          screenCall += 1;
+          return screenCall === 1 ? "RUN\n" : "READY.\n";
+        },
+        async readMemoryRaw(address, length) {
+          if (address === 0xD000) {
+            return new Uint8Array(length);
+          }
+          if (address === 0x0000) {
+            const buffer = new Uint8Array(length);
+            buffer[0xA0] = lowMemCall & 0xff;
+            lowMemCall += 1;
+            return buffer;
+          }
+          throw new Error(`unexpected address ${address}`);
+        },
+      },
+      logger: createLogger(),
+    };
+
+    const asmSource = ".org $0801\nstart: lda #$00\n sta $0400\n rts";
+    const result = await programRunnersModule.invoke(
+      "upload_and_run_asm",
+      { program: asmSource, verify: true },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.equal(result.metadata.verified, true);
+    assert.ok(result.structuredContent && result.structuredContent.type === "json");
+    assert.equal(result.structuredContent.data.verified, true);
+  } finally {
+    if (originalMax === undefined) {
+      delete process.env.C64BRIDGE_POLL_MAX_MS;
+    } else {
+      process.env.C64BRIDGE_POLL_MAX_MS = originalMax;
+    }
+    if (originalInterval === undefined) {
+      delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+    } else {
+      process.env.C64BRIDGE_POLL_INTERVAL_MS = originalInterval;
+    }
+  }
 });

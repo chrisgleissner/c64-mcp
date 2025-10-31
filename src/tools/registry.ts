@@ -1,6 +1,6 @@
 import type { JsonSchema, ToolDescriptor, ToolExecutionContext, ToolModule, ToolRunResult } from "./types.js";
 import { createOperationDispatcher, defineToolModule, discriminatedUnionSchema, OPERATION_DISCRIMINATOR } from "./types.js";
-import { programRunnersModule } from "./programRunners.js";
+import { programRunnersModule, programOperationHandlers as groupedProgramHandlers } from "./programRunners.js";
 import { memoryModule } from "./memory.js";
 import { audioModule } from "./audio.js";
 import { machineControlModule } from "./machineControl.js";
@@ -28,9 +28,13 @@ export interface ToolModuleDescriptor {
 
 type GroupedOperationConfig = {
   readonly op: string;
-  readonly module: ToolModule;
-  readonly legacyName: string;
   readonly schema: JsonSchema;
+  readonly module?: ToolModule;
+  readonly legacyName?: string;
+  readonly handler?: (
+    args: Record<string, unknown> & { readonly [OPERATION_DISCRIMINATOR]: string },
+    ctx: ToolExecutionContext,
+  ) => Promise<ToolRunResult>;
   readonly transform?: (args: Record<string, unknown>) => unknown;
 };
 
@@ -102,13 +106,25 @@ function extendSchemaWithOp(
 function createOperationHandlers(
   operations: readonly GroupedOperationConfig[],
 ): import("./types.js").OperationHandlerMap<GenericOperationMap> {
-  const handlers: Record<string, (args: Record<string, unknown>, ctx: ToolExecutionContext) => Promise<ToolRunResult>> = {};
+  const handlers: Record<string, (args: Record<string, unknown> & { readonly [OPERATION_DISCRIMINATOR]: string }, ctx: ToolExecutionContext) => Promise<ToolRunResult>> = {};
 
   for (const operation of operations) {
+    if (operation.handler) {
+      handlers[operation.op] = operation.handler;
+      continue;
+    }
+
+    const module = operation.module;
+    const legacyName = operation.legacyName;
+
+    if (!module || !legacyName) {
+      throw new Error(`Grouped operation ${operation.op} is missing a handler or module delegation.`);
+    }
+
     handlers[operation.op] = async (rawArgs, ctx) => {
       const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
       const payload = operation.transform ? operation.transform(rest) : rest;
-      return operation.module.invoke(operation.legacyName, payload, ctx);
+      return module.invoke(legacyName, payload, ctx);
     };
   }
 
@@ -144,7 +160,7 @@ const programOperations: GroupedOperationConfig[] = [
       ensureDescriptor(programDescriptorIndex, "load_prg_file").inputSchema,
       { description: "Load a PRG from Ultimate storage without executing it." },
     ),
-    transform: dropOpTransform,
+    handler: groupedProgramHandlers.load_prg,
   },
   {
     op: "run_prg",
@@ -155,7 +171,7 @@ const programOperations: GroupedOperationConfig[] = [
       ensureDescriptor(programDescriptorIndex, "run_prg_file").inputSchema,
       { description: "Load and execute a PRG located on the Ultimate filesystem." },
     ),
-    transform: dropOpTransform,
+    handler: groupedProgramHandlers.run_prg,
   },
   {
     op: "run_crt",
@@ -166,7 +182,7 @@ const programOperations: GroupedOperationConfig[] = [
       ensureDescriptor(programDescriptorIndex, "run_crt_file").inputSchema,
       { description: "Mount and run a CRT cartridge image." },
     ),
-    transform: dropOpTransform,
+    handler: groupedProgramHandlers.run_crt,
   },
   {
     op: "upload_run_basic",
@@ -177,7 +193,7 @@ const programOperations: GroupedOperationConfig[] = [
       ensureDescriptor(programDescriptorIndex, "upload_and_run_basic").inputSchema,
       { description: "Upload Commodore BASIC v2 source and execute it immediately." },
     ),
-    transform: dropOpTransform,
+    handler: groupedProgramHandlers.upload_run_basic,
   },
   {
     op: "upload_run_asm",
@@ -188,7 +204,7 @@ const programOperations: GroupedOperationConfig[] = [
       ensureDescriptor(programDescriptorIndex, "upload_and_run_asm").inputSchema,
       { description: "Assemble 6502/6510 source, upload the PRG, and execute it." },
     ),
-    transform: dropOpTransform,
+    handler: groupedProgramHandlers.upload_run_asm,
   },
   {
     op: "batch_run",

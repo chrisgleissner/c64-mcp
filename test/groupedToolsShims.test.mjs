@@ -56,6 +56,56 @@ test("c64.program run_prg delegates to legacy handler", async () => {
   assert.equal(calls[0].path, "//USB0/demo.prg");
 });
 
+test("c64.program upload_run_basic uses shared BASIC handler", async () => {
+  const uploads = [];
+  let screenReads = 0;
+  const stubClient = {
+    async runPrgFile() {
+      throw new Error("not used");
+    },
+    async uploadAndRunBasic(program) {
+      uploads.push(program);
+      return { success: true };
+    },
+    async uploadAndRunAsm() {
+      throw new Error("not used");
+    },
+    async loadPrgFile() {
+      throw new Error("not used");
+    },
+    async runCrtFile() {
+      throw new Error("not used");
+    },
+    async readScreen() {
+      screenReads += 1;
+      return "READY.\n";
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.program",
+    { op: "upload_run_basic", program: '10 PRINT "HI"\n20 END' },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(uploads.length, 1);
+  assert.ok(screenReads >= 1);
+});
+
 test("c64.memory read delegates to legacy handler", async () => {
   const calls = [];
   const stubClient = {
