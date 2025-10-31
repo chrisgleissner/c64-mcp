@@ -81,6 +81,7 @@ test("discriminatedUnionSchema composes variant schemas", () => {
     description: "Memory operations",
     oneOf: [readSchema, writeSchema],
     discriminator: { propertyName: OPERATION_DISCRIMINATOR },
+    type: "object",
   });
 });
 

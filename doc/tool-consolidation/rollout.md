@@ -36,7 +36,7 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 ## Phase 1 — Foundation (Types, Registry, and Doc Scaffold)
 
 - [x] Introduce shared discriminated-union types (`op`, `verify?`) and validation helpers in `src/tools/types.ts` (or adjacent modules); add unit tests covering schema construction.
-- [ ] Add grouped tool descriptors to `src/tools/registry.ts`, returning shims that still call the existing single-purpose handlers (no behavior change yet).
+- [x] Add grouped tool descriptors to `src/tools/registry.ts`, returning shims that still call the existing single-purpose handlers (no behavior change yet).
 - [ ] Update `scripts/generate-docs.ts` to understand grouped tools (without altering README output) and add snapshot-style tests guarding the interim behavior.
 
 ## Phase 2 — High-traffic Tool Migration (Program & Memory)

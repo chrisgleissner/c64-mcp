@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **81 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **83 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -568,6 +568,32 @@ This MCP server exposes **81 tools**, **25 resources**, and **7 prompts** for co
 | `stop_background_task` | Stop a named background task. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
 | `verify_and_write_memory` | Pause → read → verify (optional) → write → read-back → resume. Aborts on mismatch unless override. | `meta`, `orchestration`, `experimental`, `memory`, `write`, `verify` |
 | `wait_for_screen_text` | Poll screen until a regex or substring matches, within a timeout. | `meta`, `orchestration`, `experimental`, `screen`, `assert` |
+
+#### Programs
+> Grouped program upload, run, and orchestration workflows.
+
+**Workflow hints:**
+- Choose BASIC or assembly uploaders based on the language you just generated for the user.
+- Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
+
+**Default tags:** `programs`, `execution`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.program` | Grouped entry point for program upload, execution, and batch workflows. | `programs`, `execution`, `grouped` |
+
+#### Memory
+> Grouped memory, screen, and polling operations.
+
+**Workflow hints:**
+- Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
+- Confirm intent before mutating RAM and explain how the change affects the running program.
+
+**Default tags:** `memory`, `debug`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.memory` | Grouped entry point for memory I/O, screen reads, and screen polling. | `memory`, `debug`, `screen`, `grouped` |
 
 ### Resources
 

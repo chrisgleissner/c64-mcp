@@ -137,6 +137,7 @@ export function discriminatedUnionSchema(options: DiscriminatedUnionSchemaOption
   }
 
   const schema: JsonSchema = {
+    type: "object",
     ...(description ? { description } : {}),
     oneOf: [...variants],
     discriminator: {
