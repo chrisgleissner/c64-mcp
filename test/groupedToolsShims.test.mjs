@@ -2,6 +2,8 @@ import test from "#test/runner";
 import assert from "#test/assert";
 import fs from "node:fs/promises";
 import { toolRegistry } from "../src/tools/registry.js";
+import { metaModule } from "../src/tools/meta/index.js";
+import { ToolValidationError } from "../src/tools/errors.js";
 import { getPlatformStatus, setPlatform } from "../src/platform.js";
 import { createLogger, tmpPath } from "./meta/helpers.mjs";
 
@@ -19,6 +21,9 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64.system"), "c64.system should be registered");
   assert.ok(toolNames.includes("c64.graphics"), "c64.graphics should be registered");
   assert.ok(toolNames.includes("c64.rag"), "c64.rag should be registered");
+  assert.ok(toolNames.includes("c64.disk"), "c64.disk should be registered");
+  assert.ok(toolNames.includes("c64.drive"), "c64.drive should be registered");
+  assert.ok(toolNames.includes("c64.printer"), "c64.printer should be registered");
 });
 
 test("c64.program run_prg delegates to legacy handler", async () => {
@@ -394,6 +399,333 @@ test("c64.system background task lifecycle proxies to meta tools", async () => {
     if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
     else process.env.C64_TASK_STATE_FILE = previous;
   }
+});
+
+test("c64.disk list_drives delegates to storage module", async () => {
+  const calls = [];
+  const stubClient = {
+    async drivesList() {
+      calls.push("drivesList");
+      return { success: true, details: { drives: [] } };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke("c64.disk", { op: "list_drives" }, ctx);
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(calls, ["drivesList"]);
+});
+
+test("c64.disk mount without verify calls driveMount", async () => {
+  const calls = [];
+  const stubClient = {
+    async driveMount(drive, image, options) {
+      calls.push({ drive, image, options });
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.disk",
+    {
+      op: "mount",
+      drive: "drive8",
+      image: "//USB0/demo.g64",
+      type: "g64",
+      attachmentMode: "readonly",
+    },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].drive, "drive8");
+  assert.equal(calls[0].image, "//USB0/demo.g64");
+  assert.equal(calls[0].options?.type, "g64");
+  assert.equal(calls[0].options?.mode, "readonly");
+});
+
+test("c64.disk mount with verify delegates to meta workflow", async () => {
+  const calls = [];
+  const stubClient = {
+    async driveMount() {
+      throw new Error("driveMount should not be called when verify=true");
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const originalInvoke = metaModule.invoke;
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "verified" }],
+      metadata: { verifyMount: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.disk",
+      {
+        op: "mount",
+        drive: "drive9",
+        image: "//USB0/demo.d64",
+        verify: true,
+        powerOnIfNeeded: true,
+        resetAfterMount: true,
+      },
+      ctx,
+    );
+
+    assert.equal(result.metadata?.verifyMount, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "drive_mount_and_verify");
+    assert.equal(calls[0].payload.drive, "drive9");
+    assert.equal(calls[0].payload.imagePath, "//USB0/demo.d64");
+    assert.equal(calls[0].payload.verifyMount, true);
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
+});
+
+test("c64.disk create_image validates D64 tracks", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  await assert.rejects(
+    () => toolRegistry.invoke(
+      "c64.disk",
+      { op: "create_image", format: "d64", path: "//USB0/bad.d64", tracks: 36 },
+      ctx,
+    ),
+    ToolValidationError,
+  );
+});
+
+test("c64.drive set_mode delegates to storage module", async () => {
+  const calls = [];
+  const stubClient = {
+    async driveSetMode(drive, mode) {
+      calls.push({ drive, mode });
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.drive",
+    { op: "set_mode", drive: "drive8", mode: "1581" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(calls, [{ drive: "drive8", mode: "1581" }]);
+});
+
+test("c64.printer print_text delegates to printer module", async () => {
+  const calls = [];
+  const stubClient = {
+    async printTextOnPrinterAndRun(payload) {
+      calls.push(payload);
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.printer",
+    { op: "print_text", text: "HELLO", formFeed: true },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].text, "HELLO");
+  assert.equal(calls[0].formFeed, true);
+});
+
+test("c64.printer print_bitmap routes to Commodore workflow", async () => {
+  const calls = [];
+  const stubClient = {
+    async printBitmapOnCommodoreAndRun(payload) {
+      calls.push(payload);
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.printer",
+    {
+      op: "print_bitmap",
+      printer: "commodore",
+      columns: [0, 255],
+      secondaryAddress: 7,
+    },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].columns, [0, 255]);
+  assert.equal(calls[0].secondaryAddress, 7);
+  assert.equal(calls[0].ensureMsb, true);
+});
+
+test("c64.printer print_bitmap routes to Epson workflow", async () => {
+  const calls = [];
+  const stubClient = {
+    async printBitmapOnEpsonAndRun(payload) {
+      calls.push(payload);
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.printer",
+    {
+      op: "print_bitmap",
+      printer: "epson",
+      columns: [255, 0, 255],
+      mode: "*",
+      density: 3,
+      repeats: 2,
+    },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].columns, [255, 0, 255]);
+  assert.equal(calls[0].mode, "*");
+  assert.equal(calls[0].density, 3);
+  assert.equal(calls[0].repeats, 2);
+});
+
+test("c64.printer print_bitmap rejects invalid secondary address", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  await assert.rejects(
+    () => toolRegistry.invoke(
+      "c64.printer",
+      {
+        op: "print_bitmap",
+        printer: "commodore",
+        columns: [0],
+        secondaryAddress: 5,
+      },
+      ctx,
+    ),
+    ToolValidationError,
+  );
 });
 
 test("c64.graphics render_petscii delegates to legacy handler", async () => {

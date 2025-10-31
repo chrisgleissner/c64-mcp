@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **79 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **82 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -457,6 +457,53 @@ This MCP server exposes **79 tools**, **25 resources**, and **7 prompts** for co
 | `resume` | Resume the machine after a DMA pause. | `machine`, `control`, `resume` |
 
 #### Storage
+> Grouped disk image management, mounting, and discovery tools.
+
+**Workflow hints:**
+- Summarise drive state before and after mounts so the user can confirm hardware changes.
+- Call out when verification retries succeed or fail so follow-up actions are clear.
+
+**Default tags:** `storage`, `drive`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.disk` | Grouped entry point for disk mounts, listings, image creation, and program discovery. | `storage`, `drive`, `grouped` |
+
+##### Operations: `c64.disk`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `create_image` | Create a blank disk image of the specified format. | `format`, `path` | — |
+| `file_info` | Inspect metadata for a file on the Ultimate filesystem. | `path` | — |
+| `find_and_run` | Search for a PRG/CRT by name substring and run the first match. | `nameContains` | — |
+| `list_drives` | List Ultimate drive slots and their mounted images. | — | — |
+| `mount` | Mount a disk image with optional verification and retries. | `drive`, `image` | supports verify |
+| `unmount` | Remove the mounted image from an Ultimate drive slot. | `drive` | — |
+
+#### Drive
+> Grouped drive power, reset, ROM, and mode helpers.
+
+**Workflow hints:**
+- State the resulting power/mode/ROM so the user can reconcile IEC behaviour.
+- Suggest running c64.disk (op list_drives) to confirm status when appropriate.
+
+**Default tags:** `drive`, `hardware`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.drive` | Grouped entry point for drive power, mode, reset, and ROM operations. | `drive`, `hardware`, `grouped` |
+
+##### Operations: `c64.drive`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `load_rom` | Temporarily load a custom ROM into an Ultimate drive slot. | `drive`, `path` | — |
+| `power_off` | Power off a specific Ultimate drive slot. | `drive` | — |
+| `power_on` | Power on a specific Ultimate drive slot. | `drive` | — |
+| `reset` | Issue an IEC reset for the selected drive slot. | `drive` | — |
+| `set_mode` | Set the emulation mode for a drive slot (1541/1571/1581). | `drive`, `mode` | — |
+
+#### Storage
 > Drive management, disk image creation, and file inspection utilities.
 
 **Workflow hints:**
@@ -517,6 +564,27 @@ This MCP server exposes **79 tools**, **25 resources**, and **7 prompts** for co
 | `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata including PETSCII codes and glyphs. See c64://specs/basic, c64://specs/vic, and c64://specs/charset. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
 | `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly`, `pal-ntsc` |
 | `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
+
+#### Printer
+> Grouped printer text, bitmap, and character definition helpers.
+
+**Workflow hints:**
+- Mention device/secondary addresses so the user knows which printer workflow ran.
+- When defining characters, remind the user to send the BASIC program returned in the payload.
+
+**Default tags:** `printer`, `device`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.printer` | Grouped entry point for Commodore and Epson printing helpers. | `printer`, `device`, `grouped` |
+
+##### Operations: `c64.printer`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `define_chars` | Define custom printer characters (Commodore DLL mode). | `firstChar`, `chars` | — |
+| `print_bitmap` | Print a bitmap row via Commodore (BIM) or Epson ESC/P workflows. | `printer`, `columns` | — |
+| `print_text` | Generate BASIC that prints text to device 4. | `text` | — |
 
 #### Printer
 > Printer workflow helpers for Commodore MPS and Epson FX devices, including prompt templates.

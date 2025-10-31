@@ -53,9 +53,9 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 4 — Storage & Peripheral Tools
 
-- [ ] Fold disk image/file workflows into `c64.disk`, unify mount verification, and update drive-mount tests.
-- [ ] Move drive ROM/mode/power handling into `c64.drive` with new dispatch tests ensuring IEC state remains stable.
-- [ ] Group printer helpers into `c64.printer`, validating datapath differences between Commodore and Epson flows.
+- [x] Fold disk image/file workflows into `c64.disk`, unify mount verification, and update drive-mount tests. *(2025-11-02)*
+- [x] Move drive ROM/mode/power handling into `c64.drive` with new dispatch tests ensuring IEC state remains stable. *(2025-11-02)*
+- [x] Group printer helpers into `c64.printer`, validating datapath differences between Commodore and Epson flows. *(2025-11-02)*
 
 ## Phase 5 — Configuration, Extraction, Streaming
 
