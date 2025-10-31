@@ -1,6 +1,31 @@
 import test from "#test/runner";
 import assert from "#test/assert";
 import { toolRegistry, describeToolModules } from "../src/tools/registry.js";
+import { getPlatformStatus, setPlatform } from "../src/platform.js";
+
+function createStubLogger() {
+  return {
+    debug() {},
+    info() {},
+    warn() {},
+    error() {},
+  };
+}
+
+function createStubCtx(overrides = {}) {
+  return {
+    client: {
+      async version() {
+        return { version: "stub" };
+      },
+    },
+    rag: {},
+    logger: createStubLogger(),
+    platform: getPlatformStatus(),
+    setPlatform,
+    ...overrides,
+  };
+}
 
 test("toolRegistry.list returns all registered tools", () => {
   const tools = toolRegistry.list();
@@ -16,27 +41,17 @@ test("toolRegistry.list returns all registered tools", () => {
 });
 
 test("toolRegistry.invoke executes a tool", async () => {
-  process.env.C64_TEST_TARGET = "stub";
-  
-  const ctx = {
-    c64: {
-      type: "c64u",
-      async ping() { return true; },
-      async version() { return { version: "stub" }; },
-      async info() { return { product: "stub" }; },
-    },
-  };
-  
-  // Test invoking a simple tool
-  const result = await toolRegistry.invoke("version", {}, ctx);
+  const ctx = createStubCtx();
+
+  const result = await toolRegistry.invoke("c64.config", { op: "version" }, ctx);
   assert.ok(result, "should return a result");
-  // Version returns firmware version data, not a success/failure structure
-  assert.ok(result.content, "version should return content");
+  assert.equal(result.metadata?.success, true, "version operation should mark success");
+  assert.deepEqual(result.structuredContent?.data, { version: "stub" });
 });
 
 test("toolRegistry.invoke throws for unknown tool", async () => {
-  const ctx = { c64: {} };
-  
+  const ctx = createStubCtx();
+
   await assert.rejects(
     () => toolRegistry.invoke("nonexistent_tool_xyz", {}, ctx),
     (err) => {

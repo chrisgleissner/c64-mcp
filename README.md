@@ -353,32 +353,56 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **12 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
-#### Audio
-> SID composition, playback, and audio analysis workflows.
+#### Programs
+> Grouped program upload, run, and orchestration workflows.
 
 **Workflow hints:**
-- Reach for SID helpers when the user talks about sound design, playback quality, or stuck notes.
-- After changing playback state, suggest verify-by-ear steps such as analyze_audio so the user gets concrete feedback.
+- Choose BASIC or assembly uploaders based on the language you just generated for the user.
+- Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
 
-**Default tags:** `sid`, `audio`
+**Default tags:** `programs`, `execution`
 
 | Name | Description | Tags |
 | --- | --- | --- |
-| `analyze_audio` | Automatically analyze SID playback when the user requests verification feedback. | `sid`, `audio`, `analysis` |
-| `modplay_file` | Play a MOD tracker module stored on the Ultimate filesystem. | `sid`, `audio`, `playback` |
-| `music_compile_and_play` | Compile a SIDWAVE composition to PRG or SID and optionally play it immediately. | `sid`, `audio`, `music`, `compiler` |
-| `music_generate` | Generate a lightweight arpeggio and schedule playback on SID voice 1. | `sid`, `audio`, `music`, `generator`, `pal-ntsc` |
-| `record_and_analyze_audio` | Record audio from the default input device and analyze SID playback characteristics. | `sid`, `audio`, `analysis` |
-| `sid_note_off` | Release a SID voice by clearing its GATE bit. | `sid`, `audio`, `control`, `music` |
-| `sid_note_on` | Trigger a SID voice with configurable waveform, pulse width, and ADSR envelope. See c64://specs/sid. | `sid`, `audio`, `control`, `music`, `pal-ntsc` |
-| `sid_reset` | Reset the SID chip either softly (silence) or with a full register scrub. | `sid`, `audio`, `control` |
-| `sid_silence_all` | Silence all SID voices by clearing control and envelope registers. | `sid`, `audio`, `control` |
-| `sid_volume` | Set the SID master volume register at $D418. See c64://specs/sid. | `sid`, `audio`, `control` |
-| `sidplay_file` | Play a SID file stored on the Ultimate filesystem via the firmware player. | `sid`, `audio`, `playback` |
+| `c64.program` | Grouped entry point for program upload, execution, and batch workflows. | `programs`, `execution`, `grouped` |
+
+##### Operations: `c64.program`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `batch_run` | Run multiple PRG/CRT programs with post-run assertions. | `programs` | — |
+| `bundle_run` | Capture screen, memory, and debug registers into an artifact bundle. | `runId`, `outputPath` | — |
+| `load_prg` | Load a PRG from Ultimate storage without executing it. | `path` | — |
+| `run_crt` | Mount and run a CRT cartridge image. | `path` | — |
+| `run_prg` | Load and execute a PRG located on the Ultimate filesystem. | `path` | — |
+| `upload_run_asm` | Assemble 6502/6510 source, upload the PRG, and execute it. | `program` | supports verify |
+| `upload_run_basic` | Upload Commodore BASIC v2 source and execute it immediately. | `program` | supports verify |
+
+#### Memory
+> Grouped memory, screen, and polling operations.
+
+**Workflow hints:**
+- Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
+- Confirm intent before mutating RAM and explain how the change affects the running program.
+
+**Default tags:** `memory`, `debug`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.memory` | Grouped entry point for memory I/O, screen reads, and screen polling. | `memory`, `debug`, `screen`, `grouped` |
+
+##### Operations: `c64.memory`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `read` | Read a range of bytes and return a hex dump with address metadata. | `address` | — |
+| `read_screen` | Return the current 40x25 text screen converted to ASCII. | — | — |
+| `wait_for_text` | Poll the screen until a substring or regex appears, or timeout elapses. | `pattern` | — |
+| `write` | Write a hexadecimal byte sequence into RAM. | `address`, `bytes` | supports verify |
 
 #### Audio
 > Grouped SID control, playback, composition, and analysis operations.
@@ -438,23 +462,47 @@ This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for co
 | `stop_all_tasks` | Stop every running background task and persist state. | — | — |
 | `stop_task` | Stop a specific background task and clear its timer. | `name` | — |
 
-#### Machine
-> Power, reset, pause/resume, and diagnostic controls for the C64 and Ultimate hardware.
+#### Graphics
+> Grouped PETSCII, sprite, and upcoming bitmap helpers.
 
 **Workflow hints:**
-- Reach for machine controls when the user mentions resets, power states, or DMA pause/resume.
-- Explain the operational impact (e.g. soft reset vs firmware reboot) so the user knows what changed.
+- Use PETSCII helpers for text art and clarify whether the BASIC program executed or stayed a dry run.
+- Mention sprite positions/colours so follow-up memory inspection stays grounded.
 
-**Default tags:** `machine`, `control`
+**Default tags:** `graphics`, `vic`
 
 | Name | Description | Tags |
 | --- | --- | --- |
-| `menu_button` | Toggle the Ultimate 64 menu button. | `machine`, `control`, `menu` |
-| `pause` | Pause the machine using DMA halt. See memory safety checklist in c64://context/bootstrap. | `machine`, `control`, `pause` |
-| `poweroff` | Power off the machine via Ultimate firmware. See safety notes in c64://context/bootstrap. | `machine`, `control`, `power` |
-| `reboot_c64` | Reboot the Ultimate firmware and C64. See c64://context/bootstrap. | `machine`, `control`, `reboot` |
-| `reset_c64` | Reset the C64 via Ultimate firmware. Review c64://context/bootstrap safety rules. | `machine`, `control`, `reset` |
-| `resume` | Resume the machine after a DMA pause. | `machine`, `control`, `resume` |
+| `c64.graphics` | Grouped entry point for PETSCII art, sprite previews, and future bitmap generation. | `graphics`, `vic`, `grouped` |
+
+##### Operations: `c64.graphics`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `create_petscii` | Generate PETSCII art from prompts, text, or explicit bitmap data. | — | — |
+| `generate_bitmap` | Reserved high-resolution bitmap generator (coming soon). | — | — |
+| `generate_sprite` | Build and run a sprite PRG from raw 63-byte sprite data. | `sprite` | — |
+| `render_petscii` | Render PETSCII text with optional border/background colours. | `text` | — |
+
+#### Rag
+> Grouped retrieval helpers for BASIC and assembly references.
+
+**Workflow hints:**
+- Use BASIC retrieval before synthesising new BASIC code and mention primary resources in responses.
+- For assembly, note registers or addresses surfaced so the user can inspect them further.
+
+**Default tags:** `rag`, `search`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.rag` | Grouped entry point for BASIC and assembly RAG lookups. | `rag`, `search`, `knowledge`, `grouped` |
+
+##### Operations: `c64.rag`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `asm` | Retrieve 6502/6510 assembly references from the local knowledge base. | `q` | — |
+| `basic` | Retrieve BASIC references and snippets from the local knowledge base. | `q` | — |
 
 #### Storage
 > Grouped disk image management, mounting, and discovery tools.
@@ -503,68 +551,6 @@ This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for co
 | `reset` | Issue an IEC reset for the selected drive slot. | `drive` | — |
 | `set_mode` | Set the emulation mode for a drive slot (1541/1571/1581). | `drive`, `mode` | — |
 
-#### Storage
-> Drive management, disk image creation, and file inspection utilities.
-
-**Workflow hints:**
-- Reach for storage tools when the user mentions drives, disk images, or Ultimate slots.
-- Spell out which slot or path you touched so the user can replicate actions on hardware.
-
-**Default tags:** `drive`, `storage`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `create_d64` | Create a blank D64 disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
-| `create_d71` | Create a blank D71 disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
-| `create_d81` | Create a blank D81 disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
-| `create_dnp` | Create a blank DNP disk image on the Ultimate filesystem. | `drive`, `storage`, `disk`, `create` |
-| `drive_load_rom` | Temporarily load a custom ROM into an Ultimate drive slot. | `drive`, `storage`, `rom` |
-| `drive_mode` | Set the emulation mode for an Ultimate drive slot (1541/1571/1581). | `drive`, `storage`, `mode` |
-| `drive_mount` | Mount a disk image onto a specific Ultimate drive slot. | `drive`, `storage`, `mount` |
-| `drive_off` | Power off a specific Ultimate drive slot. | `drive`, `storage`, `power` |
-| `drive_on` | Power on a specific Ultimate drive slot. | `drive`, `storage`, `power` |
-| `drive_remove` | Remove the currently mounted disk image from an Ultimate drive slot. | `drive`, `storage`, `unmount` |
-| `drive_reset` | Reset the selected Ultimate drive slot. | `drive`, `storage`, `reset` |
-| `drives_list` | List Ultimate drive slots and their currently mounted images. Read c64://context/bootstrap for drive safety. | `drive`, `storage`, `status` |
-| `file_info` | Inspect metadata for a file on the Ultimate filesystem. | `drive`, `storage`, `info` |
-
-#### Graphics
-> Grouped PETSCII, sprite, and upcoming bitmap helpers.
-
-**Workflow hints:**
-- Use PETSCII helpers for text art and clarify whether the BASIC program executed or stayed a dry run.
-- Mention sprite positions/colours so follow-up memory inspection stays grounded.
-
-**Default tags:** `graphics`, `vic`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `c64.graphics` | Grouped entry point for PETSCII art, sprite previews, and future bitmap generation. | `graphics`, `vic`, `grouped` |
-
-##### Operations: `c64.graphics`
-
-| Operation | Description | Required Inputs | Notes |
-| --- | --- | --- | --- |
-| `create_petscii` | Generate PETSCII art from prompts, text, or explicit bitmap data. | — | — |
-| `generate_bitmap` | Reserved high-resolution bitmap generator (coming soon). | — | — |
-| `generate_sprite` | Build and run a sprite PRG from raw 63-byte sprite data. | `sprite` | — |
-| `render_petscii` | Render PETSCII text with optional border/background colours. | `text` | — |
-
-#### Graphics
-> PETSCII art, sprite workflows, and VIC-II graphics helpers.
-
-**Workflow hints:**
-- Suggest graphics helpers when the user asks for sprites, PETSCII art, or screen layout tweaks.
-- Mention how VIC-II state changes (colours, sprite positions) affect follow-up memory operations.
-
-**Default tags:** `graphics`, `vic`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `create_petscii_image` | Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata including PETSCII codes and glyphs. See c64://specs/basic, c64://specs/vic, and c64://specs/charset. | `graphics`, `vic`, `petscii`, `basic`, `pal-ntsc` |
-| `generate_sprite_prg` | Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers. | `graphics`, `vic`, `sprite`, `assembly`, `pal-ntsc` |
-| `render_petscii_screen` | Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic. | `graphics`, `vic`, `basic`, `screen` |
-
 #### Printer
 > Grouped printer text, bitmap, and character definition helpers.
 
@@ -585,56 +571,6 @@ This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for co
 | `define_chars` | Define custom printer characters (Commodore DLL mode). | `firstChar`, `chars` | — |
 | `print_bitmap` | Print a bitmap row via Commodore (BIM) or Epson ESC/P workflows. | `printer`, `columns` | — |
 | `print_text` | Generate BASIC that prints text to device 4. | `text` | — |
-
-#### Printer
-> Printer workflow helpers for Commodore MPS and Epson FX devices, including prompt templates.
-
-**Workflow hints:**
-- Reach for printer tools when the user references device 4, hardcopy output, or specific printer models.
-- Clarify which workflow (Commodore vs Epson) you chose so the user can prepare matching paper or ribbons.
-
-**Default tags:** `printer`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `define_printer_chars` | Define custom characters on Commodore MPS printers using DLL mode. | `printer`, `dll`, `commodore` |
-| `print_bitmap_commodore` | Print a Commodore MPS bit-image row using BIM BASIC helpers. | `printer`, `bitmap`, `commodore` |
-| `print_bitmap_epson` | Print an Epson FX bit-image row using ESC/P commands. | `printer`, `bitmap`, `epson` |
-| `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
-
-#### Rag
-> Grouped retrieval helpers for BASIC and assembly references.
-
-**Workflow hints:**
-- Use BASIC retrieval before synthesising new BASIC code and mention primary resources in responses.
-- For assembly, note registers or addresses surfaced so the user can inspect them further.
-
-**Default tags:** `rag`, `search`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `c64.rag` | Grouped entry point for BASIC and assembly RAG lookups. | `rag`, `search`, `knowledge`, `grouped` |
-
-##### Operations: `c64.rag`
-
-| Operation | Description | Required Inputs | Notes |
-| --- | --- | --- | --- |
-| `asm` | Retrieve 6502/6510 assembly references from the local knowledge base. | `q` | — |
-| `basic` | Retrieve BASIC references and snippets from the local knowledge base. | `q` | — |
-
-#### Rag
-> Retrieval-augmented generation helpers for BASIC and assembly examples.
-
-**Workflow hints:**
-- Call RAG tools when the user needs references or examples before generating new code.
-- Summarise the number of refs returned and suggest follow-up actions like reading specific docs.
-
-**Default tags:** `rag`, `search`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `rag_retrieve_asm` | Retrieve 6502/6510 assembly references from local knowledge. See c64://specs/assembly. | `rag`, `search`, `asm` |
-| `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
 
 #### Config
 > Grouped configuration management, diagnostics, and snapshot workflows.
@@ -670,63 +606,6 @@ This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for co
 | `version` | Fetch firmware version details. | — | — |
 | `write_debugreg` | Write a hex value to the Ultimate debug register ($D7FF). | `value` | — |
 
-#### Developer
-> Configuration management, diagnostics, and helper utilities for advanced workflows.
-
-**Workflow hints:**
-- Use developer tools for firmware configuration, diagnostics, or advanced register tweaks.
-- Call out any risky operations (like flash writes) so the user understands the impact.
-
-**Default tags:** `developer`, `config`, `debug`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `config_batch_update` | Apply multiple configuration changes in a single request. | `developer`, `config`, `debug`, `write` |
-| `config_get` | Read a configuration category or specific item. | `developer`, `config`, `debug`, `read` |
-| `config_list` | List configuration categories available on the Ultimate firmware. | `developer`, `config`, `debug`, `list` |
-| `config_load_from_flash` | Load configuration settings from flash storage. | `developer`, `config`, `debug`, `flash` |
-| `config_reset_to_default` | Reset configuration categories to their factory defaults. | `developer`, `config`, `debug`, `reset` |
-| `config_save_to_flash` | Persist current configuration settings to flash storage. | `developer`, `config`, `debug`, `flash` |
-| `config_set` | Set a configuration value within a category. | `developer`, `config`, `debug`, `write` |
-| `debugreg_read` | Read the Ultimate debug register ($D7FF). | `developer`, `config`, `debug` |
-| `debugreg_write` | Write a value into the Ultimate debug register ($D7FF). | `developer`, `config`, `debug` |
-| `info` | Retrieve Ultimate hardware information and status. | `developer`, `config`, `debug`, `diagnostics`, `info` |
-| `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
-
-#### Stream
-> Grouped streaming helpers for starting and stopping Ultimate capture sessions.
-
-**Workflow hints:**
-- Confirm stream targets for the user so they can connect their tooling.
-- Remind users to stop streams when capture completes to free resources.
-
-**Default tags:** `stream`, `monitor`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `c64.stream` | Grouped entry point for starting and stopping Ultimate streaming sessions. | `stream`, `monitor`, `grouped` |
-
-##### Operations: `c64.stream`
-
-| Operation | Description | Required Inputs | Notes |
-| --- | --- | --- | --- |
-| `start` | Start an Ultimate streaming session toward a host:port target. | `stream`, `target` | — |
-| `stop` | Stop an active Ultimate streaming session. | `stream` | — |
-
-#### Streaming
-> Long-running or streaming workflows such as audio capture or SID playback monitoring.
-
-**Workflow hints:**
-- Use streaming tools for long-running capture or monitoring workflows such as audio verification.
-- Clarify that streams keep running until stopped so the user can manage resources.
-
-**Default tags:** `stream`, `monitoring`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `stream_start` | Start an Ultimate streaming session (video/audio/debug) targeting a host:port destination. See c64://docs/index for usage notes. | `stream`, `monitoring`, `start` |
-| `stream_stop` | Stop an Ultimate streaming session (video/audio/debug). | `stream`, `monitoring`, `stop` |
-
 #### Extract
 > Grouped extraction helpers for sprites, charsets, memory dumps, and diagnostics.
 
@@ -750,84 +629,25 @@ This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for co
 | `memory_dump` | Dump a RAM range to hex or binary files with manifest metadata. | `address`, `length`, `outputPath` | — |
 | `sprites` | Scan RAM for sprites and optionally export .spr files. | `address`, `length` | — |
 
-#### Meta
-> High-level meta tools that orchestrate multiple MCP actions.
+#### Stream
+> Grouped streaming helpers for starting and stopping Ultimate capture sessions.
 
 **Workflow hints:**
-- Use meta tools to reduce round-trips by composing several steps into one.
+- Confirm stream targets for the user so they can connect their tooling.
+- Remind users to stop streams when capture completes to free resources.
 
-**Default tags:** `meta`, `orchestration`, `experimental`
+**Default tags:** `stream`, `monitor`
 
 | Name | Description | Tags |
 | --- | --- | --- |
-| `batch_run_with_assertions` | Run multiple programs with post-condition assertions; produce junit-like results. | `meta`, `orchestration`, `experimental`, `testing`, `assertions` |
-| `bundle_run_artifacts` | Gather screen capture, memory snapshots, and debugreg into a structured bundle for a run. | `meta`, `orchestration`, `experimental`, `artifacts`, `debugging` |
-| `compile_run_verify_cycle` | Compile source (BASIC/ASM/SIDWAVE), run, verify via screen/audio, and archive artifacts. | `meta`, `orchestration`, `experimental`, `compile`, `verify` |
-| `config_snapshot_and_restore` | Read all configuration categories and write a versioned snapshot, or restore from a snapshot; supports diff mode. | `meta`, `orchestration`, `experimental`, `config`, `snapshot` |
-| `drive_mount_and_verify` | Mount a disk image with retry logic and verification. Powers on drive if needed, mounts image, resets drive, and verifies state. | `meta`, `orchestration`, `experimental`, `storage`, `drives`, `mount` |
-| `extract_sprites_from_ram` | Scan a RAM region, detect sprite blobs, and optionally save them as .spr files. | `meta`, `orchestration`, `experimental`, `graphics`, `sprites`, `extract` |
-| `filesystem_stats_by_extension` | Walk the filesystem (and container contents) under a root and compute counts plus size statistics grouped by extension. | `meta`, `orchestration`, `experimental`, `files`, `discover`, `stats` |
-| `find_and_run_program_by_name` | Search under a root for the first PRG/CRT whose name contains a substring and run it. | `meta`, `orchestration`, `experimental`, `files`, `discover`, `programs` |
-| `find_paths_by_name` | Return device paths whose names contain a substring; supports simple extension filters and wildcard-aware firmware search. | `meta`, `orchestration`, `experimental`, `files`, `discover` |
-| `firmware_info_and_healthcheck` | Fetch firmware version and info, probe zero-page read, and return readiness with latencies. | `meta`, `orchestration`, `experimental`, `diagnostics` |
-| `list_background_tasks` | List known background tasks and their status. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
-| `memory_dump_to_file` | Chunked memory dump with retries; optional pause/resume; writes hex or binary and a manifest. | `meta`, `orchestration`, `experimental`, `memory`, `dump`, `file` |
-| `music_compile_play_analyze` | Compile a SIDWAVE score, play it on the C64, capture the output, and analyze the recording. | `meta`, `orchestration`, `experimental` |
-| `program_shuffle` | Discover and run PRG/CRT programs under a root path, capturing screens and resetting between runs. | `meta`, `orchestration`, `experimental`, `programs`, `testing` |
-| `rip_charset_from_ram` | Locate and extract 2KB character sets from RAM by structure and entropy checks. Exports as binary. | `meta`, `orchestration`, `experimental`, `graphics`, `charset`, `extract` |
-| `silence_and_verify` | Silence all SID voices, capture a short sample, and ensure the output is below an RMS threshold. | `meta`, `orchestration`, `experimental` |
-| `start_background_task` | Start a background task that runs an operation at a fixed interval for N iterations or indefinitely. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
-| `stop_all_background_tasks` | Stop all active background tasks. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
-| `stop_background_task` | Stop a named background task. | `meta`, `orchestration`, `experimental`, `background`, `scheduler` |
-| `verify_and_write_memory` | Pause → read → verify (optional) → write → read-back → resume. Aborts on mismatch unless override. | `meta`, `orchestration`, `experimental`, `memory`, `write`, `verify` |
-| `wait_for_screen_text` | Poll screen until a regex or substring matches, within a timeout. | `meta`, `orchestration`, `experimental`, `screen`, `assert` |
+| `c64.stream` | Grouped entry point for starting and stopping Ultimate streaming sessions. | `stream`, `monitor`, `grouped` |
 
-#### Programs
-> Grouped program upload, run, and orchestration workflows.
-
-**Workflow hints:**
-- Choose BASIC or assembly uploaders based on the language you just generated for the user.
-- Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
-
-**Default tags:** `programs`, `execution`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `c64.program` | Grouped entry point for program upload, execution, and batch workflows. | `programs`, `execution`, `grouped` |
-
-##### Operations: `c64.program`
+##### Operations: `c64.stream`
 
 | Operation | Description | Required Inputs | Notes |
 | --- | --- | --- | --- |
-| `batch_run` | Run multiple PRG/CRT programs with post-run assertions. | `programs` | — |
-| `bundle_run` | Capture screen, memory, and debug registers into an artifact bundle. | `runId`, `outputPath` | — |
-| `load_prg` | Load a PRG from Ultimate storage without executing it. | `path` | — |
-| `run_crt` | Mount and run a CRT cartridge image. | `path` | — |
-| `run_prg` | Load and execute a PRG located on the Ultimate filesystem. | `path` | — |
-| `upload_run_asm` | Assemble 6502/6510 source, upload the PRG, and execute it. | `program` | supports verify |
-| `upload_run_basic` | Upload Commodore BASIC v2 source and execute it immediately. | `program` | supports verify |
-
-#### Memory
-> Grouped memory, screen, and polling operations.
-
-**Workflow hints:**
-- Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
-- Confirm intent before mutating RAM and explain how the change affects the running program.
-
-**Default tags:** `memory`, `debug`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `c64.memory` | Grouped entry point for memory I/O, screen reads, and screen polling. | `memory`, `debug`, `screen`, `grouped` |
-
-##### Operations: `c64.memory`
-
-| Operation | Description | Required Inputs | Notes |
-| --- | --- | --- | --- |
-| `read` | Read a range of bytes and return a hex dump with address metadata. | `address` | — |
-| `read_screen` | Return the current 40x25 text screen converted to ASCII. | — | — |
-| `wait_for_text` | Poll the screen until a substring or regex appears, or timeout elapses. | `pattern` | — |
-| `write` | Write a hexadecimal byte sequence into RAM. | `address`, `bytes` | supports verify |
+| `start` | Start an Ultimate streaming session toward a host:port target. | `stream`, `target` | — |
+| `stop` | Stop an active Ultimate streaming session. | `stream` | — |
 
 ### Resources
 

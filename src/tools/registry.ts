@@ -1934,85 +1934,28 @@ const groupedRagModule = ragOperations.length === 0
       ],
     });
 
-const toolModules: ToolModule[] = [
-  audioModule,
-  machineControlModule,
-  storageModule,
-  graphicsModule,
-  printerModule,
-  ragModule,
-  developerModule,
-  streamingModule,
-  metaModule,
+const groupedModules: Array<[string, ToolModule | null]> = [
+  ["c64.program", groupedProgramModule],
+  ["c64.memory", groupedMemoryModule],
+  ["c64.sound", groupedSoundModule],
+  ["c64.system", groupedSystemModule],
+  ["c64.graphics", groupedGraphicsModule],
+  ["c64.rag", groupedRagModule],
+  ["c64.disk", groupedDiskModule],
+  ["c64.drive", groupedDriveModule],
+  ["c64.printer", groupedPrinterModule],
+  ["c64.config", groupedConfigModule],
+  ["c64.extract", groupedExtractModule],
+  ["c64.stream", groupedStreamModule],
 ];
 
-if (groupedSoundModule) {
-  toolModules.splice(1, 0, groupedSoundModule);
+for (const [name, module] of groupedModules) {
+  if (!module) {
+    throw new Error(`Grouped tool ${name} is not available`);
+  }
 }
 
-if (groupedSystemModule) {
-  toolModules.splice(2, 0, groupedSystemModule);
-}
-
-if (groupedGraphicsModule) {
-  const index = toolModules.indexOf(graphicsModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedGraphicsModule);
-}
-
-if (groupedConfigModule) {
-  const index = toolModules.indexOf(developerModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedConfigModule);
-}
-
-if (groupedExtractModule) {
-  const index = toolModules.indexOf(metaModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedExtractModule);
-}
-
-if (groupedDiskModule) {
-  const index = toolModules.indexOf(storageModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedDiskModule);
-}
-
-if (groupedDriveModule) {
-  const index = toolModules.indexOf(storageModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedDriveModule);
-}
-
-if (groupedPrinterModule) {
-  const index = toolModules.indexOf(printerModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedPrinterModule);
-}
-
-if (groupedStreamModule) {
-  const index = toolModules.indexOf(streamingModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedStreamModule);
-}
-
-if (groupedRagModule) {
-  const index = toolModules.indexOf(ragModule);
-  const insertAt = index >= 0 ? index : toolModules.length;
-  toolModules.splice(insertAt, 0, groupedRagModule);
-}
-
-if (groupedProgramModule) {
-  toolModules.push(groupedProgramModule);
-} else {
-  toolModules.push(programRunnersModule);
-}
-
-if (groupedMemoryModule) {
-  toolModules.push(groupedMemoryModule);
-} else {
-  toolModules.push(memoryModule);
-}
+const toolModules: ToolModule[] = groupedModules.map(([, module]) => module as ToolModule);
 
 const toolMap: Map<string, RegisteredTool> = new Map();
 

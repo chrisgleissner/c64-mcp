@@ -500,7 +500,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://docs/printer/epson-text",
           "c64://docs/printer/epson-bitmap",
         ],
-        tools: ["print_text"],
+  tools: ["c64.printer"],
         tags: ["printer"],
       },
       arguments: [
@@ -521,16 +521,7 @@ export function createPromptRegistry(): PromptRegistry {
         }
         return [];
       },
-      selectTools: (args) => {
-        const printerType = args.printerType as PrinterType | undefined;
-        if (printerType === "commodore") {
-          return ["print_text", "print_bitmap_commodore", "define_printer_chars"];
-        }
-        if (printerType === "epson") {
-          return ["print_text", "print_bitmap_epson"];
-        }
-        return ["print_text", "print_bitmap_commodore", "print_bitmap_epson", "define_printer_chars"];
-      },
+      selectTools: () => ["c64.printer"],
       buildMessages: (args) => {
         const printerType = args.printerType as PrinterType | undefined;
         return [
@@ -551,8 +542,8 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/assembly",
           "c64://docs/index",
         ],
-        optionalResources: [],
-  tools: ["c64.memory", "pause", "resume"],
+    optionalResources: [],
+    tools: ["c64.memory", "c64.system"],
         tags: ["memory", "debug"],
       },
       buildMessages: () => [
@@ -570,17 +561,8 @@ export function createPromptRegistry(): PromptRegistry {
         requiredResources: ["c64://context/bootstrap"],
         optionalResources: [],
         tools: [
-          "drives_list",
-          "drive_mount",
-          "drive_remove",
-          "drive_reset",
-          "drive_on",
-          "drive_off",
-          "create_d64",
-          "create_d71",
-          "create_d81",
-          "create_dnp",
-          "file_info",
+          "c64.disk",
+          "c64.drive",
         ],
         tags: ["drive", "storage"],
       },

@@ -51,9 +51,9 @@ Notes:
 | `assembly-program` | `c64.program`, `c64.memory` | `c64.system` (ops `reset`, `pause`, `resume`) | Require IRQ acknowledgement steps for raster code; caution on zero-page writes. |
 | `sid-music` | `c64.sound` (ops `generate`, `note_on`, `analyze`) | `c64.sound` (ops `compile_play`, `play_sid_file`, `set_volume`) | Warn about volume resets (`$D418`) and making backups before overwriting SID memory. |
 | `graphics-demo` | `c64.program`, `c64.memory`, `c64.graphics` | `c64.system` (op `pause`), `c64.memory` (op `read`) | Emphasise safe colour RAM usage; mention border side-effects for raster tricks. |
-| `printer-job` | `print_text`, `print_bitmap_commodore`, `print_bitmap_epson` | `define_printer_chars`, `c64.memory` | Remind users to send `CHR$(12)` before closing; confirm `target` (`commodore` vs `epson`) before printing. |
+| `printer-job` | `c64.printer` (ops `print_text`, `print_bitmap`) | `c64.printer` (op `define_chars`), `c64.memory` | Remind users to send `CHR$(12)` before closing; confirm `printer` argument (`commodore` vs `epson`) before printing. |
 | `memory-debug` | `c64.memory`, `c64.system` (ops `pause`, `resume`) | `c64.system` (op `reset`) | Advise capturing snapshots before writes; include address validation heuristics. |
-| `drive-manager` | `drives_list`, `drive_mount`, `drive_remove` | `drive_reset`, `drive_on`, `drive_off`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`, `file_info`, `drive_load_rom`, `c64.system` (op `resume`) | Highlight risk of interrupting running programs; recommend verifying mounts after actions. |
+| `drive-manager` | `c64.disk` (ops `list_drives`, `mount`, `unmount`) | `c64.disk` (ops `file_info`, `create_image`, `find_and_run`), `c64.drive` (ops `reset`, `power_on`, `power_off`, `load_rom`, `set_mode`), `c64.system` (op `resume`) | Highlight risk of interrupting running programs; recommend verifying mounts after actions. |
 
 ---
 
