@@ -1,141 +1,116 @@
 # Agent Integration Guide
 
-This server exposes a Model Context Protocol (MCP) surface for driving a Commodore 64 (Ultimate 64/Commodore 64 Ultimate) over its REST API. It is designed for agent workflows that need to upload and run programs, inspect memory or screen state, control devices, or retrieve C64 knowledge snippets.
-
-## Configuration Artifacts
-
-- `mcp.json` is the human-maintained project configuration. It declares CLI metadata, environment variables, and packaging details for npm distribution.
-- MCP clients discover tools dynamically at runtime over stdio; no manifest file is required.
-- `doc/MCP_SETUP.md` walks through installation, configuration resolution, and MCP client wiring.
+LLM-facing reference for using this MCP server. Keep it simple: start the server, discover tools, call them safely.
 
 ## Quick Start
 
-### Run the Server
-
-- Install dependencies via `npm install`.
-- Configure your target endpoint as documented in `doc/MCP_SETUP.md`.
-- Start the stdio MCP server locally:
+1) Install and run
 
 ```bash
+npm install
 npm start
 ```
 
-`npm start` launches the TypeScript entry point (`src/mcp-server.ts`). The command prints connectivity diagnostics (REST probe plus zero-page read) before announcing `c64bridge MCP server running on stdio`.
+On startup the server probes connectivity (REST + zero-page read) and announces it is running on stdio.
 
-### Capabilities at a Glance
+2) Configure target (optional)
 
-- **Program runners**: `c64.program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`).
-- **Screen & memory**: `c64.memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`).
-- **System control**: `c64.system` (operations: `pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, `start_task`, `stop_task`, `stop_all_tasks`, `list_tasks`).
-- **Configuration**: `c64.config` (operations: `list`, `get`, `set`, `batch_update`, `load_flash`, `save_flash`, `reset_defaults`, `read_debugreg`, `write_debugreg`, `info`, `version`, `snapshot`, `restore`, `diff`, `shuffle`).
-- **Drives & files**: `c64.disk` (operations: `list_drives`, `mount`, `unmount`, `file_info`, `create_image`, `find_and_run`) plus `c64.drive` (operations: `reset`, `power_on`, `power_off`, `load_rom`, `set_mode`).
-- **SID / music**: `c64.sound` (operations: `set_volume`, `note_on`, `note_off`, `reset`, `silence_all`, `generate`, `compile_play`, `pipeline`, `play_sid_file`, `play_mod_file`, `analyze`, `record_analyze`). For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
-- **Graphics**: `c64.graphics` (operations: `create_petscii`, `render_petscii`, `generate_sprite`, `generate_bitmap` — placeholder until hires generator lands).
-- **Knowledge & RAG**: `basic_spec`, `assembly_spec`, `c64.rag` (ops `basic`, `asm`), plus `GET /rag/retrieve` for quick experiments.
+The server resolves config in this order: `C64BRIDGE_CONFIG` → `~/.c64bridge.json` → `./c64bridge.json` → defaults (`host=c64u`, `port=80`).
 
-Tools and parameters are listed by the server at runtime via ListTools.
+Example:
 
-### Use with GitHub Copilot Chat (VS Code)
+```json
+{ "c64u": { "host": "c64u", "port": 80 } }
+```
 
-1. Enable MCP support (Copilot Chat v1.214+): Settings → Extensions → GitHub Copilot → Chat: Experimental: MCP → enable, then restart VS Code.
-1. Add the server under Settings → GitHub Copilot → Experimental → MCP Servers (see `doc/MCP_SETUP.md` for the exact JSON snippet):
+3) VS Code Copilot Chat (MCP)
+
+Add to Settings (JSON):
 
 ```json
 {
   "github.copilot.chat.experimental.mcp": {
     "servers": [
-      {
-        "name": "c64bridge",
-        "command": "node",
-        "args": ["./node_modules/c64bridge/dist/index.js"],
-        "type": "stdio"
-      }
+      { "name": "c64bridge", "command": "node", "args": ["./node_modules/c64bridge/dist/index.js"], "type": "stdio" }
     ]
   }
 }
 ```
 
-1. Keep `npm start` or the packaged CLI running so the stdio transport remains available.
-1. In Copilot Chat, invoke tools by natural language (for example, “Upload and run this BASIC program”, “Read the current screen”, “Write $D020=2”).
+Keep the server running; tools are discovered automatically in the chat session.
 
-### Use with Other MCP Clients
+## MCP Discovery & Calling
 
-- Use stdio configuration as above; if using HTTP, point the client at `http://localhost:8000`.
-- Expose the tools you need to the LLM session; call them with JSON bodies as described in the manifest.
+- Discover tools: use the client’s ListTools. You will see domains like `c64.program`, `c64.memory`, `c64.system`, etc., each with an `op` multiplexing parameter.
+- Discover resources/prompts: use ListResources and ListPrompts for knowledge and reusable patterns.
+- Call pattern (all tools): pass a JSON object with `op` plus operation‑specific inputs shown by ListTools.
 
-### HTTP Examples (Manual Testing)
+Examples (MCP tool calls; HTTP only for illustration):
 
-> [!NOTE]
-> The Fastify HTTP bridge is deprecated and disabled by default. Launch it manually (see `doc/troubleshooting-mcp.md`) before running these legacy curl commands.
+```json
+// c64.program — upload and run BASIC
+{
+  "op": "upload_run_basic",
+  "program": "10 PRINT \"HELLO\"\n20 GOTO 10"
+}
+```
+
+```json
+// c64.memory — wait for output on the screen (ASCII)
+{
+  "op": "wait_for_text",
+  "pattern": "HELLO"
+}
+```
+
+```json
+// c64.rag — retrieve BASIC or ASM references from local knowledge
+{
+  "op": "basic",
+  "q": "draw a bouncing sprite"
+}
+```
+
+## Capabilities
+
+- Program runners: `c64.program` (`upload_run_basic`, `upload_run_asm`, `run_prg`, `run_crt`, `bundle_run`, `batch_run`)
+- Screen & memory: `c64.memory` (`read`, `write`, `read_screen`, `wait_for_text`)
+- System control: `c64.system` (`pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, tasks)
+- Configuration: `c64.config` (get/set, `batch_update`, `snapshot`, `restore`, `diff`, `shuffle`)
+- Drives & files: `c64.disk`, `c64.drive`
+- SID / music: `c64.sound` (playback, generate, analyze)
+- Graphics: `c64.graphics` (PETSCII, sprites)
+- Knowledge & RAG: `c64.rag` (BASIC and ASM lookups)
+
+Tools and parameters are listed dynamically via ListTools.
+
+## Expert Workflow (recommended)
+
+- Plan → Run → Verify: generate code, run via `c64.program`, then verify with `c64.memory.read_screen`/`wait_for_text` and optional RAM checks.
+- Prefer stdio transport; only use the HTTP bridge for manual inspection.
+- Use `c64.rag` to fetch relevant BASIC/ASM snippets and specs before coding.
+- BASIC tips: tokenised keywords, short variable names, careful quoting; keep lines ≤ 2 screen rows; prefer `PRINT` with explicit spacing.
+- ASM tips: avoid unstable rasters; use zero page consciously; confirm register maps via `c64://specs/assembly`, `c64://specs/memory-map`, `c64://specs/vic` resources.
+- Safety: only call reset/power/drive operations intentionally; confirm preconditions for mounts/writes; log reversible steps in chat.
+
+## HTTP Examples (optional)
+
+The stdio transport is preferred. The legacy HTTP bridge is deprecated and disabled by default; enable manually before using curl.
 
 ```bash
-# Upload and run BASIC
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"upload_run_basic","program":"10 PRINT \"HELLO\"\n20 GOTO 10"}' \
   http://localhost:8000/tools/c64.program | jq
 
-# Read current screen content (PETSCII→ASCII)
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"read_screen"}' \
   http://localhost:8000/tools/c64.memory | jq
-
-# Reset the machine
-curl -s -X POST -H 'Content-Type: application/json' \
-  -d '{"op":"reset"}' \
-  http://localhost:8000/tools/c64.system
 ```
 
-### Notes
+## Safety Notes
 
-- Some tools can affect device state (for example, power, reboot, drive operations). Use them deliberately.
-- The server includes a local RAG over examples in `data/` and optional fetched sources; see the README for details.
-- For optimal SID music results, review `data/audio/sid-programming-best-practices.md`, which documents successful approaches for pleasant, musical sounds.
-
-### Audio Feedback Loop Workflow
-
-The server supports an intelligent audio verification workflow for iterative music composition:
-
-1. **Compose**: Use `c64.sound` (op `generate`) or `c64.program` (op `upload_run_basic`) to create and play SID music.
-2. **Verify**: Use natural language like "check the music", "verify the song", or "does it sound right?"
-3. **Analyze**: `c64.sound` (op `analyze`) automatically detects verification requests and records/analyzes audio.
-4. **Feedback**: Get detailed analysis including detected notes, pitch accuracy, and musical feedback.
-5. **Iterate**: Use the feedback to refine your composition.
-
-The workflow has been proven successful with real hardware testing. For best results, use the triangle wave approach and ADSR settings documented in `data/audio/sid-programming-best-practices.md`.
-
-Example workflow:
-
-```bash
-# Compose a song
-curl -X POST -H 'Content-Type: application/json' \
-  -d '{"op":"generate","root":"C4","pattern":"0,4,7","steps":8}' \
-  http://localhost:8000/tools/c64.sound
-
-# Verify the output
-curl -X POST -H 'Content-Type: application/json' \
-  -d '{"op":"analyze","request":"check if the music sounds correct"}' \
-  http://localhost:8000/tools/c64.sound
-```
-
-### Children's Songs and Musical Expression
-
-When creating children's songs or simple melodies, the server has proven approaches for musical expression:
-
-**Key Principles for Engaging Melodies:**
-
-- **Varied timing** – not all notes the same length (avoid mechanical feel).
-- **Phrase breathing** – longer pauses between musical phrases (150–200 cycles).
-- **Emphasis patterns** – important notes get longer duration (250–400+ cycles).
-- **Character variation** – each verse or phrase has its own timing personality.
-- **Triangle wave + proper ADSR** – produces warm, pleasant tones.
-
-**Example Request Patterns:**
-
-- "Create a simple children's song with musical expression"
-- "Write a melody that tells a story, not just plays notes"
-- "Make a song with proper phrasing and breathing"
-
-**Reference Implementation:** `data/basic/examples/audio/alle-meine-entchen-expressive.bas` demonstrates these principles in a complete traditional German children's song with proper musical phrasing.
+- Some tools affect device state (power, reboot, drive ops). Use deliberately.
+- Logs emit to stderr; stdout is reserved for the MCP protocol.
 
 ## Personas
 

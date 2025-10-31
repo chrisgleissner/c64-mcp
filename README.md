@@ -117,7 +117,7 @@ Logging: set `LOG_LEVEL=debug` (logs go to stderr; stdout is reserved for MCP).
 
 ## GitHub Copilot Chat (VS Code)
 
-VS Code (1.102+) and Copilot Chat (1.214+) support MCP. Either let VS Code auto‑discover, or add the server explicitly under Settings → GitHub Copilot → Experimental → MCP Servers (see `doc/MCP_SETUP.md`).
+VS Code (1.102+) and Copilot Chat (1.214+) support MCP. Either let VS Code auto‑discover, or add the server explicitly under Settings → GitHub Copilot → Experimental → MCP Servers (see `AGENTS.md`).
 
 Example explicit entry:
 
@@ -191,11 +191,10 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 ## Documentation
 
-- [doc/MCP_SETUP.md](doc/MCP_SETUP.md) — installation, configuration resolution, and MCP client wiring
 - [doc/developer.md](doc/developer.md) — development workflow and RAG details
 - [data/context/bootstrap.md](data/context/bootstrap.md) — primer injected ahead of prompts
 - [doc/rest/c64-openapi.yaml](doc/rest/c64-openapi.yaml) — REST surface (OpenAPI 3.1)
-- [AGENTS.md](AGENTS.md) — agent tips and personas
+- [AGENTS.md](AGENTS.md) — LLM-facing quick setup, usage, and personas
 
 ## MCP API Reference
 

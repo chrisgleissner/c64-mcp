@@ -31,6 +31,8 @@ bun install          # faster workflow (respects package-lock)
 
 `scripts/invoke-bun.mjs` automatically delegates npm scripts to Bun when available; stay on the npm variants if Bun is not installed.
 
+Subsequent `npm run build` invocations reuse the incremental cache stored in `dist/.tsbuildinfo`; delete that file (or `dist/`) for a fully clean rebuild when needed.
+
 ## 3. Repository Layout (Essentials)
 
 | Path | Notes |
@@ -81,7 +83,7 @@ Environment knobs: `RAG_EMBEDDINGS_DIR`, `RAG_BUILD_ON_START`, `RAG_REINDEX_INTE
 
 - `npm run check` — build + test in one pass (mock backend)
 - `npm run changelog:generate` — update CHANGELOG draft
-- `npm run release:prepare` — pre-publish sanity checks
+- `npm run release:prepare -- <version>` — pre-publish sanity checks
 - Published package ships [`dist/`](../dist/), [`doc/`](../doc/), [`data/`](../data/), [`scripts/`](../scripts/), [`generated/`](../generated/), and [`mcp.json`](../mcp.json)
 
 ## 9. Troubleshooting Cheatsheet
