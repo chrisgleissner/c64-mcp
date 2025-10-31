@@ -31,11 +31,11 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 0 — Rollout Initialization
 
-- [ ] Confirm all documents listed under “Required Reading” are reviewed and capture acceptance criteria in your own log or the shared notes file.
+- [x] Confirm all documents listed under “Required Reading” are reviewed and capture acceptance criteria in your own log or the shared notes file.
 
 ## Phase 1 — Foundation (Types, Registry, and Doc Scaffold)
 
-- [ ] Introduce shared discriminated-union types (`op`, `verify?`) and validation helpers in `src/tools/types.ts` (or adjacent modules); add unit tests covering schema construction.
+- [x] Introduce shared discriminated-union types (`op`, `verify?`) and validation helpers in `src/tools/types.ts` (or adjacent modules); add unit tests covering schema construction.
 - [ ] Add grouped tool descriptors to `src/tools/registry.ts`, returning shims that still call the existing single-purpose handlers (no behavior change yet).
 - [ ] Update `scripts/generate-docs.ts` to understand grouped tools (without altering README output) and add snapshot-style tests guarding the interim behavior.
 
