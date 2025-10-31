@@ -59,9 +59,9 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 5 — Configuration, Extraction, Streaming
 
-- [ ] Combine config, debug register, info/version, snapshot, and shuffle operations into `c64.config`; refresh config integration tests.
-- [ ] Implement `c64.extract` for sprites, charset rips, memory dumps, filesystem stats, and firmware health; ensure outputs remain byte-for-byte compatible.
-- [ ] Port streaming operations into `c64.stream` and re-run streaming integration tests (or mocks) to confirm UDP setup remains intact.
+- [x] Combine config, debug register, info/version, snapshot, and shuffle operations into `c64.config`; refresh config integration tests. *(2025-10-31)*
+- [x] Implement `c64.extract` for sprites, charset rips, memory dumps, filesystem stats, and firmware health; ensure outputs remain byte-for-byte compatible. *(2025-10-31)*
+- [x] Port streaming operations into `c64.stream` and re-run streaming integration tests (or mocks) to confirm UDP setup remains intact. *(2025-10-31)*
 
 ## Phase 6 — Documentation, Schema, and Cleanup
 

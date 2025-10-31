@@ -148,6 +148,8 @@ const programDescriptorIndex = new Map(programRunnersModule.describeTools().map(
 const audioDescriptorIndex = new Map(audioModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const storageDescriptorIndex = new Map(storageModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const printerDescriptorIndex = new Map(printerModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
+const developerDescriptorIndex = new Map(developerModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
+const streamingDescriptorIndex = new Map(streamingModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const metaDescriptorIndex = new Map(metaModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const memoryDescriptorIndex = new Map(memoryModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const machineDescriptorIndex = new Map(machineControlModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
@@ -1295,7 +1297,470 @@ const diskOperationHandlers = createOperationHandlers(diskOperations);
 const driveOperationHandlers = createOperationHandlers(driveOperations);
 const printerOperationHandlers = createOperationHandlers(printerOperations);
 
+interface ConfigSnapshotArgs extends Record<string, unknown> {
+  readonly path: string;
+}
+
+interface ConfigRestoreArgs extends Record<string, unknown> {
+  readonly path: string;
+  readonly applyToFlash?: boolean;
+}
+
+interface ConfigDiffArgs extends Record<string, unknown> {
+  readonly path: string;
+}
+
+const configSnapshotArgsSchema = objectSchema<ConfigSnapshotArgs>({
+  description: "Snapshot all configuration categories to a JSON file.",
+  properties: {
+    path: stringSchema({
+      description: "Absolute or workspace-relative path where the snapshot file will be written.",
+      minLength: 1,
+    }),
+  },
+  required: ["path"],
+  additionalProperties: false,
+});
+
+const configRestoreArgsSchema = objectSchema<ConfigRestoreArgs>({
+  description: "Restore configuration from a snapshot, optionally persisting to flash.",
+  properties: {
+    path: stringSchema({
+      description: "Snapshot file to read (must contain categories payload).",
+      minLength: 1,
+    }),
+    applyToFlash: optionalSchema(booleanSchema({
+      description: "When true, save the restored configuration to flash immediately.",
+      default: false,
+    })),
+  },
+  required: ["path"],
+  additionalProperties: false,
+});
+
+const configDiffArgsSchema = objectSchema<ConfigDiffArgs>({
+  description: "Compare current configuration against a saved snapshot file.",
+  properties: {
+    path: stringSchema({
+      description: "Snapshot file to compare with.",
+      minLength: 1,
+    }),
+  },
+  required: ["path"],
+  additionalProperties: false,
+});
+
+const configOperations: GroupedOperationConfig[] = [
+  {
+    op: "list",
+    module: developerModule,
+    legacyName: "config_list",
+    schema: extendSchemaWithOp(
+      "list",
+      ensureDescriptor(developerDescriptorIndex, "config_list").inputSchema,
+      { description: "List configuration categories reported by the firmware." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "get",
+    module: developerModule,
+    legacyName: "config_get",
+    schema: extendSchemaWithOp(
+      "get",
+      ensureDescriptor(developerDescriptorIndex, "config_get").inputSchema,
+      { description: "Read a configuration category or specific item." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "set",
+    module: developerModule,
+    legacyName: "config_set",
+    schema: extendSchemaWithOp(
+      "set",
+      ensureDescriptor(developerDescriptorIndex, "config_set").inputSchema,
+      { description: "Write a configuration value in the selected category." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "batch_update",
+    module: developerModule,
+    legacyName: "config_batch_update",
+    schema: extendSchemaWithOp(
+      "batch_update",
+      ensureDescriptor(developerDescriptorIndex, "config_batch_update").inputSchema,
+      { description: "Apply multiple configuration updates in a single request." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "load_flash",
+    module: developerModule,
+    legacyName: "config_load_from_flash",
+    schema: extendSchemaWithOp(
+      "load_flash",
+      ensureDescriptor(developerDescriptorIndex, "config_load_from_flash").inputSchema,
+      { description: "Load configuration from flash storage." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "save_flash",
+    module: developerModule,
+    legacyName: "config_save_to_flash",
+    schema: extendSchemaWithOp(
+      "save_flash",
+      ensureDescriptor(developerDescriptorIndex, "config_save_to_flash").inputSchema,
+      { description: "Persist the current configuration to flash storage." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "reset_defaults",
+    module: developerModule,
+    legacyName: "config_reset_to_default",
+    schema: extendSchemaWithOp(
+      "reset_defaults",
+      ensureDescriptor(developerDescriptorIndex, "config_reset_to_default").inputSchema,
+      { description: "Reset firmware configuration to factory defaults." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "read_debugreg",
+    module: developerModule,
+    legacyName: "debugreg_read",
+    schema: extendSchemaWithOp(
+      "read_debugreg",
+      ensureDescriptor(developerDescriptorIndex, "debugreg_read").inputSchema,
+      { description: "Read the Ultimate debug register ($D7FF)." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "write_debugreg",
+    module: developerModule,
+    legacyName: "debugreg_write",
+    schema: extendSchemaWithOp(
+      "write_debugreg",
+      ensureDescriptor(developerDescriptorIndex, "debugreg_write").inputSchema,
+      { description: "Write a hex value to the Ultimate debug register ($D7FF)." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "info",
+    module: developerModule,
+    legacyName: "info",
+    schema: extendSchemaWithOp(
+      "info",
+      ensureDescriptor(developerDescriptorIndex, "info").inputSchema,
+      { description: "Retrieve Ultimate hardware information and status." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "version",
+    module: developerModule,
+    legacyName: "version",
+    schema: extendSchemaWithOp(
+      "version",
+      ensureDescriptor(developerDescriptorIndex, "version").inputSchema,
+      { description: "Fetch firmware version details." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "snapshot",
+    schema: extendSchemaWithOp(
+      "snapshot",
+      configSnapshotArgsSchema.jsonSchema,
+      { description: "Snapshot configuration to disk for later restore or diff." },
+    ),
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      const parsed = configSnapshotArgsSchema.parse(rest);
+      return metaModule.invoke("config_snapshot_and_restore", {
+        action: "snapshot",
+        path: parsed.path,
+      }, ctx);
+    },
+  },
+  {
+    op: "restore",
+    schema: extendSchemaWithOp(
+      "restore",
+      configRestoreArgsSchema.jsonSchema,
+      { description: "Restore configuration from a snapshot file." },
+    ),
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      const parsed = configRestoreArgsSchema.parse(rest);
+      if (parsed.applyToFlash === undefined) {
+        return metaModule.invoke("config_snapshot_and_restore", {
+          action: "restore",
+          path: parsed.path,
+        }, ctx);
+      }
+      return metaModule.invoke("config_snapshot_and_restore", {
+        action: "restore",
+        path: parsed.path,
+        applyToFlash: parsed.applyToFlash,
+      }, ctx);
+    },
+  },
+  {
+    op: "diff",
+    schema: extendSchemaWithOp(
+      "diff",
+      configDiffArgsSchema.jsonSchema,
+      { description: "Compare the current configuration with a snapshot." },
+    ),
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      const parsed = configDiffArgsSchema.parse(rest);
+      return metaModule.invoke("config_snapshot_and_restore", {
+        action: "diff",
+        path: parsed.path,
+      }, ctx);
+    },
+  },
+  {
+    op: "shuffle",
+    module: metaModule,
+    legacyName: "program_shuffle",
+    schema: extendSchemaWithOp(
+      "shuffle",
+      ensureDescriptor(metaDescriptorIndex, "program_shuffle").inputSchema,
+      { description: "Discover PRG/CRT files and run each with optional screen capture." },
+    ),
+    transform: dropOpTransform,
+  },
+];
+
+const configOperationHandlers = createOperationHandlers(configOperations);
+
+const extractOperations: GroupedOperationConfig[] = [
+  {
+    op: "sprites",
+    module: metaModule,
+    legacyName: "extract_sprites_from_ram",
+    schema: extendSchemaWithOp(
+      "sprites",
+      ensureDescriptor(metaDescriptorIndex, "extract_sprites_from_ram").inputSchema,
+      { description: "Scan RAM for sprites and optionally export .spr files." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "charset",
+    module: metaModule,
+    legacyName: "rip_charset_from_ram",
+    schema: extendSchemaWithOp(
+      "charset",
+      ensureDescriptor(metaDescriptorIndex, "rip_charset_from_ram").inputSchema,
+      { description: "Locate and extract 2KB character sets from RAM." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "memory_dump",
+    module: metaModule,
+    legacyName: "memory_dump_to_file",
+    schema: extendSchemaWithOp(
+      "memory_dump",
+      ensureDescriptor(metaDescriptorIndex, "memory_dump_to_file").inputSchema,
+      { description: "Dump a RAM range to hex or binary files with manifest metadata." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "fs_stats",
+    module: metaModule,
+    legacyName: "filesystem_stats_by_extension",
+    schema: extendSchemaWithOp(
+      "fs_stats",
+      ensureDescriptor(metaDescriptorIndex, "filesystem_stats_by_extension").inputSchema,
+      { description: "Walk the filesystem and aggregate counts/bytes by extension." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "firmware_health",
+    module: metaModule,
+    legacyName: "firmware_info_and_healthcheck",
+    schema: extendSchemaWithOp(
+      "firmware_health",
+      ensureDescriptor(metaDescriptorIndex, "firmware_info_and_healthcheck").inputSchema,
+      { description: "Run firmware readiness checks and report status metrics." },
+    ),
+    transform: dropOpTransform,
+  },
+];
+
+const extractOperationHandlers = createOperationHandlers(extractOperations);
+
+const streamOperations: GroupedOperationConfig[] = [
+  {
+    op: "start",
+    module: streamingModule,
+    legacyName: "stream_start",
+    schema: extendSchemaWithOp(
+      "start",
+      ensureDescriptor(streamingDescriptorIndex, "stream_start").inputSchema,
+      { description: "Start an Ultimate streaming session toward a host:port target." },
+    ),
+    transform: dropOpTransform,
+  },
+  {
+    op: "stop",
+    module: streamingModule,
+    legacyName: "stream_stop",
+    schema: extendSchemaWithOp(
+      "stop",
+      ensureDescriptor(streamingDescriptorIndex, "stream_stop").inputSchema,
+      { description: "Stop an active Ultimate streaming session." },
+    ),
+    transform: dropOpTransform,
+  },
+];
+
+const streamOperationHandlers = createOperationHandlers(streamOperations);
+
 const ragOperationHandlers = createOperationHandlers(ragOperations);
+
+const groupedConfigModule = configOperations.length === 0
+  ? null
+  : defineToolModule({
+      domain: "config",
+      summary: "Grouped configuration management, diagnostics, and snapshot workflows.",
+      resources: ["c64://context/bootstrap", "c64://docs/index"],
+      prompts: ["memory-debug"],
+      defaultTags: ["config", "diagnostics"],
+      workflowHints: [
+        "List categories before changing values so users can confirm firmware-provided names.",
+        "Mention when operations persist to flash or modify debug registers to highlight impacts.",
+        "Call out snapshot file paths so users can version-control or reuse them later.",
+      ],
+      tools: [
+        {
+          name: "c64.config",
+          description: "Grouped entry point for configuration reads/writes, diagnostics, and snapshots.",
+          summary: "List or update settings, access firmware info, take snapshots, and run program shuffle workflows.",
+          inputSchema: discriminatedUnionSchema({
+            description: "Configuration operations available via the c64.config tool.",
+            variants: configOperations.map((operation) => operation.schema),
+          }),
+          tags: ["config", "diagnostics", "grouped"],
+          examples: [
+            {
+              name: "List categories",
+              description: "Enumerate configuration categories",
+              arguments: { op: "list" },
+            },
+            {
+              name: "Set volume",
+              description: "Adjust audio volume to 70",
+              arguments: { op: "set", category: "Audio", item: "Volume", value: 70 },
+            },
+            {
+              name: "Snapshot config",
+              description: "Write configuration snapshot to disk",
+              arguments: { op: "snapshot", path: "./snapshots/c64.json" },
+            },
+          ],
+          execute: createOperationDispatcher<GenericOperationMap>(
+            "c64.config",
+            configOperationHandlers,
+          ),
+        },
+      ],
+    });
+
+const groupedExtractModule = extractOperations.length === 0
+  ? null
+  : defineToolModule({
+      domain: "extract",
+      summary: "Grouped extraction helpers for sprites, charsets, memory dumps, and diagnostics.",
+      resources: ["c64://context/bootstrap", "c64://specs/basic", "c64://specs/assembly"],
+      defaultTags: ["extract", "diagnostics"],
+      workflowHints: [
+        "Pause the machine when advised so dumps and sprite scans remain stable.",
+        "Summarise output file paths or sample counts so users can inspect artifacts quickly.",
+      ],
+      tools: [
+        {
+          name: "c64.extract",
+          description: "Grouped entry point for sprite/charset extraction, memory dumps, filesystem stats, and firmware health checks.",
+          summary: "Export sprites or charsets, dump RAM, compute filesystem stats, or run firmware health checks.",
+          inputSchema: discriminatedUnionSchema({
+            description: "Extraction operations available via the c64.extract tool.",
+            variants: extractOperations.map((operation) => operation.schema),
+          }),
+          tags: ["extract", "diagnostics", "grouped"],
+          examples: [
+            {
+              name: "Dump RAM to file",
+              description: "Write $0400-$07FF to hex file",
+              arguments: { op: "memory_dump", address: "$0400", length: 1024, outputPath: "./dumps/screen.hex" },
+            },
+            {
+              name: "Scan sprites",
+              description: "Scan $2000 for sprites",
+              arguments: { op: "sprites", address: "$2000", length: 2048 },
+            },
+          ],
+          execute: createOperationDispatcher<GenericOperationMap>(
+            "c64.extract",
+            extractOperationHandlers,
+          ),
+        },
+      ],
+    });
+
+const groupedStreamModule = streamOperations.length === 0
+  ? null
+  : defineToolModule({
+      domain: "stream",
+      summary: "Grouped streaming helpers for starting and stopping Ultimate capture sessions.",
+      resources: ["c64://docs/index", "c64://specs/sid"],
+      prompts: ["sid-music"],
+      defaultTags: ["stream", "monitor"],
+      workflowHints: [
+        "Confirm stream targets for the user so they can connect their tooling.",
+        "Remind users to stop streams when capture completes to free resources.",
+      ],
+      tools: [
+        {
+          name: "c64.stream",
+          description: "Grouped entry point for starting and stopping Ultimate streaming sessions.",
+          summary: "Start or stop audio/video/debug streaming in a single tool.",
+          inputSchema: discriminatedUnionSchema({
+            description: "Streaming operations available via the c64.stream tool.",
+            variants: streamOperations.map((operation) => operation.schema),
+          }),
+          tags: ["stream", "monitor", "grouped"],
+          examples: [
+            {
+              name: "Start audio stream",
+              description: "Send audio to localhost",
+              arguments: { op: "start", stream: "audio", target: "127.0.0.1:9000" },
+            },
+            {
+              name: "Stop audio stream",
+              description: "Stop streaming",
+              arguments: { op: "stop", stream: "audio" },
+            },
+          ],
+          execute: createOperationDispatcher<GenericOperationMap>(
+            "c64.stream",
+            streamOperationHandlers,
+          ),
+        },
+      ],
+    });
 
 const groupedDiskModule = diskOperations.length === 0
   ? null
@@ -1495,6 +1960,18 @@ if (groupedGraphicsModule) {
   toolModules.splice(insertAt, 0, groupedGraphicsModule);
 }
 
+if (groupedConfigModule) {
+  const index = toolModules.indexOf(developerModule);
+  const insertAt = index >= 0 ? index : toolModules.length;
+  toolModules.splice(insertAt, 0, groupedConfigModule);
+}
+
+if (groupedExtractModule) {
+  const index = toolModules.indexOf(metaModule);
+  const insertAt = index >= 0 ? index : toolModules.length;
+  toolModules.splice(insertAt, 0, groupedExtractModule);
+}
+
 if (groupedDiskModule) {
   const index = toolModules.indexOf(storageModule);
   const insertAt = index >= 0 ? index : toolModules.length;
@@ -1511,6 +1988,12 @@ if (groupedPrinterModule) {
   const index = toolModules.indexOf(printerModule);
   const insertAt = index >= 0 ? index : toolModules.length;
   toolModules.splice(insertAt, 0, groupedPrinterModule);
+}
+
+if (groupedStreamModule) {
+  const index = toolModules.indexOf(streamingModule);
+  const insertAt = index >= 0 ? index : toolModules.length;
+  toolModules.splice(insertAt, 0, groupedStreamModule);
 }
 
 if (groupedRagModule) {

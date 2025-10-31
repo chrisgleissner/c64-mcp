@@ -24,6 +24,9 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64.disk"), "c64.disk should be registered");
   assert.ok(toolNames.includes("c64.drive"), "c64.drive should be registered");
   assert.ok(toolNames.includes("c64.printer"), "c64.printer should be registered");
+  assert.ok(toolNames.includes("c64.config"), "c64.config should be registered");
+  assert.ok(toolNames.includes("c64.extract"), "c64.extract should be registered");
+  assert.ok(toolNames.includes("c64.stream"), "c64.stream should be registered");
 });
 
 test("c64.program run_prg delegates to legacy handler", async () => {
@@ -656,6 +659,174 @@ test("c64.printer print_bitmap routes to Commodore workflow", async () => {
   assert.equal(calls[0].ensureMsb, true);
 });
 
+test("c64.extract sprites delegates to sprite extractor", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const calls = [];
+  const originalInvoke = metaModule.invoke;
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "sprites extracted" }],
+      metadata: { success: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.extract",
+      { op: "sprites", address: "$2000", length: 2048, stride: 64 },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "extract_sprites_from_ram");
+    assert.equal(calls[0].payload.address, "$2000");
+    assert.equal(calls[0].payload.length, 2048);
+    assert.equal(calls[0].payload.stride, 64);
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
+});
+
+test("c64.extract memory_dump forwards to meta dump tool", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const calls = [];
+  const originalInvoke = metaModule.invoke;
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "dumped" }],
+      metadata: { success: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.extract",
+      {
+        op: "memory_dump",
+        address: "$0400",
+        length: 256,
+        outputPath: "./dumps/screen.hex",
+        format: "hex",
+      },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "memory_dump_to_file");
+    assert.equal(calls[0].payload.address, "$0400");
+    assert.equal(calls[0].payload.length, 256);
+    assert.equal(calls[0].payload.outputPath, "./dumps/screen.hex");
+    assert.equal(calls[0].payload.format, "hex");
+    assert.equal("op" in calls[0].payload, false);
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
+});
+
+test("c64.stream start delegates to streaming start handler", async () => {
+  const calls = [];
+  const stubClient = {
+    async streamStart(stream, target) {
+      calls.push({ stream, target });
+      return { success: true, details: { ack: true } };
+    },
+    async streamStop() {
+      throw new Error("not used");
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.stream",
+    { op: "start", stream: "audio", target: "127.0.0.1:9000" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], { stream: "audio", target: "127.0.0.1:9000" });
+  assert.equal(result.metadata?.success, true);
+  assert.equal(result.metadata?.stream, "audio");
+  assert.equal(result.metadata?.target, "127.0.0.1:9000");
+});
+
+test("c64.stream stop delegates to streaming stop handler", async () => {
+  const calls = [];
+  const stubClient = {
+    async streamStart() {
+      throw new Error("not used");
+    },
+    async streamStop(stream) {
+      calls.push(stream);
+      return { success: true, details: { stopped: true } };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.stream",
+    { op: "stop", stream: "audio" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(calls, ["audio"]);
+  assert.equal(result.metadata?.success, true);
+  assert.equal(result.metadata?.stream, "audio");
+});
+
 test("c64.printer print_bitmap routes to Epson workflow", async () => {
   const calls = [];
   const stubClient = {
@@ -726,6 +897,263 @@ test("c64.printer print_bitmap rejects invalid secondary address", async () => {
     ),
     ToolValidationError,
   );
+});
+
+test("c64.config list delegates to configsList", async () => {
+  const calls = [];
+  const stubClient = {
+    async configsList() {
+      calls.push("configsList");
+      return { categories: [] };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke("c64.config", { op: "list" }, ctx);
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(calls, ["configsList"]);
+});
+
+test("c64.config set delegates to configSet", async () => {
+  const calls = [];
+  const stubClient = {
+    async configSet(category, item, value) {
+      calls.push({ category, item, value });
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.config",
+    { op: "set", category: "Audio", item: "Volume", value: 70 },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].category, "Audio");
+  assert.equal(calls[0].item, "Volume");
+  assert.equal(calls[0].value, "70");
+});
+
+test("c64.config write_debugreg uppercases payload", async () => {
+  const calls = [];
+  const stubClient = {
+    async debugregWrite(value) {
+      calls.push(value);
+      return { success: true, details: {} };
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.config",
+    { op: "write_debugreg", value: "2a" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(calls, ["2A"]);
+});
+
+test("c64.config snapshot delegates to meta workflow", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const originalInvoke = metaModule.invoke;
+  const calls = [];
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "snapshot" }],
+      metadata: { success: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.config",
+      { op: "snapshot", path: "/tmp/config.json" },
+      ctx,
+    );
+
+    assert.equal(result.metadata?.success, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "config_snapshot_and_restore");
+    assert.equal(calls[0].payload.action, "snapshot");
+    assert.equal(calls[0].payload.path, "/tmp/config.json");
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
+});
+
+test("c64.config restore forwards applyToFlash flag", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const originalInvoke = metaModule.invoke;
+  const calls = [];
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "restore" }],
+      metadata: { success: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.config",
+      { op: "restore", path: "./snap.json", applyToFlash: true },
+      ctx,
+    );
+
+    assert.equal(result.metadata?.success, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].payload.action, "restore");
+    assert.equal(calls[0].payload.path, "./snap.json");
+    assert.equal(calls[0].payload.applyToFlash, true);
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
+});
+
+test("c64.config diff delegates to config snapshot meta tool", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const originalInvoke = metaModule.invoke;
+  const calls = [];
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "diff" }],
+      metadata: { success: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.config",
+      { op: "diff", path: "./snap.json" },
+      ctx,
+    );
+
+    assert.equal(result.metadata?.success, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].payload.action, "diff");
+    assert.equal(calls[0].payload.path, "./snap.json");
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
+});
+
+test("c64.config shuffle delegates to program shuffle workflow", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const originalInvoke = metaModule.invoke;
+  const calls = [];
+  metaModule.invoke = async (name, payload) => {
+    calls.push({ name, payload });
+    return {
+      content: [{ type: "text", text: "shuffle" }],
+      metadata: { success: true },
+    };
+  };
+
+  try {
+    const result = await toolRegistry.invoke(
+      "c64.config",
+      { op: "shuffle", root: "/games" },
+      ctx,
+    );
+
+    assert.equal(result.metadata?.success, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "program_shuffle");
+    assert.equal(calls[0].payload.root, "/games");
+  } finally {
+    metaModule.invoke = originalInvoke;
+  }
 });
 
 test("c64.graphics render_petscii delegates to legacy handler", async () => {

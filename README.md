@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **82 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **85 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -636,6 +636,40 @@ This MCP server exposes **82 tools**, **25 resources**, and **7 prompts** for co
 | `rag_retrieve_asm` | Retrieve 6502/6510 assembly references from local knowledge. See c64://specs/assembly. | `rag`, `search`, `asm` |
 | `rag_retrieve_basic` | Retrieve BASIC references from local knowledge. See c64://specs/basic before coding. | `rag`, `search`, `basic` |
 
+#### Config
+> Grouped configuration management, diagnostics, and snapshot workflows.
+
+**Workflow hints:**
+- List categories before changing values so users can confirm firmware-provided names.
+- Mention when operations persist to flash or modify debug registers to highlight impacts.
+- Call out snapshot file paths so users can version-control or reuse them later.
+
+**Default tags:** `config`, `diagnostics`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.config` | Grouped entry point for configuration reads/writes, diagnostics, and snapshots. | `config`, `diagnostics`, `grouped` |
+
+##### Operations: `c64.config`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `batch_update` | Apply multiple configuration updates in a single request. | — | — |
+| `diff` | Compare the current configuration with a snapshot. | `path` | — |
+| `get` | Read a configuration category or specific item. | `category` | — |
+| `info` | Retrieve Ultimate hardware information and status. | — | — |
+| `list` | List configuration categories reported by the firmware. | — | — |
+| `load_flash` | Load configuration from flash storage. | — | — |
+| `read_debugreg` | Read the Ultimate debug register ($D7FF). | — | — |
+| `reset_defaults` | Reset firmware configuration to factory defaults. | — | — |
+| `restore` | Restore configuration from a snapshot file. | `path` | — |
+| `save_flash` | Persist the current configuration to flash storage. | — | — |
+| `set` | Write a configuration value in the selected category. | `category`, `item`, `value` | — |
+| `shuffle` | Discover PRG/CRT files and run each with optional screen capture. | — | — |
+| `snapshot` | Snapshot configuration to disk for later restore or diff. | `path` | — |
+| `version` | Fetch firmware version details. | — | — |
+| `write_debugreg` | Write a hex value to the Ultimate debug register ($D7FF). | `value` | — |
+
 #### Developer
 > Configuration management, diagnostics, and helper utilities for advanced workflows.
 
@@ -659,6 +693,26 @@ This MCP server exposes **82 tools**, **25 resources**, and **7 prompts** for co
 | `info` | Retrieve Ultimate hardware information and status. | `developer`, `config`, `debug`, `diagnostics`, `info` |
 | `version` | Retrieve Ultimate firmware and API version information. | `developer`, `config`, `debug`, `diagnostics`, `version` |
 
+#### Stream
+> Grouped streaming helpers for starting and stopping Ultimate capture sessions.
+
+**Workflow hints:**
+- Confirm stream targets for the user so they can connect their tooling.
+- Remind users to stop streams when capture completes to free resources.
+
+**Default tags:** `stream`, `monitor`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.stream` | Grouped entry point for starting and stopping Ultimate streaming sessions. | `stream`, `monitor`, `grouped` |
+
+##### Operations: `c64.stream`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `start` | Start an Ultimate streaming session toward a host:port target. | `stream`, `target` | — |
+| `stop` | Stop an active Ultimate streaming session. | `stream` | — |
+
 #### Streaming
 > Long-running or streaming workflows such as audio capture or SID playback monitoring.
 
@@ -672,6 +726,29 @@ This MCP server exposes **82 tools**, **25 resources**, and **7 prompts** for co
 | --- | --- | --- |
 | `stream_start` | Start an Ultimate streaming session (video/audio/debug) targeting a host:port destination. See c64://docs/index for usage notes. | `stream`, `monitoring`, `start` |
 | `stream_stop` | Stop an Ultimate streaming session (video/audio/debug). | `stream`, `monitoring`, `stop` |
+
+#### Extract
+> Grouped extraction helpers for sprites, charsets, memory dumps, and diagnostics.
+
+**Workflow hints:**
+- Pause the machine when advised so dumps and sprite scans remain stable.
+- Summarise output file paths or sample counts so users can inspect artifacts quickly.
+
+**Default tags:** `extract`, `diagnostics`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.extract` | Grouped entry point for sprite/charset extraction, memory dumps, filesystem stats, and firmware health checks. | `extract`, `diagnostics`, `grouped` |
+
+##### Operations: `c64.extract`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `charset` | Locate and extract 2KB character sets from RAM. | — | — |
+| `firmware_health` | Run firmware readiness checks and report status metrics. | — | — |
+| `fs_stats` | Walk the filesystem and aggregate counts/bytes by extension. | — | — |
+| `memory_dump` | Dump a RAM range to hex or binary files with manifest metadata. | `address`, `length`, `outputPath` | — |
+| `sprites` | Scan RAM for sprites and optionally export .spr files. | `address`, `length` | — |
 
 #### Meta
 > High-level meta tools that orchestrate multiple MCP actions.
