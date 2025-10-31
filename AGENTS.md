@@ -84,6 +84,20 @@ Examples (MCP tool calls; HTTP only for illustration):
 
 Tools and parameters are listed dynamically via ListTools.
 
+## Knowledge Resources
+
+Use ListResources to discover built-in knowledge, then read specific URIs to enrich context before coding:
+
+- `c64://specs/basic` — BASIC v2 tokens, syntax, device I/O
+- `c64://specs/assembly` — 6510 opcodes, addressing, zero-page strategy
+- `c64://specs/vic` — raster timing, sprites, colour RAM, bitmap modes
+- `c64://specs/sid` — SID registers, waveforms, ADSR
+- `c64://specs/memory-map` — full 64 KB address map
+- `c64://docs/basic/pitfalls` — quoting, line length, token pitfalls
+- `c64://docs/petscii-style` — readable PETSCII, colour/dither guidance
+
+Pull RAG snippets via `c64.rag` (ops `basic`/`asm`) for targeted examples.
+
 ## Expert Workflow (recommended)
 
 - Plan → Run → Verify: generate code, run via `c64.program`, then verify with `c64.memory.read_screen`/`wait_for_text` and optional RAM checks.
@@ -92,6 +106,12 @@ Tools and parameters are listed dynamically via ListTools.
 - BASIC tips: tokenised keywords, short variable names, careful quoting; keep lines ≤ 2 screen rows; prefer `PRINT` with explicit spacing.
 - ASM tips: avoid unstable rasters; use zero page consciously; confirm register maps via `c64://specs/assembly`, `c64://specs/memory-map`, `c64://specs/vic` resources.
 - Safety: only call reset/power/drive operations intentionally; confirm preconditions for mounts/writes; log reversible steps in chat.
+
+Error handling patterns:
+
+- If a run stalls, `c64.system.reset` then re-run; verify with `wait_for_text`.
+- On memory write validation failure, re-read with `c64.memory.read` and compare.
+- For long tasks, prefer background tasks (`c64.system.start_task`) and poll.
 
 ## HTTP Examples (optional)
 
@@ -114,40 +134,13 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 ## Personas
 
-Use these focused personas to seed agent context. Each section aligns with `.github/prompts/*.prompt.md` templates and the primer in `data/context/bootstrap.md`.
+Use these starting points to seed agent context. Templates live in `.github/prompts/`; the primer is `data/context/bootstrap.md`.
 
-### BASIC Agent
-
-- **Focus**: Commodore BASIC v2 programs, PETSCII, simple I/O, printing.
-- **Strengths**: Tokenization pitfalls, line management, device I/O (device 4 printers), screen text.
-- **Behaviors**: Produces runnable BASIC with proper tokens; uses RAG to recall examples.
-
-### ASM Agent
-
-- **Focus**: 6502/6510 assembly for C64—raster, sprites, IRQs, memory-mapped I/O.
-- **Strengths**: Zero-page usage, addressing modes, VIC-II/SID/CIA registers, timing.
-- **Behaviors**: Assembles to PRG; uses references for safe raster timing and sprite control.
-
-### SID Composer
-
-- **Focus**: Musical composition for SID—ADSR, waveforms, filters, pattern sequencing.
-- **Strengths**: Expressive timing, phrasing, pleasant tone (triangle or pulse), pitch verification.
-- **Behaviors**: Leverages the audio analysis feedback loop; references best practices.
-
-### Memory Debugger
-
-- **Focus**: Inspect and modify memory, disassemble ranges, verify screen or colour RAM.
-- **Strengths**: Safe PEEK/POKE, address math, hex/decimal conversions, provenance.
-- **Behaviors**: Careful with device state; provides reversible steps.
-
-### Drive Manager
-
-- **Focus**: Mount or create disk images, list drives, manage modes.
-- **Strengths**: D64/D71/D81/DNP creation; IEC concepts; Ultimate menu usage.
-- **Behaviors**: Conservative operations; confirms preconditions.
-
-### VIC Painter
-
-- **Focus**: Drawing with PETSCII and bitmap modes; sprites and raster effects.
-- **Strengths**: VIC-II registers ($D000–$D02E), border/background ($D020/$D021), bitmap/charset setup, sprite multiplexing basics.
-- **Behaviors**: Composes BASIC or ASM to draw images, set colours, position or move sprites; uses raster IRQ for stable timing when needed.
+| Persona | Focus | Starter prompt |
+| --- | --- | --- |
+| BASIC Agent | Commodore BASIC v2, PETSCII, simple I/O, printing | [.github/prompts/basic-program-session.prompt.md](.github/prompts/basic-program-session.prompt.md) |
+| ASM Agent | 6502/6510 assembly, raster, sprites, IRQs | [.github/prompts/assembly-routine-session.prompt.md](.github/prompts/assembly-routine-session.prompt.md) |
+| SID Composer | SID playback/composition, ADSR, waveforms | [.github/prompts/sid-music-session.prompt.md](.github/prompts/sid-music-session.prompt.md) |
+| Drive Manager | Disk images, drive modes, resets | [.github/prompts/drive-management-session.prompt.md](.github/prompts/drive-management-session.prompt.md) |
+| VIC Painter | PETSCII/bitmap art, sprites | [.github/prompts/petscii-art-session.prompt.md](.github/prompts/petscii-art-session.prompt.md) |
+| Memory Debugger | RAM inspection, screen/colour RAM checks | Use `c64.memory` tools + `c64://specs/memory-map` |

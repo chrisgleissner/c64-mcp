@@ -19,7 +19,7 @@ test("program_shuffle discovers and runs programs", async () => {
     logger: createLogger(),
   };
 
-  const res = await metaModule.invoke("program_shuffle", { root: "/games", durationMs: 5, maxPrograms: 2, captureScreen: true }, ctx);
+  const res = await metaModule.invoke("program_shuffle", { root: "/games", durationMs: 5, maxPrograms: 2, captureScreen: true, resetDelayMs: 0 }, ctx);
   assert.equal(res.metadata?.success, true);
   const data = res.structuredContent?.data ?? {};
   assert.equal(data.programs, 2);
@@ -36,7 +36,7 @@ test("program_shuffle handles no programs found", async () => {
     logger: createLogger(),
   };
 
-  const res = await metaModule.invoke("program_shuffle", { root: "/empty", durationMs: 5 }, ctx);
+  const res = await metaModule.invoke("program_shuffle", { root: "/empty", durationMs: 5, resetDelayMs: 0 }, ctx);
   assert.equal(res.isError, true);
   assert.equal(res.metadata?.error?.kind, "execution");
 });
@@ -51,7 +51,7 @@ test("program_shuffle handles program run errors gracefully", async () => {
     logger: createLogger(),
   };
 
-  const res = await metaModule.invoke("program_shuffle", { root: "/games", extensions: ["prg"], durationMs: 5, captureScreen: false }, ctx);
+  const res = await metaModule.invoke("program_shuffle", { root: "/games", extensions: ["prg"], durationMs: 5, captureScreen: false, resetDelayMs: 0 }, ctx);
   assert.equal(res.metadata?.success, true);
   const data = res.structuredContent?.data ?? {};
   assert.equal(data.errors, 1);
@@ -71,7 +71,7 @@ test("program_shuffle with CRT files", async () => {
     logger: createLogger(),
   };
 
-  const res = await metaModule.invoke("program_shuffle", { root: "/games", extensions: ["crt"], durationMs: 5, maxPrograms: 1 }, ctx);
+  const res = await metaModule.invoke("program_shuffle", { root: "/games", extensions: ["crt"], durationMs: 5, maxPrograms: 1, resetDelayMs: 0 }, ctx);
   assert.equal(res.metadata?.success, true);
   const data = res.structuredContent?.data ?? {};
   assert.equal(data.programs, 1);
@@ -93,6 +93,7 @@ test("batch_run_with_assertions runs programs with assertions", async () => {
       { path: "/test.prg", assertions: [{ type: "screen_contains", pattern: "READY." }] },
     ],
     durationMs: 5,
+    resetDelayMs: 0,
   }, ctx);
 
   assert.equal(res.metadata?.success, true);
@@ -116,6 +117,7 @@ test("batch_run_with_assertions detects assertion failures", async () => {
       { path: "/test.prg", assertions: [{ type: "screen_contains", pattern: "READY." }] },
     ],
     durationMs: 5,
+    resetDelayMs: 0,
   }, ctx);
 
   assert.equal(res.metadata?.success, false);
@@ -141,6 +143,7 @@ test("batch_run_with_assertions validates memory_equals assertion", async () => 
       { path: "/test.prg", assertions: [{ type: "memory_equals", address: "$0400", expected: "$AA" }] },
     ],
     durationMs: 5,
+    resetDelayMs: 0,
   }, ctx);
 
   assert.equal(res.metadata?.success, true);
@@ -166,6 +169,7 @@ test("batch_run_with_assertions checks sid_silent assertion", async () => {
       { path: "/test.prg", assertions: [{ type: "sid_silent" }] },
     ],
     durationMs: 5,
+    resetDelayMs: 0,
   }, ctx);
 
   assert.equal(res.metadata?.success, true);
@@ -195,6 +199,7 @@ test("batch_run_with_assertions continues on error when flag set", async () => {
     ],
     continueOnError: true,
     durationMs: 5,
+    resetDelayMs: 0,
   }, ctx);
 
   assert.equal(res.metadata?.success, false);

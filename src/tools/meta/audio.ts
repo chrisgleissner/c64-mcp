@@ -38,6 +38,7 @@ const musicCompilePlayAnalyzeArgsSchema = objectSchema({
     silenceDurationSeconds: optionalSchema(numberSchema({ description: "Audio capture length used for silence verification.", minimum: 0.5, maximum: 10 }), DEFAULT_SILENCE_DURATION_SECONDS),
     silenceRmsThreshold: optionalSchema(numberSchema({ description: "RMS threshold applied to silence verification captures.", minimum: 0, maximum: 1 }), DEFAULT_RMS_THRESHOLD),
     postSilenceWaitMs: optionalSchema(numberSchema({ description: "Delay between main analysis capture and the post-playback silence check (milliseconds).", minimum: 0, maximum: 5000 }), DEFAULT_POST_SILENCE_WAIT_MS),
+    silenceWaitMs: optionalSchema(numberSchema({ description: "Delay between silencing the SID and recording during pre/post checks (milliseconds).", minimum: 0, maximum: 5000 }), DEFAULT_SILENCE_WAIT_MS),
   },
   additionalProperties: false,
 });
@@ -233,6 +234,7 @@ export const tools: ToolDefinition[] = [
         const silenceDurationSeconds = parsed.silenceDurationSeconds ?? DEFAULT_SILENCE_DURATION_SECONDS;
         const silenceRmsThreshold = parsed.silenceRmsThreshold ?? DEFAULT_RMS_THRESHOLD;
         const postSilenceWaitMs = parsed.postSilenceWaitMs ?? DEFAULT_POST_SILENCE_WAIT_MS;
+        const silenceWaitMs = parsed.silenceWaitMs ?? DEFAULT_SILENCE_WAIT_MS;
         const expectedSidwave = normalizeSidwaveInput(parsed.expectedSidwave ?? parsed.sidwave ?? parsed.cpg);
 
         const analyzer = resolveAnalyzer(context);
@@ -241,7 +243,7 @@ export const tools: ToolDefinition[] = [
           preSilence = await performSilenceCheck(context, analyzer, {
             durationSeconds: silenceDurationSeconds,
             rmsThreshold: silenceRmsThreshold,
-            waitBeforeCaptureMs: DEFAULT_SILENCE_WAIT_MS,
+            waitBeforeCaptureMs: silenceWaitMs,
             label: "pre",
           });
 
@@ -304,7 +306,7 @@ export const tools: ToolDefinition[] = [
           postSilence = await performSilenceCheck(context, analyzer, {
             durationSeconds: silenceDurationSeconds,
             rmsThreshold: silenceRmsThreshold,
-            waitBeforeCaptureMs: DEFAULT_SILENCE_WAIT_MS,
+            waitBeforeCaptureMs: silenceWaitMs,
             label: "post",
           });
 
