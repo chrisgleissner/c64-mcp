@@ -1,7 +1,14 @@
+import { Buffer } from "node:buffer";
 import { defineToolModule } from "./types.js";
-import { numberSchema, objectSchema, stringSchema } from "./schema.js";
+import { booleanSchema, numberSchema, objectSchema, optionalSchema, stringSchema } from "./schema.js";
 import { textResult } from "./responses.js";
-import { ToolError, ToolExecutionError, toolErrorResult, unknownErrorResult } from "./errors.js";
+import {
+  ToolError,
+  ToolExecutionError,
+  ToolValidationError,
+  toolErrorResult,
+  unknownErrorResult,
+} from "./errors.js";
 
 function toRecord(details: unknown): Record<string, unknown> | undefined {
   if (details && typeof details === "object") {
@@ -18,6 +25,79 @@ function normaliseFailure(details: unknown): Record<string, unknown> | undefined
     return details as Record<string, unknown>;
   }
   return { value: details };
+}
+
+interface HexParseResult {
+  readonly bytes: Uint8Array;
+  readonly canonical: string;
+}
+
+function cleanHex(input: string): string {
+  const trimmed = input.trim();
+  const withoutPrefix = trimmed.startsWith("$") ? trimmed.slice(1) : trimmed;
+  return withoutPrefix.replace(/[\s_]/g, "").toUpperCase();
+}
+
+function parseHexInternal(value: string, path: string): HexParseResult {
+  const cleaned = cleanHex(value);
+  if (cleaned.length % 2 !== 0) {
+    throw new ToolValidationError("Hex string must have an even number of characters", {
+      path,
+      details: { value },
+    });
+  }
+
+  if (cleaned.length === 0) {
+    return { bytes: new Uint8Array(), canonical: "$" };
+  }
+
+  const bytes = Uint8Array.from(Buffer.from(cleaned, "hex"));
+  return { bytes, canonical: `$${cleaned}` };
+}
+
+function parseUserHex(value: string, path: string): HexParseResult {
+  return parseHexInternal(value, path);
+}
+
+function parseFirmwareHex(value: unknown, stage: string): HexParseResult {
+  if (typeof value !== "string") {
+    throw new ToolExecutionError(`Firmware returned invalid ${stage} hex data`, {
+      details: { value },
+    });
+  }
+
+  try {
+    return parseHexInternal(value, stage);
+  } catch (error) {
+    if (error instanceof ToolValidationError) {
+      throw new ToolExecutionError(`Firmware returned malformed ${stage} hex data`, {
+        details: { value },
+      });
+    }
+    throw error;
+  }
+}
+
+function formatByte(value: number): string {
+  return `$${value.toString(16).toUpperCase().padStart(2, "0")}`;
+}
+
+function resolveAddressLabel(details: Record<string, unknown>, fallback: string): string {
+  if (typeof details.address === "number") {
+    return `$${details.address.toString(16).toUpperCase().padStart(4, "0")}`;
+  }
+
+  if (typeof details.address === "string" && details.address.length > 0) {
+    return details.address.startsWith("$")
+      ? details.address
+      : `$${details.address.toUpperCase()}`;
+  }
+
+  return fallback.startsWith("$") ? fallback : `$${fallback}`;
+}
+
+function resolveLength(details: Record<string, unknown>): number | undefined {
+  return typeof details.length === "number" ? details.length : undefined;
 }
 
 const readScreenArgsSchema = objectSchema<Record<string, never>>({
@@ -56,6 +136,24 @@ const writeMemoryArgsSchema = objectSchema({
       description: "Hex byte sequence like $AABBCC or AA BB CC to write starting at the resolved address.",
       minLength: 2,
       pattern: /^[\s_0-9A-Fa-f$]+$/,
+    }),
+    verify: booleanSchema({
+      description: "When true, pause and verify the write by reading back the affected range.",
+      default: false,
+    }),
+    expected: optionalSchema(stringSchema({
+      description: "Optional hex data expected before the write (verifies before writing).",
+      minLength: 2,
+      pattern: /^[\s_0-9A-Fa-f$]+$/,
+    })),
+    mask: optionalSchema(stringSchema({
+      description: "Optional verification mask (hex); only bits set in the mask are compared.",
+      minLength: 2,
+      pattern: /^[\s_0-9A-Fa-f$]+$/,
+    })),
+    abortOnMismatch: booleanSchema({
+      description: "Abort the write when the pre-write verification fails.",
+      default: true,
     }),
   },
   required: ["address", "bytes"],
@@ -120,8 +218,8 @@ export const memoryModule = defineToolModule({
       name: "read_memory",
       description: "Read a range of bytes from main memory and return the data as hexadecimal. Consult c64://specs/assembly and docs index.",
       summary: "Resolves symbols, reads memory, and returns a hex dump with addressing metadata.",
-    inputSchema: readMemoryArgsSchema.jsonSchema,
-    relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
+      inputSchema: readMemoryArgsSchema.jsonSchema,
+      relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex"],
       prerequisites: ["pause"],
@@ -195,33 +293,168 @@ export const memoryModule = defineToolModule({
           const parsed = writeMemoryArgsSchema.parse(args ?? {});
           ctx.logger.info("Writing C64 memory", { address: parsed.address, bytesLength: parsed.bytes.length });
 
-          const result = await ctx.client.writeMemory(parsed.address, parsed.bytes);
-          if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
-              details: normaliseFailure(result.details),
+          const writeInfo = parseUserHex(parsed.bytes, "$.bytes");
+          const expectedInfo = parsed.expected ? parseUserHex(parsed.expected, "$.expected") : undefined;
+          const maskInfo = parsed.mask ? parseUserHex(parsed.mask, "$.mask") : undefined;
+          const shouldVerify = parsed.verify || Boolean(expectedInfo) || Boolean(maskInfo);
+
+          if (!shouldVerify) {
+            const result = await ctx.client.writeMemory(parsed.address, writeInfo.canonical);
+            if (!result.success) {
+              throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
+                details: normaliseFailure(result.details),
+              });
+            }
+
+            const detailRecord = toRecord(result.details) ?? {};
+            const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
+            const resolvedLength = resolveLength(detailRecord);
+
+            return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress}.`, {
+              success: true,
+              address: resolvedAddress,
+              length: resolvedLength ?? null,
+              bytes: writeInfo.canonical,
+              details: detailRecord,
             });
           }
 
-          const detailRecord = toRecord(result.details) ?? {};
-          let resolvedAddress: string;
-          if (typeof detailRecord.address === "number") {
-            resolvedAddress = `$${detailRecord.address.toString(16).toUpperCase().padStart(4, "0")}`;
-          } else if (typeof detailRecord.address === "string" && detailRecord.address.length > 0) {
-            resolvedAddress = detailRecord.address.startsWith("$")
-              ? detailRecord.address
-              : `$${detailRecord.address.toUpperCase()}`;
-          } else {
-            resolvedAddress = parsed.address.startsWith("$") ? parsed.address : `$${parsed.address}`;
-          }
-          const resolvedLength = typeof detailRecord.length === "number" ? detailRecord.length : undefined;
+          let paused = false;
+          try {
+            const pauseResult = await ctx.client.pause();
+            if (!pauseResult.success) {
+              throw new ToolExecutionError("C64 firmware reported failure while pausing", {
+                details: normaliseFailure(pauseResult.details),
+              });
+            }
+            paused = true;
 
-          return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress}.`, {
-            success: true,
-            address: resolvedAddress,
-            length: resolvedLength ?? null,
-            bytes: parsed.bytes,
-            details: detailRecord,
-          });
+            const expectedBytes = expectedInfo?.bytes ?? new Uint8Array();
+            const maskBytes = maskInfo?.bytes;
+            const readLength = Math.max(1, Math.max(writeInfo.bytes.length, expectedBytes.length));
+
+            const preRead = await ctx.client.readMemory(parsed.address, String(readLength));
+            if (!preRead.success) {
+              throw new ToolExecutionError("C64 firmware reported failure while reading memory", {
+                details: normaliseFailure(preRead.details),
+              });
+            }
+
+            const preInfo = parseFirmwareHex(preRead.data ?? "$", "pre-read");
+
+            const preMismatches: Array<{ offset: number; expected: string; actual: string; mask?: string }> = [];
+            if (expectedBytes.length > 0) {
+              for (let i = 0; i < expectedBytes.length; i += 1) {
+                const actual = preInfo.bytes[i] ?? 0x00;
+                const expected = expectedBytes[i] ?? 0x00;
+                const mask = maskBytes ? maskBytes[i] ?? 0xFF : 0xFF;
+
+                if ((actual & mask) !== (expected & mask)) {
+                  preMismatches.push({
+                    offset: i,
+                    expected: formatByte(expected),
+                    actual: formatByte(actual),
+                    ...(maskBytes ? { mask: formatByte(mask) } : {}),
+                  });
+                }
+              }
+
+              if (preMismatches.length > 0 && parsed.abortOnMismatch !== false) {
+                throw new ToolExecutionError("Verification failed before write", {
+                  details: { mismatches: preMismatches, address: parsed.address },
+                });
+              }
+            }
+
+            const writeResult = await ctx.client.writeMemory(parsed.address, writeInfo.canonical);
+            if (!writeResult.success) {
+              throw new ToolExecutionError("C64 firmware reported failure while writing memory", {
+                details: normaliseFailure(writeResult.details),
+              });
+            }
+
+            const postRead = await ctx.client.readMemory(parsed.address, String(Math.max(1, writeInfo.bytes.length)));
+            if (!postRead.success) {
+              throw new ToolExecutionError("C64 firmware reported failure while reading back memory", {
+                details: normaliseFailure(postRead.details),
+              });
+            }
+
+            const postInfo = parseFirmwareHex(postRead.data ?? "$", "post-read");
+
+            const diffs: Array<{ offset: number; before: string; after: string; expected: string }> = [];
+            for (let i = 0; i < writeInfo.bytes.length; i += 1) {
+              const before = preInfo.bytes[i] ?? 0x00;
+              const after = postInfo.bytes[i] ?? 0x00;
+              const expected = writeInfo.bytes[i] ?? 0x00;
+
+              if (after !== expected) {
+                diffs.push({
+                  offset: i,
+                  before: formatByte(before),
+                  after: formatByte(after),
+                  expected: formatByte(expected),
+                });
+              }
+            }
+
+            if (diffs.length > 0) {
+              throw new ToolExecutionError("Post-write verification failed", {
+                details: { address: parsed.address, diffs },
+              });
+            }
+
+            const detailRecord = toRecord(writeResult.details) ?? {};
+            const resolvedAddress = resolveAddressLabel(detailRecord, parsed.address);
+            const resolvedLength = resolveLength(detailRecord);
+
+            const verificationMetadata: Record<string, unknown> = {
+              written: writeInfo.canonical,
+              preRead: preInfo.canonical,
+              postRead: postInfo.canonical,
+              readLength,
+            };
+
+            if (expectedInfo) {
+              verificationMetadata.expected = expectedInfo.canonical;
+            }
+
+            if (maskInfo) {
+              verificationMetadata.mask = maskInfo.canonical;
+            }
+
+            if (preMismatches.length > 0) {
+              verificationMetadata.preReadMismatches = preMismatches;
+            }
+
+            return textResult(`Wrote ${resolvedLength ?? "the provided"} bytes starting at ${resolvedAddress} (verified).`, {
+              success: true,
+              address: resolvedAddress,
+              length: resolvedLength ?? null,
+              bytes: writeInfo.canonical,
+              details: detailRecord,
+              verified: true,
+              verification: verificationMetadata,
+            });
+          } finally {
+            if (paused) {
+              try {
+                const resumeResult = await ctx.client.resume();
+                if (!resumeResult.success) {
+                  ctx.logger.warn("C64 resume reported failure after write", {
+                    details: normaliseFailure(resumeResult.details),
+                  });
+                }
+              } catch (resumeError) {
+                ctx.logger.warn("Failed to resume C64 after write", {
+                  error: resumeError instanceof Error ? {
+                    name: resumeError.name,
+                    message: resumeError.message,
+                  } : { value: resumeError },
+                });
+              }
+            }
+          }
         } catch (error) {
           if (error instanceof ToolError) {
             return toolErrorResult(error);

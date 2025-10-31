@@ -22,6 +22,8 @@ function createMockClient(overrides = {}) {
         details: { address: "0400", length: 2 },
       };
     },
+    async pause() { return { success: true }; },
+    async resume() { return { success: true }; },
     ...overrides,
   };
 }
@@ -252,4 +254,179 @@ test("write_memory handles response without length in details", async () => {
   const res = await memoryModule.invoke("write_memory", { address: "$0400", bytes: "$AABB" }, ctx);
   assert.equal(res.metadata?.success, true);
   assert.equal(res.metadata?.length, null);
+});
+
+test("write_memory verifies written bytes when verify flag is set", async () => {
+  const events = [];
+  const ctx = {
+    client: createMockClient({
+      async pause() {
+        events.push("pause");
+        return { success: true };
+      },
+      async resume() {
+        events.push("resume");
+        return { success: true };
+      },
+      readCount: 0,
+      async readMemory(address, length) {
+        events.push(`read-${length}`);
+        this.readCount += 1;
+        if (this.readCount === 1) {
+          return {
+            success: true,
+            data: "$0000",
+            details: { address: "0400", length: Number(length) },
+          };
+        }
+        return {
+          success: true,
+          data: "$AABB",
+          details: { address: "0400", length: Number(length) },
+        };
+      },
+      async writeMemory(address, bytes) {
+        events.push(`write-${bytes}`);
+        return {
+          success: true,
+          details: { address: "0400", length: 2 },
+        };
+      },
+    }),
+    logger: createLogger(),
+  };
+
+  const res = await memoryModule.invoke("write_memory", { address: "$0400", bytes: "$AABB", verify: true }, ctx);
+  assert.equal(res.metadata?.success, true);
+  assert.equal(res.metadata?.verified, true);
+  assert.equal(res.metadata?.verification?.preRead, "$0000");
+  assert.equal(res.metadata?.verification?.postRead, "$AABB");
+  assert.equal(res.metadata?.verification?.readLength, 2);
+  assert.ok(events.includes("pause"));
+  assert.ok(events.includes("resume"));
+});
+
+test("write_memory aborts when expected bytes mismatch and abortOnMismatch is true", async () => {
+  const events = [];
+  const ctx = {
+    client: createMockClient({
+      async pause() {
+        events.push("pause");
+        return { success: true };
+      },
+      async resume() {
+        events.push("resume");
+        return { success: true };
+      },
+      async readMemory() {
+        events.push("read");
+        return {
+          success: true,
+          data: "$0000",
+          details: { address: "0400", length: 2 },
+        };
+      },
+    }),
+    logger: createLogger(),
+  };
+
+  const res = await memoryModule.invoke("write_memory", {
+    address: "$0400",
+    bytes: "$AABB",
+    expected: "$FFFF",
+    verify: true,
+  }, ctx);
+
+  assert.equal(res.isError, true);
+  assert.equal(res.metadata?.error?.kind, "execution");
+  assert.ok(events.includes("pause"));
+  assert.ok(events.includes("read"));
+  assert.ok(events.includes("resume"));
+});
+
+test("write_memory records pre-read mismatches when abortOnMismatch is false", async () => {
+  const ctx = {
+    client: createMockClient({
+      readCount: 0,
+      async pause() { return { success: true }; },
+      async resume() { return { success: true }; },
+      async readMemory(address, length) {
+        this.readCount += 1;
+        if (this.readCount === 1) {
+          return {
+            success: true,
+            data: "$0F0F",
+            details: { address: "0400", length: Number(length) },
+          };
+        }
+        return {
+          success: true,
+          data: "$AABB",
+          details: { address: "0400", length: Number(length) },
+        };
+      },
+      async writeMemory(address, bytes) {
+        return {
+          success: true,
+          details: { address: "0400", length: 2 },
+        };
+      },
+    }),
+    logger: createLogger(),
+  };
+
+  const res = await memoryModule.invoke("write_memory", {
+    address: "$0400",
+    bytes: "$AABB",
+    expected: "$FFFF",
+    abortOnMismatch: false,
+    verify: true,
+  }, ctx);
+
+  assert.equal(res.metadata?.success, true);
+  assert.equal(res.metadata?.verified, true);
+  const mismatches = res.metadata?.verification?.preReadMismatches;
+  assert.ok(Array.isArray(mismatches));
+  assert.ok(mismatches.length > 0);
+});
+
+test("write_memory fails when post-write verification detects differences", async () => {
+  const ctx = {
+    client: createMockClient({
+      readCount: 0,
+      async pause() { return { success: true }; },
+      async resume() { return { success: true }; },
+      async readMemory(address, length) {
+        this.readCount += 1;
+        if (this.readCount === 1) {
+          return {
+            success: true,
+            data: "$0000",
+            details: { address: "0400", length: Number(length) },
+          };
+        }
+        return {
+          success: true,
+          data: "$AA00",
+          details: { address: "0400", length: Number(length) },
+        };
+      },
+      async writeMemory(address, bytes) {
+        return {
+          success: true,
+          details: { address: "0400", length: 2 },
+        };
+      },
+    }),
+    logger: createLogger(),
+  };
+
+  const res = await memoryModule.invoke("write_memory", {
+    address: "$0400",
+    bytes: "$AABB",
+    verify: true,
+  }, ctx);
+
+  assert.equal(res.isError, true);
+  assert.equal(res.metadata?.error?.kind, "execution");
 });
