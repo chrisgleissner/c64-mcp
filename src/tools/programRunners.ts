@@ -1,7 +1,7 @@
 import { assemblyToPrg, AssemblyError } from "../assemblyConverter.js";
 import { basicToPrg } from "../basicConverter.js";
 import { defineToolModule, type ToolRunResult } from "./types.js";
-import { objectSchema, stringSchema } from "./schema.js";
+import { booleanSchema, objectSchema, stringSchema } from "./schema.js";
 import { textResult } from "./responses.js";
 import {
   ToolExecutionError,
@@ -249,6 +249,10 @@ const uploadBasicArgsSchema = objectSchema({
       description: "Commodore BASIC v2 program source to upload and run.",
       minLength: 1,
     }),
+    verify: booleanSchema({
+      description: "Run post-execution polling to ensure the BASIC program executed without errors.",
+      default: false,
+    }),
   },
   required: ["program"],
   additionalProperties: false,
@@ -260,6 +264,10 @@ const uploadAsmArgsSchema = objectSchema({
     program: stringSchema({
       description: "Assembly source that will be assembled to a PRG and executed.",
       minLength: 1,
+    }),
+    verify: booleanSchema({
+      description: "Run post-execution polling to confirm the assembly program remained stable.",
+      default: false,
     }),
   },
   required: ["program"],
@@ -328,8 +336,12 @@ export const programRunnersModule = defineToolModule({
       supportedPlatforms: ["c64u", "vice"] as const,
       async execute(args, ctx) {
         try {
-          const parsed = uploadBasicArgsSchema.parse(args);
-          ctx.logger.info("Uploading BASIC program", { sourceLength: parsed.program.length });
+          const parsed = uploadBasicArgsSchema.parse(args ?? {});
+          const shouldVerify = parsed.verify === true;
+          ctx.logger.info("Uploading BASIC program", {
+            sourceLength: parsed.program.length,
+            ...(shouldVerify ? { verify: true } : {}),
+          });
 
           const originalProgram = parsed.program;
 
@@ -360,6 +372,7 @@ export const programRunnersModule = defineToolModule({
                 readonly originalErrors: readonly BasicRuntimeError[];
               }
             | undefined;
+          let verified: boolean | undefined;
 
           if (screenOutput) {
             const errors = parseBasicRuntimeErrors(screenOutput);
@@ -453,6 +466,34 @@ export const programRunnersModule = defineToolModule({
             }
           }
 
+          if (shouldVerify) {
+            try {
+              const outcome = await pollForProgramOutcome("BASIC", ctx.client, ctx.logger);
+              if (outcome.status === "error") {
+                ctx.logger.warn("BASIC verification detected error", {
+                  ...(outcome.message ? { message: outcome.message } : {}),
+                  ...(outcome.line !== undefined ? { line: outcome.line } : {}),
+                });
+                return toolErrorResult(
+                  new ToolExecutionError("BASIC program verification failed", {
+                    details: {
+                      ...(outcome.message ? { message: outcome.message } : {}),
+                      ...(outcome.line !== undefined ? { line: outcome.line } : {}),
+                    },
+                  }),
+                );
+              }
+              verified = true;
+            } catch (verifyError) {
+              ctx.logger.warn("BASIC verification failed", toRecord(verifyError));
+              return toolErrorResult(
+                new ToolExecutionError("Failed to verify BASIC program execution", {
+                  details: toRecord(verifyError) ?? undefined,
+                }),
+              );
+            }
+          }
+
           const message = autoFixInfo
             ? "Detected BASIC errors on execution; applied auto-fix and re-ran successfully."
             : "BASIC program uploaded and executed successfully.";
@@ -472,6 +513,7 @@ export const programRunnersModule = defineToolModule({
                   },
                 }
               : {}),
+            ...(verified ? { verified: true } : {}),
           };
 
           const data = {
@@ -489,6 +531,7 @@ export const programRunnersModule = defineToolModule({
                   },
                 }
               : {}),
+            ...(verified ? { verified: true } : {}),
           };
 
           const base = textResult(message, metadata);
@@ -524,8 +567,12 @@ export const programRunnersModule = defineToolModule({
       supportedPlatforms: ["c64u", "vice"] as const,
       async execute(args, ctx) {
         try {
-          const parsed = uploadAsmArgsSchema.parse(args);
-          ctx.logger.info("Uploading assembly program", { sourceLength: parsed.program.length });
+          const parsed = uploadAsmArgsSchema.parse(args ?? {});
+          const shouldVerify = parsed.verify === true;
+          ctx.logger.info("Uploading assembly program", {
+            sourceLength: parsed.program.length,
+            ...(shouldVerify ? { verify: true } : {}),
+          });
 
           // Assemble locally to expose structured metadata
           const prg = assemblyToPrg(parsed.program);
@@ -542,6 +589,7 @@ export const programRunnersModule = defineToolModule({
 
           // Poll for ASM execution outcome
           let pollResult: { status: "ok" | "crashed"; reason?: string } | undefined;
+          let verified = false;
           try {
             const outcome = await pollForProgramOutcome("ASM", ctx.client, ctx.logger);
             if (outcome.status === "crashed") {
@@ -556,8 +604,18 @@ export const programRunnersModule = defineToolModule({
                 }),
               );
             }
+            if (shouldVerify) {
+              verified = true;
+            }
           } catch (pollError) {
             ctx.logger.debug("Polling encountered an error", toRecord(pollError));
+            if (shouldVerify) {
+              return toolErrorResult(
+                new ToolExecutionError("Failed to verify assembly program execution", {
+                  details: toRecord(pollError) ?? undefined,
+                }),
+              );
+            }
           }
 
           const data = {
@@ -566,12 +624,14 @@ export const programRunnersModule = defineToolModule({
             entryAddress,
             prgSize: prg.length,
             resources: ["c64://specs/assembly", "c64://context/bootstrap"],
+            ...(shouldVerify && verified ? { verified: true } : {}),
           };
           const base = textResult("Assembly program assembled, uploaded, and executed successfully.", {
             success: true,
             entryAddress,
             prgSize: prg.length,
             details: result.details ?? null,
+            ...(shouldVerify && verified ? { verified: true } : {}),
           });
           return { ...base, structuredContent: { type: "json", data } };
         } catch (error) {
