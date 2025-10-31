@@ -367,8 +367,6 @@ const groupedMemoryModule = memoryOperations.length === 0
     });
 
 const toolModules: ToolModule[] = [
-  programRunnersModule,
-  memoryModule,
   audioModule,
   machineControlModule,
   storageModule,
@@ -382,10 +380,14 @@ const toolModules: ToolModule[] = [
 
 if (groupedProgramModule) {
   toolModules.push(groupedProgramModule);
+} else {
+  toolModules.push(programRunnersModule);
 }
 
 if (groupedMemoryModule) {
   toolModules.push(groupedMemoryModule);
+} else {
+  toolModules.push(memoryModule);
 }
 
 const toolMap: Map<string, RegisteredTool> = new Map();

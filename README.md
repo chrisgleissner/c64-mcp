@@ -353,41 +353,9 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **83 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **75 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
-
-#### Programs
-> Program uploaders, runners, and compilation workflows for BASIC, assembly, and PRG files.
-
-**Workflow hints:**
-- Choose BASIC or assembly uploaders based on the language you just generated for the user.
-- Prefer PRG or CRT runners when the user supplies an Ultimate filesystem path instead of source text.
-
-**Default tags:** `programs`, `execution`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `load_prg_file` | Load a PRG into C64 memory without executing it. | `programs`, `execution`, `file` |
-| `run_crt_file` | Run a cartridge image stored on the Ultimate filesystem. | `programs`, `execution`, `cartridge` |
-| `run_prg_file` | Run a PRG located on the Ultimate filesystem without uploading source. | `programs`, `execution`, `file` |
-| `upload_and_run_asm` | Assemble 6502/6510 source code, upload the PRG, and run it immediately. See c64://specs/assembly. | `programs`, `execution`, `assembly` |
-| `upload_and_run_basic` | Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O. | `programs`, `execution`, `basic` |
-
-#### Memory
-> Screen, main memory, and low-level inspection utilities.
-
-**Workflow hints:**
-- Pair memory operations with documentation snippets so addresses and symbols stay meaningful to the user.
-- Confirm intent before mutating RAM and explain how the change affects the running program.
-
-**Default tags:** `memory`, `debug`
-
-| Name | Description | Tags |
-| --- | --- | --- |
-| `read_memory` | Read a range of bytes from main memory and return the data as hexadecimal. Consult c64://specs/assembly and docs index. | `memory`, `debug`, `hex` |
-| `read_screen` | Read the current text screen (40x25) and return its ASCII representation. For PETSCII details, see c64://specs/basic. | `memory`, `debug`, `screen` |
-| `write_memory` | Write a hexadecimal byte sequence into main memory at the specified address. See c64://context/bootstrap for safety rules. | `memory`, `debug`, `hex`, `write` |
 
 #### Audio
 > SID composition, playback, and audio analysis workflows.

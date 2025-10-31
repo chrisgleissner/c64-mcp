@@ -24,8 +24,8 @@ npm start
 
 ### Capabilities at a Glance
 
-- **Program runners**: `upload_and_run_basic`, `upload_and_run_asm`, `upload_and_run_program`, `run_prg_file`, `load_prg_file`, `run_crt_file`, `sidplay_file`, `modplay_file`.
-- **Screen & memory**: `read_screen`, `read_memory`, `write_memory`.
+- **Program runners**: `c64.program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`), plus `sidplay_file`, `modplay_file`.
+- **Screen & memory**: `c64.memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`).
 - **System control**: `reset_c64`, `reboot_c64`, `version`, `info`, `pause`, `resume`, `poweroff`, `menu_button`, `debugreg_read`, `debugreg_write`.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
 - **SID / music**: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `music_generate`. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
@@ -70,11 +70,13 @@ Tools and parameters are listed by the server at runtime via ListTools.
 ```bash
 # Upload and run BASIC
 curl -s -X POST -H 'Content-Type: application/json' \
-  -d '{"program":"10 PRINT \"HELLO\"\n20 GOTO 10"}' \
-  http://localhost:8000/tools/upload_and_run_basic | jq
+  -d '{"op":"upload_run_basic","program":"10 PRINT \"HELLO\"\n20 GOTO 10"}' \
+  http://localhost:8000/tools/c64.program | jq
 
 # Read current screen content (PETSCII→ASCII)
-curl -s http://localhost:8000/tools/read_screen | jq
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"op":"read_screen"}' \
+  http://localhost:8000/tools/c64.memory | jq
 
 # Reset the machine
 curl -s -X POST http://localhost:8000/tools/reset_c64
@@ -90,7 +92,7 @@ curl -s -X POST http://localhost:8000/tools/reset_c64
 
 The server supports an intelligent audio verification workflow for iterative music composition:
 
-1. **Compose**: Use `music_generate` or `upload_and_run_basic` to create and play SID music.
+1. **Compose**: Use `music_generate` or `c64.program` (op `upload_run_basic`) to create and play SID music.
 2. **Verify**: Use natural language like "check the music", "verify the song", or "does it sound right?"
 3. **Analyze**: The `analyze_audio` tool automatically detects verification requests and records/analyzes audio.
 4. **Feedback**: Get detailed analysis including detected notes, pitch accuracy, and musical feedback.

@@ -174,3 +174,66 @@ test("c64.memory wait_for_text polls screen", async () => {
   assert.equal(result.isError, undefined);
   assert.ok(readCount >= 1, "readScreen should be called at least once");
 });
+
+test("c64.memory write with verify pauses, writes, and resumes", async () => {
+  const callLog = [];
+  let readInvocation = 0;
+
+  const stubClient = {
+    async pause() {
+      callLog.push("pause");
+      return { success: true };
+    },
+    async resume() {
+      callLog.push("resume");
+      return { success: true };
+    },
+    async readMemory(address, length) {
+      callLog.push({ method: "readMemory", address, length });
+      readInvocation += 1;
+      if (readInvocation === 1) {
+        return { success: true, data: "$0000" };
+      }
+      return { success: true, data: "$ABCD" };
+    },
+    async writeMemory(address, bytes) {
+      callLog.push({ method: "writeMemory", address, bytes });
+      return { success: true, details: { address: "$0400", length: 2 } };
+    },
+    async readScreen() {
+      throw new Error("not used");
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.memory",
+    { op: "write", address: "$0400", bytes: "$ABCD", verify: true },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(result.metadata?.verified, true);
+
+  const callNames = callLog.map((entry) => (typeof entry === "string" ? entry : entry.method));
+  assert.deepEqual(callNames.filter((name) => name === "pause"), ["pause"]);
+  assert.deepEqual(callNames.filter((name) => name === "writeMemory"), ["writeMemory"]);
+  assert.deepEqual(callNames.filter((name) => name === "resume"), ["resume"]);
+
+  const readCalls = callLog.filter((entry) => typeof entry === "object" && entry.method === "readMemory");
+  assert.equal(readCalls.length, 2, "should read before and after write when verify is true");
+  assert.equal(readCalls[0].address, "$0400");
+  assert.equal(readCalls[1].address, "$0400");
+});

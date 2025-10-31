@@ -140,7 +140,7 @@ Container-aware traversal: All tools in this group recurse into disk/tape contai
 - "find_and_run_program_by_name"
   - Search under a root (including inside `.d64/.d71/.d81/.t64`) for the first program whose filename contains a substring; run it. Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
   - Agent state: recent searches (root, pattern, extensions), last run path.
-  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_and_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
+  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (`c64.program`, op `upload_run_basic`) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
 
 - "filesystem_stats_by_extension"
   - Walk all files beneath a root—including files inside disk/tape images—and compute counts and size statistics (total, min, max, mean) per extension, with convenience rollups for PRG vs non‑PRG and per‑folder (and per‑container) summaries.
@@ -354,8 +354,8 @@ Notes:
 
 These meta tools build atop existing MCP tools which already wrap the REST surface:
 
-- Memory: `read_memory`, `write_memory`, `read_screen`
-- Programs: `upload_and_run_basic`, `upload_and_run_asm`, `run_prg_file`, `load_prg_file`, `run_crt_file`
+- Memory: `c64.memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`)
+- Programs: `c64.program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`)
 - Machine control: `reset_c64`, `reboot_c64`, `pause`, `resume`, `menu_button`, `debugreg_read`, `debugreg_write`
 - Storage: `drives_list`, `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64|d71|d81|dnp`
 - Audio/SID: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `sidplay_file`, `modplay_file`, `music_generate`, `music_compile_and_play`, `record_and_analyze_audio`, `analyze_audio`

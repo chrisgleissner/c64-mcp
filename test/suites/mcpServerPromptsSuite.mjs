@@ -129,8 +129,8 @@ export function registerMcpServerPromptsTests(withSharedMcpClient) {
         GetPromptResultSchema,
       );
 
-      assert.ok(result._meta?.tools?.some((tool) => tool.name === "generate_sprite_prg"));
-      assert.ok(result._meta?.tools?.some((tool) => tool.name === "write_memory"));
+  assert.ok(result._meta?.tools?.some((tool) => tool.name === "generate_sprite_prg"));
+  assert.ok(result._meta?.tools?.some((tool) => tool.name === "c64.memory"));
       assert.ok(
         result.messages.some((message) =>
           message.content.type === "text" && /sprite data/i.test(message.content.text),

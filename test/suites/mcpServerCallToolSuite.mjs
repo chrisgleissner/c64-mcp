@@ -33,15 +33,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("upload_and_run_basic tool proxies to C64 client", async () => {
+  test("c64.program upload_run_basic operation proxies to C64 client", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const program = `10 PRINT "HELLO"\n20 GOTO 10`;
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "upload_and_run_basic",
+            name: "c64.program",
             arguments: {
+              op: "upload_run_basic",
               program,
             },
           },
@@ -61,7 +62,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("upload_and_run_asm tool assembles source and runs program", async () => {
+  test("c64.program upload_run_asm assembles source and runs program", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const program = `\n      .org $0801\nstart:\n      lda #$01\n      sta $0400\n      rts\n    `;
 
@@ -69,8 +70,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "upload_and_run_asm",
+            name: "c64.program",
             arguments: {
+              op: "upload_run_asm",
               program,
             },
           },
@@ -90,14 +92,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("read_screen tool returns current PETSCII screen", async () => {
+  test("c64.memory read_screen operation returns current PETSCII screen", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "read_screen",
-            arguments: {},
+            name: "c64.memory",
+            arguments: {
+              op: "read_screen",
+            },
           },
         },
         CallToolResultSchema,
@@ -114,14 +118,15 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("read_memory tool returns hex dump with metadata", async () => {
+  test("c64.memory read operation returns hex dump with metadata", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "read_memory",
+            name: "c64.memory",
             arguments: {
+              op: "read",
               address: "$0400",
               length: 8,
             },
@@ -142,14 +147,15 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("write_memory tool writes bytes to mock C64", async () => {
+  test("c64.memory write operation writes bytes to mock C64", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "write_memory",
+            name: "c64.memory",
             arguments: {
+              op: "write",
               address: "$0400",
               bytes: "$AA55",
             },
