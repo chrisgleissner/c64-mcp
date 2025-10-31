@@ -656,548 +656,548 @@ const groupedSystemModule = systemOperations.length === 0
       ],
     });
 
-    const graphicsOperations: GroupedOperationConfig[] = [
+const graphicsOperations: GroupedOperationConfig[] = [
+  {
+    op: "create_petscii",
+    schema: extendSchemaWithOp(
+      "create_petscii",
+      ensureDescriptor(graphicsDescriptorIndex, "create_petscii").inputSchema,
+      { description: "Generate PETSCII art from prompts, text, or explicit bitmap data." },
+    ),
+    handler: groupedGraphicsHandlers.create_petscii,
+  },
+  {
+    op: "render_petscii",
+    schema: extendSchemaWithOp(
+      "render_petscii",
+      ensureDescriptor(graphicsDescriptorIndex, "render_petscii").inputSchema,
+      { description: "Render PETSCII text with optional border/background colours." },
+    ),
+    handler: groupedGraphicsHandlers.render_petscii,
+  },
+  {
+    op: "generate_sprite",
+    schema: extendSchemaWithOp(
+      "generate_sprite",
+      ensureDescriptor(graphicsDescriptorIndex, "generate_sprite").inputSchema,
+      { description: "Build and run a sprite PRG from raw 63-byte sprite data." },
+    ),
+    handler: groupedGraphicsHandlers.generate_sprite,
+  },
+  {
+    op: "generate_bitmap",
+    schema: extendSchemaWithOp(
+      "generate_bitmap",
       {
-        op: "create_petscii",
-        schema: extendSchemaWithOp(
-          "create_petscii",
-          ensureDescriptor(graphicsDescriptorIndex, "create_petscii").inputSchema,
-          { description: "Generate PETSCII art from prompts, text, or explicit bitmap data." },
-        ),
-  handler: groupedGraphicsHandlers.create_petscii,
+        description: "Reserved high-resolution bitmap generator (coming soon).",
+        type: "object",
+        properties: {},
+        additionalProperties: false,
       },
-      {
-        op: "render_petscii",
-        schema: extendSchemaWithOp(
-          "render_petscii",
-          ensureDescriptor(graphicsDescriptorIndex, "render_petscii").inputSchema,
-          { description: "Render PETSCII text with optional border/background colours." },
-        ),
-  handler: groupedGraphicsHandlers.render_petscii,
-      },
-      {
-        op: "generate_sprite",
-        schema: extendSchemaWithOp(
-          "generate_sprite",
-          ensureDescriptor(graphicsDescriptorIndex, "generate_sprite").inputSchema,
-          { description: "Build and run a sprite PRG from raw 63-byte sprite data." },
-        ),
-  handler: groupedGraphicsHandlers.generate_sprite,
-      },
-      {
-        op: "generate_bitmap",
-        schema: extendSchemaWithOp(
-          "generate_bitmap",
-          {
-            description: "Reserved high-resolution bitmap generator (coming soon).",
-            type: "object",
-            properties: {},
-            additionalProperties: false,
-          },
-          { description: "Reserved high-resolution bitmap generator (coming soon)." },
-        ),
-        handler: async () => toolErrorResult(
-          new ToolExecutionError("c64.graphics op generate_bitmap is not yet available", {
-            details: { available: false },
+      { description: "Reserved high-resolution bitmap generator (coming soon)." },
+    ),
+    handler: async () => toolErrorResult(
+      new ToolExecutionError("c64.graphics op generate_bitmap is not yet available", {
+        details: { available: false },
+      }),
+    ),
+  },
+];
+
+const graphicsOperationHandlers = createOperationHandlers(graphicsOperations);
+
+const groupedGraphicsModule = graphicsOperations.length === 0
+  ? null
+  : defineToolModule({
+      domain: "graphics",
+      summary: "Grouped PETSCII, sprite, and upcoming bitmap helpers.",
+      resources: ["c64://specs/vic", "c64://specs/basic", "c64://specs/assembly"],
+      prompts: ["graphics-demo", "basic-program", "assembly-program"],
+      defaultTags: ["graphics", "vic"],
+      workflowHints: [
+        "Use PETSCII helpers for text art and clarify whether the BASIC program executed or stayed a dry run.",
+        "Mention sprite positions/colours so follow-up memory inspection stays grounded.",
+      ],
+      supportedPlatforms: ["c64u", "vice"],
+      tools: [
+        {
+          name: "c64.graphics",
+          description: "Grouped entry point for PETSCII art, sprite previews, and future bitmap generation.",
+          summary: "Generates PETSCII art, renders text screens, or runs sprite demos from one tool.",
+          inputSchema: discriminatedUnionSchema({
+            description: "Graphics operations available via the c64.graphics tool.",
+            variants: graphicsOperations.map((operation) => operation.schema),
           }),
-        ),
-      },
-    ];
-
-  const graphicsOperationDispatcher = createOperationHandlers(graphicsOperations);
-
-    const groupedGraphicsModule = graphicsOperations.length === 0
-      ? null
-      : defineToolModule({
-          domain: "graphics",
-          summary: "Grouped PETSCII, sprite, and upcoming bitmap helpers.",
-          resources: ["c64://specs/vic", "c64://specs/basic", "c64://specs/assembly"],
-          prompts: ["graphics-demo", "basic-program", "assembly-program"],
-          defaultTags: ["graphics", "vic"],
-          workflowHints: [
-            "Use PETSCII helpers for text art and clarify whether the BASIC program executed or stayed a dry run.",
-            "Mention sprite positions/colours so follow-up memory inspection stays grounded.",
-          ],
-          supportedPlatforms: ["c64u", "vice"],
-          tools: [
+          tags: ["graphics", "vic", "grouped"],
+          examples: [
             {
-              name: "c64.graphics",
-              description: "Grouped entry point for PETSCII art, sprite previews, and future bitmap generation.",
-              summary: "Generates PETSCII art, renders text screens, or runs sprite demos from one tool.",
-              inputSchema: discriminatedUnionSchema({
-                description: "Graphics operations available via the c64.graphics tool.",
-                variants: graphicsOperations.map((operation) => operation.schema),
-              }),
-              tags: ["graphics", "vic", "grouped"],
-              examples: [
-                {
-                  name: "Create PETSCII art (dry run)",
-                  description: "Synthesize art without uploading to the C64",
-                  arguments: { op: "create_petscii", prompt: "duck on a pond", dryRun: true },
-                },
-                {
-                  name: "Render PETSCII text",
-                  description: "Print HELLO with blue border",
-                  arguments: { op: "render_petscii", text: "HELLO", borderColor: 6 },
-                },
-                {
-                  name: "Display sprite",
-                  description: "Show sprite data at coordinates",
-                  arguments: { op: "generate_sprite", sprite: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
-                },
-              ],
-              execute: createOperationDispatcher<GenericOperationMap>(
-                "c64.graphics",
-                graphicsOperationDispatcher,
-              ),
+              name: "Create PETSCII art (dry run)",
+              description: "Synthesize art without uploading to the C64",
+              arguments: { op: "create_petscii", prompt: "duck on a pond", dryRun: true },
+            },
+            {
+              name: "Render PETSCII text",
+              description: "Print HELLO with blue border",
+              arguments: { op: "render_petscii", text: "HELLO", borderColor: 6 },
+            },
+            {
+              name: "Display sprite",
+              description: "Show sprite data at coordinates",
+              arguments: { op: "generate_sprite", sprite: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
             },
           ],
-        });
-
-    const ragOperations: GroupedOperationConfig[] = [
-      {
-        op: "basic",
-        schema: extendSchemaWithOp(
-          "basic",
-          ensureDescriptor(ragDescriptorIndex, "rag_retrieve_basic").inputSchema,
-          { description: "Retrieve BASIC references and snippets from the local knowledge base." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(ragModule, "rag_retrieve_basic", rawArgs, ctx),
-      },
-      {
-        op: "asm",
-        schema: extendSchemaWithOp(
-          "asm",
-          ensureDescriptor(ragDescriptorIndex, "rag_retrieve_asm").inputSchema,
-          { description: "Retrieve 6502/6510 assembly references from the local knowledge base." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(ragModule, "rag_retrieve_asm", rawArgs, ctx),
-      },
-    ];
-
-    type DiskAttachmentMode = "readwrite" | "readonly" | "unlinked";
-    type DiskImageFormat = "d64" | "d71" | "d81" | "dnp";
-    type DiskTypeOverride = "d64" | "g64" | "d71" | "g71" | "d81";
-    type DriveMode = "1541" | "1571" | "1581";
-
-    interface DiskMountArgs extends Record<string, unknown> {
-      drive: string;
-      image: string;
-      type?: string;
-      attachmentMode?: string;
-      driveMode?: string;
-      verify: boolean;
-      powerOnIfNeeded: boolean;
-      resetAfterMount: boolean;
-      maxRetries: number;
-      retryDelayMs: number;
-    }
-
-    const diskMountArgsSchema = objectSchema<DiskMountArgs>({
-      description: "Mount a disk image with optional verification and drive preparation.",
-      properties: {
-        drive: stringSchema({
-          description: "Drive identifier (for example drive8).",
-          minLength: 1,
-        }),
-        image: stringSchema({
-          description: "Absolute or Ultimate filesystem path to the disk image.",
-          minLength: 1,
-        }),
-        type: optionalSchema(stringSchema({
-          description: "Override detected image type when firmware guesses incorrectly.",
-          enum: ["d64", "g64", "d71", "g71", "d81"],
-        })),
-        attachmentMode: optionalSchema(stringSchema({
-          description: "Attachment mode controlling how the firmware treats the mounted image.",
-          enum: ["readwrite", "readonly", "unlinked"],
-        })),
-        driveMode: optionalSchema(stringSchema({
-          description: "Drive emulation mode to switch to during verification.",
-          enum: ["1541", "1571", "1581"],
-        })),
-        verify: booleanSchema({
-          description: "When true, power on/reset/verify using the reliability workflow.",
-          default: false,
-        }),
-        powerOnIfNeeded: booleanSchema({
-          description: "Power on the drive automatically before mounting when verify=true.",
-          default: true,
-        }),
-        resetAfterMount: booleanSchema({
-          description: "Issue a drive reset after mounting when verify=true.",
-          default: true,
-        }),
-        maxRetries: numberSchema({
-          description: "Maximum number of mount retries when verify=true.",
-          integer: true,
-          minimum: 0,
-          maximum: 5,
-          default: 2,
-        }),
-        retryDelayMs: numberSchema({
-          description: "Delay between mount retry attempts when verify=true.",
-          integer: true,
-          minimum: 0,
-          maximum: 5000,
-          default: 500,
-        }),
-      },
-      required: ["drive", "image"],
-      additionalProperties: false,
-    });
-
-    interface CreateImageArgs extends Record<string, unknown> {
-      format: string;
-      path: string;
-      diskname?: string;
-      tracks?: number;
-    }
-
-    const createImageArgsSchema = objectSchema<CreateImageArgs>({
-      description: "Create a blank disk image (D64/D71/D81/DNP).",
-      properties: {
-        format: stringSchema({
-          description: "Disk image format to create.",
-          enum: ["d64", "d71", "d81", "dnp"],
-        }),
-        path: stringSchema({
-          description: "Destination path on the Ultimate filesystem.",
-          minLength: 1,
-        }),
-        diskname: optionalSchema(stringSchema({
-          description: "Optional disk label (1-16 characters, converted to PETSCII).",
-          minLength: 1,
-          maxLength: 16,
-        })),
-        tracks: optionalSchema(numberSchema({
-          description: "Track count (D64 supports 35 or 40; DNP requires explicit tracks).",
-          integer: true,
-          minimum: 1,
-          maximum: 255,
-        })),
-      },
-      required: ["format", "path"],
-      additionalProperties: false,
-    });
-
-    interface PrintBitmapArgs extends Record<string, unknown> {
-      printer: string;
-      columns: readonly number[];
-      repeats?: number;
-      useSubRepeat?: number;
-      secondaryAddress?: number;
-      ensureMsb: boolean;
-      mode?: string;
-      density?: number;
-      timesPerLine?: number;
-    }
-
-    const printBitmapArgsSchema = objectSchema<PrintBitmapArgs>({
-      description: "Print a bitmap row using Commodore or Epson workflows.",
-      properties: {
-        printer: stringSchema({
-          description: "Target printer family.",
-          enum: ["commodore", "epson"],
-          default: "commodore",
-        }),
-        columns: arraySchema(numberSchema({
-          description: "Bitmap column byte (0-255).",
-          integer: true,
-          minimum: 0,
-          maximum: 255,
-        }), {
-          description: "Sequence of bitmap columns.",
-          minItems: 1,
-        }),
-        repeats: optionalSchema(numberSchema({
-          description: "Number of times to repeat the row (1-255).",
-          integer: true,
-          minimum: 1,
-          maximum: 255,
-        })),
-        useSubRepeat: optionalSchema(numberSchema({
-          description: "Repeat the next byte this many times (Commodore BIM SUB).",
-          integer: true,
-          minimum: 1,
-          maximum: 255,
-        })),
-        secondaryAddress: optionalSchema(numberSchema({
-          description: "Secondary address for device 4 (0 or 7).",
-          integer: true,
-          minimum: 0,
-          maximum: 7,
-        })),
-        ensureMsb: booleanSchema({
-          description: "Ensure MSB set for Commodore printers.",
-          default: true,
-        }),
-        mode: optionalSchema(stringSchema({
-          description: "Epson ESC/P graphics mode (K/L/Y/Z/*).",
-          minLength: 1,
-          maxLength: 1,
-        })),
-        density: optionalSchema(numberSchema({
-          description: "Density parameter when using Epson mode '*'.",
-          integer: true,
-          minimum: 0,
-          maximum: 3,
-        })),
-        timesPerLine: optionalSchema(numberSchema({
-          description: "Number of times to print the row per line (1-10).",
-          integer: true,
-          minimum: 1,
-          maximum: 10,
-        })),
-      },
-      required: ["printer", "columns"],
-      additionalProperties: false,
-    });
-
-    const diskOperations: GroupedOperationConfig[] = [
-      {
-        op: "list_drives",
-        schema: extendSchemaWithOp(
-          "list_drives",
-          ensureDescriptor(storageDescriptorIndex, "drives_list").inputSchema,
-          { description: "List Ultimate drive slots and their mounted images." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drives_list", rawArgs, ctx),
-      },
-      {
-        op: "mount",
-        schema: extendSchemaWithOp(
-          "mount",
-          diskMountArgsSchema.jsonSchema,
-          { description: "Mount a disk image with optional verification and retries." },
-        ),
-        handler: async (rawArgs, ctx) => {
-          const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
-          const parsed = diskMountArgsSchema.parse(rest);
-          const type = parsed.type as DiskTypeOverride | undefined;
-          const attachmentMode = parsed.attachmentMode as DiskAttachmentMode | undefined;
-          const driveMode = parsed.driveMode as DriveMode | undefined;
-
-          if (parsed.verify) {
-            const metaPayload = {
-              drive: parsed.drive,
-              imagePath: parsed.image,
-              mode: driveMode,
-              powerOnIfNeeded: parsed.powerOnIfNeeded,
-              resetAfterMount: parsed.resetAfterMount,
-              maxRetries: parsed.maxRetries,
-              retryDelayMs: parsed.retryDelayMs,
-              verifyMount: true,
-            };
-            return metaModule.invoke("drive_mount_and_verify", metaPayload, ctx);
-          }
-
-          const payload: Record<string, unknown> = {
-            drive: parsed.drive,
-            image: parsed.image,
-          };
-          if (type) {
-            payload.type = type;
-          }
-          if (attachmentMode) {
-            payload.mode = attachmentMode;
-          }
-
-          return storageModule.invoke("drive_mount", payload, ctx);
+          execute: createOperationDispatcher<GenericOperationMap>(
+            "c64.graphics",
+            graphicsOperationHandlers,
+          ),
         },
-      },
-      {
-        op: "unmount",
-        schema: extendSchemaWithOp(
-          "unmount",
-          ensureDescriptor(storageDescriptorIndex, "drive_remove").inputSchema,
-          { description: "Remove the mounted image from an Ultimate drive slot." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_remove", rawArgs, ctx),
-      },
-      {
-        op: "file_info",
-        schema: extendSchemaWithOp(
-          "file_info",
-          ensureDescriptor(storageDescriptorIndex, "file_info").inputSchema,
-          { description: "Inspect metadata for a file on the Ultimate filesystem." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "file_info", rawArgs, ctx),
-      },
-      {
-        op: "create_image",
-        schema: extendSchemaWithOp(
-          "create_image",
-          createImageArgsSchema.jsonSchema,
-          { description: "Create a blank disk image of the specified format." },
-        ),
-        handler: async (rawArgs, ctx) => {
-          const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
-          const parsed = createImageArgsSchema.parse(rest);
-          const format = parsed.format as DiskImageFormat;
-          const { path, diskname, tracks } = parsed;
+      ],
+    });
 
-          switch (format) {
-            case "d64":
-              if (tracks !== undefined && tracks !== 35 && tracks !== 40) {
-                throw new ToolValidationError("D64 images support 35 or 40 tracks", {
-                  path: "$.tracks",
-                  details: { allowed: [35, 40], received: tracks },
-                });
-              }
-              return storageModule.invoke("create_d64", {
-                path,
-                tracks,
-                diskname,
-              }, ctx);
-            case "d71":
-              if (tracks !== undefined) {
-                throw new ToolValidationError("tracks is not used for D71 images", {
-                  path: "$.tracks",
-                });
-              }
-              return storageModule.invoke("create_d71", { path, diskname }, ctx);
-            case "d81":
-              if (tracks !== undefined) {
-                throw new ToolValidationError("tracks is not used for D81 images", {
-                  path: "$.tracks",
-                });
-              }
-              return storageModule.invoke("create_d81", { path, diskname }, ctx);
-            case "dnp":
-              if (tracks === undefined) {
-                throw new ToolValidationError("tracks is required for DNP images", {
-                  path: "$.tracks",
-                });
-              }
-              return storageModule.invoke("create_dnp", { path, tracks, diskname }, ctx);
-            default:
-              throw new ToolValidationError("Unsupported disk format", {
-                path: "$.format",
-                details: { format },
-              });
-          }
-        },
-      },
-      {
-        op: "find_and_run",
-        schema: extendSchemaWithOp(
-          "find_and_run",
-          ensureDescriptor(metaDescriptorIndex, "find_and_run_program_by_name").inputSchema,
-          { description: "Search for a PRG/CRT by name substring and run the first match." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "find_and_run_program_by_name", rawArgs, ctx),
-      },
-    ];
+const ragOperations: GroupedOperationConfig[] = [
+  {
+    op: "basic",
+    schema: extendSchemaWithOp(
+      "basic",
+      ensureDescriptor(ragDescriptorIndex, "rag_retrieve_basic").inputSchema,
+      { description: "Retrieve BASIC references and snippets from the local knowledge base." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(ragModule, "rag_retrieve_basic", rawArgs, ctx),
+  },
+  {
+    op: "asm",
+    schema: extendSchemaWithOp(
+      "asm",
+      ensureDescriptor(ragDescriptorIndex, "rag_retrieve_asm").inputSchema,
+      { description: "Retrieve 6502/6510 assembly references from the local knowledge base." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(ragModule, "rag_retrieve_asm", rawArgs, ctx),
+  },
+];
 
-    const driveOperations: GroupedOperationConfig[] = [
-      {
-        op: "reset",
-        schema: extendSchemaWithOp(
-          "reset",
-          ensureDescriptor(storageDescriptorIndex, "drive_reset").inputSchema,
-          { description: "Issue an IEC reset for the selected drive slot." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_reset", rawArgs, ctx),
-      },
-      {
-        op: "power_on",
-        schema: extendSchemaWithOp(
-          "power_on",
-          ensureDescriptor(storageDescriptorIndex, "drive_on").inputSchema,
-          { description: "Power on a specific Ultimate drive slot." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_on", rawArgs, ctx),
-      },
-      {
-        op: "power_off",
-        schema: extendSchemaWithOp(
-          "power_off",
-          ensureDescriptor(storageDescriptorIndex, "drive_off").inputSchema,
-          { description: "Power off a specific Ultimate drive slot." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_off", rawArgs, ctx),
-      },
-      {
-        op: "load_rom",
-        schema: extendSchemaWithOp(
-          "load_rom",
-          ensureDescriptor(storageDescriptorIndex, "drive_load_rom").inputSchema,
-          { description: "Temporarily load a custom ROM into an Ultimate drive slot." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_load_rom", rawArgs, ctx),
-      },
-      {
-        op: "set_mode",
-        schema: extendSchemaWithOp(
-          "set_mode",
-          ensureDescriptor(storageDescriptorIndex, "drive_mode").inputSchema,
-          { description: "Set the emulation mode for a drive slot (1541/1571/1581)." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_mode", rawArgs, ctx),
-      },
-    ];
+type DiskAttachmentMode = "readwrite" | "readonly" | "unlinked";
+type DiskImageFormat = "d64" | "d71" | "d81" | "dnp";
+type DiskTypeOverride = "d64" | "g64" | "d71" | "g71" | "d81";
+type DriveMode = "1541" | "1571" | "1581";
 
-    const printerOperations: GroupedOperationConfig[] = [
-      {
-        op: "print_text",
-        schema: extendSchemaWithOp(
-          "print_text",
-          ensureDescriptor(printerDescriptorIndex, "print_text").inputSchema,
-          { description: "Generate BASIC that prints text to device 4." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(printerModule, "print_text", rawArgs, ctx),
-      },
-      {
-        op: "print_bitmap",
-        schema: extendSchemaWithOp(
-          "print_bitmap",
-          printBitmapArgsSchema.jsonSchema,
-          { description: "Print a bitmap row via Commodore (BIM) or Epson ESC/P workflows." },
-        ),
-        handler: async (rawArgs, ctx) => {
-          const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
-          const parsed = printBitmapArgsSchema.parse(rest);
-          const printer = parsed.printer as "commodore" | "epson";
+interface DiskMountArgs extends Record<string, unknown> {
+  drive: string;
+  image: string;
+  type?: string;
+  attachmentMode?: string;
+  driveMode?: string;
+  verify: boolean;
+  powerOnIfNeeded: boolean;
+  resetAfterMount: boolean;
+  maxRetries: number;
+  retryDelayMs: number;
+}
 
-          if (parsed.secondaryAddress !== undefined && parsed.secondaryAddress !== 0 && parsed.secondaryAddress !== 7) {
-            throw new ToolValidationError("secondaryAddress must be 0 or 7", {
-              path: "$.secondaryAddress",
-              details: { received: parsed.secondaryAddress },
+const diskMountArgsSchema = objectSchema<DiskMountArgs>({
+  description: "Mount a disk image with optional verification and drive preparation.",
+  properties: {
+    drive: stringSchema({
+      description: "Drive identifier (for example drive8).",
+      minLength: 1,
+    }),
+    image: stringSchema({
+      description: "Absolute or Ultimate filesystem path to the disk image.",
+      minLength: 1,
+    }),
+    type: optionalSchema(stringSchema({
+      description: "Override detected image type when firmware guesses incorrectly.",
+      enum: ["d64", "g64", "d71", "g71", "d81"],
+    })),
+    attachmentMode: optionalSchema(stringSchema({
+      description: "Attachment mode controlling how the firmware treats the mounted image.",
+      enum: ["readwrite", "readonly", "unlinked"],
+    })),
+    driveMode: optionalSchema(stringSchema({
+      description: "Drive emulation mode to switch to during verification.",
+      enum: ["1541", "1571", "1581"],
+    })),
+    verify: booleanSchema({
+      description: "When true, power on/reset/verify using the reliability workflow.",
+      default: false,
+    }),
+    powerOnIfNeeded: booleanSchema({
+      description: "Power on the drive automatically before mounting when verify=true.",
+      default: true,
+    }),
+    resetAfterMount: booleanSchema({
+      description: "Issue a drive reset after mounting when verify=true.",
+      default: true,
+    }),
+    maxRetries: numberSchema({
+      description: "Maximum number of mount retries when verify=true.",
+      integer: true,
+      minimum: 0,
+      maximum: 5,
+      default: 2,
+    }),
+    retryDelayMs: numberSchema({
+      description: "Delay between mount retry attempts when verify=true.",
+      integer: true,
+      minimum: 0,
+      maximum: 5000,
+      default: 500,
+    }),
+  },
+  required: ["drive", "image"],
+  additionalProperties: false,
+});
+
+interface CreateImageArgs extends Record<string, unknown> {
+  format: string;
+  path: string;
+  diskname?: string;
+  tracks?: number;
+}
+
+const createImageArgsSchema = objectSchema<CreateImageArgs>({
+  description: "Create a blank disk image (D64/D71/D81/DNP).",
+  properties: {
+    format: stringSchema({
+      description: "Disk image format to create.",
+      enum: ["d64", "d71", "d81", "dnp"],
+    }),
+    path: stringSchema({
+      description: "Destination path on the Ultimate filesystem.",
+      minLength: 1,
+    }),
+    diskname: optionalSchema(stringSchema({
+      description: "Optional disk label (1-16 characters, converted to PETSCII).",
+      minLength: 1,
+      maxLength: 16,
+    })),
+    tracks: optionalSchema(numberSchema({
+      description: "Track count (D64 supports 35 or 40; DNP requires explicit tracks).",
+      integer: true,
+      minimum: 1,
+      maximum: 255,
+    })),
+  },
+  required: ["format", "path"],
+  additionalProperties: false,
+});
+
+interface PrintBitmapArgs extends Record<string, unknown> {
+  printer: string;
+  columns: readonly number[];
+  repeats?: number;
+  useSubRepeat?: number;
+  secondaryAddress?: number;
+  ensureMsb: boolean;
+  mode?: string;
+  density?: number;
+  timesPerLine?: number;
+}
+
+const printBitmapArgsSchema = objectSchema<PrintBitmapArgs>({
+  description: "Print a bitmap row using Commodore or Epson workflows.",
+  properties: {
+    printer: stringSchema({
+      description: "Target printer family.",
+      enum: ["commodore", "epson"],
+      default: "commodore",
+    }),
+    columns: arraySchema(numberSchema({
+      description: "Bitmap column byte (0-255).",
+      integer: true,
+      minimum: 0,
+      maximum: 255,
+    }), {
+      description: "Sequence of bitmap columns.",
+      minItems: 1,
+    }),
+    repeats: optionalSchema(numberSchema({
+      description: "Number of times to repeat the row (1-255).",
+      integer: true,
+      minimum: 1,
+      maximum: 255,
+    })),
+    useSubRepeat: optionalSchema(numberSchema({
+      description: "Repeat the next byte this many times (Commodore BIM SUB).",
+      integer: true,
+      minimum: 1,
+      maximum: 255,
+    })),
+    secondaryAddress: optionalSchema(numberSchema({
+      description: "Secondary address for device 4 (0 or 7).",
+      integer: true,
+      minimum: 0,
+      maximum: 7,
+    })),
+    ensureMsb: booleanSchema({
+      description: "Ensure MSB set for Commodore printers.",
+      default: true,
+    }),
+    mode: optionalSchema(stringSchema({
+      description: "Epson ESC/P graphics mode (K/L/Y/Z/*).",
+      minLength: 1,
+      maxLength: 1,
+    })),
+    density: optionalSchema(numberSchema({
+      description: "Density parameter when using Epson mode '*'.",
+      integer: true,
+      minimum: 0,
+      maximum: 3,
+    })),
+    timesPerLine: optionalSchema(numberSchema({
+      description: "Number of times to print the row per line (1-10).",
+      integer: true,
+      minimum: 1,
+      maximum: 10,
+    })),
+  },
+  required: ["printer", "columns"],
+  additionalProperties: false,
+});
+
+const diskOperations: GroupedOperationConfig[] = [
+  {
+    op: "list_drives",
+    schema: extendSchemaWithOp(
+      "list_drives",
+      ensureDescriptor(storageDescriptorIndex, "drives_list").inputSchema,
+      { description: "List Ultimate drive slots and their mounted images." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drives_list", rawArgs, ctx),
+  },
+  {
+    op: "mount",
+    schema: extendSchemaWithOp(
+      "mount",
+      diskMountArgsSchema.jsonSchema,
+      { description: "Mount a disk image with optional verification and retries." },
+    ),
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      const parsed = diskMountArgsSchema.parse(rest);
+      const type = parsed.type as DiskTypeOverride | undefined;
+      const attachmentMode = parsed.attachmentMode as DiskAttachmentMode | undefined;
+      const driveMode = parsed.driveMode as DriveMode | undefined;
+
+      if (parsed.verify) {
+        const metaPayload = {
+          drive: parsed.drive,
+          imagePath: parsed.image,
+          mode: driveMode,
+          powerOnIfNeeded: parsed.powerOnIfNeeded,
+          resetAfterMount: parsed.resetAfterMount,
+          maxRetries: parsed.maxRetries,
+          retryDelayMs: parsed.retryDelayMs,
+          verifyMount: true,
+        };
+        return metaModule.invoke("drive_mount_and_verify", metaPayload, ctx);
+      }
+
+      const payload: Record<string, unknown> = {
+        drive: parsed.drive,
+        image: parsed.image,
+      };
+      if (type) {
+        payload.type = type;
+      }
+      if (attachmentMode) {
+        payload.mode = attachmentMode;
+      }
+
+      return storageModule.invoke("drive_mount", payload, ctx);
+    },
+  },
+  {
+    op: "unmount",
+    schema: extendSchemaWithOp(
+      "unmount",
+      ensureDescriptor(storageDescriptorIndex, "drive_remove").inputSchema,
+      { description: "Remove the mounted image from an Ultimate drive slot." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_remove", rawArgs, ctx),
+  },
+  {
+    op: "file_info",
+    schema: extendSchemaWithOp(
+      "file_info",
+      ensureDescriptor(storageDescriptorIndex, "file_info").inputSchema,
+      { description: "Inspect metadata for a file on the Ultimate filesystem." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "file_info", rawArgs, ctx),
+  },
+  {
+    op: "create_image",
+    schema: extendSchemaWithOp(
+      "create_image",
+      createImageArgsSchema.jsonSchema,
+      { description: "Create a blank disk image of the specified format." },
+    ),
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      const parsed = createImageArgsSchema.parse(rest);
+      const format = parsed.format as DiskImageFormat;
+      const { path, diskname, tracks } = parsed;
+
+      switch (format) {
+        case "d64":
+          if (tracks !== undefined && tracks !== 35 && tracks !== 40) {
+            throw new ToolValidationError("D64 images support 35 or 40 tracks", {
+              path: "$.tracks",
+              details: { allowed: [35, 40], received: tracks },
             });
           }
-
-          if (printer === "commodore") {
-            const payload: Record<string, unknown> = {
-              columns: parsed.columns,
-              repeats: parsed.repeats,
-              useSubRepeat: parsed.useSubRepeat,
-              secondaryAddress: parsed.secondaryAddress,
-              ensureMsb: parsed.ensureMsb,
-            };
-            return printerModule.invoke("print_bitmap_commodore", payload, ctx);
+          return storageModule.invoke("create_d64", {
+            path,
+            tracks,
+            diskname,
+          }, ctx);
+        case "d71":
+          if (tracks !== undefined) {
+            throw new ToolValidationError("tracks is not used for D71 images", {
+              path: "$.tracks",
+            });
           }
+          return storageModule.invoke("create_d71", { path, diskname }, ctx);
+        case "d81":
+          if (tracks !== undefined) {
+            throw new ToolValidationError("tracks is not used for D81 images", {
+              path: "$.tracks",
+            });
+          }
+          return storageModule.invoke("create_d81", { path, diskname }, ctx);
+        case "dnp":
+          if (tracks === undefined) {
+            throw new ToolValidationError("tracks is required for DNP images", {
+              path: "$.tracks",
+            });
+          }
+          return storageModule.invoke("create_dnp", { path, tracks, diskname }, ctx);
+        default:
+          throw new ToolValidationError("Unsupported disk format", {
+            path: "$.format",
+            details: { format },
+          });
+      }
+    },
+  },
+  {
+    op: "find_and_run",
+    schema: extendSchemaWithOp(
+      "find_and_run",
+      ensureDescriptor(metaDescriptorIndex, "find_and_run_program_by_name").inputSchema,
+      { description: "Search for a PRG/CRT by name substring and run the first match." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "find_and_run_program_by_name", rawArgs, ctx),
+  },
+];
 
-          const payload: Record<string, unknown> = {
-            columns: parsed.columns,
-            mode: parsed.mode,
-            density: parsed.density,
-            repeats: parsed.repeats,
-            timesPerLine: parsed.timesPerLine,
-          };
-          return printerModule.invoke("print_bitmap_epson", payload, ctx);
-        },
-      },
-      {
-        op: "define_chars",
-        schema: extendSchemaWithOp(
-          "define_chars",
-          ensureDescriptor(printerDescriptorIndex, "define_printer_chars").inputSchema,
-          { description: "Define custom printer characters (Commodore DLL mode)." },
-        ),
-        handler: async (rawArgs, ctx) => invokeModuleTool(printerModule, "define_printer_chars", rawArgs, ctx),
-      },
-    ];
+const driveOperations: GroupedOperationConfig[] = [
+  {
+    op: "reset",
+    schema: extendSchemaWithOp(
+      "reset",
+      ensureDescriptor(storageDescriptorIndex, "drive_reset").inputSchema,
+      { description: "Issue an IEC reset for the selected drive slot." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_reset", rawArgs, ctx),
+  },
+  {
+    op: "power_on",
+    schema: extendSchemaWithOp(
+      "power_on",
+      ensureDescriptor(storageDescriptorIndex, "drive_on").inputSchema,
+      { description: "Power on a specific Ultimate drive slot." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_on", rawArgs, ctx),
+  },
+  {
+    op: "power_off",
+    schema: extendSchemaWithOp(
+      "power_off",
+      ensureDescriptor(storageDescriptorIndex, "drive_off").inputSchema,
+      { description: "Power off a specific Ultimate drive slot." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_off", rawArgs, ctx),
+  },
+  {
+    op: "load_rom",
+    schema: extendSchemaWithOp(
+      "load_rom",
+      ensureDescriptor(storageDescriptorIndex, "drive_load_rom").inputSchema,
+      { description: "Temporarily load a custom ROM into an Ultimate drive slot." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_load_rom", rawArgs, ctx),
+  },
+  {
+    op: "set_mode",
+    schema: extendSchemaWithOp(
+      "set_mode",
+      ensureDescriptor(storageDescriptorIndex, "drive_mode").inputSchema,
+      { description: "Set the emulation mode for a drive slot (1541/1571/1581)." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_mode", rawArgs, ctx),
+  },
+];
+
+const printerOperations: GroupedOperationConfig[] = [
+  {
+    op: "print_text",
+    schema: extendSchemaWithOp(
+      "print_text",
+      ensureDescriptor(printerDescriptorIndex, "print_text").inputSchema,
+      { description: "Generate BASIC that prints text to device 4." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(printerModule, "print_text", rawArgs, ctx),
+  },
+  {
+    op: "print_bitmap",
+    schema: extendSchemaWithOp(
+      "print_bitmap",
+      printBitmapArgsSchema.jsonSchema,
+      { description: "Print a bitmap row via Commodore (BIM) or Epson ESC/P workflows." },
+    ),
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      const parsed = printBitmapArgsSchema.parse(rest);
+      const printer = parsed.printer as "commodore" | "epson";
+
+      if (parsed.secondaryAddress !== undefined && parsed.secondaryAddress !== 0 && parsed.secondaryAddress !== 7) {
+        throw new ToolValidationError("secondaryAddress must be 0 or 7", {
+          path: "$.secondaryAddress",
+          details: { received: parsed.secondaryAddress },
+        });
+      }
+
+      if (printer === "commodore") {
+        const payload: Record<string, unknown> = {
+          columns: parsed.columns,
+          repeats: parsed.repeats,
+          useSubRepeat: parsed.useSubRepeat,
+          secondaryAddress: parsed.secondaryAddress,
+          ensureMsb: parsed.ensureMsb,
+        };
+        return printerModule.invoke("print_bitmap_commodore", payload, ctx);
+      }
+
+      const payload: Record<string, unknown> = {
+        columns: parsed.columns,
+        mode: parsed.mode,
+        density: parsed.density,
+        repeats: parsed.repeats,
+        timesPerLine: parsed.timesPerLine,
+      };
+      return printerModule.invoke("print_bitmap_epson", payload, ctx);
+    },
+  },
+  {
+    op: "define_chars",
+    schema: extendSchemaWithOp(
+      "define_chars",
+      ensureDescriptor(printerDescriptorIndex, "define_printer_chars").inputSchema,
+      { description: "Define custom printer characters (Commodore DLL mode)." },
+    ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(printerModule, "define_printer_chars", rawArgs, ctx),
+  },
+];
 
 const diskOperationHandlers = createOperationHandlers(diskOperations);
 const driveOperationHandlers = createOperationHandlers(driveOperations);
