@@ -20,7 +20,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 
 | ID | Recommendation | Evidence (paths/lines/refs) | Effort* | Benefit** | Risks/Trade-offs |
 |----|----------------|-----------------------------|---------|-----------|------------------|
-| M1 | Remove `upload_and_run_basic` as a prerequisite for `read_screen` to avoid misleading LLM plans (screen read works independently). | `src/tools/memory.ts:81-99`, `88-89` | S | 3 | Slightly changes listed workflow hints; no runtime impact. |
+| M1 | Remove `upload_run_basic` as a prerequisite for `read_screen` to avoid misleading LLM plans (screen read works independently). | `src/tools/memory.ts:81-99`, `88-89` | S | 3 | Slightly changes listed workflow hints; no runtime impact. |
 | M2 | Standardize structured JSON outputs for runner tools (include entry addresses, artifacts, URIs) similar to graphics/audio tools using `structuredContent`. | `src/tools/types.ts:64-72, 90-106`; program runners return only `textResult` in `src/tools/programRunners.ts:129-140,176-180,231-236,276-281,320-324` | M | 4 | Minor API output change; keep text message for backward compatibility. |
 | M3 | Add a lightweight tool to set platform at runtime (uses existing `setPlatform`) and surface platform resource in resources index for LLM clarity. | `src/platform.ts:29-46,58-91`; resource exists: `src/mcp-server.ts:371-432` | S | 3 | Requires documenting when platform switch affects tool availability. |
 | M4 | Ensure all tools include concise validation messages and examples (many already do); audit remaining modules for parity. | e.g., `src/tools/audio.ts:190-224,517-583,747-756` | S | 3 | Small doc/schema edits; keeps LLM prompts aligned with schemas. |
@@ -63,7 +63,7 @@ The server exposes a rich, well-typed MCP surface with clear schemas, strong log
 |----|----------------|-----------------------------|---------|-----------|------------------|
 | T1 | Add tests asserting `music_generate` new defaults (tri/ADSR) and pitch accuracy by PAL/NTSC. | Audio analysis tests exist: `test/audioAnalysis.test.mjs:56-141`; `hzToSidFrequency`: `src/c64Client.ts:773-778` | S | 4 | Keeps musical defaults from regressing. |
 | T2 | Add a small e2e test for `rag_retrieve_*` verifying structured refs and that URIs open via `ReadResource`. | `src/tools/rag.ts:82-128`, `src/mcp-server.ts:133-176` | M | 4 | Increases confidence in RAG interoperability. |
-| T3 | Quick test to ensure `read_screen` works without prior `upload_and_run_basic`. | `src/tools/memory.ts:81-99` | S | 3 | Guards against accidental pre-req regressions. |
+| T3 | Quick test to ensure `read_screen` works without prior `upload_run_basic`. | `src/tools/memory.ts:81-99` | S | 3 | Guards against accidental pre-req regressions. |
 | T4 | Add e2e test for PETSCII generation: verify preview fields and PRG runs. | `src/tools/graphics.ts`, `test/graphicsModule.test.mjs` | S | 4 | Prevents regressions in graphics outputs crucial for PETSCII art. |
 | T5 | Add sprite preview PRG test: bytes copied, coords/colour applied, screen captured. | `src/tools/graphics.ts`, `test/graphicsModule.test.mjs` | S | 4 | Ensures sprite workflows stay reliable for asset iteration. |
 

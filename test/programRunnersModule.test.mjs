@@ -12,7 +12,7 @@ function createLogger() {
   };
 }
 
-test("run_prg_file executes via client", async () => {
+test("run_prg executes via client", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -25,7 +25,7 @@ test("run_prg_file executes via client", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "run_prg_file",
+    "run_prg",
     { path: "//USB0/demo.prg" },
     ctx,
   );
@@ -37,7 +37,7 @@ test("run_prg_file executes via client", async () => {
   assert.deepEqual(calls, ["//USB0/demo.prg"]);
 });
 
-test("load_prg_file returns structured content with path", async () => {
+test("load_prg returns structured content with path", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -50,7 +50,7 @@ test("load_prg_file returns structured content with path", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "load_prg_file",
+    "load_prg",
     { path: "//USB0/demo.prg" },
     ctx,
   );
@@ -58,13 +58,13 @@ test("load_prg_file returns structured content with path", async () => {
   assert.equal(result.isError, undefined);
   assert.ok(result.structuredContent && result.structuredContent.type === "json");
   const data = result.structuredContent.data;
-  assert.equal(data.kind, "load_prg_file");
+  assert.equal(data.kind, "load_prg");
   assert.equal(data.format, "prg");
   assert.equal(data.path, "//USB0/demo.prg");
   assert.deepEqual(calls, ["//USB0/demo.prg"]);
 });
 
-test("run_prg_file returns structured content with path", async () => {
+test("run_prg returns structured content with path", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -77,7 +77,7 @@ test("run_prg_file returns structured content with path", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "run_prg_file",
+    "run_prg",
     { path: "//USB0/run.prg" },
     ctx,
   );
@@ -85,13 +85,13 @@ test("run_prg_file returns structured content with path", async () => {
   assert.equal(result.isError, undefined);
   assert.ok(result.structuredContent && result.structuredContent.type === "json");
   const data = result.structuredContent.data;
-  assert.equal(data.kind, "run_prg_file");
+  assert.equal(data.kind, "run_prg");
   assert.equal(data.format, "prg");
   assert.equal(data.path, "//USB0/run.prg");
   assert.deepEqual(calls, ["//USB0/run.prg"]);
 });
 
-test("run_crt_file returns structured content with path", async () => {
+test("run_crt returns structured content with path", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -104,7 +104,7 @@ test("run_crt_file returns structured content with path", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "run_crt_file",
+    "run_crt",
     { path: "//USB0/game.crt" },
     ctx,
   );
@@ -112,13 +112,13 @@ test("run_crt_file returns structured content with path", async () => {
   assert.equal(result.isError, undefined);
   assert.ok(result.structuredContent && result.structuredContent.type === "json");
   const data = result.structuredContent.data;
-  assert.equal(data.kind, "run_crt_file");
+  assert.equal(data.kind, "run_crt");
   assert.equal(data.format, "crt");
   assert.equal(data.path, "//USB0/game.crt");
   assert.deepEqual(calls, ["//USB0/game.crt"]);
 });
 
-test("upload_and_run_basic is available on vice", async () => {
+test("upload_run_basic is available on vice", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -136,7 +136,7 @@ test("upload_and_run_basic is available on vice", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program: '10 PRINT "HELLO"\n20 END' },
     ctx,
   );
@@ -145,7 +145,7 @@ test("upload_and_run_basic is available on vice", async () => {
   // Structured output should be present with entryAddress and prgSize
   assert.ok(result.structuredContent && result.structuredContent.type === "json");
   const data = result.structuredContent.data;
-  assert.equal(data.kind, "upload_and_run_basic");
+  assert.equal(data.kind, "upload_run_basic");
   assert.equal(data.format, "prg");
   assert.ok(typeof data.entryAddress === "number");
   assert.ok(typeof data.prgSize === "number" && data.prgSize > 2);
@@ -153,7 +153,7 @@ test("upload_and_run_basic is available on vice", async () => {
   assert.equal(calls.length, 1);
 });
 
-test("load_prg_file rejects vice platform", async () => {
+test("load_prg rejects vice platform", async () => {
   const ctx = {
     client: {
       async loadPrgFile() {
@@ -166,12 +166,12 @@ test("load_prg_file rejects vice platform", async () => {
   };
 
   await assert.rejects(
-    () => programRunnersModule.invoke("load_prg_file", { path: "//USB0/demo.prg" }, ctx),
+    () => programRunnersModule.invoke("load_prg", { path: "//USB0/demo.prg" }, ctx),
     ToolUnsupportedPlatformError,
   );
 });
 
-test("load_prg_file validates path", async () => {
+test("load_prg validates path", async () => {
   const ctx = {
     client: {
       async loadPrgFile() {
@@ -181,12 +181,12 @@ test("load_prg_file validates path", async () => {
     logger: createLogger(),
   };
 
-  const result = await programRunnersModule.invoke("load_prg_file", {}, ctx);
+  const result = await programRunnersModule.invoke("load_prg", {}, ctx);
   assert.equal(result.isError, true);
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("run_crt_file reports firmware failure", async () => {
+test("run_crt reports firmware failure", async () => {
   const ctx = {
     client: {
       async runCrtFile() {
@@ -197,7 +197,7 @@ test("run_crt_file reports firmware failure", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "run_crt_file",
+    "run_crt",
     { path: "//USB0/game.crt" },
     ctx,
   );
@@ -207,7 +207,7 @@ test("run_crt_file reports firmware failure", async () => {
   assert.deepEqual(result.metadata.error.details, { code: "FAIL" });
 });
 
-test("run_prg_file reports firmware failure", async () => {
+test("run_prg reports firmware failure", async () => {
   const ctx = {
     client: {
       async runPrgFile() {
@@ -218,7 +218,7 @@ test("run_prg_file reports firmware failure", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "run_prg_file",
+    "run_prg",
     { path: "//USB0/test.prg" },
     ctx,
   );
@@ -227,7 +227,7 @@ test("run_prg_file reports firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("load_prg_file reports firmware failure", async () => {
+test("load_prg reports firmware failure", async () => {
   const ctx = {
     client: {
       async loadPrgFile() {
@@ -238,7 +238,7 @@ test("load_prg_file reports firmware failure", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "load_prg_file",
+    "load_prg",
     { path: "//USB0/demo.prg" },
     ctx,
   );
@@ -247,7 +247,7 @@ test("load_prg_file reports firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("upload_and_run_basic validates program input", async () => {
+test("upload_run_basic validates program input", async () => {
   const ctx = {
     client: {
       async uploadAndRunBasic() {
@@ -257,13 +257,13 @@ test("upload_and_run_basic validates program input", async () => {
     logger: createLogger(),
   };
 
-  const result = await programRunnersModule.invoke("upload_and_run_basic", {}, ctx);
+  const result = await programRunnersModule.invoke("upload_run_basic", {}, ctx);
 
   assert.equal(result.isError, true);
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("upload_and_run_basic handles firmware failure", async () => {
+test("upload_run_basic handles firmware failure", async () => {
   const ctx = {
     client: {
       async uploadAndRunBasic() {
@@ -277,7 +277,7 @@ test("upload_and_run_basic handles firmware failure", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program: "10 PRINT" },
     ctx,
   );
@@ -286,7 +286,7 @@ test("upload_and_run_basic handles firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("upload_and_run_basic auto-fixes missing closing quote", async () => {
+test("upload_run_basic auto-fixes missing closing quote", async () => {
   const calls = [];
   const screens = [
     { kind: "value", value: "?SYNTAX ERROR IN 10\nREADY.\n" },
@@ -314,7 +314,7 @@ test("upload_and_run_basic auto-fixes missing closing quote", async () => {
 
   const program = '10 PRINT "HELLO\n20 END';
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program },
     ctx,
   );
@@ -331,7 +331,7 @@ test("upload_and_run_basic auto-fixes missing closing quote", async () => {
   assert.equal(data.autoFix.originalErrors[0].line, 10);
 });
 
-test("upload_and_run_basic verify true annotates metadata", async () => {
+test("upload_run_basic verify true annotates metadata", async () => {
   const originalMax = process.env.C64BRIDGE_POLL_MAX_MS;
   const originalInterval = process.env.C64BRIDGE_POLL_INTERVAL_MS;
   process.env.C64BRIDGE_POLL_MAX_MS = "30";
@@ -353,7 +353,7 @@ test("upload_and_run_basic verify true annotates metadata", async () => {
     };
 
     const result = await programRunnersModule.invoke(
-      "upload_and_run_basic",
+      "upload_run_basic",
       { program: '10 PRINT "HI"\n20 END', verify: true },
       ctx,
     );
@@ -377,7 +377,7 @@ test("upload_and_run_basic verify true annotates metadata", async () => {
   }
 });
 
-test("upload_and_run_basic reports failure when auto-fix not possible", async () => {
+test("upload_run_basic reports failure when auto-fix not possible", async () => {
   const ctx = {
     client: {
       async uploadAndRunBasic() {
@@ -391,7 +391,7 @@ test("upload_and_run_basic reports failure when auto-fix not possible", async ()
   };
 
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program: "10 PRINT 1\n20 PRINT \"A\"+5" },
     ctx,
   );
@@ -406,7 +406,7 @@ test("upload_and_run_basic reports failure when auto-fix not possible", async ()
   assert.ok(String(data.errors[0].text).includes("ERROR IN 20"));
 });
 
-test("upload_and_run_basic reports firmware failure after auto-fix retry", async () => {
+test("upload_run_basic reports firmware failure after auto-fix retry", async () => {
   const uploads = [];
   const screens = [
     "?SYNTAX ERROR IN 10\nREADY.\n",
@@ -431,7 +431,7 @@ test("upload_and_run_basic reports firmware failure after auto-fix retry", async
 
   const program = '10 PRINT "HELLO\n20 END';
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program },
     ctx,
   );
@@ -447,7 +447,7 @@ test("upload_and_run_basic reports firmware failure after auto-fix retry", async
   assert.equal(uploads.length, 2);
 });
 
-test("upload_and_run_basic reports remaining errors after auto-fix retry", async () => {
+test("upload_run_basic reports remaining errors after auto-fix retry", async () => {
   const uploads = [];
   const screens = [
     "?SYNTAX ERROR IN 10\nREADY.\n",
@@ -470,7 +470,7 @@ test("upload_and_run_basic reports remaining errors after auto-fix retry", async
 
   const program = '10 PRINT "HELLO\n20 END';
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program },
     ctx,
   );
@@ -486,7 +486,7 @@ test("upload_and_run_basic reports remaining errors after auto-fix retry", async
   assert.equal(uploads.length, 2);
 });
 
-test("upload_and_run_basic handles screen read failures without errors", async () => {
+test("upload_run_basic handles screen read failures without errors", async () => {
   const uploads = [];
   const ctx = {
     client: {
@@ -503,7 +503,7 @@ test("upload_and_run_basic handles screen read failures without errors", async (
 
   const program = '10 PRINT "HI"\n20 END';
   const result = await programRunnersModule.invoke(
-    "upload_and_run_basic",
+    "upload_run_basic",
     { program },
     ctx,
   );
@@ -513,7 +513,7 @@ test("upload_and_run_basic handles screen read failures without errors", async (
   assert.equal(uploads.length, 1);
 });
 
-test("upload_and_run_asm validates source input", async () => {
+test("upload_run_asm validates source input", async () => {
   const ctx = {
     client: {
       async uploadAndRunAsm() {
@@ -523,13 +523,13 @@ test("upload_and_run_asm validates source input", async () => {
     logger: createLogger(),
   };
 
-  const result = await programRunnersModule.invoke("upload_and_run_asm", {}, ctx);
+  const result = await programRunnersModule.invoke("upload_run_asm", {}, ctx);
 
   assert.equal(result.isError, true);
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("upload_and_run_asm handles firmware failure", async () => {
+test("upload_run_asm handles firmware failure", async () => {
   const ctx = {
     client: {
       async uploadAndRunAsm() {
@@ -540,7 +540,7 @@ test("upload_and_run_asm handles firmware failure", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
+    "upload_run_asm",
     { program: "NOP" },
     ctx,
   );
@@ -551,7 +551,7 @@ test("upload_and_run_asm handles firmware failure", async () => {
   assert.ok(text.length > 0);
 });
 
-test("upload_and_run_asm returns structured content on success", async () => {
+test("upload_run_asm returns structured content on success", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -564,7 +564,7 @@ test("upload_and_run_asm returns structured content on success", async () => {
   };
 
   const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
+    "upload_run_asm",
     { program: ".org $0801\n rts" },
     ctx,
   );
@@ -572,14 +572,14 @@ test("upload_and_run_asm returns structured content on success", async () => {
   assert.equal(result.isError, undefined);
   assert.ok(result.structuredContent && result.structuredContent.type === "json");
   const data = result.structuredContent.data;
-  assert.equal(data.kind, "upload_and_run_asm");
+  assert.equal(data.kind, "upload_run_asm");
   assert.equal(data.format, "prg");
   assert.ok(typeof data.entryAddress === "number");
   assert.ok(typeof data.prgSize === "number" && data.prgSize > 2);
   assert.equal(calls.length, 1);
 });
 
-test("upload_and_run_asm verify true annotates metadata", async () => {
+test("upload_run_asm verify true annotates metadata", async () => {
   const originalMax = process.env.C64BRIDGE_POLL_MAX_MS;
   const originalInterval = process.env.C64BRIDGE_POLL_INTERVAL_MS;
   process.env.C64BRIDGE_POLL_MAX_MS = "40";
@@ -615,7 +615,7 @@ test("upload_and_run_asm verify true annotates metadata", async () => {
 
     const asmSource = ".org $0801\nstart: lda #$00\n sta $0400\n rts";
     const result = await programRunnersModule.invoke(
-      "upload_and_run_asm",
+      "upload_run_asm",
       { program: asmSource, verify: true },
       ctx,
     );

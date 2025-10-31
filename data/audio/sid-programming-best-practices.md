@@ -127,7 +127,7 @@ This solution was developed through:
 ```bash
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"program": "... BASIC program ..."}' \
-  http://localhost:8000/tools/upload_and_run_basic
+  http://localhost:8000/tools/upload_run_basic
 ```
 
 ### Future Audio Analysis

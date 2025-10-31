@@ -517,7 +517,7 @@ async function executeUploadRunBasic(rawArgs: unknown, ctx: ToolExecutionContext
     };
 
     const data = {
-      kind: "upload_and_run_basic" as const,
+      kind: "upload_run_basic" as const,
       format: "prg" as const,
       entryAddress,
       prgSize: prg.length,
@@ -593,7 +593,7 @@ async function executeUploadRunAsm(rawArgs: unknown, ctx: ToolExecutionContext):
     }
 
     const data = {
-      kind: "upload_and_run_asm" as const,
+      kind: "upload_run_asm" as const,
       format: "prg" as const,
       entryAddress,
       prgSize: prg.length,
@@ -641,7 +641,7 @@ async function executeLoadPrg(rawArgs: unknown, ctx: ToolExecutionContext): Prom
     }
 
     const data = {
-      kind: "load_prg_file" as const,
+      kind: "load_prg" as const,
       format: "prg" as const,
       path: parsed.path,
       entryAddress: null as number | null,
@@ -675,7 +675,7 @@ async function executeRunPrg(rawArgs: unknown, ctx: ToolExecutionContext): Promi
     }
 
     const data = {
-      kind: "run_prg_file" as const,
+      kind: "run_prg" as const,
       format: "prg" as const,
       path: parsed.path,
       entryAddress: null as number | null,
@@ -709,7 +709,7 @@ async function executeRunCrt(rawArgs: unknown, ctx: ToolExecutionContext): Promi
     }
 
     const data = {
-      kind: "run_crt_file" as const,
+      kind: "run_crt" as const,
       format: "crt" as const,
       path: parsed.path,
       entryAddress: null as number | null,
@@ -754,7 +754,7 @@ export const programRunnersModule = defineToolModule({
   ],
   tools: [
     {
-      name: "upload_and_run_basic",
+      name: "upload_run_basic",
       description: "Upload a BASIC program to the C64 and execute it immediately. Refer to c64://specs/basic for syntax and device I/O.",
       summary: "Uploads Commodore BASIC v2 source and runs it via Ultimate 64 firmware.",
       inputSchema: uploadBasicArgsSchema.jsonSchema,
@@ -779,7 +779,7 @@ export const programRunnersModule = defineToolModule({
       },
     },
     {
-      name: "upload_and_run_asm",
+      name: "upload_run_asm",
       description: "Assemble 6502/6510 source code, upload the PRG, and run it immediately. See c64://specs/assembly.",
       summary: "Compiles assembly to a PRG and executes it on the C64 via Ultimate 64 firmware.",
       inputSchema: uploadAsmArgsSchema.jsonSchema,
@@ -804,7 +804,7 @@ export const programRunnersModule = defineToolModule({
       },
     },
     {
-      name: "load_prg_file",
+      name: "load_prg",
       description: "Load a PRG into C64 memory without executing it.",
       summary: "Instructs the Ultimate firmware to transfer a PRG into memory without RUN.",
       inputSchema: prgFileArgsSchema.jsonSchema,
@@ -827,7 +827,7 @@ export const programRunnersModule = defineToolModule({
       },
     },
     {
-      name: "run_prg_file",
+      name: "run_prg",
       description: "Run a PRG located on the Ultimate filesystem without uploading source.",
       summary: "Loads and executes a PRG file residing on attached storage.",
       inputSchema: prgFileArgsSchema.jsonSchema,
@@ -851,7 +851,7 @@ export const programRunnersModule = defineToolModule({
       },
     },
     {
-      name: "run_crt_file",
+      name: "run_crt",
       description: "Run a cartridge image stored on the Ultimate filesystem.",
       summary: "Mounts and autostarts the specified CRT file through the firmware.",
       inputSchema: crtFileArgsSchema.jsonSchema,
@@ -882,7 +882,7 @@ export const programRunnersModule = defineToolModule({
           }
 
           const data = {
-            kind: "run_crt_file" as const,
+            kind: "run_crt" as const,
             format: "crt" as const,
             path: parsed.path,
             entryAddress: null as number | null,

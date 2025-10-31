@@ -463,7 +463,7 @@ export const memoryModule = defineToolModule({
       },
     },
     {
-      name: "read_memory",
+      name: "read",
       description: "Read a range of bytes from main memory and return the data as hexadecimal. Consult c64://specs/assembly and docs index.",
       summary: "Resolves symbols, reads memory, and returns a hex dump with addressing metadata.",
       inputSchema: readMemoryArgsSchema.jsonSchema,
@@ -487,14 +487,14 @@ export const memoryModule = defineToolModule({
       },
     },
     {
-      name: "write_memory",
+      name: "write",
       description: "Write a hexadecimal byte sequence into main memory at the specified address. See c64://context/bootstrap for safety rules.",
       summary: "Resolves symbols, validates hex data, and writes bytes to RAM via Ultimate firmware.",
       inputSchema: writeMemoryArgsSchema.jsonSchema,
       relatedResources: ["c64://context/bootstrap", "c64://specs/assembly", "c64://docs/index"],
       relatedPrompts: ["memory-debug", "assembly-program"],
       tags: ["memory", "hex", "write"],
-      prerequisites: ["pause", "read_memory"],
+  prerequisites: ["pause", "read"],
       examples: [
         {
           name: "Write to screen",

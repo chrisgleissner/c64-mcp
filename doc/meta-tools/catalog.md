@@ -87,7 +87,7 @@ Conventions:
 ### Background scheduling and automation
 
 - "start_background_task"
-  - Start a named background task that invokes a tool (e.g., read_memory, read_screen, sid_note_on) at a fixed interval for N iterations or indefinitely.
+  - Start a named background task that invokes a tool (e.g., `c64.memory` `read`, `read_screen`, `sid_note_on`) at a fixed interval for N iterations or indefinitely.
   - Agent state: task registry (id, name, schedule, next-run, last error), persistent across session.
   - REST: Depends on scheduled tool; common: GET /v1/machine:readmem, PUT|POST /v1/machine:writemem, PUT /v1/runners:run_prg, etc.
 
@@ -253,7 +253,7 @@ File-Type Determination (CBM directory and PRG content):
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
 
 - "action_latency_measure"
-  - Measure cycles between issuing an action (e.g., menu_button, write_memory) and the first observed matching bus event; return cycle/µs estimate.
+  - Measure cycles between issuing an action (e.g., menu_button, `c64.memory` `write`) and the first observed matching bus event; return cycle/µs estimate.
   - Agent state: action timestamp, first-match timestamp, CPU clock assumption (PAL/NTSC option).
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop, PUT /v1/machine:menu_button|:writemem|runners
 
@@ -299,7 +299,7 @@ Notes:
 ### Developer loops and QA harnesses
 
 - "red_green_refactor_loop"
-  - Run program → capture screen → apply write_memory fixups → rerun and compare; stop when assertion passes.
+  - Run program → capture screen → apply `c64.memory` `write` fixups → rerun and compare; stop when assertion passes.
   - Agent state: assertion, iteration counter, diffs.
   - REST: PUT /v1/runners:run_prg, GET /v1/machine:readmem, PUT|POST /v1/machine:writemem, PUT /v1/machine:reset
 

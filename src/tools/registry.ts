@@ -14,7 +14,7 @@ import { memoryModule, memoryOperationHandlers as groupedMemoryHandlers } from "
 import { audioModule } from "./audio.js";
 import { machineControlModule } from "./machineControl.js";
 import { storageModule } from "./storage.js";
-import { graphicsModule } from "./graphics.js";
+import { graphicsModule, graphicsOperationHandlers as groupedGraphicsHandlers } from "./graphics.js";
 import { printerModule } from "./printer.js";
 import { ragModule } from "./rag.js";
 import { developerModule } from "./developer.js";
@@ -171,10 +171,10 @@ const programOperations: GroupedOperationConfig[] = [
   {
     op: "load_prg",
     module: programRunnersModule,
-    legacyName: "load_prg_file",
+    legacyName: "load_prg",
     schema: extendSchemaWithOp(
       "load_prg",
-      ensureDescriptor(programDescriptorIndex, "load_prg_file").inputSchema,
+      ensureDescriptor(programDescriptorIndex, "load_prg").inputSchema,
       { description: "Load a PRG from Ultimate storage without executing it." },
     ),
     handler: groupedProgramHandlers.load_prg,
@@ -182,10 +182,10 @@ const programOperations: GroupedOperationConfig[] = [
   {
     op: "run_prg",
     module: programRunnersModule,
-    legacyName: "run_prg_file",
+    legacyName: "run_prg",
     schema: extendSchemaWithOp(
       "run_prg",
-      ensureDescriptor(programDescriptorIndex, "run_prg_file").inputSchema,
+      ensureDescriptor(programDescriptorIndex, "run_prg").inputSchema,
       { description: "Load and execute a PRG located on the Ultimate filesystem." },
     ),
     handler: groupedProgramHandlers.run_prg,
@@ -193,10 +193,10 @@ const programOperations: GroupedOperationConfig[] = [
   {
     op: "run_crt",
     module: programRunnersModule,
-    legacyName: "run_crt_file",
+    legacyName: "run_crt",
     schema: extendSchemaWithOp(
       "run_crt",
-      ensureDescriptor(programDescriptorIndex, "run_crt_file").inputSchema,
+      ensureDescriptor(programDescriptorIndex, "run_crt").inputSchema,
       { description: "Mount and run a CRT cartridge image." },
     ),
     handler: groupedProgramHandlers.run_crt,
@@ -204,10 +204,10 @@ const programOperations: GroupedOperationConfig[] = [
   {
     op: "upload_run_basic",
     module: programRunnersModule,
-    legacyName: "upload_and_run_basic",
+    legacyName: "upload_run_basic",
     schema: extendSchemaWithOp(
       "upload_run_basic",
-      ensureDescriptor(programDescriptorIndex, "upload_and_run_basic").inputSchema,
+      ensureDescriptor(programDescriptorIndex, "upload_run_basic").inputSchema,
       { description: "Upload Commodore BASIC v2 source and execute it immediately." },
     ),
     handler: groupedProgramHandlers.upload_run_basic,
@@ -215,10 +215,10 @@ const programOperations: GroupedOperationConfig[] = [
   {
     op: "upload_run_asm",
     module: programRunnersModule,
-    legacyName: "upload_and_run_asm",
+    legacyName: "upload_run_asm",
     schema: extendSchemaWithOp(
       "upload_run_asm",
-      ensureDescriptor(programDescriptorIndex, "upload_and_run_asm").inputSchema,
+      ensureDescriptor(programDescriptorIndex, "upload_run_asm").inputSchema,
       { description: "Assemble 6502/6510 source, upload the PRG, and execute it." },
     ),
     handler: groupedProgramHandlers.upload_run_asm,
@@ -295,30 +295,24 @@ const groupedProgramModule = programOperations.length === 0
 const memoryOperations: GroupedOperationConfig[] = [
   {
     op: "read",
-    module: memoryModule,
-    legacyName: "read_memory",
     schema: extendSchemaWithOp(
       "read",
-      ensureDescriptor(memoryDescriptorIndex, "read_memory").inputSchema,
+      ensureDescriptor(memoryDescriptorIndex, "read").inputSchema,
       { description: "Read a range of bytes and return a hex dump with address metadata." },
     ),
     handler: groupedMemoryHandlers.read,
   },
   {
     op: "write",
-    module: memoryModule,
-    legacyName: "write_memory",
     schema: extendSchemaWithOp(
       "write",
-      ensureDescriptor(memoryDescriptorIndex, "write_memory").inputSchema,
+      ensureDescriptor(memoryDescriptorIndex, "write").inputSchema,
       { description: "Write a hexadecimal byte sequence into RAM." },
     ),
     handler: groupedMemoryHandlers.write,
   },
   {
     op: "read_screen",
-    module: memoryModule,
-    legacyName: "read_screen",
     schema: extendSchemaWithOp(
       "read_screen",
       ensureDescriptor(memoryDescriptorIndex, "read_screen").inputSchema,
@@ -721,36 +715,30 @@ const groupedSystemModule = systemOperations.length === 0
     const graphicsOperations: GroupedOperationConfig[] = [
       {
         op: "create_petscii",
-        module: graphicsModule,
-        legacyName: "create_petscii_image",
         schema: extendSchemaWithOp(
           "create_petscii",
-          ensureDescriptor(graphicsDescriptorIndex, "create_petscii_image").inputSchema,
+          ensureDescriptor(graphicsDescriptorIndex, "create_petscii").inputSchema,
           { description: "Generate PETSCII art from prompts, text, or explicit bitmap data." },
         ),
-        transform: dropOpTransform,
+  handler: groupedGraphicsHandlers.create_petscii,
       },
       {
         op: "render_petscii",
-        module: graphicsModule,
-        legacyName: "render_petscii_screen",
         schema: extendSchemaWithOp(
           "render_petscii",
-          ensureDescriptor(graphicsDescriptorIndex, "render_petscii_screen").inputSchema,
+          ensureDescriptor(graphicsDescriptorIndex, "render_petscii").inputSchema,
           { description: "Render PETSCII text with optional border/background colours." },
         ),
-        transform: dropOpTransform,
+  handler: groupedGraphicsHandlers.render_petscii,
       },
       {
         op: "generate_sprite",
-        module: graphicsModule,
-        legacyName: "generate_sprite_prg",
         schema: extendSchemaWithOp(
           "generate_sprite",
-          ensureDescriptor(graphicsDescriptorIndex, "generate_sprite_prg").inputSchema,
+          ensureDescriptor(graphicsDescriptorIndex, "generate_sprite").inputSchema,
           { description: "Build and run a sprite PRG from raw 63-byte sprite data." },
         ),
-        transform: dropOpTransform,
+  handler: groupedGraphicsHandlers.generate_sprite,
       },
       {
         op: "generate_bitmap",
@@ -772,7 +760,7 @@ const groupedSystemModule = systemOperations.length === 0
       },
     ];
 
-    const graphicsOperationHandlers = createOperationHandlers(graphicsOperations);
+  const graphicsOperationDispatcher = createOperationHandlers(graphicsOperations);
 
     const groupedGraphicsModule = graphicsOperations.length === 0
       ? null
@@ -816,7 +804,7 @@ const groupedSystemModule = systemOperations.length === 0
               ],
               execute: createOperationDispatcher<GenericOperationMap>(
                 "c64.graphics",
-                graphicsOperationHandlers,
+                graphicsOperationDispatcher,
               ),
             },
           ],

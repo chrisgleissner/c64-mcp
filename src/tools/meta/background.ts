@@ -11,7 +11,7 @@ import { formatTimestampSpec, parseTimestampSpec } from "./util.js";
 
 type TaskStatus = "running" | "completed" | "stopped" | "error";
 interface BackgroundTask {
-  id: string; // e.g. 0001_read_memory
+  id: string; // e.g. 0001_read
   name: string;
   type: "background";
   operation: string;
@@ -25,11 +25,22 @@ interface BackgroundTask {
   stoppedAt?: Date | null;
   lastError?: string | null;
   nextRunAt?: Date | null;
-  folder: string; // e.g. tasks/background/0001_read_memory
+  folder: string; // e.g. tasks/background/0001_read
   _timer?: NodeJS.Timeout | null; // transient, not persisted
 }
 
 const TASKS: Map<string, BackgroundTask> = new Map();
+
+function normaliseOperation(op: string): string {
+  switch (op) {
+    case "read_memory":
+      return "read";
+    case "write_memory":
+      return "write";
+    default:
+      return op;
+  }
+}
 
 type PersistedTask = {
   id: string;
@@ -192,11 +203,16 @@ async function persistTasks(): Promise<void> {
 }
 
 function runOperation(op: string, args: Record<string, unknown>, ctx: Parameters<ToolDefinition["execute"]>[1]) {
-  switch (op) {
-    case "read_memory": {
+  switch (normaliseOperation(op)) {
+    case "read": {
       const address = String((args as any).address ?? "$0400");
       const length = String((args as any).length ?? "16");
       return ctx.client.readMemory(address, length);
+    }
+    case "write": {
+      const address = String((args as any).address ?? "$0400");
+      const bytes = String((args as any).bytes ?? "$00");
+      return ctx.client.writeMemory(address, bytes);
     }
     case "read_screen": {
       return ctx.client.readScreen();
@@ -256,7 +272,7 @@ const startBackgroundTaskArgsSchema = objectSchema({
   description: "Start a named background task that invokes a simple operation at fixed intervals.",
   properties: {
     name: stringSchema({ description: "Unique task name", minLength: 1 }),
-    operation: stringSchema({ description: "Operation name (e.g., read_memory, read_screen)", minLength: 1 }),
+    operation: stringSchema({ description: "Operation name (e.g., read, read_screen)", minLength: 1 }),
     arguments: optionalSchema(objectSchema({ description: "Operation-specific arguments", properties: {}, additionalProperties: true }), {} as any),
     intervalMs: optionalSchema(numberSchema({ description: "Interval milliseconds", integer: true, minimum: 1, default: 1000 }), 1000),
     maxIterations: optionalSchema(numberSchema({ description: "Maximum number of iterations (omit for indefinite)", integer: true, minimum: 1 }), undefined),

@@ -18,7 +18,7 @@ All state is stored under the user’s home directory (`~/.c64bridge/`).
  ├─ tasks.json                  # global registry of all tasks (foreground + background)
  └─ tasks/
      ├─ background/             # background (recurring) tasks
-     │   └─ <taskId>/           # e.g. 0001_read_memory
+   │   └─ <taskId>/           # e.g. 0001_read
      │       ├─ task.json
      │       ├─ result.json
      │       └─ log.txt
@@ -107,10 +107,10 @@ It is updated atomically after each task start, update, or completion.
       "folder": "tasks/0001_extract_sprites"
     },
     {
-      "id": "0002_read_memory",
-      "name": "read_memory",
+      "id": "0002_read",
+      "name": "read",
       "type": "background",
-      "operation": "read_memory",
+      "operation": "read",
       "args": { "address": "$0400", "length": 256 },
       "intervalMs": 1000,
       "maxIterations": 60,
@@ -120,7 +120,7 @@ It is updated atomically after each task start, update, or completion.
       "updatedAt": "2025-10-27T11-46-00Z",
       "stoppedAt": "2025-10-27T11-46-00Z",
       "lastError": null,
-      "folder": "tasks/background/0002_read_memory"
+      "folder": "tasks/background/0002_read"
     }
   ]
 }
@@ -133,7 +133,7 @@ It is updated atomically after each task start, update, or completion.
 | `id` | string | Unique folder name (`0001_extract_sprites`). |
 | `name` | string | Logical name (user-assigned). |
 | `type` | string | `"foreground"` or `"background"`. |
-| `operation` | string | Operation performed (`read_memory`, `extract_sprites_from_ram`, etc.). |
+| `operation` | string | Operation performed (`read`, `write`, `extract_sprites_from_ram`, etc.). |
 | `args` | object | Operation-specific arguments. |
 | `intervalMs` | number \| undefined | Interval between runs (background only). |
 | `maxIterations` | number \| undefined | Total iterations before stop (background only). |
@@ -207,7 +207,7 @@ This file is optional and only created if session tracking is enabled.
   "status": "active",
   "tasks": [
     { "id": "0001_extract_sprites", "type": "foreground" },
-    { "id": "0002_read_memory", "type": "background" }
+    { "id": "0002_read", "type": "background" }
   ]
 }
 ```
@@ -233,7 +233,7 @@ This file is optional and only created if session tracking is enabled.
 | Concept | Description | Example |
 |----------|--------------|----------|
 | **Foreground Task** | One-shot, short operation returning immediate data (e.g., extract sprites, read memory once). | `0001_extract_sprites` |
-| **Background Task** | Recurring scheduled operation (e.g., read memory every second). | `0002_read_memory` |
+| **Background Task** | Recurring scheduled operation (e.g., read memory every second). | `0002_read` |
 | **Task Folder** | Directory under `tasks/` (foreground) or `tasks/background/` containing JSON state and logs. | `~/.c64bridge/tasks/0001_extract_sprites/` |
 | **Registry File** | Global view of all tasks. | `~/.c64bridge/tasks.json` |
 | **Session Summary** | Optional grouping of related tasks run during a session. | `~/.c64bridge/sessions/<id>/session.json` |

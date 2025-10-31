@@ -65,7 +65,7 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 6 — Documentation, Schema, and Cleanup
 
-- [ ] Regenerate documentation so README and related markdown list the 12 grouped tools with nested operations and summary counts; verify `scripts/generate-docs.ts` remains idempotent.
+- [x] Regenerate documentation so README and related markdown list the 12 grouped tools with nested operations and summary counts; verify `scripts/generate-docs.ts` remains idempotent. *(2025-10-31)*
 - [ ] Remove temporary compatibility shims and legacy tool exports; confirm MCP `list_tools` shows only the grouped suite.
 - [ ] Perform a manual MCP smoke test (`npm start`, `list_tools`, sample ops) to validate runtime behavior.
 
@@ -89,6 +89,11 @@ A checkbox may be ticked only when all of the following hold for that item:
 
 - If a prerequisite gap is discovered, pause the rollout and document the issue rather than reordering tasks.
 - Within each phase, tasks are ordered by dependency and expected impact; do not parallelize unless explicitly stated.
+
+## Status Log
+
+- *2025-10-31*: Phase 6 cleanup approved to proceed. Begin with documentation regeneration, then retire legacy shims, running `npm run check` after each focused change.
+- *2025-10-31*: README regeneration rerun via `node scripts/invoke-bun.mjs scripts/update-readme.ts`; no diffs observed, doc automation confirmed idempotent.
 
 ## Post-Rollout Wrap-Up
 

@@ -42,7 +42,7 @@ test("ASM program with screen changes is detected as ok", async () => {
   };
   
   const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
+    "upload_run_asm",
     { program: ".org $0801\n lda #$01\n sta $0400\n rts" },
     ctx,
   );
@@ -50,7 +50,7 @@ test("ASM program with screen changes is detected as ok", async () => {
   assert.equal(result.isError, undefined);
   assert.ok(result.structuredContent && result.structuredContent.type === "json");
   const data = result.structuredContent.data;
-  assert.equal(data.kind, "upload_and_run_asm");
+  assert.equal(data.kind, "upload_run_asm");
 });
 
 test("ASM program with no screen changes is detected as crashed", async () => {
@@ -80,7 +80,7 @@ test("ASM program with no screen changes is detected as crashed", async () => {
   };
   
   const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
+    "upload_run_asm",
     { program: ".org $0801\nloop: jmp loop" }, // Infinite loop
     ctx,
   );
@@ -119,7 +119,7 @@ test("ASM polling respects environment variables", async () => {
   };
   
   const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
+    "upload_run_asm",
     { program: ".org $0801\nrts" },
     ctx,
   );
@@ -146,7 +146,7 @@ test("ASM program that executes instantly without RUN showing is ok", async () =
   };
   
   const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
+    "upload_run_asm",
     { program: ".org $0801\nrts" }, // Instant return
     ctx,
   );

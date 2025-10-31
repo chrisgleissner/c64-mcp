@@ -383,7 +383,7 @@ test("c64.system background task lifecycle proxies to meta tools", async () => {
 
     const start = await toolRegistry.invoke(
       "c64.system",
-      { op: "start_task", name: "grouped-task", operation: "read_memory", intervalMs: 10, maxIterations: 1 },
+  { op: "start_task", name: "grouped-task", operation: "read", intervalMs: 10, maxIterations: 1 },
       ctx,
     );
     assert.equal(start.metadata?.success, true);
