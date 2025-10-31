@@ -125,3 +125,150 @@ test("extract_sprites_from_ram surfaces firmware failures", async () => {
   assert.equal(pauseCalls, 1);
   assert.equal(resumeCalls, 1);
 });
+
+test("rip_charset_from_ram extracts charset from specific address", async () => {
+  // Create a mock charset with some variation
+  const charset = new Uint8Array(2048);
+  // Fill with pattern that looks like character data
+  for (let charIndex = 0; charIndex < 256; charIndex += 1) {
+    const offset = charIndex * 8;
+    // Create varied patterns for first 128 chars
+    if (charIndex < 128) {
+      charset[offset] = charIndex % 256;
+      charset[offset + 1] = (charIndex * 2) % 256;
+      charset[offset + 2] = (charIndex * 3) % 256;
+      charset[offset + 3] = 0xFF;
+      charset[offset + 4] = (charIndex * 4) % 256;
+      charset[offset + 5] = (charIndex * 5) % 256;
+      charset[offset + 6] = (charIndex * 6) % 256;
+      charset[offset + 7] = 0x00;
+    }
+  }
+  const hex = Buffer.from(charset).toString("hex").toUpperCase();
+
+  let pauseCalls = 0;
+  let resumeCalls = 0;
+  let readCalls = 0;
+
+  const out = tmpPath("charset", "out");
+  await fs.rm(out.dir, { recursive: true, force: true });
+  const outputPath = `${out.dir}/charset.bin`;
+
+  const ctx = {
+    client: {
+      async pause() { pauseCalls += 1; return { success: true }; },
+      async resume() { resumeCalls += 1; return { success: true }; },
+      async readMemory(address, length) {
+        readCalls += 1;
+        assert.equal(address, "$3000");
+        assert.equal(length, "2048");
+        return { success: true, data: `$${hex}` };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await metaModule.invoke("rip_charset_from_ram", {
+    address: "$3000",
+    outputPath,
+  }, ctx);
+
+  assert.equal(result.metadata?.success, true);
+  assert.equal(readCalls, 1);
+  assert.equal(pauseCalls, 1);
+  assert.equal(resumeCalls, 1);
+
+  const payload = result.structuredContent?.data;
+  assert.equal(payload?.found, true);
+  assert.ok(payload?.charset);
+  assert.equal(payload?.charset.address, "$3000");
+  assert.equal(payload?.charset.sizeBytes, 2048);
+  assert.ok(payload?.charset.nonEmptyChars > 0);
+  assert.ok(payload?.outputFile);
+  assert.equal(payload?.outputFile.path, outputPath);
+
+  // Verify file was written
+  await fs.access(outputPath);
+  const written = await fs.readFile(outputPath);
+  assert.equal(written.length, 2048);
+});
+
+test("rip_charset_from_ram reports not found when no valid charset", async () => {
+  // Create mostly empty data
+  const emptyData = new Uint8Array(2048);
+  const hex = Buffer.from(emptyData).toString("hex").toUpperCase();
+
+  let pauseCalls = 0;
+  let resumeCalls = 0;
+
+  const ctx = {
+    client: {
+      async pause() { pauseCalls += 1; return { success: true }; },
+      async resume() { resumeCalls += 1; return { success: true }; },
+      async readMemory() {
+        return { success: true, data: `$${hex}` };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await metaModule.invoke("rip_charset_from_ram", {
+    address: "$2000",
+  }, ctx);
+
+  assert.equal(result.metadata?.success, true);
+  assert.equal(pauseCalls, 1);
+  assert.equal(resumeCalls, 1);
+
+  const payload = result.structuredContent?.data;
+  assert.equal(payload?.found, false);
+  assert.ok(payload?.message);
+});
+
+test("rip_charset_from_ram scans common locations", async () => {
+  // Create a mock charset
+  const charset = new Uint8Array(2048);
+  for (let charIndex = 0; charIndex < 128; charIndex += 1) {
+    const offset = charIndex * 8;
+    charset[offset] = charIndex % 256;
+    charset[offset + 1] = (charIndex * 2) % 256;
+    charset[offset + 2] = 0xFF;
+    charset[offset + 3] = (charIndex * 3) % 256;
+  }
+  const hex = Buffer.from(charset).toString("hex").toUpperCase();
+
+  let pauseCalls = 0;
+  let resumeCalls = 0;
+  let readCalls = 0;
+
+  const ctx = {
+    client: {
+      async pause() { pauseCalls += 1; return { success: true }; },
+      async resume() { resumeCalls += 1; return { success: true }; },
+      async readMemory(address, length) {
+        readCalls += 1;
+        // Return valid charset data for $3000, empty for others
+        if (address === "$3000") {
+          return { success: true, data: `$${hex}` };
+        }
+        const empty = Buffer.alloc(2048).toString("hex").toUpperCase();
+        return { success: true, data: `$${empty}` };
+      },
+    },
+    logger: createLogger(),
+  };
+
+  const result = await metaModule.invoke("rip_charset_from_ram", {
+    scanRange: "common",
+  }, ctx);
+
+  assert.equal(result.metadata?.success, true);
+  assert.equal(pauseCalls, 1);
+  assert.equal(resumeCalls, 1);
+  assert.ok(readCalls >= 4); // Should scan multiple common locations
+
+  const payload = result.structuredContent?.data;
+  assert.equal(payload?.found, true);
+  assert.ok(payload?.charset);
+  assert.ok(payload?.candidates >= 1);
+});
