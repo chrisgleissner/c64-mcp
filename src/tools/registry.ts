@@ -38,13 +38,10 @@ export interface ToolModuleDescriptor {
 type GroupedOperationConfig = {
   readonly op: string;
   readonly schema: JsonSchema;
-  readonly module?: ToolModule;
-  readonly legacyName?: string;
-  readonly handler?: (
+  readonly handler: (
     args: Record<string, unknown> & { readonly [OPERATION_DISCRIMINATOR]: string },
     ctx: ToolExecutionContext,
   ) => Promise<ToolRunResult>;
-  readonly transform?: (args: Record<string, unknown>) => unknown;
 };
 
 type GenericOperationMap = Record<string, Record<string, unknown>>;
@@ -118,30 +115,20 @@ function createOperationHandlers(
   const handlers: Record<string, (args: Record<string, unknown> & { readonly [OPERATION_DISCRIMINATOR]: string }, ctx: ToolExecutionContext) => Promise<ToolRunResult>> = {};
 
   for (const operation of operations) {
-    if (operation.handler) {
-      handlers[operation.op] = operation.handler;
-      continue;
-    }
-
-    const module = operation.module;
-    const legacyName = operation.legacyName;
-
-    if (!module || !legacyName) {
-      throw new Error(`Grouped operation ${operation.op} is missing a handler or module delegation.`);
-    }
-
-    handlers[operation.op] = async (rawArgs, ctx) => {
-      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
-      const payload = operation.transform ? operation.transform(rest) : rest;
-      return module.invoke(legacyName, payload, ctx);
-    };
+    handlers[operation.op] = operation.handler;
   }
 
   return handlers as import("./types.js").OperationHandlerMap<GenericOperationMap>;
 }
 
-function dropOpTransform(args: Record<string, unknown>): Record<string, unknown> {
-  return args;
+function invokeModuleTool(
+  module: ToolModule,
+  toolName: string,
+  rawArgs: Record<string, unknown> & { readonly [OPERATION_DISCRIMINATOR]: string },
+  ctx: ToolExecutionContext,
+): Promise<ToolRunResult> {
+  const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+  return module.invoke(toolName, rest, ctx);
 }
 
 const programDescriptorIndex = new Map(programRunnersModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
@@ -170,8 +157,6 @@ function ensureDescriptor(
 const programOperations: GroupedOperationConfig[] = [
   {
     op: "load_prg",
-    module: programRunnersModule,
-    legacyName: "load_prg",
     schema: extendSchemaWithOp(
       "load_prg",
       ensureDescriptor(programDescriptorIndex, "load_prg").inputSchema,
@@ -181,8 +166,6 @@ const programOperations: GroupedOperationConfig[] = [
   },
   {
     op: "run_prg",
-    module: programRunnersModule,
-    legacyName: "run_prg",
     schema: extendSchemaWithOp(
       "run_prg",
       ensureDescriptor(programDescriptorIndex, "run_prg").inputSchema,
@@ -192,8 +175,6 @@ const programOperations: GroupedOperationConfig[] = [
   },
   {
     op: "run_crt",
-    module: programRunnersModule,
-    legacyName: "run_crt",
     schema: extendSchemaWithOp(
       "run_crt",
       ensureDescriptor(programDescriptorIndex, "run_crt").inputSchema,
@@ -203,8 +184,6 @@ const programOperations: GroupedOperationConfig[] = [
   },
   {
     op: "upload_run_basic",
-    module: programRunnersModule,
-    legacyName: "upload_run_basic",
     schema: extendSchemaWithOp(
       "upload_run_basic",
       ensureDescriptor(programDescriptorIndex, "upload_run_basic").inputSchema,
@@ -214,8 +193,6 @@ const programOperations: GroupedOperationConfig[] = [
   },
   {
     op: "upload_run_asm",
-    module: programRunnersModule,
-    legacyName: "upload_run_asm",
     schema: extendSchemaWithOp(
       "upload_run_asm",
       ensureDescriptor(programDescriptorIndex, "upload_run_asm").inputSchema,
@@ -225,25 +202,27 @@ const programOperations: GroupedOperationConfig[] = [
   },
   {
     op: "batch_run",
-    module: metaModule,
-    legacyName: "batch_run_with_assertions",
     schema: extendSchemaWithOp(
       "batch_run",
       ensureDescriptor(metaDescriptorIndex, "batch_run_with_assertions").inputSchema,
       { description: "Run multiple PRG/CRT programs with post-run assertions." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      return metaModule.invoke("batch_run_with_assertions", rest, ctx);
+    },
   },
   {
     op: "bundle_run",
-    module: metaModule,
-    legacyName: "bundle_run_artifacts",
     schema: extendSchemaWithOp(
       "bundle_run",
       ensureDescriptor(metaDescriptorIndex, "bundle_run_artifacts").inputSchema,
       { description: "Capture screen, memory, and debug registers into an artifact bundle." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => {
+      const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = rawArgs;
+      return metaModule.invoke("bundle_run_artifacts", rest, ctx);
+    },
   },
 ];
 
@@ -322,14 +301,12 @@ const memoryOperations: GroupedOperationConfig[] = [
   },
   {
     op: "wait_for_text",
-    module: metaModule,
-    legacyName: "wait_for_screen_text",
     schema: extendSchemaWithOp(
       "wait_for_text",
       ensureDescriptor(metaDescriptorIndex, "wait_for_screen_text").inputSchema,
       { description: "Poll the screen until a substring or regex appears, or timeout elapses." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "wait_for_screen_text", rawArgs, ctx),
   },
 ];
 
@@ -380,124 +357,111 @@ const groupedMemoryModule = memoryOperations.length === 0
 const soundOperations: GroupedOperationConfig[] = [
   {
     op: "set_volume",
-    module: audioModule,
-    legacyName: "sid_volume",
     schema: extendSchemaWithOp(
       "set_volume",
       ensureDescriptor(audioDescriptorIndex, "sid_volume").inputSchema,
       { description: "Set the SID master volume register at $D418 (0-15)." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "sid_volume", rawArgs, ctx),
   },
   {
     op: "reset",
-    module: audioModule,
-    legacyName: "sid_reset",
     schema: extendSchemaWithOp(
       "reset",
       ensureDescriptor(audioDescriptorIndex, "sid_reset").inputSchema,
       { description: "Soft or hard reset of SID registers to clear glitches." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "sid_reset", rawArgs, ctx),
   },
   {
     op: "note_on",
-    module: audioModule,
-    legacyName: "sid_note_on",
     schema: extendSchemaWithOp(
       "note_on",
       ensureDescriptor(audioDescriptorIndex, "sid_note_on").inputSchema,
       { description: "Trigger a SID voice with configurable waveform, ADSR, and pitch." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "sid_note_on", rawArgs, ctx),
   },
   {
     op: "note_off",
-    module: audioModule,
-    legacyName: "sid_note_off",
     schema: extendSchemaWithOp(
       "note_off",
       ensureDescriptor(audioDescriptorIndex, "sid_note_off").inputSchema,
       { description: "Release a SID voice by clearing its gate bit." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "sid_note_off", rawArgs, ctx),
   },
   {
     op: "silence_all",
-    module: audioModule,
-    legacyName: "sid_silence_all",
     schema: extendSchemaWithOp(
       "silence_all",
       ensureDescriptor(audioDescriptorIndex, "sid_silence_all").inputSchema,
       { description: "Silence all SID voices with optional audio verification." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "sid_silence_all", rawArgs, ctx),
   },
   {
     op: "play_sid_file",
-    module: audioModule,
-    legacyName: "sidplay_file",
     schema: extendSchemaWithOp(
       "play_sid_file",
       ensureDescriptor(audioDescriptorIndex, "sidplay_file").inputSchema,
       { description: "Play a SID file stored on the Ultimate filesystem." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "sidplay_file", rawArgs, ctx),
   },
   {
     op: "play_mod_file",
-    module: audioModule,
-    legacyName: "modplay_file",
     schema: extendSchemaWithOp(
       "play_mod_file",
       ensureDescriptor(audioDescriptorIndex, "modplay_file").inputSchema,
       { description: "Play a MOD tracker module via the Ultimate SID player." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "modplay_file", rawArgs, ctx),
   },
   {
     op: "generate",
-    module: audioModule,
-    legacyName: "music_generate",
     schema: extendSchemaWithOp(
       "generate",
       ensureDescriptor(audioDescriptorIndex, "music_generate").inputSchema,
       { description: "Generate a lightweight SID arpeggio playback sequence." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "music_generate", rawArgs, ctx),
   },
   {
     op: "compile_play",
-    module: audioModule,
-    legacyName: "music_compile_and_play",
     schema: extendSchemaWithOp(
       "compile_play",
       ensureDescriptor(audioDescriptorIndex, "music_compile_and_play").inputSchema,
       { description: "Compile SIDWAVE or CPG source and optionally play it immediately." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "music_compile_and_play", rawArgs, ctx),
   },
   {
     op: "pipeline",
-    module: metaModule,
-    legacyName: "music_compile_play_analyze",
     schema: extendSchemaWithOp(
       "pipeline",
       ensureDescriptor(metaDescriptorIndex, "music_compile_play_analyze").inputSchema,
       { description: "Compile a SIDWAVE score, play it, and analyze the recording." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "music_compile_play_analyze", rawArgs, ctx),
   },
   {
     op: "analyze",
-    module: audioModule,
-    legacyName: "analyze_audio",
     schema: extendSchemaWithOp(
       "analyze",
       ensureDescriptor(audioDescriptorIndex, "analyze_audio").inputSchema,
       { description: "Automatically analyze SID playback when verification is requested." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "analyze_audio", rawArgs, ctx),
   },
   {
     op: "record_analyze",
-    module: audioModule,
-    legacyName: "record_and_analyze_audio",
     schema: extendSchemaWithOp(
       "record_analyze",
       ensureDescriptor(audioDescriptorIndex, "record_and_analyze_audio").inputSchema,
       { description: "Record audio for a fixed duration and return SID analysis metrics." },
     ),
+    handler: async (rawArgs, ctx) => invokeModuleTool(audioModule, "record_and_analyze_audio", rawArgs, ctx),
   },
 ];
 
@@ -553,113 +517,93 @@ const groupedSoundModule = soundOperations.length === 0
 const systemOperations: GroupedOperationConfig[] = [
   {
     op: "pause",
-    module: machineControlModule,
-    legacyName: "pause",
     schema: extendSchemaWithOp(
       "pause",
       ensureDescriptor(machineDescriptorIndex, "pause").inputSchema,
       { description: "Pause the machine using DMA halt until resumed." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(machineControlModule, "pause", rawArgs, ctx),
   },
   {
     op: "resume",
-    module: machineControlModule,
-    legacyName: "resume",
     schema: extendSchemaWithOp(
       "resume",
       ensureDescriptor(machineDescriptorIndex, "resume").inputSchema,
       { description: "Resume CPU execution after a DMA pause." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(machineControlModule, "resume", rawArgs, ctx),
   },
   {
     op: "reset",
-    module: machineControlModule,
-    legacyName: "reset_c64",
     schema: extendSchemaWithOp(
       "reset",
       ensureDescriptor(machineDescriptorIndex, "reset_c64").inputSchema,
       { description: "Issue a soft reset without cutting power." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(machineControlModule, "reset_c64", rawArgs, ctx),
   },
   {
     op: "reboot",
-    module: machineControlModule,
-    legacyName: "reboot_c64",
     schema: extendSchemaWithOp(
       "reboot",
       ensureDescriptor(machineDescriptorIndex, "reboot_c64").inputSchema,
       { description: "Trigger a firmware reboot to recover from faults." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(machineControlModule, "reboot_c64", rawArgs, ctx),
   },
   {
     op: "poweroff",
-    module: machineControlModule,
-    legacyName: "poweroff",
     schema: extendSchemaWithOp(
       "poweroff",
       ensureDescriptor(machineDescriptorIndex, "poweroff").inputSchema,
       { description: "Request a controlled shutdown via the Ultimate firmware." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(machineControlModule, "poweroff", rawArgs, ctx),
   },
   {
     op: "menu",
-    module: machineControlModule,
-    legacyName: "menu_button",
     schema: extendSchemaWithOp(
       "menu",
       ensureDescriptor(machineDescriptorIndex, "menu_button").inputSchema,
       { description: "Toggle the Ultimate menu button for navigation." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(machineControlModule, "menu_button", rawArgs, ctx),
   },
   {
     op: "start_task",
-    module: metaModule,
-    legacyName: "start_background_task",
     schema: extendSchemaWithOp(
       "start_task",
       ensureDescriptor(metaDescriptorIndex, "start_background_task").inputSchema,
       { description: "Start a named background task that runs on an interval." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "start_background_task", rawArgs, ctx),
   },
   {
     op: "stop_task",
-    module: metaModule,
-    legacyName: "stop_background_task",
     schema: extendSchemaWithOp(
       "stop_task",
       ensureDescriptor(metaDescriptorIndex, "stop_background_task").inputSchema,
       { description: "Stop a specific background task and clear its timer." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "stop_background_task", rawArgs, ctx),
   },
   {
     op: "stop_all_tasks",
-    module: metaModule,
-    legacyName: "stop_all_background_tasks",
     schema: extendSchemaWithOp(
       "stop_all_tasks",
       ensureDescriptor(metaDescriptorIndex, "stop_all_background_tasks").inputSchema,
       { description: "Stop every running background task and persist state." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "stop_all_background_tasks", rawArgs, ctx),
   },
   {
     op: "list_tasks",
-    module: metaModule,
-    legacyName: "list_background_tasks",
     schema: extendSchemaWithOp(
       "list_tasks",
       ensureDescriptor(metaDescriptorIndex, "list_background_tasks").inputSchema,
       { description: "List known background tasks with status metadata." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "list_background_tasks", rawArgs, ctx),
   },
 ];
 
@@ -813,25 +757,21 @@ const groupedSystemModule = systemOperations.length === 0
     const ragOperations: GroupedOperationConfig[] = [
       {
         op: "basic",
-        module: ragModule,
-        legacyName: "rag_retrieve_basic",
         schema: extendSchemaWithOp(
           "basic",
           ensureDescriptor(ragDescriptorIndex, "rag_retrieve_basic").inputSchema,
           { description: "Retrieve BASIC references and snippets from the local knowledge base." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(ragModule, "rag_retrieve_basic", rawArgs, ctx),
       },
       {
         op: "asm",
-        module: ragModule,
-        legacyName: "rag_retrieve_asm",
         schema: extendSchemaWithOp(
           "asm",
           ensureDescriptor(ragDescriptorIndex, "rag_retrieve_asm").inputSchema,
           { description: "Retrieve 6502/6510 assembly references from the local knowledge base." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(ragModule, "rag_retrieve_asm", rawArgs, ctx),
       },
     ];
 
@@ -1017,14 +957,12 @@ const groupedSystemModule = systemOperations.length === 0
     const diskOperations: GroupedOperationConfig[] = [
       {
         op: "list_drives",
-        module: storageModule,
-        legacyName: "drives_list",
         schema: extendSchemaWithOp(
           "list_drives",
           ensureDescriptor(storageDescriptorIndex, "drives_list").inputSchema,
           { description: "List Ultimate drive slots and their mounted images." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drives_list", rawArgs, ctx),
       },
       {
         op: "mount",
@@ -1070,25 +1008,21 @@ const groupedSystemModule = systemOperations.length === 0
       },
       {
         op: "unmount",
-        module: storageModule,
-        legacyName: "drive_remove",
         schema: extendSchemaWithOp(
           "unmount",
           ensureDescriptor(storageDescriptorIndex, "drive_remove").inputSchema,
           { description: "Remove the mounted image from an Ultimate drive slot." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_remove", rawArgs, ctx),
       },
       {
         op: "file_info",
-        module: storageModule,
-        legacyName: "file_info",
         schema: extendSchemaWithOp(
           "file_info",
           ensureDescriptor(storageDescriptorIndex, "file_info").inputSchema,
           { description: "Inspect metadata for a file on the Ultimate filesystem." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "file_info", rawArgs, ctx),
       },
       {
         op: "create_image",
@@ -1147,86 +1081,72 @@ const groupedSystemModule = systemOperations.length === 0
       },
       {
         op: "find_and_run",
-        module: metaModule,
-        legacyName: "find_and_run_program_by_name",
         schema: extendSchemaWithOp(
           "find_and_run",
           ensureDescriptor(metaDescriptorIndex, "find_and_run_program_by_name").inputSchema,
           { description: "Search for a PRG/CRT by name substring and run the first match." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "find_and_run_program_by_name", rawArgs, ctx),
       },
     ];
 
     const driveOperations: GroupedOperationConfig[] = [
       {
         op: "reset",
-        module: storageModule,
-        legacyName: "drive_reset",
         schema: extendSchemaWithOp(
           "reset",
           ensureDescriptor(storageDescriptorIndex, "drive_reset").inputSchema,
           { description: "Issue an IEC reset for the selected drive slot." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_reset", rawArgs, ctx),
       },
       {
         op: "power_on",
-        module: storageModule,
-        legacyName: "drive_on",
         schema: extendSchemaWithOp(
           "power_on",
           ensureDescriptor(storageDescriptorIndex, "drive_on").inputSchema,
           { description: "Power on a specific Ultimate drive slot." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_on", rawArgs, ctx),
       },
       {
         op: "power_off",
-        module: storageModule,
-        legacyName: "drive_off",
         schema: extendSchemaWithOp(
           "power_off",
           ensureDescriptor(storageDescriptorIndex, "drive_off").inputSchema,
           { description: "Power off a specific Ultimate drive slot." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_off", rawArgs, ctx),
       },
       {
         op: "load_rom",
-        module: storageModule,
-        legacyName: "drive_load_rom",
         schema: extendSchemaWithOp(
           "load_rom",
           ensureDescriptor(storageDescriptorIndex, "drive_load_rom").inputSchema,
           { description: "Temporarily load a custom ROM into an Ultimate drive slot." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_load_rom", rawArgs, ctx),
       },
       {
         op: "set_mode",
-        module: storageModule,
-        legacyName: "drive_mode",
         schema: extendSchemaWithOp(
           "set_mode",
           ensureDescriptor(storageDescriptorIndex, "drive_mode").inputSchema,
           { description: "Set the emulation mode for a drive slot (1541/1571/1581)." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(storageModule, "drive_mode", rawArgs, ctx),
       },
     ];
 
     const printerOperations: GroupedOperationConfig[] = [
       {
         op: "print_text",
-        module: printerModule,
-        legacyName: "print_text",
         schema: extendSchemaWithOp(
           "print_text",
           ensureDescriptor(printerDescriptorIndex, "print_text").inputSchema,
           { description: "Generate BASIC that prints text to device 4." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(printerModule, "print_text", rawArgs, ctx),
       },
       {
         op: "print_bitmap",
@@ -1270,14 +1190,12 @@ const groupedSystemModule = systemOperations.length === 0
       },
       {
         op: "define_chars",
-        module: printerModule,
-        legacyName: "define_printer_chars",
         schema: extendSchemaWithOp(
           "define_chars",
           ensureDescriptor(printerDescriptorIndex, "define_printer_chars").inputSchema,
           { description: "Define custom printer characters (Commodore DLL mode)." },
         ),
-        transform: dropOpTransform,
+        handler: async (rawArgs, ctx) => invokeModuleTool(printerModule, "define_printer_chars", rawArgs, ctx),
       },
     ];
 
@@ -1341,124 +1259,102 @@ const configDiffArgsSchema = objectSchema<ConfigDiffArgs>({
 const configOperations: GroupedOperationConfig[] = [
   {
     op: "list",
-    module: developerModule,
-    legacyName: "config_list",
     schema: extendSchemaWithOp(
       "list",
       ensureDescriptor(developerDescriptorIndex, "config_list").inputSchema,
       { description: "List configuration categories reported by the firmware." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_list", rawArgs, ctx),
   },
   {
     op: "get",
-    module: developerModule,
-    legacyName: "config_get",
     schema: extendSchemaWithOp(
       "get",
       ensureDescriptor(developerDescriptorIndex, "config_get").inputSchema,
       { description: "Read a configuration category or specific item." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_get", rawArgs, ctx),
   },
   {
     op: "set",
-    module: developerModule,
-    legacyName: "config_set",
     schema: extendSchemaWithOp(
       "set",
       ensureDescriptor(developerDescriptorIndex, "config_set").inputSchema,
       { description: "Write a configuration value in the selected category." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_set", rawArgs, ctx),
   },
   {
     op: "batch_update",
-    module: developerModule,
-    legacyName: "config_batch_update",
     schema: extendSchemaWithOp(
       "batch_update",
       ensureDescriptor(developerDescriptorIndex, "config_batch_update").inputSchema,
       { description: "Apply multiple configuration updates in a single request." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_batch_update", rawArgs, ctx),
   },
   {
     op: "load_flash",
-    module: developerModule,
-    legacyName: "config_load_from_flash",
     schema: extendSchemaWithOp(
       "load_flash",
       ensureDescriptor(developerDescriptorIndex, "config_load_from_flash").inputSchema,
       { description: "Load configuration from flash storage." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_load_from_flash", rawArgs, ctx),
   },
   {
     op: "save_flash",
-    module: developerModule,
-    legacyName: "config_save_to_flash",
     schema: extendSchemaWithOp(
       "save_flash",
       ensureDescriptor(developerDescriptorIndex, "config_save_to_flash").inputSchema,
       { description: "Persist the current configuration to flash storage." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_save_to_flash", rawArgs, ctx),
   },
   {
     op: "reset_defaults",
-    module: developerModule,
-    legacyName: "config_reset_to_default",
     schema: extendSchemaWithOp(
       "reset_defaults",
       ensureDescriptor(developerDescriptorIndex, "config_reset_to_default").inputSchema,
       { description: "Reset firmware configuration to factory defaults." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "config_reset_to_default", rawArgs, ctx),
   },
   {
     op: "read_debugreg",
-    module: developerModule,
-    legacyName: "debugreg_read",
     schema: extendSchemaWithOp(
       "read_debugreg",
       ensureDescriptor(developerDescriptorIndex, "debugreg_read").inputSchema,
       { description: "Read the Ultimate debug register ($D7FF)." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "debugreg_read", rawArgs, ctx),
   },
   {
     op: "write_debugreg",
-    module: developerModule,
-    legacyName: "debugreg_write",
     schema: extendSchemaWithOp(
       "write_debugreg",
       ensureDescriptor(developerDescriptorIndex, "debugreg_write").inputSchema,
       { description: "Write a hex value to the Ultimate debug register ($D7FF)." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "debugreg_write", rawArgs, ctx),
   },
   {
     op: "info",
-    module: developerModule,
-    legacyName: "info",
     schema: extendSchemaWithOp(
       "info",
       ensureDescriptor(developerDescriptorIndex, "info").inputSchema,
       { description: "Retrieve Ultimate hardware information and status." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "info", rawArgs, ctx),
   },
   {
     op: "version",
-    module: developerModule,
-    legacyName: "version",
     schema: extendSchemaWithOp(
       "version",
       ensureDescriptor(developerDescriptorIndex, "version").inputSchema,
       { description: "Fetch firmware version details." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(developerModule, "version", rawArgs, ctx),
   },
   {
     op: "snapshot",
@@ -1517,14 +1413,12 @@ const configOperations: GroupedOperationConfig[] = [
   },
   {
     op: "shuffle",
-    module: metaModule,
-    legacyName: "program_shuffle",
     schema: extendSchemaWithOp(
       "shuffle",
       ensureDescriptor(metaDescriptorIndex, "program_shuffle").inputSchema,
       { description: "Discover PRG/CRT files and run each with optional screen capture." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "program_shuffle", rawArgs, ctx),
   },
 ];
 
@@ -1533,58 +1427,48 @@ const configOperationHandlers = createOperationHandlers(configOperations);
 const extractOperations: GroupedOperationConfig[] = [
   {
     op: "sprites",
-    module: metaModule,
-    legacyName: "extract_sprites_from_ram",
     schema: extendSchemaWithOp(
       "sprites",
       ensureDescriptor(metaDescriptorIndex, "extract_sprites_from_ram").inputSchema,
       { description: "Scan RAM for sprites and optionally export .spr files." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "extract_sprites_from_ram", rawArgs, ctx),
   },
   {
     op: "charset",
-    module: metaModule,
-    legacyName: "rip_charset_from_ram",
     schema: extendSchemaWithOp(
       "charset",
       ensureDescriptor(metaDescriptorIndex, "rip_charset_from_ram").inputSchema,
       { description: "Locate and extract 2KB character sets from RAM." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "rip_charset_from_ram", rawArgs, ctx),
   },
   {
     op: "memory_dump",
-    module: metaModule,
-    legacyName: "memory_dump_to_file",
     schema: extendSchemaWithOp(
       "memory_dump",
       ensureDescriptor(metaDescriptorIndex, "memory_dump_to_file").inputSchema,
       { description: "Dump a RAM range to hex or binary files with manifest metadata." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "memory_dump_to_file", rawArgs, ctx),
   },
   {
     op: "fs_stats",
-    module: metaModule,
-    legacyName: "filesystem_stats_by_extension",
     schema: extendSchemaWithOp(
       "fs_stats",
       ensureDescriptor(metaDescriptorIndex, "filesystem_stats_by_extension").inputSchema,
       { description: "Walk the filesystem and aggregate counts/bytes by extension." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "filesystem_stats_by_extension", rawArgs, ctx),
   },
   {
     op: "firmware_health",
-    module: metaModule,
-    legacyName: "firmware_info_and_healthcheck",
     schema: extendSchemaWithOp(
       "firmware_health",
       ensureDescriptor(metaDescriptorIndex, "firmware_info_and_healthcheck").inputSchema,
       { description: "Run firmware readiness checks and report status metrics." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(metaModule, "firmware_info_and_healthcheck", rawArgs, ctx),
   },
 ];
 
@@ -1593,25 +1477,21 @@ const extractOperationHandlers = createOperationHandlers(extractOperations);
 const streamOperations: GroupedOperationConfig[] = [
   {
     op: "start",
-    module: streamingModule,
-    legacyName: "stream_start",
     schema: extendSchemaWithOp(
       "start",
       ensureDescriptor(streamingDescriptorIndex, "stream_start").inputSchema,
       { description: "Start an Ultimate streaming session toward a host:port target." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(streamingModule, "stream_start", rawArgs, ctx),
   },
   {
     op: "stop",
-    module: streamingModule,
-    legacyName: "stream_stop",
     schema: extendSchemaWithOp(
       "stop",
       ensureDescriptor(streamingDescriptorIndex, "stream_stop").inputSchema,
       { description: "Stop an active Ultimate streaming session." },
     ),
-    transform: dropOpTransform,
+    handler: async (rawArgs, ctx) => invokeModuleTool(streamingModule, "stream_stop", rawArgs, ctx),
   },
 ];
 

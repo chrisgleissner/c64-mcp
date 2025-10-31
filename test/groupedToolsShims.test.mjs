@@ -29,6 +29,13 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64.stream"), "c64.stream should be registered");
 });
 
+test("registry only exposes grouped tool names", () => {
+  const toolNames = toolRegistry.list().map((descriptor) => descriptor.name);
+  for (const name of toolNames) {
+    assert.ok(name.startsWith("c64."), `unexpected legacy tool visible in registry: ${name}`);
+  }
+});
+
 test("c64.program run_prg delegates to legacy handler", async () => {
   const calls = [];
   const stubClient = {
