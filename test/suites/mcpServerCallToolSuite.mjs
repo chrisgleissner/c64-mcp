@@ -341,6 +341,63 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
+  test("c64.graphics create_petscii dry run returns art metadata", async () => {
+    await withSharedMcpClient(async ({ client }) => {
+      const result = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64.graphics",
+            arguments: {
+              op: "create_petscii",
+              prompt: "c64 logo",
+              dryRun: true,
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(Array.isArray(result.content));
+      const textContent = getTextContent(result);
+      assert.ok(textContent, "Expected text response content");
+      assert.match(textContent.text, /petsciiCodes/i);
+
+      assert.equal(result.metadata?.dryRun, true);
+      assert.equal(result.metadata?.ranOnC64, false);
+      assert.ok(result.structuredContent?.data?.program, "should include generated BASIC program");
+      assert.ok(result.structuredContent?.data?.petsciiCodes?.length > 0, "should include petscii codes");
+    });
+  });
+
+  test("c64.rag basic retrieval returns references", async () => {
+    await withSharedMcpClient(async ({ client }) => {
+      const result = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64.rag",
+            arguments: {
+              op: "basic",
+              q: "print reverse text",
+              k: 2,
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(Array.isArray(result.content));
+      const textContent = getTextContent(result);
+      assert.ok(textContent, "Expected text response content");
+      assert.match(textContent.text, /Primary knowledge resources/i);
+
+      assert.ok(result.metadata?.success, "metadata should flag success");
+      assert.ok(result.structuredContent?.data?.refs, "should return structured refs");
+      assert.ok(result.structuredContent?.data?.refs.length <= 2);
+    });
+  });
+
   test("Machine control tools operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const resetResult = await client.request(

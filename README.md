@@ -353,7 +353,7 @@ The test runner accepts the following options:
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **77 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **79 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -482,6 +482,28 @@ This MCP server exposes **77 tools**, **25 resources**, and **7 prompts** for co
 | `file_info` | Inspect metadata for a file on the Ultimate filesystem. | `drive`, `storage`, `info` |
 
 #### Graphics
+> Grouped PETSCII, sprite, and upcoming bitmap helpers.
+
+**Workflow hints:**
+- Use PETSCII helpers for text art and clarify whether the BASIC program executed or stayed a dry run.
+- Mention sprite positions/colours so follow-up memory inspection stays grounded.
+
+**Default tags:** `graphics`, `vic`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.graphics` | Grouped entry point for PETSCII art, sprite previews, and future bitmap generation. | `graphics`, `vic`, `grouped` |
+
+##### Operations: `c64.graphics`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `create_petscii` | Generate PETSCII art from prompts, text, or explicit bitmap data. | — | — |
+| `generate_bitmap` | Reserved high-resolution bitmap generator (coming soon). | — | — |
+| `generate_sprite` | Build and run a sprite PRG from raw 63-byte sprite data. | `sprite` | — |
+| `render_petscii` | Render PETSCII text with optional border/background colours. | `text` | — |
+
+#### Graphics
 > PETSCII art, sprite workflows, and VIC-II graphics helpers.
 
 **Workflow hints:**
@@ -511,6 +533,26 @@ This MCP server exposes **77 tools**, **25 resources**, and **7 prompts** for co
 | `print_bitmap_commodore` | Print a Commodore MPS bit-image row using BIM BASIC helpers. | `printer`, `bitmap`, `commodore` |
 | `print_bitmap_epson` | Print an Epson FX bit-image row using ESC/P commands. | `printer`, `bitmap`, `epson` |
 | `print_text` | Print text on device 4 using Commodore or Epson workflows. See c64://docs/printer/guide. | `printer`, `text` |
+
+#### Rag
+> Grouped retrieval helpers for BASIC and assembly references.
+
+**Workflow hints:**
+- Use BASIC retrieval before synthesising new BASIC code and mention primary resources in responses.
+- For assembly, note registers or addresses surfaced so the user can inspect them further.
+
+**Default tags:** `rag`, `search`
+
+| Name | Description | Tags |
+| --- | --- | --- |
+| `c64.rag` | Grouped entry point for BASIC and assembly RAG lookups. | `rag`, `search`, `knowledge`, `grouped` |
+
+##### Operations: `c64.rag`
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `asm` | Retrieve 6502/6510 assembly references from the local knowledge base. | `q` | — |
+| `basic` | Retrieve BASIC references and snippets from the local knowledge base. | `q` | — |
 
 #### Rag
 > Retrieval-augmented generation helpers for BASIC and assembly examples.

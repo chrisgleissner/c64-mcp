@@ -17,6 +17,8 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64.memory"), "c64.memory should be registered");
   assert.ok(toolNames.includes("c64.sound"), "c64.sound should be registered");
   assert.ok(toolNames.includes("c64.system"), "c64.system should be registered");
+  assert.ok(toolNames.includes("c64.graphics"), "c64.graphics should be registered");
+  assert.ok(toolNames.includes("c64.rag"), "c64.rag should be registered");
 });
 
 test("c64.program run_prg delegates to legacy handler", async () => {
@@ -392,4 +394,186 @@ test("c64.system background task lifecycle proxies to meta tools", async () => {
     if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
     else process.env.C64_TASK_STATE_FILE = previous;
   }
+});
+
+test("c64.graphics render_petscii delegates to legacy handler", async () => {
+  const calls = [];
+  const stubClient = {
+    async renderPetsciiScreenAndRun(payload) {
+      calls.push(payload);
+      return { success: true, details: {} };
+    },
+    async generateAndRunSpritePrg() {
+      throw new Error("not used");
+    },
+    async uploadAndRunBasic() {
+      throw new Error("not used");
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.graphics",
+    { op: "render_petscii", text: "HELLO", borderColor: 6 },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].text, "HELLO");
+  assert.equal(calls[0].borderColor, 6);
+});
+
+test("c64.graphics generate_sprite proxies to sprite helper", async () => {
+  const calls = [];
+  const stubClient = {
+    async generateAndRunSpritePrg(payload) {
+      calls.push(payload);
+      return { success: true, details: {} };
+    },
+    async renderPetsciiScreenAndRun() {
+      throw new Error("not used");
+    },
+    async uploadAndRunBasic() {
+      throw new Error("not used");
+    },
+  };
+
+  const ctx = {
+    client: stubClient,
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const sprite = Array.from({ length: 63 }, () => 0);
+  const result = await toolRegistry.invoke(
+    "c64.graphics",
+    { op: "generate_sprite", sprite, index: 1, x: 140, y: 120, color: 5 },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].spriteBytes.length, 63);
+  assert.equal(calls[0].spriteIndex, 1);
+  assert.equal(calls[0].x, 140);
+  assert.equal(calls[0].y, 120);
+  assert.equal(calls[0].color, 5);
+});
+
+test("c64.graphics generate_bitmap reports placeholder error", async () => {
+  const ctx = {
+    client: {},
+    rag: {},
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke("c64.graphics", { op: "generate_bitmap" }, ctx);
+
+  assert.equal(result.isError, true);
+  assert.equal(result.metadata?.error?.kind, "execution");
+  assert.equal(result.metadata?.error?.details?.available, false);
+});
+
+test("c64.rag basic retrieval delegates to RAG layer", async () => {
+  const queries = [];
+  const stubRag = {
+    async retrieve(q, k, language) {
+      queries.push({ q, k, language });
+      return [
+        {
+          snippet: "10 PRINT \"HELLO\"",
+          score: 0.9,
+          origin: "basic.md#hello",
+        },
+      ];
+    },
+  };
+
+  const ctx = {
+    client: {},
+    rag: stubRag,
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.rag",
+    { op: "basic", q: "print border" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(queries.length, 1);
+  assert.equal(queries[0].language, "basic");
+  assert.equal(queries[0].q, "print border");
+  assert.equal(queries[0].k, 3);
+  assert.ok(result.structuredContent?.data?.refs?.length);
+});
+
+test("c64.rag asm retrieval delegates to RAG layer", async () => {
+  const queries = [];
+  const stubRag = {
+    async retrieve(q, k, language) {
+      queries.push({ q, k, language });
+      return [];
+    },
+  };
+
+  const ctx = {
+    client: {},
+    rag: stubRag,
+    logger: {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+    platform: getPlatformStatus(),
+    setPlatform,
+  };
+
+  const result = await toolRegistry.invoke(
+    "c64.rag",
+    { op: "asm", q: "stable raster irq" },
+    ctx,
+  );
+
+  assert.equal(result.isError, undefined);
+  assert.equal(queries.length, 1);
+  assert.equal(queries[0].language, "asm");
+  assert.equal(queries[0].q, "stable raster irq");
+  assert.equal(queries[0].k, 3);
 });

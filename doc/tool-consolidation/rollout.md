@@ -49,7 +49,7 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 - [x] Migrate SID/music operations into `c64.sound`, covering pipeline/analysis flows and the `verify` flag on `silence_all`; refresh audio tests. *(2025-10-31)*
 - [x] Expand `c64.system` to include power/menu controls plus background task operations, ensuring pause/resume semantics remain unchanged. *(2025-11-01)*
-- [ ] Consolidate PETSCII/sprite helpers into `c64.graphics` (including the forthcoming bitmap generator hook) and move BASIC/ASM retrieval to `c64.rag`; update prompts/tests referencing these tools.
+- [x] Consolidate PETSCII/sprite helpers into `c64.graphics` (including the forthcoming bitmap generator hook) and move BASIC/ASM retrieval to `c64.rag`; update prompts/tests referencing these tools. *(2025-10-31)*
 
 ## Phase 4 — Storage & Peripheral Tools
 

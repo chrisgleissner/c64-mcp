@@ -282,7 +282,7 @@ The indexer only touches files when content changes to avoid noisy diffs.
 
 ### Using the Retriever
 
-- Tools: call `rag_retrieve_basic` or `rag_retrieve_asm` over the MCP stdio session with `{ "q": "query", "k": 3 }` to pull BASIC or assembly references.
+- Tools: call `c64.rag` (op `basic` or `asm`) over the MCP stdio session with `{ "q": "query", "k": 3 }` to pull BASIC or assembly references.
 - Optional HTTP probe: only if you manually launch the legacy Fastify server (see "Optional HTTP Compatibility" in `doc/troubleshooting-mcp.md`), you can `GET /rag/retrieve?q=<text>&k=3&lang=basic|asm` for quick inspection.
 
 ```bash

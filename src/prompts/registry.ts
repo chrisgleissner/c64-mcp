@@ -449,8 +449,8 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/vic",
           "c64://context/bootstrap",
         ],
-        optionalResources: ["c64://specs/assembly", "c64://specs/charset", "c64://docs/petscii-style"],
-  tools: ["c64.program", "c64.memory", "render_petscii_screen"],
+  optionalResources: ["c64://specs/assembly", "c64://specs/charset", "c64://docs/petscii-style"],
+  tools: ["c64.program", "c64.memory", "c64.graphics"],
         tags: ["graphics", "vic"],
       },
       arguments: [
@@ -464,15 +464,15 @@ export function createPromptRegistry(): PromptRegistry {
       selectTools: (args) => {
         const mode = args.mode as GraphicsMode | undefined;
         if (mode === "sprite") {
-          return ["generate_sprite_prg", "c64.memory"];
+          return ["c64.graphics", "c64.memory"];
         }
         if (mode === "bitmap" || mode === "multicolour") {
-          return ["c64.memory"];
+          return ["c64.graphics", "c64.memory"];
         }
         if (mode === "text") {
-          return ["create_petscii_image", "c64.memory"];
+          return ["c64.graphics", "c64.memory"];
         }
-        return ["c64.memory"];
+        return ["c64.graphics", "c64.memory"];
       },
       buildMessages: (args) => {
         const mode = args.mode as GraphicsMode | undefined;

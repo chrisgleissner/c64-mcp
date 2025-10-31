@@ -1,5 +1,6 @@
 import type { JsonSchema, ToolDescriptor, ToolExecutionContext, ToolModule, ToolRunResult } from "./types.js";
 import { createOperationDispatcher, defineToolModule, discriminatedUnionSchema, OPERATION_DISCRIMINATOR } from "./types.js";
+import { ToolExecutionError, toolErrorResult } from "./errors.js";
 import { programRunnersModule, programOperationHandlers as groupedProgramHandlers } from "./programRunners.js";
 import { memoryModule, memoryOperationHandlers as groupedMemoryHandlers } from "./memory.js";
 import { audioModule } from "./audio.js";
@@ -140,6 +141,8 @@ const audioDescriptorIndex = new Map(audioModule.describeTools().map((descriptor
 const metaDescriptorIndex = new Map(metaModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const memoryDescriptorIndex = new Map(memoryModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 const machineDescriptorIndex = new Map(machineControlModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
+const graphicsDescriptorIndex = new Map(graphicsModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
+const ragDescriptorIndex = new Map(ragModule.describeTools().map((descriptor) => [descriptor.name, descriptor]));
 
 function ensureDescriptor(
   index: Map<string, ToolDescriptor>,
@@ -702,6 +705,180 @@ const groupedSystemModule = systemOperations.length === 0
       ],
     });
 
+    const graphicsOperations: GroupedOperationConfig[] = [
+      {
+        op: "create_petscii",
+        module: graphicsModule,
+        legacyName: "create_petscii_image",
+        schema: extendSchemaWithOp(
+          "create_petscii",
+          ensureDescriptor(graphicsDescriptorIndex, "create_petscii_image").inputSchema,
+          { description: "Generate PETSCII art from prompts, text, or explicit bitmap data." },
+        ),
+        transform: dropOpTransform,
+      },
+      {
+        op: "render_petscii",
+        module: graphicsModule,
+        legacyName: "render_petscii_screen",
+        schema: extendSchemaWithOp(
+          "render_petscii",
+          ensureDescriptor(graphicsDescriptorIndex, "render_petscii_screen").inputSchema,
+          { description: "Render PETSCII text with optional border/background colours." },
+        ),
+        transform: dropOpTransform,
+      },
+      {
+        op: "generate_sprite",
+        module: graphicsModule,
+        legacyName: "generate_sprite_prg",
+        schema: extendSchemaWithOp(
+          "generate_sprite",
+          ensureDescriptor(graphicsDescriptorIndex, "generate_sprite_prg").inputSchema,
+          { description: "Build and run a sprite PRG from raw 63-byte sprite data." },
+        ),
+        transform: dropOpTransform,
+      },
+      {
+        op: "generate_bitmap",
+        schema: extendSchemaWithOp(
+          "generate_bitmap",
+          {
+            description: "Reserved high-resolution bitmap generator (coming soon).",
+            type: "object",
+            properties: {},
+            additionalProperties: false,
+          },
+          { description: "Reserved high-resolution bitmap generator (coming soon)." },
+        ),
+        handler: async () => toolErrorResult(
+          new ToolExecutionError("c64.graphics op generate_bitmap is not yet available", {
+            details: { available: false },
+          }),
+        ),
+      },
+    ];
+
+    const graphicsOperationHandlers = createOperationHandlers(graphicsOperations);
+
+    const groupedGraphicsModule = graphicsOperations.length === 0
+      ? null
+      : defineToolModule({
+          domain: "graphics",
+          summary: "Grouped PETSCII, sprite, and upcoming bitmap helpers.",
+          resources: ["c64://specs/vic", "c64://specs/basic", "c64://specs/assembly"],
+          prompts: ["graphics-demo", "basic-program", "assembly-program"],
+          defaultTags: ["graphics", "vic"],
+          workflowHints: [
+            "Use PETSCII helpers for text art and clarify whether the BASIC program executed or stayed a dry run.",
+            "Mention sprite positions/colours so follow-up memory inspection stays grounded.",
+          ],
+          supportedPlatforms: ["c64u", "vice"],
+          tools: [
+            {
+              name: "c64.graphics",
+              description: "Grouped entry point for PETSCII art, sprite previews, and future bitmap generation.",
+              summary: "Generates PETSCII art, renders text screens, or runs sprite demos from one tool.",
+              inputSchema: discriminatedUnionSchema({
+                description: "Graphics operations available via the c64.graphics tool.",
+                variants: graphicsOperations.map((operation) => operation.schema),
+              }),
+              tags: ["graphics", "vic", "grouped"],
+              examples: [
+                {
+                  name: "Create PETSCII art (dry run)",
+                  description: "Synthesize art without uploading to the C64",
+                  arguments: { op: "create_petscii", prompt: "duck on a pond", dryRun: true },
+                },
+                {
+                  name: "Render PETSCII text",
+                  description: "Print HELLO with blue border",
+                  arguments: { op: "render_petscii", text: "HELLO", borderColor: 6 },
+                },
+                {
+                  name: "Display sprite",
+                  description: "Show sprite data at coordinates",
+                  arguments: { op: "generate_sprite", sprite: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
+                },
+              ],
+              execute: createOperationDispatcher<GenericOperationMap>(
+                "c64.graphics",
+                graphicsOperationHandlers,
+              ),
+            },
+          ],
+        });
+
+    const ragOperations: GroupedOperationConfig[] = [
+      {
+        op: "basic",
+        module: ragModule,
+        legacyName: "rag_retrieve_basic",
+        schema: extendSchemaWithOp(
+          "basic",
+          ensureDescriptor(ragDescriptorIndex, "rag_retrieve_basic").inputSchema,
+          { description: "Retrieve BASIC references and snippets from the local knowledge base." },
+        ),
+        transform: dropOpTransform,
+      },
+      {
+        op: "asm",
+        module: ragModule,
+        legacyName: "rag_retrieve_asm",
+        schema: extendSchemaWithOp(
+          "asm",
+          ensureDescriptor(ragDescriptorIndex, "rag_retrieve_asm").inputSchema,
+          { description: "Retrieve 6502/6510 assembly references from the local knowledge base." },
+        ),
+        transform: dropOpTransform,
+      },
+    ];
+
+    const ragOperationHandlers = createOperationHandlers(ragOperations);
+
+    const groupedRagModule = ragOperations.length === 0
+      ? null
+      : defineToolModule({
+          domain: "rag",
+          summary: "Grouped retrieval helpers for BASIC and assembly references.",
+          resources: ["c64://specs/basic", "c64://specs/assembly", "c64://context/bootstrap"],
+          prompts: ["basic-program", "assembly-program"],
+          defaultTags: ["rag", "search"],
+          workflowHints: [
+            "Use BASIC retrieval before synthesising new BASIC code and mention primary resources in responses.",
+            "For assembly, note registers or addresses surfaced so the user can inspect them further.",
+          ],
+          supportedPlatforms: ["c64u", "vice"],
+          tools: [
+            {
+              name: "c64.rag",
+              description: "Grouped entry point for BASIC and assembly RAG lookups.",
+              summary: "Returns curated knowledge references for BASIC or 6502/6510 assembly queries.",
+              inputSchema: discriminatedUnionSchema({
+                description: "RAG operations available via the c64.rag tool.",
+                variants: ragOperations.map((operation) => operation.schema),
+              }),
+              tags: ["rag", "knowledge", "grouped"],
+              examples: [
+                {
+                  name: "Lookup BASIC references",
+                  description: "Find PRINT syntax guidance",
+                  arguments: { op: "basic", q: "basic print device 4" },
+                },
+                {
+                  name: "Retrieve assembly snippet",
+                  description: "Search for raster IRQ examples",
+                  arguments: { op: "asm", q: "stable raster irq" },
+                },
+              ],
+              execute: createOperationDispatcher<GenericOperationMap>(
+                "c64.rag",
+                ragOperationHandlers,
+              ),
+            },
+          ],
+        });
+
 const toolModules: ToolModule[] = [
   audioModule,
   machineControlModule,
@@ -720,6 +897,18 @@ if (groupedSoundModule) {
 
 if (groupedSystemModule) {
   toolModules.splice(2, 0, groupedSystemModule);
+}
+
+if (groupedGraphicsModule) {
+  const index = toolModules.indexOf(graphicsModule);
+  const insertAt = index >= 0 ? index : toolModules.length;
+  toolModules.splice(insertAt, 0, groupedGraphicsModule);
+}
+
+if (groupedRagModule) {
+  const index = toolModules.indexOf(ragModule);
+  const insertAt = index >= 0 ? index : toolModules.length;
+  toolModules.splice(insertAt, 0, groupedRagModule);
 }
 
 if (groupedProgramModule) {

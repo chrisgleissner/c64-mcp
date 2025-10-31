@@ -29,7 +29,8 @@ npm start
 - **System control**: `c64.system` (operations: `pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, `start_task`, `stop_task`, `stop_all_tasks`, `list_tasks`) plus standalone `version`, `info`, `debugreg_read`, `debugreg_write` while consolidation continues.
 - **Drives & files**: `drives` (list), `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64`, `create_d71`, `create_d81`, `create_dnp`.
 - **SID / music**: `c64.sound` (operations: `set_volume`, `note_on`, `note_off`, `reset`, `silence_all`, `generate`, `compile_play`, `pipeline`, `play_sid_file`, `play_mod_file`, `analyze`, `record_analyze`). Legacy tool IDs (for example `sid_volume`) stay available until rollout completion. For a concise SID overview document, call `GET /knowledge/sid_overview`. For practical SID programming with expressive children's songs, see `data/audio/sid-programming-best-practices.md` and the example `data/basic/examples/audio/alle-meine-entchen-expressive.bas`.
-- **Knowledge & RAG**: `basic_spec`, `assembly_spec`, `rag_retrieve_basic`, `rag_retrieve_asm`, plus `GET /rag/retrieve` for quick experiments.
+- **Graphics**: `c64.graphics` (operations: `create_petscii`, `render_petscii`, `generate_sprite`, `generate_bitmap` — placeholder until hires generator lands).
+- **Knowledge & RAG**: `basic_spec`, `assembly_spec`, `c64.rag` (ops `basic`, `asm`), plus `GET /rag/retrieve` for quick experiments.
 
 Tools and parameters are listed by the server at runtime via ListTools.
 
