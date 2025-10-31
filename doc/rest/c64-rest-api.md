@@ -1,6 +1,6 @@
 # C64 REST API Reference
 
-This document is a concise version of the offical [Ultimate REST API guide](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html).
+This document is a concise version of the official [Ultimate REST API guide](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html).
 
 ## HTTP Basics
 
