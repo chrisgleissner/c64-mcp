@@ -312,6 +312,10 @@ export class ViceBackend implements C64Facade {
     }
   }
 
+  async withMonitor<T>(fn: (client: ViceClient) => Promise<T>): Promise<T> {
+    return this.withClient(fn);
+  }
+
   async ping(): Promise<boolean> {
     try {
       await this.withClient(async (client) => {

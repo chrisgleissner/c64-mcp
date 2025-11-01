@@ -12,9 +12,20 @@ import { basicToPrg } from "./basicConverter.js";
 import { assemblyToPrg } from "./assemblyConverter.js";
 import { screenCodesToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
-import { C64Facade, createFacade } from "./device.js";
+import { C64Facade, createFacade, ViceBackend } from "./device.js";
 import { Api, HttpClient } from "../generated/c64/index.js";
 import { createLoggingHttpClient } from "./loggingHttpClient.js";
+import type {
+  ViceClient,
+  ViceCheckpoint,
+  ViceCheckpointCreateOptions,
+  ViceDisplaySnapshot,
+  ViceMemspace,
+  ViceRegisterMetadata,
+  ViceRegisterValue,
+  ViceRegisterWrite,
+  ViceResourceValue,
+} from "./vice/viceClient.js";
 
 export interface RunBasicResult {
   success: boolean;
@@ -37,6 +48,19 @@ export class C64Client {
     this.api = new Api(this.http);
     // Select backend once lazily; keep REST for hardware-specific fallbacks
     this.facadePromise = createFacade(undefined, { preferredC64uBaseUrl: baseUrl }).then((sel) => sel.facade);
+  }
+
+  private async requireViceBackend(): Promise<ViceBackend> {
+    const facade = await this.facadePromise;
+    if (facade.type !== "vice") {
+      throw new Error("VICE-specific operation requested while connected to Ultimate hardware");
+    }
+    return facade as ViceBackend;
+  }
+
+  private async withViceMonitor<T>(fn: (client: ViceClient) => Promise<T>): Promise<T> {
+    const backend = await this.requireViceBackend();
+    return backend.withMonitor(fn);
   }
 
   /**
@@ -687,6 +711,90 @@ export class C64Client {
     }
     return body instanceof ArrayBuffer ? new Uint8Array(body) : this.extractBytes(body);
   }
+
+    async viceCheckpointList(): Promise<ViceCheckpoint[]> {
+      return this.withViceMonitor((client) => client.checkpointList());
+    }
+
+    async viceCheckpointGet(id: number): Promise<ViceCheckpoint> {
+      return this.withViceMonitor((client) => client.checkpointGet(id));
+    }
+
+    async viceCheckpointCreate(options: ViceCheckpointCreateOptions): Promise<ViceCheckpoint> {
+      const payload: ViceCheckpointCreateOptions =
+        options.memspace === undefined
+          ? options
+          : { ...options, memspace: this.normaliseMemspace(options.memspace) };
+      return this.withViceMonitor((client) => client.checkpointCreate(payload));
+    }
+
+    async viceCheckpointDelete(id: number): Promise<void> {
+      await this.withViceMonitor((client) => client.checkpointDelete(id));
+    }
+
+    async viceCheckpointToggle(id: number, enabled: boolean): Promise<void> {
+      await this.withViceMonitor((client) => client.checkpointToggle(id, enabled));
+    }
+
+    async viceCheckpointSetCondition(id: number, expression: string): Promise<void> {
+      await this.withViceMonitor((client) => client.checkpointSetCondition(id, expression));
+    }
+
+    async viceRegistersAvailable(memspace: number = 0): Promise<ViceRegisterMetadata[]> {
+      const space = this.normaliseMemspace(memspace);
+      return this.withViceMonitor((client) => client.registersAvailable(space));
+    }
+
+    async viceRegistersGet(memspace: number = 0): Promise<ViceRegisterValue[]> {
+      const space = this.normaliseMemspace(memspace);
+      return this.withViceMonitor((client) => client.registersGet(space));
+    }
+
+    async viceRegistersSet(
+      writes: readonly ViceRegisterWrite[],
+      options?: { readonly memspace?: number; readonly metadata?: readonly ViceRegisterMetadata[] },
+    ): Promise<ViceRegisterValue[]> {
+      let payload: { readonly memspace?: ViceMemspace; readonly metadata?: readonly ViceRegisterMetadata[] } | undefined;
+      if (options) {
+        payload = {
+          ...(options.metadata ? { metadata: options.metadata } : {}),
+          ...(options.memspace !== undefined ? { memspace: this.normaliseMemspace(options.memspace) } : {}),
+        };
+      }
+      return this.withViceMonitor((client) => client.registersSet(writes, payload));
+    }
+
+    async viceStepInstructions(count = 1, options?: { readonly stepOver?: boolean }): Promise<void> {
+      await this.withViceMonitor((client) => client.stepInstructions(count, options));
+    }
+
+    async viceStepReturn(): Promise<void> {
+      await this.withViceMonitor((client) => client.stepReturn());
+    }
+
+    async viceDisplayGet(options?: { readonly alternateCanvas?: boolean; readonly format?: number }): Promise<ViceDisplaySnapshot> {
+      return this.withViceMonitor((client) => client.displayGet(options));
+    }
+
+    async viceResourceGet(name: string): Promise<ViceResourceValue> {
+      return this.withViceMonitor((client) => client.resourceGet(name));
+    }
+
+    async viceResourceSet(name: string, value: string | number): Promise<void> {
+      await this.withViceMonitor((client) => client.resourceSet(name, value));
+    }
+
+    private normaliseMemspace(value: number | undefined): ViceMemspace {
+      const allowed: readonly ViceMemspace[] = [0, 1, 2, 3, 4];
+      if (value === undefined) {
+        return 0;
+      }
+      const numeric = Number(value);
+      if (allowed.includes(numeric as ViceMemspace)) {
+        return numeric as ViceMemspace;
+      }
+      return 0;
+    }
 
   private normaliseError(error: unknown): unknown {
     if (axios.isAxiosError(error)) {

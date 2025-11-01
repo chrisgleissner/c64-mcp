@@ -205,7 +205,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **12 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **13 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -341,6 +341,24 @@ Grouped entry point for SID control, playback, composition, and analysis workflo
 | `reset` | Soft or hard reset of SID registers to clear glitches. | — | — |
 | `set_volume` | Set the SID master volume register at $D418 (0-15). | `volume` | — |
 | `silence_all` | Silence all SID voices with optional audio verification. | — | supports verify |
+
+#### c64_debug
+
+Grouped entry point for VICE debugger operations (breakpoints, registers, stepping).
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `list_checkpoints` | List all active VICE checkpoints (breakpoints). | — | — |
+| `get_checkpoint` | Inspect a checkpoint by id, including address range and flags. | `id` | — |
+| `create_checkpoint` | Create a checkpoint with optional range, operation filters, and memspace. | `address` | supports memspace |
+| `delete_checkpoint` | Remove a checkpoint by id. | `id` | — |
+| `toggle_checkpoint` | Enable or disable a checkpoint. | `id`, `enabled` | — |
+| `set_condition` | Attach or replace a monitor conditional expression. | `id`, `expression` | — |
+| `list_registers` | List register metadata for the current memspace. | — | — |
+| `get_registers` | Read register values, optionally filtered by id or name. | — | supports selectors |
+| `set_registers` | Write register values by id or case-insensitive name. | `writes` | supports selectors |
+| `step` | Single-step CPU execution (into/over). | — | accepts `mode` |
+| `step_return` | Continue execution until the current routine returns. | — | — |
 
 #### c64_stream
 

@@ -68,8 +68,8 @@ Acceptance:
 
 Checklist:
 
-- [ ] Implement BM: `0x11/0x12/0x13/0x14/0x15` (breakpoints), `0x22` (conditions), `0x71/0x73` (step/return), `0x31/0x32` (registers), `0x82/0x83` (banks/registers metadata).
-- [ ] Add grouped module `c64_debug` with ops for the above; mark `supportedPlatforms: ["vice"]`.
+- [x] Implement BM: `0x11/0x12/0x13/0x14/0x15` (breakpoints), `0x22` (conditions), `0x71/0x73` (step/return), `0x31/0x32` (registers), `0x82/0x83` (banks/registers metadata).
+- [x] Add grouped module `c64_debug` with ops for the above; mark `supportedPlatforms: ["vice"]`.
 
 Acceptance:
 
