@@ -4,6 +4,14 @@
 
 
 
+
+## 0.7.2 - 2025-11-01
+
+### Chores
+
+- Improve release process (55d76a8)
+- prepare release 0.7.1 (720871e)
+
 ## 0.7.1 - 2025-11-01
 
 - No notable changes in this release.

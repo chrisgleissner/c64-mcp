@@ -1,6 +1,6 @@
 {
   "name": "c64bridge",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
