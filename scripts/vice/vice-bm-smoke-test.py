@@ -114,15 +114,21 @@ def run_basic_hello():
         0x22,0x48,0x45,0x4C,0x4C,0x4F,0x20,0x57,0x4F,0x52,0x4C,0x44,0x22,
         0x00,0x15,0x08,0x14,0x00,0x80,0x00,0x00
     ])
-    write_mem(0x0801, program)
+    program_base = 0x0801
+    write_mem(program_base, program)
 
-    # Update BASIC pointers so the interpreter sees the program
-    program_end = 0x0801 + len(program)
-    pointers = struct.pack("<H", 0x0801)
-    write_mem(0x002B, pointers)  # Start of BASIC
-    end_ptr = struct.pack("<H", program_end)
-    write_mem(0x002D, end_ptr)   # Start of variables
-    write_mem(0x002F, end_ptr)   # Start of arrays
+    # Update BASIC pointers so the interpreter sees the program.
+    # `program_end` is stored as the pointer to the next line after the first 0-terminator.
+    line_break = program.index(0x00, 4)
+    program_end = struct.unpack("<H", program[line_break + 1:line_break + 3])[0]
+    pointer_blob = struct.pack(
+        "<HHHH",
+        program_base,  # TXTTAB ($2B)
+        program_end,   # VARTAB ($2D)
+        program_end,   # ARYTAB ($2F)
+        program_end    # STREND ($31)
+    )
+    write_mem(0x002B, pointer_blob)
 
     print("[+] BASIC program loaded.")
 
@@ -137,7 +143,10 @@ def run_basic_hello():
     if HELLO_WORLD_PETSCII in screen:
         print("[✓] Detected 'HELLO WORLD' on screen.")
     else:
-        raise RuntimeError("Did not detect 'HELLO WORLD' on screen.")
+        snippet = " ".join(f"{b:02X}" for b in screen[:40])
+        raise RuntimeError(
+            "Did not detect 'HELLO WORLD' on screen. First row bytes: " + snippet
+        )
 
 # ----------------------------------------------------------------------
 # Main
