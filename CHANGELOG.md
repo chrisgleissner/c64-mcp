@@ -5,6 +5,18 @@
 
 
 
+
+## 0.7.3 - 2025-11-01
+
+### Chores
+
+- Improve release workflow (55855e6)
+- prepare release 0.7.2 (dc038da)
+
+### Other
+
+- Added Vice docs (59f9d95)
+
 ## 0.7.2 - 2025-11-01
 
 ### Chores
