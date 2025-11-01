@@ -64,6 +64,7 @@ Key env flags:
 - `C64_MODE=c64u|vice` — force backend
 - `LOG_LEVEL=debug` — verbose logging (stderr)
 - `C64_TEST_TARGET` / `C64_TEST_BASE_URL` — influence test harness
+- `VICE_TEST_TARGET=mock|vice` — test selection for VICE (default: auto-detect real VICE; set `mock` to run against the BM stub during tests)
 
 ### VICE smoke test (Binary Monitor)
 
@@ -113,6 +114,7 @@ Env knobs:
 - `VICE_WARP=0` — disable warp so you can observe visible output
 - `VICE_KEEP_OPEN=1` — keep window open after success
   (The smoke test registers exit/signal handlers and tears down spawned processes; with `VICE_KEEP_OPEN=1` only your visible VICE is left running.)
+- `VICE_TEST_TARGET=mock` — run the smoke test against the BM stub instead of launching VICE (useful on CI or platforms without VICE installed)
 
 Implementation tip: programmatic shutdown
 

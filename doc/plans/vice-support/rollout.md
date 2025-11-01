@@ -16,6 +16,7 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 - After any change, run `npm run check` and only proceed if it passes.
 - Keep changes minimal and focused on the current phase; update tests and docs alongside code changes.
 - Preserve hardware behaviors; do not introduce fake drive/config semantics under VICE.
+- Prefer using a real VICE binary when available; fall back to the BM stub only when explicitly requested (see Test Harness checklist).
 
 ## CI and Headless Testing
 
@@ -31,6 +32,7 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 - [ ] Keep the smoke test simple: start VICE, wait for READY., inject a tiny BASIC program, RUN, verify the screen, clean up processes.
 - [ ] Do not grow the smoke test further; any new VICE features must have their own normal tests (unit/integration) alongside other prod features under `test/`.
 - [ ] Avoid UI‑sensitive/timing‑brittle assertions in the smoke test; prefer feature‑specific tests for deeper coverage.
+- [ ] Gate smoke-test execution behind the same flag used in phase deliverables (e.g., real VICE unless `VICE_TEST_TARGET=mock`).
 
 ## Phase 1 — Core client + screen/memory/system (Foundations)
 
@@ -40,10 +42,13 @@ Checklist:
 - [ ] Add smoke test (`test/vice/viceSmokeTest.ts`): launch VICE, wait READY., inject BASIC, RUN, verify screen; include process cleanup; support visible and headless.
 - [ ] Wire `src/device.ts` `ViceBackend` to use the client for: `ping`, `version`, `info`, `reset`, `readMemory`, `writeMemory`; `pause`/`resume` via monitor enter/exit.
 - [ ] Update platform features (`src/platform.ts`) for VICE: `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
+- [ ] Introduce a BM stub (`src/vice/mockServer.ts` or similar) for tests: respond to minimal command set; controlled via flag `VICE_TEST_TARGET=mock`. Default should attempt real VICE.
+- [ ] Document env detection order (developer guide): real VICE when available; stub only when explicitly requested; tests skip gracefully if neither is present.
 
 Acceptance:
 
 - [ ] Under `C64_MODE=vice`, `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work end‑to‑end using BM.
+- [ ] Smoke test passes both with real VICE (default) and with the stub (`VICE_TEST_TARGET=mock`).
 
 ## Phase 2 — Long‑lived process + injection runners
 

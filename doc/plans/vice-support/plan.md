@@ -67,6 +67,11 @@ Objective: Provide first‑class VICE emulator support in the MCP server using t
    - New grouped tool `c64_debug` exposing BM features: set/list/delete/toggle breakpoints, conditionals, step/next/return, register get/set, banks list, display get.
    - Separate from generic memory/system tools to avoid confusing capabilities across platforms.
 
+7) Test Harness & Stub (`src/vice/mockServer.ts` + helpers)
+   - Provide a lightweight BM stub that responds to the limited command surface the smoke test and unit tests rely on (`info`, `reset`, `memGet`, `memSet`, `keyboardFeed`, screen snapshot).
+   - Controlled via an opt-in flag (e.g., `VICE_TEST_TARGET=mock`), mirroring the C64U test flags. Default behavior: use real VICE when available.
+   - Document detection order: if `VICE_TEST_TARGET=mock`, start the stub; otherwise attempt to start VICE (skip tests gracefully when neither is available).
+
 ## Acceptance Guidelines
 
 - Under `C64_MODE=vice`, the following must succeed without REST using the long‑lived process:
