@@ -435,22 +435,23 @@ function renderPlatformStatusMarkdown(): string {
 async function logConnectivity(client: C64Client, baseUrl: string): Promise<void> {
   const c64Logger = loggerFor("c64u");
   const startedAt = Date.now();
+  const infoUrl = new URL("/v1/info", baseUrl).toString();
   let response: AxiosResponse | null = null;
 
   try {
-    const probeResponse = await axios.get(baseUrl, { timeout: 2000 });
+    const probeResponse = await axios.get(infoUrl, { timeout: 2000 });
     response = probeResponse;
     const latency = Date.now() - startedAt;
     const bytes = payloadByteLength(probeResponse.data);
-    c64Logger.info(`GET ${baseUrl} status=${probeResponse.status} bytes=${bytes} latencyMs=${latency}`);
+    c64Logger.info(`GET ${infoUrl} status=${probeResponse.status} bytes=${bytes} latencyMs=${latency}`);
   } catch (error) {
     const latency = Date.now() - startedAt;
     if (axios.isAxiosError(error)) {
       const status = error.response?.status ?? "ERR";
       const bytes = error.response ? payloadByteLength(error.response.data) : 0;
-      c64Logger.warn(`GET ${baseUrl} status=${status} bytes=${bytes} latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      c64Logger.warn(`GET ${infoUrl} status=${status} bytes=${bytes} latencyMs=${latency} error=${formatErrorMessage(error)}`);
     } else {
-      c64Logger.error(`GET ${baseUrl} status=ERR bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
+      c64Logger.error(`GET ${infoUrl} status=ERR bytes=0 latencyMs=${latency} error=${formatErrorMessage(error)}`);
     }
     console.log(`Skipping direct REST connectivity probe (no hardware REST base reachable at ${baseUrl})`);
     return;
