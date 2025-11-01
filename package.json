@@ -35,7 +35,8 @@
     "rag:discover": "node scripts/invoke-bun.mjs src/rag/discover.ts",
     "changelog:generate": "node scripts/generate-changelog.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
-    "compare:rest": "node scripts/compare-rest-apis.mjs"
+    "compare:rest": "node scripts/compare-rest-apis.mjs",
+    "vice:smoke": "node scripts/invoke-bun.mjs test/vice/viceSmokeTest.ts"
   },
   "keywords": [
     "mcp",

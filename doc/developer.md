@@ -28,6 +28,7 @@ bun install          # faster workflow (respects package-lock)
 | Coverage report | `npm run coverage` (emits `coverage/lcov.info`) |
 | End-to-end smoke (local/npm) | `npm run check:run-local` · `npm run check:run-npm` |
 | Node-only sanity | `npm run check:node-compat` |
+| VICE smoke (readiness + HELLO) | `npm run vice:smoke` |
 
 `scripts/invoke-bun.mjs` automatically delegates npm scripts to Bun when available; stay on the npm variants if Bun is not installed.
 
@@ -64,6 +65,8 @@ Key env flags:
 - `LOG_LEVEL=debug` — verbose logging (stderr)
 - `C64_TEST_TARGET` / `C64_TEST_BASE_URL` — influence test harness
 
+### VICE smoke test (Binary Monitor)
+
 ## 6. RAG Maintenance
 
 - Indices live under [`data/embeddings_*.json`](../data/)
@@ -95,3 +98,28 @@ Environment knobs: `RAG_EMBEDDINGS_DIR`, `RAG_BUILD_ON_START`, `RAG_REINDEX_INTE
 - Logs quiet? Remember all server logs emit to stderr to keep stdout dedicated to MCP.
 
 Stay in lockstep with the [README](../README.md) and [`AGENTS.md`](../AGENTS.md) when introducing features so external docs remain accurate.
+### VICE smoke test (Binary Monitor)
+
+Quick sanity that VICE is reachable and BASIC readiness + simple run works end‑to‑end.
+
+```bash
+npm run vice:smoke
+```
+
+Env knobs:
+
+- `VICE_BINARY=/path/to/x64sc` — pick emulator binary
+- `VICE_VISIBLE=1` — show the VICE window (recommended during dev)
+- `VICE_WARP=0` — disable warp so you can observe visible output
+- `VICE_KEEP_OPEN=1` — keep window open after success
+  (The smoke test registers exit/signal handlers and tears down spawned processes; with `VICE_KEEP_OPEN=1` only your visible VICE is left running.)
+
+Implementation tip: programmatic shutdown
+
+- The internal `ViceClient` supports a graceful emulator quit via the Binary Monitor `0xBB Quit` command (`await client.quit()`), and a monitor exit (`0xAA`) if needed. Prefer this over sending signals when integrating VICE control into production code; retain a short SIGTERM fallback.
+
+What it does:
+
+- Launches VICE with the Binary Monitor, waits for the port (≤4s), connects.
+- Resets the machine and waits until BASIC pointers are initialised at $0801 and READY. is visible.
+- Injects a small BASIC program (`PRINT "HELLO"`), RUNs it, and polls the screen for HELLO.
