@@ -4,13 +4,14 @@
 
 import axios from "axios";
 import { Buffer } from "node:buffer";
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Api } from "../generated/c64/index.js";
 import { createLoggingHttpClient } from "./loggingHttpClient.js";
 import { ViceClient } from "./vice/viceClient.js";
+import { waitForBasicReady } from "./vice/readiness.js";
+import { startViceProcess, type ViceProcessHandle } from "./vice/process.js";
 
 export type DeviceType = "c64u" | "vice";
 
@@ -227,14 +228,81 @@ export class ViceBackend implements C64Facade {
   private readonly exe: string;
   private readonly host: string;
   private readonly port: number;
+  private readonly manageProcess: boolean;
+  private readonly mockMode: boolean;
+  private readonly warp: boolean;
+  private readonly visible: boolean;
+  private readonly extraArgs: string[];
+  private static readonly supervisors = new Map<string, ViceProcessHandle>();
 
   constructor(config: ViceConfig) {
-    this.exe = config.exe || which("x64sc") || which("x64") || "x64sc";
-    this.host = normaliseViceHost(config.host) ?? DEFAULT_VICE_HOST;
-    this.port = normaliseVicePort(config.port) ?? DEFAULT_VICE_PORT;
+    const envBinary = configuredString(process.env.VICE_BINARY);
+    this.exe = configuredString(config.exe) ?? envBinary ?? which("x64sc") ?? which("x64") ?? "x64sc";
+
+    const envHost = normaliseViceHost(process.env.VICE_HOST);
+    const envPort = normaliseVicePort(process.env.VICE_PORT);
+    this.host = firstDefined(envHost, normaliseViceHost(config.host)) ?? DEFAULT_VICE_HOST;
+    this.port = firstDefined(envPort, normaliseVicePort(config.port)) ?? DEFAULT_VICE_PORT;
+
+    this.mockMode = (process.env.VICE_TEST_TARGET || "").toLowerCase() === "mock";
+    const hostLower = this.host.toLowerCase();
+    const isLocal = hostLower === "127.0.0.1" || hostLower === "localhost";
+    this.manageProcess = !this.mockMode && isLocal;
+
+    const warpEnv = process.env.VICE_WARP;
+    const visibleEnv = process.env.VICE_VISIBLE;
+    this.visible = visibleEnv === "1";
+    if (warpEnv === "0") this.warp = false;
+    else if (warpEnv === "1") this.warp = true;
+    else this.warp = !this.visible;
+
+    const argsEnv = configuredString(process.env.VICE_ARGS);
+    this.extraArgs = argsEnv ? parseArgsList(argsEnv) : [];
+  }
+
+  private async tryPingExisting(): Promise<boolean> {
+    const client = new ViceClient();
+    try {
+      await client.connect(this.port, this.host);
+      await client.info();
+      return true;
+    } catch {
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
+  private async ensureProcess(): Promise<void> {
+    if (!this.manageProcess) return;
+    const key = `${this.host}:${this.port}`;
+    const existing = ViceBackend.supervisors.get(key);
+    if (existing) {
+      const running = existing.process.exitCode === null && existing.process.signalCode === null;
+      if (running) return;
+      try { await existing.stop(); } catch {}
+      ViceBackend.supervisors.delete(key);
+    }
+    if (await this.tryPingExisting()) return;
+    const handle = await startViceProcess({
+      binary: this.exe,
+      host: this.host,
+      port: this.port,
+      warp: this.warp,
+      visible: this.visible,
+      extraArgs: this.extraArgs.length > 0 ? this.extraArgs : undefined,
+    });
+    ViceBackend.supervisors.set(key, handle);
+    handle.process.once("exit", () => {
+      ViceBackend.supervisors.delete(key);
+    });
+    process.once("exit", () => {
+      handle.stop().catch(() => {});
+    });
   }
 
   private async withClient<T>(fn: (client: ViceClient) => Promise<T>): Promise<T> {
+    if (!this.mockMode) await this.ensureProcess();
     const client = new ViceClient();
     await client.connect(this.port, this.host);
     try {
@@ -255,25 +323,43 @@ export class ViceBackend implements C64Facade {
     }
   }
 
-  async runPrg(prg: Uint8Array | Buffer): Promise<RunResult> {
-    const tmp = writeTempPrg(prg);
-    try {
-      const args = ["-silent", "-warp", "-autostart", tmp];
-      const exitCode = await spawnWithTimeout(this.exe, args, resolveTimeout());
-      return { success: exitCode === 0, details: { command: [this.exe, ...args].join(" "), exitCode } };
-    } finally {
-      try { fs.unlinkSync(tmp); } catch {}
-    }
+  private async injectPrg(buffer: Buffer): Promise<void> {
+    if (buffer.length < 2) throw new Error("PRG data too short");
+    const loadAddress = buffer.readUInt16LE(0);
+    const body = buffer.subarray(2);
+    await this.withClient(async (client) => {
+      await client.reset();
+      await waitForBasicReady(client, { timeoutMs: 10_000, ensurePrompt: true });
+      if (body.length > 0) await client.memSet(loadAddress, body);
+      const programEnd = loadAddress + body.length;
+      const ptrs = Buffer.alloc(8);
+      ptrs.writeUInt16LE(loadAddress, 0);
+      ptrs.writeUInt16LE(programEnd, 2);
+      ptrs.writeUInt16LE(programEnd, 4);
+      ptrs.writeUInt16LE(programEnd, 6);
+      await client.memSet(0x002B, ptrs);
+      await client.keyboardFeed("RUN\r");
+      await client.exitMonitor();
+    });
   }
+
+  async runPrg(prg: Uint8Array | Buffer): Promise<RunResult> {
+    const buffer = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
+    await this.injectPrg(buffer);
+    return { success: true };
+  }
+
   async loadPrgFile(_path: string): Promise<RunResult> { throw unsupported("loadPrgFile"); }
+
   async runPrgFile(prgPath: string): Promise<RunResult> {
-    const args = ["-silent", "-warp", "-autostart", prgPath];
-    const exitCode = await spawnWithTimeout(this.exe, args, resolveTimeout());
-    return { success: exitCode === 0, details: { command: [this.exe, ...args].join(" "), exitCode } };
+    const data = fs.readFileSync(prgPath);
+    await this.injectPrg(data);
+    return { success: true };
   }
   async runCrtFile(_path: string): Promise<RunResult> { throw unsupported("runCrtFile"); }
   async sidplayFile(_p: string): Promise<RunResult> { throw unsupported("sidplayFile"); }
   async sidplayAttachment(_sid: Uint8Array | Buffer): Promise<RunResult> { throw unsupported("sidplayAttachment"); }
+
   async readMemory(address: number, length: number): Promise<Uint8Array> {
     if (!Number.isInteger(address) || address < 0 || address > 0xffff) {
       throw new Error("Address must be within 0x0000-0xFFFF");
@@ -301,7 +387,9 @@ export class ViceBackend implements C64Facade {
   }
 
   async reset(): Promise<RunResult> {
-    await this.withClient(async (client) => { await client.reset(); });
+    await this.withClient(async (client) => {
+      await client.reset();
+    });
     return { success: true };
   }
 
@@ -326,6 +414,7 @@ export class ViceBackend implements C64Facade {
   getEndpoint(): { host: string; port: number } {
     return { host: this.host, port: this.port };
   }
+
   async drivesList(): Promise<unknown> { throw unsupported("drivesList"); }
   async driveMount(): Promise<RunResult> { throw unsupported("driveMount"); }
   async driveRemove(): Promise<RunResult> { throw unsupported("driveRemove"); }
@@ -349,7 +438,6 @@ export class ViceBackend implements C64Facade {
   async filesCreateD81(): Promise<RunResult> { throw unsupported("filesCreateD81"); }
   async filesCreateDnp(): Promise<RunResult> { throw unsupported("filesCreateDnp"); }
 }
-
 function unsupported(name: string): Error { const err = new Error(`Operation '${name}' is not supported by the VICE backend in phase one`); (err as any).code = "UNSUPPORTED"; return err; }
 
 function extractBytes(data: unknown): Uint8Array {
@@ -378,25 +466,6 @@ function which(binary: string): string | null {
     try { if (fs.existsSync(candidate)) return candidate; } catch {}
   }
   return null;
-}
-
-function writeTempPrg(prg: Uint8Array | Buffer): string {
-  const dir = process.env.TMPDIR || process.env.TEMP || "/tmp";
-  const file = path.join(dir, `c64bridge-${Date.now()}-${Math.random().toString(16).slice(2)}.prg`);
-  const buf = Buffer.isBuffer(prg) ? prg : Buffer.from(prg);
-  fs.writeFileSync(file, buf);
-  return file;
-}
-
-function resolveTimeout(): number { const n = Number(process.env.VICE_RUN_TIMEOUT_MS); return Number.isFinite(n) && n > 0 ? Math.floor(n) : 10000; }
-
-async function spawnWithTimeout(file: string, args: string[], timeoutMs: number): Promise<number> {
-  return await new Promise<number>((resolve) => {
-    const child = spawn(file, args, { stdio: ["ignore", "ignore", "pipe"] });
-    const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch {} }, Math.max(1000, timeoutMs));
-    child.on("close", (code) => { clearTimeout(timer); resolve(code ?? 0); });
-    child.on("error", () => { clearTimeout(timer); resolve(127); });
-  });
 }
 
 export interface FacadeSelection { facade: C64Facade; selected: DeviceType; reason: string; details?: Record<string, unknown> }
@@ -534,6 +603,17 @@ function formatHost(host: string): string {
 
 function stripTrailingSlash(input: string): string {
   return input.replace(/\/+$/, "");
+}
+
+function parseArgsList(input: string): string[] {
+  const args: string[] = [];
+  const pattern = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\S+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(input)) !== null) {
+    const value = match[1] ?? match[2] ?? match[3] ?? "";
+    args.push(value.replace(/\\(["'\\])/g, "$1"));
+  }
+  return args;
 }
 
 function firstDefined<T>(...values: Array<T | undefined>): T | undefined {

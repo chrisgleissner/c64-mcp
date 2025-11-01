@@ -115,6 +115,9 @@ Env knobs:
 - `VICE_KEEP_OPEN=1` — keep window open after success
   (The smoke test registers exit/signal handlers and tears down spawned processes; with `VICE_KEEP_OPEN=1` only your visible VICE is left running.)
 - `VICE_TEST_TARGET=mock` — run the smoke test against the BM stub instead of launching VICE (useful on CI or platforms without VICE installed)
+- `FORCE_XVFB=1` — run headless via Xvfb even if a display is detected (default on CI)
+- `DISABLE_XVFB=1` — skip Xvfb and use the current `$DISPLAY` even in headless environments
+- `VICE_XVFB_DISPLAY=:nn` — override the Xvfb display number (defaults to `:99`)
 
 Implementation tip: programmatic shutdown
 

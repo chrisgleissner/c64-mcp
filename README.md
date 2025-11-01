@@ -12,8 +12,7 @@ Your AI Command Bridge for the Commodore 64.
 
 ## Overview
 
-C64 Bridge is a Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server that drives a real Commodore 64 Ultimate or Ultimate 64 over their REST APIs. 
-
+C64 Bridge is a Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server that drives a real Commodore 64 Ultimate or Ultimate 64 over their REST APIs.
 
 It is built on the official TypeScript `@modelcontextprotocol/sdk` and speaks stdio by default (editor‑friendly, zero config). A lightweight HTTP bridge exists for manual testing.
 
@@ -33,21 +32,25 @@ Backends: hardware C64U (primary) and an experimental VICE runner.
 
 - Linux (Ubuntu/Debian)
   - Recommended:
+
     ```bash
     sudo apt update
     sudo apt install -y curl ca-certificates
     curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
     sudo apt install -y nodejs
     ```
+
   - Fallback (may be older): `sudo apt install -y nodejs npm`
 
 - macOS
+
   ```bash
   brew install node@24
   brew link --overwrite node@24
   ```
 
 - Windows
+
   ```powershell
   # winget
   winget install OpenJS.NodeJS.LTS
@@ -60,11 +63,13 @@ Verify: `node --version` → v24.x
 2) Run the server (choose one)
 
 - npx (zero setup)
+
   ```bash
   npx -y c64bridge@latest
   ```
 
 - npm (project‑local)
+
   ```bash
   mkdir -p ~/c64bridge && cd ~/c64bridge
   npm init -y
@@ -73,6 +78,7 @@ Verify: `node --version` → v24.x
   ```
 
 - From source (contributing/testing)
+
   ```bash
   git clone https://github.com/chrisgleissner/c64bridge.git
   cd c64bridge
@@ -156,7 +162,6 @@ Compose a children’s song with ChatGPT + VS Code:
 Then render PETSCII art for it:
 
 ![duck petscii](./doc/img/prompts/duck_petscii.png)
-
 
 ## HTTP Invocation
 

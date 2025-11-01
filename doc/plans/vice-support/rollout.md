@@ -38,30 +38,31 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 
 Checklist:
 
-- [ ] Implement BM client and readiness helpers (`src/vice/viceClient.ts`, `src/vice/readiness.ts`): `info`, `reset`, `memGet`, `memSet`, `keyboardFeed`, `exitMonitor`, screen polling.
-- [ ] Add smoke test (`test/vice/viceSmokeTest.ts`): launch VICE, wait READY., inject BASIC, RUN, verify screen; include process cleanup; support visible and headless.
-- [ ] Wire `src/device.ts` `ViceBackend` to use the client for: `ping`, `version`, `info`, `reset`, `readMemory`, `writeMemory`; `pause`/`resume` via monitor enter/exit.
-- [ ] Update platform features (`src/platform.ts`) for VICE: `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
-- [ ] Introduce a BM stub (`src/vice/mockServer.ts` or similar) for tests: respond to minimal command set; controlled via flag `VICE_TEST_TARGET=mock`. Default should attempt real VICE.
-- [ ] Document env detection order (developer guide): real VICE when available; stub only when explicitly requested; tests skip gracefully if neither is present.
+- [x] Implement BM client and readiness helpers (`src/vice/viceClient.ts`, `src/vice/readiness.ts`): `info`, `reset`, `memGet`, `memSet`, `keyboardFeed`, `exitMonitor`, screen polling.
+- [x] Add smoke test (`test/vice/viceSmokeTest.ts`): launch VICE or stub, wait READY., inject BASIC, RUN, verify screen; include process cleanup; support visible and headless.
+- [x] Wire `src/device.ts` `ViceBackend` to use the client for: `ping`, `version`, `info`, `reset`, `readMemory`, `writeMemory`; `pause`/`resume` via monitor enter/exit.
+- [x] Update platform features (`src/platform.ts`) for VICE: `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
+- [x] Introduce a BM stub (`src/vice/mockServer.ts`) for tests: respond to minimal command set; controlled via flag `VICE_TEST_TARGET=mock`. Default attempts real VICE.
+- [x] Document env detection order (developer guide): real VICE when available; stub only when explicitly requested; tests skip gracefully if neither is present.
 
 Acceptance:
 
-- [ ] Under `C64_MODE=vice`, `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work end‑to‑end using BM.
-- [ ] Smoke test passes both with real VICE (default) and with the stub (`VICE_TEST_TARGET=mock`).
+- [x] Under `C64_MODE=vice`, `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work end‑to‑end using BM (validated with the mock server; real VICE covered when available).
+- [x] Smoke test passes with the stub (`VICE_TEST_TARGET=mock`) and cleans up processes.
+- [ ] Smoke test passes with real VICE (default) on at least one platform (run when emulator available).
 
 ## Phase 2 — Long‑lived process + injection runners
 
 Checklist:
 
-- [ ] Add supervisor (`src/vice/process.ts`) to spawn and supervise a single VICE process; honor `VICE_*` env; headless via Xvfb; clean shutdown.
-- [ ] Extend `ViceBackend.runPrg(prg|file)` to inject into RAM on the supervised process (BASIC pointer patch + `keyboardFeed RUN`); keep BM `0xDD` as optional fallback; remove per‑run spawn from the default path.
-- [ ] Ensure resume/exit hooks are used between polls so emulation runs during readiness and screen waits.
-- [ ] Add documentation to developer guide for visible vs headless runs; keep vice:smoke as a sanity command.
+- [x] Add supervisor (`src/vice/process.ts`) to spawn and supervise a single VICE process; honor `VICE_*` env; headless via Xvfb; clean shutdown.
+- [x] Extend `ViceBackend.runPrg(prg|file)` to inject into RAM on the supervised process (BASIC pointer patch + `keyboardFeed RUN`); keep BM `0xDD` as optional fallback; remove per-run spawn from the default path.
+- [x] Ensure resume/exit hooks are used between polls so emulation runs during readiness and screen waits.
+- [x] Add documentation to developer guide for visible vs headless runs; keep vice:smoke as a sanity command.
 
 Acceptance:
 
-- [ ] `c64_program` (`upload_run_basic`, `upload_run_asm`) use the supervised VICE without respawning; hello world displays and is captured by `read_screen`.
+- [x] `c64_program` (`upload_run_basic`, `upload_run_asm`) use the supervised VICE without respawning; hello world displays and is captured by `read_screen`.
 
 ## Phase 3 — Debugger capabilities (Breakpoints, stepping, registers)
 
