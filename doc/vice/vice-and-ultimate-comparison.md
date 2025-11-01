@@ -1,6 +1,8 @@
 # VICE Binary Monitor vs Ultimate 64 REST API
 
-This document summarizes the union of capabilities exposed by the [VICE Binary Monitor protocol](https://vice-emu.sourceforge.io/vice_13.html) and the [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html). Each row shows how to invoke the feature through either interface and highlights functional gaps.
+This document compares the [VICE Binary Monitor protocol](https://vice-emu.sourceforge.io/vice_13.html) of VICE 3.9 and the [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html) using Ultimate 64 firmware 3.12a. 
+
+Each row shows how to invoke the feature through either interface and highlights functional gaps.
 
 Legend: 🟢 green light (full support or best option), 🟡 amber light (partial or indirect support), 🔴 red light (not available here). Indicators appear at the start of each platform cell.
 
