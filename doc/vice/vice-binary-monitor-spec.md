@@ -1,6 +1,6 @@
 # VICE Binary Monitor Protocol Specification
 
-This document combines the [official documentation](https://vice-emu.sourceforge.io/vice_13.html) with research of the [source code]([https://github.com/libretro/vice-libretro/blob/master/vice/src/monitor/monitor_binary.c](https://raw.githubusercontent.com/libretro/vice-libretro/refs/heads/master/vice/src/monitor/monitor_binary.c)) for VICE 3.9 (Git ID 
+This document combines the [official documentation](https://vice-emu.sourceforge.io/vice_13.html) with research of the [monitor_binary.c](https://raw.githubusercontent.com/libretro/vice-libretro/refs/heads/master/vice/src/monitor/monitor_binary.c) source code for VICE 3.9 (Git ID 
 `a072441`).
 
 ## 1. Overview
