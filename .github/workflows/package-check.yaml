@@ -92,11 +92,16 @@ jobs:
 
       - name: Start mock C64 server
         id: mock
+        env:
+          PKG_DIR: ${{ steps.extract.outputs.pkg_dir }}
         run: |
           set -euo pipefail
           MOCK_ADDR_FILE=$(mktemp)
           echo "MOCK_ADDR_FILE=$MOCK_ADDR_FILE" >> "$GITHUB_ENV"
-          node scripts/start-mock-c64.mjs "$MOCK_ADDR_FILE" > mock-server.log 2>&1 &
+          (
+            cd "$PKG_DIR"
+            node scripts/start-mock-c64.mjs "$MOCK_ADDR_FILE"
+          ) > mock-server.log 2>&1 &
           MOCK_PID=$!
           echo "MOCK_PID=$MOCK_PID" >> "$GITHUB_ENV"
           sleep 1
