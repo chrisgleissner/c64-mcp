@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { Buffer } from "node:buffer";
-import { getChargenGlyphs } from "../src/chargen.js";
+import { getChargenGlyphs } from "../dist/chargen.js";
 
 function parseNumeric(value, defaultRadix = 16) {
   if (!value) {
