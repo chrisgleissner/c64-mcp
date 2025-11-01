@@ -8,7 +8,7 @@ const registerAfterAll = typeof globalThis.Bun !== "undefined"
   : (await import("node:test")).after;
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { startMockC64Server } from "../mockC64Server.mjs";
+import { startMockC64Server } from "../../scripts/mockC64Server.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
