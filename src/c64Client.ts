@@ -10,7 +10,7 @@ import { Buffer } from "node:buffer";
 import axios from "axios";
 import { basicToPrg } from "./basicConverter.js";
 import { assemblyToPrg } from "./assemblyConverter.js";
-import { petsciiToAscii } from "./petscii.js";
+import { screenCodesToAscii } from "./petscii.js";
 import { resolveAddressSymbol } from "./knowledge.js";
 import { C64Facade, createFacade } from "./device.js";
 import { Api, HttpClient } from "../generated/c64/index.js";
@@ -215,8 +215,8 @@ export class C64Client {
 
   async readScreen(): Promise<string> {
     // Exposed as MCP tool: read_screen
-    const bytes = await this.readMemoryRaw(0x0400, 0x1000);
-    return petsciiToAscii(bytes);
+    const bytes = await this.readMemoryRaw(0x0400, 0x03e8);
+    return screenCodesToAscii(bytes, { columns: 40, rows: 25 });
   }
 
   async reset(): Promise<{ success: boolean; details?: unknown }> {

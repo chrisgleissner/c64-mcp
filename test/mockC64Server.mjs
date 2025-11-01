@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { Buffer } from "node:buffer";
+import { getChargenGlyphs } from "../src/chargen.js";
 
 function parseNumeric(value, defaultRadix = 16) {
   if (!value) {
@@ -110,14 +111,44 @@ function createInitialState() {
   };
 }
 
+const SCREEN_CODE_LOOKUP = (() => {
+  const map = new Map();
+  for (const glyph of getChargenGlyphs()) {
+    if (!glyph || typeof glyph.screenCode !== "number") {
+      continue;
+    }
+    const code = glyph.screenCode & 0xff;
+    if (glyph.basic && glyph.basic.length === 1 && !map.has(glyph.basic)) {
+      map.set(glyph.basic, code);
+    }
+    if (!map.has(String.fromCharCode(glyph.petsciiCode & 0xff))) {
+      map.set(String.fromCharCode(glyph.petsciiCode & 0xff), code);
+    }
+  }
+  if (!map.has(" ")) {
+    map.set(" ", 0x20);
+  }
+  return map;
+})();
+
+function toScreenCode(char) {
+  return SCREEN_CODE_LOOKUP.get(char) ?? SCREEN_CODE_LOOKUP.get(" ") ?? 0x20;
+}
+
 function seedReadyPrompt(state) {
-  state.memory.set(Buffer.from([0x12, 0x52, 0x45, 0x41, 0x44, 0x59, 0x2E, 0x0D]), 0x0400);
+  const text = "READY.";
+  const buffer = new Uint8Array(text.length + 1);
+  for (let i = 0; i < text.length; i += 1) {
+    buffer[i] = toScreenCode(text[i]);
+  }
+  buffer[text.length] = toScreenCode(" ");
+  state.memory.set(buffer, 0x0400);
 }
 
 export async function startMockC64Server() {
   const state = createInitialState();
 
-  // seed memory with READY prompt at $0400 and support PETSCII mapper used by petsciiToAscii
+  // seed memory with READY prompt at $0400 using screen codes
   seedReadyPrompt(state);
 
   function ensureDriveState(id) {

@@ -92,7 +92,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64_memory read_screen operation returns current PETSCII screen", async () => {
+  test("c64_memory read_screen operation returns current screen text", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
@@ -143,7 +143,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
       assert.ok(result.metadata?.success, "metadata should flag success");
       assert.equal(result.metadata?.address, "$0400");
       assert.equal(result.metadata?.length, 8);
-      assert.equal(result.metadata?.hexData, "$1252454144592E0D");
+  assert.equal(result.metadata?.hexData, "$12050104192E2000");
     });
   });
 
