@@ -56,6 +56,9 @@ jobs:
             git push origin HEAD:main
           fi
 
+      - name: Build project
+        run: npm run build
+
       - name: Verify local package
         run: npm run check:package
 
@@ -75,9 +78,6 @@ jobs:
             echo "::warning::Failed to update release notes for ${{ github.ref_name }}. The release may not exist yet or there may be a permissions issue."
             echo "You can manually update the release notes at: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
           fi
-
-      - name: Build project
-        run: npm run build
 
       - name: Publish to npm
         run: |
