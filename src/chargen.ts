@@ -147,7 +147,7 @@ function parseScreenCode(row: ParsedRow): number | undefined {
 }
 
 function readChargenCsv(baseDir: string): ParsedRow[] {
-  const csvPath = join(baseDir, "..", "data", "video", "character-set.csv");
+  const csvPath = join(baseDir, "..", "data", "graphics", "character-set.csv");
   const csv = readFileSync(csvPath, "utf8");
   return parseCsv(csv);
 }

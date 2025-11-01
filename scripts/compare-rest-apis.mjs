@@ -20,7 +20,7 @@ import { startMockC64Server } from "./mockC64Server.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "artifacts", "rest-compare");
-const OPENAPI_PATH = path.join(ROOT_DIR, "doc", "rest", "c64-openapi.yaml");
+const OPENAPI_PATH = path.join(ROOT_DIR, "doc", "c64u", "c64-openapi.yaml");
 
 const REAL_BASE = process.env.C64_REAL_BASE ?? "http://192.168.1.13";
 const REAL_LABEL = process.env.C64_REAL_LABEL ?? "real";

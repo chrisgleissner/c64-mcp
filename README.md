@@ -193,7 +193,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 - [doc/developer.md](doc/developer.md) — development workflow and RAG details
 - [data/context/bootstrap.md](data/context/bootstrap.md) — primer injected ahead of prompts
-- [doc/rest/c64-openapi.yaml](doc/rest/c64-openapi.yaml) — REST surface (OpenAPI 3.1)
+- [doc/c64u/c64-openapi.yaml](doc/c64u/c64-openapi.yaml) — REST surface (OpenAPI 3.1)
 - [AGENTS.md](AGENTS.md) — LLM-facing quick setup, usage, and personas
 
 ## MCP API Reference

@@ -12,7 +12,7 @@ You can play a SID file on a connected device using the REST API via the MCP too
 - Endpoint: `POST /tools/sidplay_file`
 - Body: `{ "path": "/flash/music/Example.sid", "songnr": 1 }` (optional `songnr`)
 
-Refer to `doc/rest/c64-rest-api.md` for the underlying device endpoint and options.
+Refer to `doc/c64u/c64-rest-api.md` for the underlying device endpoint and options.
 
 ## Header layout (common fields)
 

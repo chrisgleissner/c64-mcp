@@ -44,14 +44,14 @@ Subsequent `npm run build` invocations reuse the incremental cache stored in `di
 | [`src/rag/`](../src/rag/) & [`data/`](../data/) | RAG builder, indices, and corpora |
 | [`scripts/`](../scripts/) | Automation (launchers, tests, RAG, release, README refresh) |
 | [`test/`](../test/) | Bun test harness, mock Ultimate server, suites |
-| [`generated/`](../generated/) | REST client from [`doc/rest/c64-openapi.yaml`](rest/c64-openapi.yaml) |
+| [`generated/`](../generated/) | REST client from [`doc/c64u/c64-openapi.yaml`](c64u/c64-openapi.yaml) |
 | [`doc/`](../doc/) | Project documentation (setup, troubleshooting, REST references) |
 
 ## 4. Extending the Server
 
 - **Tools**: Implement under `src/tools/<domain>/`, export from [`src/tools/registry/index.ts`](../src/tools/registry/index.ts). Share helpers via [`src/tools/registry/utils.ts`](../src/tools/registry/utils.ts). Add coverage in [`test/`](../test/).
 - **Prompts**: Author in [`src/prompts/`](../src/prompts/), register via [`src/prompts/registry.ts`](../src/prompts/registry.ts), mirror description updates in [AGENTS.md](../AGENTS.md) and `.github/prompts/`.
-- **REST surface**: Keep [`doc/rest/c64-openapi.yaml`](rest/c64-openapi.yaml) current. Regenerate the typed client with `npm run api:generate` when endpoints change.
+- **REST surface**: Keep [`doc/c64u/c64-openapi.yaml`](c64u/c64-openapi.yaml) current. Regenerate the typed client with `npm run api:generate` when endpoints change.
 - **Docs**: `npm run build` calls [`scripts/update-readme.ts`](../scripts/update-readme.ts); never hand-edit the `<!-- AUTO-GENERATED:MCP-DOCS-* -->` block in the README.
 
 ## 5. Configuration & Backends

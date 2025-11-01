@@ -32,7 +32,7 @@ done:
 
 message:
         ; ASCII bytes for: HELLO, WORLD!  (0-terminated)
-        ; VIC-II screen codes for: HELLO, WORLD! (screen codes from data/video/character-set.csv)
+        ; VIC-II screen codes for: HELLO, WORLD! (screen codes from data/graphics/character-set.csv)
         ; H E  L  L  O   ,    <space> W  O  R  L  D  !
         .byte $08, $05, $0C, $0C, $0F, $2C, $20, $17, $0F, $12, $0C, $04, $21, $00
 

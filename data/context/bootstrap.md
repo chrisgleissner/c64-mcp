@@ -27,7 +27,7 @@ Bank control (6510 at $0001):
 
 ## Video (VIC-II)
 
-The VIC-II chip handles graphics and sprites. Fore more information see `data/video/vic-spec.md`.
+The VIC-II chip handles graphics and sprites. Fore more information see `data/graphics/vic-spec.md`.
 
 - Sprites: X ($D000..$D00E even), Y ($D001..$D00F odd), X MSBs $D010.
 - Control: $D011 (bit 7: 25th row; bit 6: RST8; bit 5: bitmap on; bits 0–2: vertical scroll).
@@ -86,7 +86,7 @@ Use this to trigger code at a specific raster line, e.g. for split-screen effect
 
 ## Audio (SID)
 
-The SID chip handles audio synthesis. For more information see `data/audio/sid-spec.md`.
+The SID chip handles audio synthesis. For more information see `data/sound/sid-spec.md`.
 
 Per voice (1..3; base offsets +0x07 per voice):
 

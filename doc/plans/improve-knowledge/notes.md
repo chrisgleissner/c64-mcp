@@ -10,7 +10,7 @@
 
 - **Structured RAG outputs (R1)**: Responses must include structured fields (`uri`, `origin`, `snippet`, `score`) so `ReadResource` consumers can follow references without parsing prose.
 - **Memory/IO resource exposure (K1)**: Memory maps and IO reference docs under `data/memory` and `data/io` must be published as MCP resources with appropriate metadata for retrieval and grounding.
-- **SID best-practices resource (K2)**: `data/audio/sid-programming-best-practices.md` must be surfaced as a first-class MCP resource to guide audio tools and prompts.
+- **SID best-practices resource (K2)**: `data/sound/sid-programming-best-practices.md` must be surfaced as a first-class MCP resource to guide audio tools and prompts.
 - **Validation gates**: Each improvement requires incremental changes with companion tests or documentation updates, followed by a successful `npm run check` prior to marking tasks complete.
 
 ## Additional Acceptance Criteria (New Tasks)

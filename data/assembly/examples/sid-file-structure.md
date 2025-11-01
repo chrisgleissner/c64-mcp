@@ -1,6 +1,6 @@
 # SID File Structure Reference (for RAG)
 
-See `data/audio/sid-file-structure.md` for the complete explanation of PSID/RSID headers, fields, and playback behavior. This stub ensures the RAG index includes this topic and can surface it when generating or playing songs.
+See `data/sound/sid-file-structure.md` for the complete explanation of PSID/RSID headers, fields, and playback behavior. This stub ensures the RAG index includes this topic and can surface it when generating or playing songs.
 
 - Magic: `PSID` or `RSID`
 - Key fields: version, dataOffset, loadAddress, initAddress, playAddress, songs, startSong, speed

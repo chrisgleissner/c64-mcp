@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 function generateCharsetQuickref(): string {
-  const csvPath = join(process.cwd(), "data/video/character-set.csv");
+  const csvPath = join(process.cwd(), "data/graphics/character-set.csv");
   const csvContent = readFileSync(csvPath, "utf-8");
   const lines = csvContent.trim().split("\n");
   const headers = lines[0].split(",");
@@ -167,7 +167,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://specs/sid",
         name: "SID Chip Programming Guide",
         description: "Sound Interface Device registers and music programming",
-        relativePath: "data/audio/sid-spec.md",
+  relativePath: "data/sound/sid-spec.md",
         priority: "critical",
         summary: "Register map, waveform behaviour, and ADSR envelopes for expressive SID playback.",
         prompts: ["sid-music"],
@@ -179,7 +179,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://specs/sidwave",
         name: "SIDWAVE Music Format Specification",
         description: "YAML/JSON music composition format for SID chip",
-        relativePath: "data/audio/sidwave.md",
+  relativePath: "data/sound/sidwave.md",
         priority: "reference",
         summary: "Defines the SIDWAVE interchange format used by the SID composer workflow.",
         prompts: ["sid-music"],
@@ -191,7 +191,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://docs/sid/file-structure",
         name: "SID File Structure Reference",
         description: "Breakdown of the SID file format layout and metadata",
-        relativePath: "data/audio/sid-file-structure.md",
+  relativePath: "data/sound/sid-file-structure.md",
         priority: "reference",
         summary: "Explains PSID/RSID headers, metadata blocks, and compatibility notes for imported music.",
         prompts: ["sid-music"],
@@ -203,7 +203,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://docs/sid/best-practices",
         name: "SID Programming Best Practices",
         description: "Expressive SID composition defaults, ADSR guidance, and musical phrasing tips.",
-        relativePath: "data/audio/sid-programming-best-practices.md",
+  relativePath: "data/sound/sid-programming-best-practices.md",
         priority: "reference",
         summary: "Captures proven waveforms, ADSR presets, phrasing, and verification workflow for pleasant SID music.",
         prompts: ["sid-music"],
@@ -224,7 +224,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://specs/vic",
         name: "VIC-II Graphics Specification",
         description: "Video chip, sprites, raster programming, and timing",
-        relativePath: "data/video/vic-spec.md",
+  relativePath: "data/graphics/vic-spec.md",
         priority: "critical",
         summary: "Covers raster timing, sprite control, colour RAM, and bitmap modes on the VIC-II.",
         prompts: ["graphics-demo"],
@@ -236,7 +236,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://specs/charset",
         name: "PETSCII Character Set Reference",
         description: "Complete PETSCII character codes, screen codes, and glyph mappings",
-        relativePath: "data/video/character-set.csv",
+  relativePath: "data/graphics/character-set.csv",
         priority: "reference",
         summary: "Character code table mapping PETSCII codes to screen codes, glyphs, and keyboard input.",
         prompts: ["graphics-demo"],
@@ -248,7 +248,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://docs/petscii-style",
         name: "PETSCII Style Guide and Presets",
         description: "Colour combinations, contrast guidelines, and recommended presets for PETSCII art",
-        relativePath: "data/video/petscii-style-guide.md",
+  relativePath: "data/graphics/petscii-style-guide.md",
         priority: "reference",
         summary: "Documents colour palette, readability presets, dithering patterns, and best practices for creating artistic and readable PETSCII displays.",
         prompts: ["graphics-demo"],
@@ -260,7 +260,7 @@ const KNOWLEDGE_BUNDLES: readonly KnowledgeBundle[] = [
         uri: "c64://docs/sprite-charset-workflows",
         name: "Sprite & Charset Workflows Best Practices",
         description: "Comprehensive guide to creating, managing, and deploying sprites and custom character sets",
-        relativePath: "data/video/sprite-charset-best-practices.md",
+  relativePath: "data/graphics/sprite-charset-best-practices.md",
         priority: "reference",
         summary: "Documents sprite and charset workflows, memory layout, VIC-II configuration, common pitfalls, and proven techniques for hardware-accelerated graphics.",
         prompts: ["graphics-demo"],

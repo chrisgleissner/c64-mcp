@@ -4,7 +4,7 @@ Purpose: Reduce round-trips and keep richer agent-side state by bundling multipl
 
 Conventions:
 
-- Endpoint notation: METHOD /v1/<route>[:<command>] (see `doc/rest/c64-rest-api.md`).
+- Endpoint notation: METHOD /v1/<route>[:<command>] (see `doc/c64u/c64-rest-api.md`).
 - When a meta tool composes MCP tools, these map onto the same REST calls via the `C64Client` facade.
 - Agent-managed state includes timers, queues, background tasks, rolling buffers, snapshots, and derived artifacts written to the agent filesystem.
 
