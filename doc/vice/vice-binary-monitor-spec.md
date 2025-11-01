@@ -1,11 +1,10 @@
 # VICE Binary Monitor Protocol Specification
 
-This document combines the [official documentation](https://vice-emu.sourceforge.io/vice_13.html) with research of the [monitor_binary.c](https://raw.githubusercontent.com/libretro/vice-libretro/refs/heads/master/vice/src/monitor/monitor_binary.c) source code for VICE 3.9 (Git ID 
-`a072441`).
+This document combines the [official documentation](https://vice-emu.sourceforge.io/vice_13.html) with research of the [monitor_binary.c](https://raw.githubusercontent.com/libretro/vice-libretro/refs/heads/master/vice/src/monitor/monitor_binary.c) source code for VICE 3.9 (Git ID `a072441`).
 
 ## 1. Overview
 
-The Vice Binary Monitor exposes the built-in VICE monitor over a dedicated network socket (enable with `-binarymonitor`, configure the bind address with `-binarymonitoraddress` or the `BinaryMonitorServerAddress` resource). 
+The Vice Binary Monitor exposes the built-in VICE monitor over a dedicated network socket (enable with `-binarymonitor`, configure the bind address with `-binarymonitoraddress` or the `BinaryMonitorServerAddress` resource).
 
 Only one client may be connected at a time. When packets arrive the monitor traps execution (`monitor_startup_trap`), executes the requested operation, and resumes the emulated machine. The default bind target is `ip4://127.0.0.1:6502`.
 
@@ -228,7 +227,7 @@ Responses sent with request ID `0xffffffff` are unsolicited events:
 #### 0x85 – VICE Info
 
 - Request: empty
-- Response (`0x85`): `[0]=4, [1–4]=VERSION_RC_NUMBER, [5]=4, [6–9]=build revision (zero unless `USE_SVN_REVISION` is defined)`
+- Response (`0x85`): `[0]=4, [1–4]=VERSION_RC_NUMBER, [5]=4, [6–9]=build revision (zero unless`USE_SVN_REVISION`is defined)`
 - Notes: The first length covers the four RC number bytes (major, minor, build, patch).
 
 ### Palette and I/O (0x91–0xB2)

@@ -15,10 +15,9 @@ VICE_CMD = [
 ]
 os.environ["DISPLAY"] = f":{DISPLAY_NUM}"
 
-# PETSCII screen codes for “HELLO WORLD” (uppercase, default power-on mode)
-HELLO_WORLD_PETSCII = bytes([
-    0xC8, 0xC5, 0xCC, 0xCC, 0xCF, 0x20, 0xD7, 0xCF, 0xD2, 0xCC, 0xC4
-])
+# Screen-code sequence for "HELLO" in uppercase mode.
+# Refer to data/graphics/petscii-style-guide.md for PETSCII↔screen mapping.
+HELLO_SCREEN_CODES = bytes([0x08, 0x05, 0x0C, 0x0C, 0x0F])
 
 # ----------------------------------------------------------------------
 # Utility helpers
@@ -108,25 +107,29 @@ def run_basic_hello():
     send_cmd(0xCC, bytes([0x00]))    # Reset type 0 (soft)
     time.sleep(0.8)
 
-    # 10 PRINT "HELLO WORLD": 20 END
+    # 10 PRINT "HELLO": 20 END
     program = bytes([
-        0x0B,0x08,0x0A,0x00,0x99,
-        0x22,0x48,0x45,0x4C,0x4C,0x4F,0x20,0x57,0x4F,0x52,0x4C,0x44,0x22,
-        0x00,0x15,0x08,0x14,0x00,0x80,0x00,0x00
+        0x0E,0x08,0x0A,0x00,0x99,
+        0x22,0x48,0x45,0x4C,0x4C,0x4F,0x22,0x00,
+        0x00,0x00,0x14,0x00,0x80,0x00,0x00
     ])
-    write_mem(0x0801, program)
+    program_base = 0x0801
+    write_mem(program_base, program)
 
-    # Update BASIC pointers so the interpreter sees the program
-    program_end = 0x0801 + len(program)
-    pointers = struct.pack("<H", 0x0801)
-    write_mem(0x002B, pointers)  # Start of BASIC
-    end_ptr = struct.pack("<H", program_end)
-    write_mem(0x002D, end_ptr)   # Start of variables
-    write_mem(0x002F, end_ptr)   # Start of arrays
+    # Update BASIC pointers so the interpreter sees the program.
+    program_end = program_base + len(program)
+    pointer_blob = struct.pack(
+        "<HHHH",
+        program_base,  # TXTTAB ($2B)
+        program_end,   # VARTAB ($2D)
+        program_end,   # ARYTAB ($2F)
+        program_end    # STREND ($31)
+    )
+    write_mem(0x002B, pointer_blob)
 
     print("[+] BASIC program loaded.")
 
-    # Feed “RUN” + RETURN (PETSCII carriage return)
+    # Feed "RUN" + RETURN (PETSCII carriage return)
     run_text = "RUN\r"
     body = struct.pack("<B", len(run_text)) + run_text.encode("ascii")
     send_cmd(0x72, body)
@@ -134,10 +137,15 @@ def run_basic_hello():
     time.sleep(1.5)
 
     screen = read_mem(0x0400, 1000)
-    if HELLO_WORLD_PETSCII in screen:
-        print("[✓] Detected 'HELLO WORLD' on screen.")
+    idx = screen.find(HELLO_SCREEN_CODES)
+    if idx != -1:
+        row, col = divmod(idx, 40)
+        print(f"[✓] Detected 'HELLO' on screen at row {row}, column {col}.")
     else:
-        raise RuntimeError("Did not detect 'HELLO WORLD' on screen.")
+        preview = " ".join(f"{b:02X}" for b in screen[:120])
+        raise RuntimeError(
+            "Did not detect 'HELLO' on screen. First 120 bytes: " + preview
+        )
 
 # ----------------------------------------------------------------------
 # Main
@@ -165,7 +173,7 @@ def main():
         raise RuntimeError(f"Memory check failed: expected 0x42, got {val:#x}")
     print("[✓] Memory read/write OK")
 
-    # 3. BASIC “HELLO WORLD” run + screen verification
+    # 3. BASIC "HELLO WORLD" run + screen verification
     run_basic_hello()
 
     # Cleanup

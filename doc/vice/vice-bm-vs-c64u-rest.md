@@ -1,6 +1,6 @@
 # VICE Binary Monitor vs Ultimate 64 REST API
 
-This document compares the [VICE Binary Monitor protocol](https://vice-emu.sourceforge.io/vice_13.html) of VICE 3.9 and the [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html) using Ultimate 64 firmware 3.12a. 
+This document compares the [VICE Binary Monitor protocol](https://vice-emu.sourceforge.io/vice_13.html) of VICE 3.9 and the [Ultimate 64 REST API](https://1541u-documentation.readthedocs.io/en/latest/api/api_calls.html) using Ultimate 64 firmware 3.12a.
 
 Each row shows how to invoke the feature through either interface and highlights functional gaps.
 
