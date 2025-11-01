@@ -2,6 +2,8 @@
 
 ## 0.7.0 - 2025-11-01
 
+### Features
+
 - Improved LLM tool discovery by consolidating to 12 tools with nested operations
 - Upgrade to Node 24
 
