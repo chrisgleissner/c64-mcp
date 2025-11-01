@@ -1,10 +1,6 @@
 # Changelog
 
 
-## 0.7.1 - 2025-11-01
-
-- No notable changes in this release.
-
 ## 0.7.0 - 2025-11-01
 
 ### Features
