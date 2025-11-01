@@ -77,6 +77,21 @@ jobs:
           tar -xzf "$TARFILE" -C package_extract
           echo "pkg_dir=$(realpath package_extract/package)" >> "$GITHUB_OUTPUT"
 
+      - name: Confirm package version
+        env:
+          PKG_DIR: ${{ steps.extract.outputs.pkg_dir }}
+          EXPECTED_VERSION: ${{ inputs.package_version }}
+          SOURCE: ${{ env.PACKAGE_SOURCE }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require(process.env.PKG_DIR + '/package.json').version")
+          if [ "$SOURCE" = "npm" ] && [ -n "$EXPECTED_VERSION" ] && [ "$VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "::error::Downloaded package version $VERSION does not match expected $EXPECTED_VERSION" >&2
+            exit 1
+          fi
+          echo "Package source: $SOURCE"
+          echo "Package version detected: $VERSION"
+
       - name: Verify packaged contents
         run: |
           set -euo pipefail

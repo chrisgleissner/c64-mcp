@@ -191,11 +191,118 @@ jobs:
       - name: Update GitHub release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_BODY: ${{ steps.notes.outputs.body }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          if ! gh release edit "${{ github.ref_name }}" --notes "${{ steps.notes.outputs.body }}"; then
-            echo "::warning::Failed to update release notes for ${{ github.ref_name }}. The release may not exist yet or there may be a permissions issue."
-            echo "You can manually update the release notes at: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
-          fi
+          node <<'NODE'
+          import process from 'node:process';
+
+          const token = process.env.GH_TOKEN;
+          const body = process.env.RELEASE_BODY ?? '';
+          const tag = process.env.RELEASE_TAG;
+          const repository = process.env.GITHUB_REPOSITORY;
+
+          if (!token) {
+            console.error('GH_TOKEN not available; cannot update release notes.');
+            process.exit(1);
+          }
+
+          if (!repository) {
+            console.error('GITHUB_REPOSITORY not set.');
+            process.exit(1);
+          }
+
+          if (!tag) {
+            console.error('Release tag missing.');
+            process.exit(1);
+          }
+
+          const headers = {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          };
+
+          const apiBase = `https://api.github.com/repos/${repository}/releases`;
+
+          async function fetchJson(url, options) {
+            const response = await fetch(url, options);
+            if (response.status === 204) {
+              return null;
+            }
+            const text = await response.text();
+            let json;
+            try {
+              json = text ? JSON.parse(text) : null;
+            } catch (error) {
+              console.error('Failed to parse GitHub API response:', text);
+              throw error;
+            }
+            return { response, json };
+          }
+
+          async function main() {
+            const tagUrl = `${apiBase}/tags/${encodeURIComponent(tag)}`;
+            try {
+              const existing = await fetchJson(tagUrl, { headers });
+              if (!existing || existing.response.status === 404) {
+                const createRes = await fetch(`${apiBase}`, {
+                  method: 'POST',
+                  headers: {
+                    ...headers,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    tag_name: tag,
+                    name: tag,
+                    body,
+                    draft: false,
+                    prerelease: false,
+                  }),
+                });
+
+                if (!createRes.ok) {
+                  const details = await createRes.text();
+                  console.error('Failed to create release:', createRes.status, details);
+                  process.exit(1);
+                }
+                console.log(`Created release ${tag} with updated notes.`);
+                return;
+              }
+
+              if (!existing.response.ok) {
+                console.error('Failed to load release:', existing.response.status, existing.json);
+                process.exit(1);
+              }
+
+              const releaseId = existing.json.id;
+              const patchRes = await fetch(`${apiBase}/${releaseId}`, {
+                method: 'PATCH',
+                headers: {
+                  ...headers,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ body }),
+              });
+
+              if (!patchRes.ok) {
+                const details = await patchRes.text();
+                console.error('Failed to update release notes:', patchRes.status, details);
+                process.exit(1);
+              }
+
+              console.log(`Updated release ${tag} notes successfully.`);
+            } catch (error) {
+              console.error('Error while updating release notes:', error);
+              process.exit(1);
+            }
+          }
+
+          main().catch((error) => {
+            console.error('Unexpected error while updating release notes:', error);
+            process.exit(1);
+          });
+          NODE
 
       - name: Publish to npm
         run: |
