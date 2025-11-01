@@ -71,9 +71,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release edit "${{ github.ref_name }}" \
-            --notes "${{ steps.changelog.outputs.entry }}" \
-            || echo "Warning: Failed to update release notes"
+          if ! gh release edit "${{ github.ref_name }}" --notes "${{ steps.changelog.outputs.entry }}"; then
+            echo "::warning::Failed to update release notes for ${{ github.ref_name }}. The release may not exist yet or there may be a permissions issue."
+            echo "You can manually update the release notes at: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          fi
 
       - name: Build project
         run: npm run build

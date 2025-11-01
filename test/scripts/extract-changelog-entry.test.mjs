@@ -16,12 +16,6 @@ function createTempChangelog(content) {
 
 function runScript(version, changelogPath) {
   const cwd = path.dirname(changelogPath);
-  const changelogFile = path.basename(changelogPath);
-  // Create a temporary copy in the working directory
-  const targetFile = path.join(cwd, "CHANGELOG.md");
-  if (changelogPath !== targetFile) {
-    writeFileSync(targetFile, readFileSync(changelogPath));
-  }
   
   try {
     return execSync(`node ${scriptPath} ${version}`, {

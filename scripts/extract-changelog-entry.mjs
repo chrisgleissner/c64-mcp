@@ -13,6 +13,10 @@ if (!version) {
   process.exit(1);
 }
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const changelogPath = path.resolve('CHANGELOG.md');
 let content;
 try {
@@ -23,7 +27,7 @@ try {
 }
 
 // Match the version header (e.g., "## 0.7.0 - 2025-11-01")
-const versionPattern = new RegExp(`^## ${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - \\d{4}-\\d{2}-\\d{2}$`, 'm');
+const versionPattern = new RegExp(`^## ${escapeRegex(version)} - \\d{4}-\\d{2}-\\d{2}$`, 'm');
 const match = content.match(versionPattern);
 
 if (!match) {
