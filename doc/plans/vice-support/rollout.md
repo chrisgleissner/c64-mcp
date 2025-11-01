@@ -4,11 +4,11 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 
 ## Required Reading (before starting)
 
-- `doc/vice/vice-binary-monitor-spec.md` — Protocol framing, command set, error codes.
-- `doc/vice/vice-bm-vs-c64u-rest.md` — Feature comparison and gaps.
-- `doc/plans/vice-support/plan.md` and `doc/plans/vice-support/notes.md` — Objectives and design decisions.
-- Code references: `src/device.ts`, `src/c64Client.ts`, `src/petscii.ts`, `src/mcp-server.ts`, `src/platform.ts`, `src/viceRunner.ts`.
-- Smoke test inspiration: `scripts/vice/vice-bm-smoke-test.py`.
+- [ ] Read `doc/vice/vice-binary-monitor-spec.md` (BM framing, commands, errors).
+- [ ] Read `doc/vice/vice-bm-vs-c64u-rest.md` (feature comparison). The guidance remains correct, with one emphasis from our findings: the BM pauses CPU during monitor handling — explicitly call `0xAA Exit` between screen/memory polls so emulation progresses.
+- [ ] Read `doc/plans/vice-support/plan.md` and `doc/plans/vice-support/notes.md` (objectives, design decisions).
+- [ ] Skim code refs: `src/device.ts`, `src/c64Client.ts`, `src/petscii.ts`, `src/mcp-server.ts`, `src/platform.ts`, `src/viceRunner.ts` (audio only).
+- [ ] Run/understand `test/vice/viceSmokeTest.ts` (long‑lived VICE, readiness, injection, screen verification).
 
 ## Operator Rules
 
@@ -17,62 +17,77 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 - Keep changes minimal and focused on the current phase; update tests and docs alongside code changes.
 - Preserve hardware behaviors; do not introduce fake drive/config semantics under VICE.
 
-## Phase 1 — Core BM client and memory/screen/system (Foundations)
+## CI and Headless Testing
 
-Deliverables:
+- [ ] Configure CI to run any VICE‑dependent tests under X11 virtualization. Either:
+  - Set `FORCE_XVFB=1` (or `CI=1`) so helpers spawn `Xvfb` automatically; or
+  - Wrap commands in `xvfb-run`.
+- [ ] Add a CI step to run the smoke test headlessly: `FORCE_XVFB=1 npm run vice:smoke`.
+- [ ] Recommend the same locally during builds to avoid VICE windows popping up and to catch headless issues early: `FORCE_XVFB=1 npm run vice:smoke` (and any VICE‑dependent tests).
 
-- Implement `src/viceBinaryMonitor.ts` with: connect, request framing, `0x85` Info, `0x01` Memory Get, `0x02` Memory Set, `0xCC` Reset, `0x72` Keyboard Feed, `0xAA` Exit; serialize requests; timeouts + error translation.
-- Integrate into `src/device.ts` by replacing the stubbed `ViceBackend` methods: `ping`, `version`, `info`, `reset`, `pause`, `resume`, `readMemory`, `writeMemory`.
-- Leave `runPrg` as currently implemented (`x64sc -autostart`) to reduce scope.
-- Verify `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work under `C64_MODE=vice`.
-- Update `src/platform.ts` VICE features to include `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
+## Smoke Test and Test Strategy
+
+- [ ] Reuse the existing minimal BM client for smoke tests (`src/vice/viceClient.ts` with `src/vice/readiness.ts`), proven by `test/vice/viceSmokeTest.ts`.
+- [ ] Keep the smoke test simple: start VICE, wait for READY., inject a tiny BASIC program, RUN, verify the screen, clean up processes.
+- [ ] Do not grow the smoke test further; any new VICE features must have their own normal tests (unit/integration) alongside other prod features under `test/`.
+- [ ] Avoid UI‑sensitive/timing‑brittle assertions in the smoke test; prefer feature‑specific tests for deeper coverage.
+
+## Phase 1 — Core client + screen/memory/system (Foundations)
+
+Checklist:
+
+- [ ] Implement BM client and readiness helpers (`src/vice/viceClient.ts`, `src/vice/readiness.ts`): `info`, `reset`, `memGet`, `memSet`, `keyboardFeed`, `exitMonitor`, screen polling.
+- [ ] Add smoke test (`test/vice/viceSmokeTest.ts`): launch VICE, wait READY., inject BASIC, RUN, verify screen; include process cleanup; support visible and headless.
+- [ ] Wire `src/device.ts` `ViceBackend` to use the client for: `ping`, `version`, `info`, `reset`, `readMemory`, `writeMemory`; `pause`/`resume` via monitor enter/exit.
+- [ ] Update platform features (`src/platform.ts`) for VICE: `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
 
 Acceptance:
 
-- Under `C64_MODE=vice`, a BASIC hello world loaded via memory write + `Keyboard Feed` displays on screen; `read_screen` captures it; `wait_for_text` detects `READY.`.
-- Memory read/write round‑trip tests pass; reset/pause/resume behave predictably.
+- [ ] Under `C64_MODE=vice`, `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work end‑to‑end using BM.
 
-## Phase 2 — Stable runners and lifecycle (Long‑lived VICE)
+## Phase 2 — Long‑lived process + injection runners
 
-Deliverables:
+Checklist:
 
-- Add `src/viceProcess.ts` to spawn and supervise a single VICE instance with `-binarymonitor`; integrate with env (`VICE_*`, `FORCE_XVFB`), following patterns in `src/viceRunner.ts`.
-- Extend `ViceBackend.runPrg(prg|file)` to use BM Autostart (`0xDD`) when a supervised VICE is running, or fall back to the existing ephemeral `-autostart` path when not.
-- Add optional `keyboard_feed` tool (emulator‑specific) to send PETSCII to the keyboard buffer for scripted interactions.
+- [ ] Add supervisor (`src/vice/process.ts`) to spawn and supervise a single VICE process; honor `VICE_*` env; headless via Xvfb; clean shutdown.
+- [ ] Extend `ViceBackend.runPrg(prg|file)` to inject into RAM on the supervised process (BASIC pointer patch + `keyboardFeed RUN`); keep BM `0xDD` as optional fallback; remove per‑run spawn from the default path.
+- [ ] Ensure resume/exit hooks are used between polls so emulation runs during readiness and screen waits.
+- [ ] Add documentation to developer guide for visible vs headless runs; keep vice:smoke as a sanity command.
 
 Acceptance:
 
-- `c64_program` operations (`upload_run_basic`, `upload_run_asm`) succeed under VICE without spawning a new emulator per run when the supervisor is active.
-- A short BASIC program can be injected and started via BM with subsequent screen verification.
+- [ ] `c64_program` (`upload_run_basic`, `upload_run_asm`) use the supervised VICE without respawning; hello world displays and is captured by `read_screen`.
 
 ## Phase 3 — Debugger capabilities (Breakpoints, stepping, registers)
 
-Deliverables:
+Checklist:
 
-- Implement BM commands: `0x11/0x12/0x13/0x14/0x15` (breakpoint CRUD/toggle), `0x22` (conditional), `0x71/0x73` (step/next/return), `0x31/0x32` (register get/set), `0x82/0x83` (banks/registers metadata where applicable).
-- Add a new grouped module `c64_debug` with ops: `set_breakpoint`, `list_breakpoints`, `delete_breakpoint`, `toggle_breakpoint`, `set_condition`, `step`, `next`, `until_return`, `get_registers`, `set_registers`.
-- Clearly mark `supportedPlatforms: ["vice"]` for these debug‑only tools.
+- [ ] Implement BM: `0x11/0x12/0x13/0x14/0x15` (breakpoints), `0x22` (conditions), `0x71/0x73` (step/return), `0x31/0x32` (registers), `0x82/0x83` (banks/registers metadata).
+- [ ] Add grouped module `c64_debug` with ops for the above; mark `supportedPlatforms: ["vice"]`.
 
 Acceptance:
 
-- A minimal program breakpoints demo: set exec breakpoint on a known address, run PRG, verify stop, inspect registers, single‑step a few instructions, then resume to completion.
+- [ ] Demo: set breakpoint, run PRG, verify stop, inspect registers, step a few instructions, resume to completion.
 
 ## Phase 4 — Emulator resources and display capture (Polish)
 
-Deliverables:
+Checklist:
 
-- Implement `0x84` (Display Get) to capture a single framebuffer; expose as `c64_vice.display_get` returning geometry and raw pixels; optionally add a PNG encoder fallback.
-- Implement `0x51/0x52` (Resource get/set) for emulator options; expose as `c64_vice.resource_get`/`resource_set` with careful validation and namespacing.
-- Update platform resource (`/platform`) to reflect debugger features and emulator‑specific tools; refresh README notes.
+- [ ] Implement `0x84` Display Get; expose minimal `c64_vice.display_get` returning geometry + pixels; optional PNG encoding.
+- [ ] Implement `0x51/0x52` Resource get/set; expose `c64_vice.resource_get`/`resource_set` with safe namespacing.
+- [ ] Update platform resource/README to reflect emulator‑specific tools and debugger status.
 
 Acceptance:
 
-- `display_get` returns consistent geometry/pixels (sanity‑checked size); resource get/set demonstrates reading and toggling a small, safe option (e.g., confirm a boolean/enum round‑trip).
+- [ ] `display_get` returns consistent geometry/pixels; resource get/set toggles a simple option end‑to‑end.
 
 ## Done Definition
 
-- TypeScript builds cleanly; tests pass (`npm run check`).
-- VICE features appear in the platform resource with correct supported/unsupported tool lists.
-- Unsupported operations on VICE return informative errors without crashing the server.
-- README and platform docs call out feature parity and differences succinctly.
+- [ ] TypeScript builds cleanly; tests pass (`npm run check`).
+- [ ] VICE features appear in the platform resource with correct supported/unsupported tool lists.
+- [ ] Unsupported operations on VICE return informative errors without crashing the server.
+- [ ] README and platform docs call out feature parity and differences succinctly.
 
+## Notes on Existing Code
+
+- `src/viceRunner.ts` (SID→WAV) is retained for audio capture only; do not extend it for program runners. All general VICE control lives behind the facade using `src/vice/viceClient.ts` + supervisor.
