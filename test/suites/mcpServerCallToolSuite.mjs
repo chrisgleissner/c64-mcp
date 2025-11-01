@@ -33,14 +33,14 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.program upload_run_basic operation proxies to C64 client", async () => {
+  test("c64_program upload_run_basic operation proxies to C64 client", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const program = `10 PRINT "HELLO"\n20 GOTO 10`;
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.program",
+            name: "c64_program",
             arguments: {
               op: "upload_run_basic",
               program,
@@ -62,7 +62,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.program upload_run_asm assembles source and runs program", async () => {
+  test("c64_program upload_run_asm assembles source and runs program", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const program = `\n      .org $0801\nstart:\n      lda #$01\n      sta $0400\n      rts\n    `;
 
@@ -70,7 +70,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.program",
+            name: "c64_program",
             arguments: {
               op: "upload_run_asm",
               program,
@@ -92,13 +92,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.memory read_screen operation returns current PETSCII screen", async () => {
+  test("c64_memory read_screen operation returns current PETSCII screen", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.memory",
+            name: "c64_memory",
             arguments: {
               op: "read_screen",
             },
@@ -118,13 +118,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.memory read operation returns hex dump with metadata", async () => {
+  test("c64_memory read operation returns hex dump with metadata", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.memory",
+            name: "c64_memory",
             arguments: {
               op: "read",
               address: "$0400",
@@ -147,13 +147,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.memory write operation writes bytes to mock C64", async () => {
+  test("c64_memory write operation writes bytes to mock C64", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.memory",
+            name: "c64_memory",
             arguments: {
               op: "write",
               address: "$0400",
@@ -178,13 +178,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.sound operations operate via MCP", async () => {
+  test("c64_sound operations operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const volumeResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.sound",
+            name: "c64_sound",
             arguments: {
               op: "set_volume",
               volume: 12,
@@ -203,7 +203,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.sound",
+            name: "c64_sound",
             arguments: {
               op: "note_on",
               voice: 2,
@@ -229,7 +229,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.sound",
+            name: "c64_sound",
             arguments: {
               op: "note_off",
               voice: 2,
@@ -248,7 +248,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.sound",
+            name: "c64_sound",
             arguments: {
               op: "silence_all",
             },
@@ -265,7 +265,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.sound",
+            name: "c64_sound",
             arguments: {
               op: "reset",
               hard: true,
@@ -283,13 +283,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.system operations operate via MCP", async () => {
+  test("c64_system operations operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const pauseResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.system",
+            name: "c64_system",
             arguments: { op: "pause" },
           },
         },
@@ -303,7 +303,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.system",
+            name: "c64_system",
             arguments: { op: "resume" },
           },
         },
@@ -317,7 +317,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.system",
+            name: "c64_system",
             arguments: { op: "reset" },
           },
         },
@@ -331,7 +331,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.system",
+            name: "c64_system",
             arguments: { op: "reboot" },
           },
         },
@@ -344,13 +344,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.graphics create_petscii dry run returns art metadata", async () => {
+  test("c64_graphics create_petscii dry run returns art metadata", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.graphics",
+            name: "c64_graphics",
             arguments: {
               op: "create_petscii",
               prompt: "c64 logo",
@@ -373,13 +373,13 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("c64.rag basic retrieval returns references", async () => {
+  test("c64_rag basic retrieval returns references", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "c64.rag",
+            name: "c64_rag",
             arguments: {
               op: "basic",
               q: "print reverse text",
@@ -407,7 +407,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "list",
             },
@@ -429,7 +429,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "get",
               category: "Audio",
@@ -448,7 +448,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "set",
               category: "Audio",
@@ -467,7 +467,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "batch_update",
               Audio: {
@@ -490,7 +490,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "save_flash",
             },
@@ -506,7 +506,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "reset_defaults",
             },
@@ -522,7 +522,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.config",
+            name: "c64_config",
             arguments: {
               op: "load_flash",
             },
@@ -542,7 +542,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.stream",
+            name: "c64_stream",
             arguments: {
               op: "start",
               stream: "audio",
@@ -561,7 +561,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.stream",
+            name: "c64_stream",
             arguments: {
               op: "stop",
               stream: "audio",
@@ -582,7 +582,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "list_drives",
             },
@@ -598,7 +598,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "mount",
               drive: "drive8",
@@ -623,7 +623,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.drive",
+            name: "c64_drive",
             arguments: {
               op: "set_mode",
               drive: "drive8",
@@ -641,7 +641,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.drive",
+            name: "c64_drive",
             arguments: {
               op: "power_on",
               drive: "drive8",
@@ -658,7 +658,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.drive",
+            name: "c64_drive",
             arguments: {
               op: "power_off",
               drive: "drive8",
@@ -675,7 +675,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.drive",
+            name: "c64_drive",
             arguments: {
               op: "reset",
               drive: "drive8",
@@ -692,7 +692,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.drive",
+            name: "c64_drive",
             arguments: {
               op: "load_rom",
               drive: "drive8",
@@ -710,7 +710,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "unmount",
               drive: "drive8",
@@ -727,7 +727,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "file_info",
               path: "/tmp/demo.d64",
@@ -744,7 +744,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "create_image",
               format: "d64",
@@ -763,7 +763,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "create_image",
               format: "d71",
@@ -781,7 +781,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "create_image",
               format: "d81",
@@ -799,7 +799,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "c64.disk",
+            name: "c64_disk",
             arguments: {
               op: "create_image",
               format: "dnp",

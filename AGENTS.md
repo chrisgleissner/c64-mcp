@@ -41,14 +41,14 @@ Keep the server running; tools are discovered automatically in the chat session.
 
 ## MCP Discovery & Calling
 
-- Discover tools: use the client’s ListTools. You will see domains like `c64.program`, `c64.memory`, `c64.system`, etc., each with an `op` multiplexing parameter.
+- Discover tools: use the client’s ListTools. You will see domains like `c64_program`, `c64_memory`, `c64_system`, etc., each with an `op` multiplexing parameter.
 - Discover resources/prompts: use ListResources and ListPrompts for knowledge and reusable patterns.
 - Call pattern (all tools): pass a JSON object with `op` plus operation‑specific inputs shown by ListTools.
 
 Examples (MCP tool calls; HTTP only for illustration):
 
 ```json
-// c64.program — upload and run BASIC
+// c64_program — upload and run BASIC
 {
   "op": "upload_run_basic",
   "program": "10 PRINT \"HELLO\"\n20 GOTO 10"
@@ -56,7 +56,7 @@ Examples (MCP tool calls; HTTP only for illustration):
 ```
 
 ```json
-// c64.memory — wait for output on the screen (ASCII)
+// c64_memory — wait for output on the screen (ASCII)
 {
   "op": "wait_for_text",
   "pattern": "HELLO"
@@ -64,7 +64,7 @@ Examples (MCP tool calls; HTTP only for illustration):
 ```
 
 ```json
-// c64.rag — retrieve BASIC or ASM references from local knowledge
+// c64_rag — retrieve BASIC or ASM references from local knowledge
 {
   "op": "basic",
   "q": "draw a bouncing sprite"
@@ -73,14 +73,14 @@ Examples (MCP tool calls; HTTP only for illustration):
 
 ## Capabilities
 
-- Program runners: `c64.program` (`upload_run_basic`, `upload_run_asm`, `run_prg`, `run_crt`, `bundle_run`, `batch_run`)
-- Screen & memory: `c64.memory` (`read`, `write`, `read_screen`, `wait_for_text`)
-- System control: `c64.system` (`pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, tasks)
-- Configuration: `c64.config` (get/set, `batch_update`, `snapshot`, `restore`, `diff`, `shuffle`)
-- Drives & files: `c64.disk`, `c64.drive`
-- SID / music: `c64.sound` (playback, generate, analyze)
-- Graphics: `c64.graphics` (PETSCII, sprites)
-- Knowledge & RAG: `c64.rag` (BASIC and ASM lookups)
+- Program runners: `c64_program` (`upload_run_basic`, `upload_run_asm`, `run_prg`, `run_crt`, `bundle_run`, `batch_run`)
+- Screen & memory: `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`)
+- System control: `c64_system` (`pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, tasks)
+- Configuration: `c64_config` (get/set, `batch_update`, `snapshot`, `restore`, `diff`, `shuffle`)
+- Drives & files: `c64_disk`, `c64_drive`
+- SID / music: `c64_sound` (playback, generate, analyze)
+- Graphics: `c64_graphics` (PETSCII, sprites)
+- Knowledge & RAG: `c64_rag` (BASIC and ASM lookups)
 
 Tools and parameters are listed dynamically via ListTools.
 
@@ -96,22 +96,22 @@ Use ListResources to discover built-in knowledge, then read specific URIs to enr
 - `c64://docs/basic/pitfalls` — quoting, line length, token pitfalls
 - `c64://docs/petscii-style` — readable PETSCII, colour/dither guidance
 
-Pull RAG snippets via `c64.rag` (ops `basic`/`asm`) for targeted examples.
+Pull RAG snippets via `c64_rag` (ops `basic`/`asm`) for targeted examples.
 
 ## Expert Workflow (recommended)
 
-- Plan → Run → Verify: generate code, run via `c64.program`, then verify with `c64.memory.read_screen`/`wait_for_text` and optional RAM checks.
+- Plan → Run → Verify: generate code, run via `c64_program`, then verify with `c64_memory.read_screen`/`wait_for_text` and optional RAM checks.
 - Prefer stdio transport; only use the HTTP bridge for manual inspection.
-- Use `c64.rag` to fetch relevant BASIC/ASM snippets and specs before coding.
+- Use `c64_rag` to fetch relevant BASIC/ASM snippets and specs before coding.
 - BASIC tips: tokenised keywords, short variable names, careful quoting; keep lines ≤ 2 screen rows; prefer `PRINT` with explicit spacing.
 - ASM tips: avoid unstable rasters; use zero page consciously; confirm register maps via `c64://specs/assembly`, `c64://specs/memory-map`, `c64://specs/vic` resources.
 - Safety: only call reset/power/drive operations intentionally; confirm preconditions for mounts/writes; log reversible steps in chat.
 
 Error handling patterns:
 
-- If a run stalls, `c64.system.reset` then re-run; verify with `wait_for_text`.
-- On memory write validation failure, re-read with `c64.memory.read` and compare.
-- For long tasks, prefer background tasks (`c64.system.start_task`) and poll.
+- If a run stalls, `c64_system.reset` then re-run; verify with `wait_for_text`.
+- On memory write validation failure, re-read with `c64_memory.read` and compare.
+- For long tasks, prefer background tasks (`c64_system.start_task`) and poll.
 
 ## HTTP Examples (optional)
 
@@ -120,11 +120,11 @@ The stdio transport is preferred. The legacy HTTP bridge is deprecated and disab
 ```bash
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"upload_run_basic","program":"10 PRINT \"HELLO\"\n20 GOTO 10"}' \
-  http://localhost:8000/tools/c64.program | jq
+  http://localhost:8000/tools/c64_program | jq
 
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"read_screen"}' \
-  http://localhost:8000/tools/c64.memory | jq
+  http://localhost:8000/tools/c64_memory | jq
 ```
 
 ## Safety Notes
@@ -143,4 +143,4 @@ Use these starting points to seed agent context. Templates live in `.github/prom
 | SID Composer | SID playback/composition, ADSR, waveforms | [.github/prompts/sid-music-session.prompt.md](.github/prompts/sid-music-session.prompt.md) |
 | Drive Manager | Disk images, drive modes, resets | [.github/prompts/drive-management-session.prompt.md](.github/prompts/drive-management-session.prompt.md) |
 | VIC Painter | PETSCII/bitmap art, sprites | [.github/prompts/petscii-art-session.prompt.md](.github/prompts/petscii-art-session.prompt.md) |
-| Memory Debugger | RAM inspection, screen/colour RAM checks | Use `c64.memory` tools + `c64://specs/memory-map` |
+| Memory Debugger | RAM inspection, screen/colour RAM checks | Use `c64_memory` tools + `c64://specs/memory-map` |

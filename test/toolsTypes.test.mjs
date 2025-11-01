@@ -89,7 +89,7 @@ test("createOperationDispatcher routes to matching handlers", async () => {
   const calls = [];
 
   const dispatcher = createOperationDispatcher(
-    "c64.memory",
+    "c64_memory",
     {
       read: async (args) => {
         calls.push({ type: "read", args });
@@ -132,7 +132,7 @@ test("createOperationDispatcher routes to matching handlers", async () => {
 
 test("createOperationDispatcher validates op presence", async () => {
   const dispatcher = createOperationDispatcher(
-    "c64.memory",
+    "c64_memory",
     {
       read: async () => ({ content: [] }),
     },
@@ -150,7 +150,7 @@ test("createOperationDispatcher validates op presence", async () => {
 
 test("createOperationDispatcher rejects unknown ops", async () => {
   const dispatcher = createOperationDispatcher(
-    "c64.memory",
+    "c64_memory",
     {
       read: async () => ({ content: [] }),
       write: async () => ({ content: [] }),

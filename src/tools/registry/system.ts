@@ -125,11 +125,11 @@ export const systemModuleGroup = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.system",
+      name: "c64_system",
       description: "Grouped entry point for power, reset, menu, and background task control.",
       summary: "Manages machine state (pause, reset, power) and schedules recurring background tasks.",
       inputSchema: discriminatedUnionSchema({
-        description: "System operations available via the c64.system tool.",
+        description: "System operations available via the c64_system tool.",
         variants: systemOperations.map((operation) => operation.schema),
       }),
       tags: ["system", "control", "grouped"],
@@ -151,7 +151,7 @@ export const systemModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.system",
+        "c64_system",
         systemOperationHandlers,
       ),
     },

@@ -143,11 +143,11 @@ export const soundModuleGroup = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.sound",
+      name: "c64_sound",
       description: "Grouped entry point for SID control, playback, composition, and analysis workflows.",
       summary: "Adjusts SID registers, plays files, composes music, and runs verification captures.",
       inputSchema: discriminatedUnionSchema({
-        description: "Sound operations available via the c64.sound tool.",
+        description: "Sound operations available via the c64_sound tool.",
         variants: soundOperations.map((operation) => operation.schema),
       }),
       tags: ["sid", "audio", "grouped"],
@@ -164,7 +164,7 @@ export const soundModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.sound",
+        "c64_sound",
         soundOperationHandlers,
       ),
     },

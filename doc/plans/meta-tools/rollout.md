@@ -304,7 +304,7 @@ These tools remain in the catalog for future implementation based on user demand
   - Dependencies: `debug_loop_run_and_capture`
   - Effort: 70 minutes
 - [ ] `action_latency_measure` — Implementation notes:
-  - **Performance measurement** — Measure cycles between issuing an action (e.g., menu_button, `c64.memory` `write`) and the first observed matching bus event; return cycle/µs estimate.
+  - **Performance measurement** — Measure cycles between issuing an action (e.g., menu_button, `c64_memory` `write`) and the first observed matching bus event; return cycle/µs estimate.
   - Agent state: action timestamp, first-match timestamp, CPU clock assumption (PAL/NTSC option).
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop, PUT /v1/machine:menu_button|:writemem|runners
   - Dependencies: `debug_loop_run_and_capture`
@@ -328,7 +328,7 @@ Notes:
 
 Not yet prioritized; these tools remain in the catalog for future implementation based on user demand:
 
-- [ ] `red_green_refactor_loop` — Iterate: run → capture screen → `c64.memory` `write` fixes → rerun until pass.
+- [ ] `red_green_refactor_loop` — Iterate: run → capture screen → `c64_memory` `write` fixes → rerun until pass.
 - [ ] `multi_range_guardrails` — Continuously verify invariants; auto-restore from snapshot on violations.
 - [ ] `safe_reset_sequence` — Snapshot select ranges; reset; compare persistence; resume.
 - [ ] `drive_recovery_sequence` — Detect error; reset; power cycle; remount last image; verify.

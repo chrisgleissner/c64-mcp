@@ -71,11 +71,11 @@ export const memoryModuleGroup = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.memory",
+      name: "c64_memory",
       description: "Grouped entry point for memory I/O, screen reads, and screen polling.",
       summary: "Reads or writes RAM, captures the screen, or waits for text matches in one tool.",
       inputSchema: discriminatedUnionSchema({
-        description: "Memory operations available via the c64.memory tool.",
+        description: "Memory operations available via the c64_memory tool.",
         variants: memoryOperations.map((operation) => operation.schema),
       }),
       tags: ["memory", "screen", "grouped"],
@@ -92,7 +92,7 @@ export const memoryModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.memory",
+        "c64_memory",
         memoryOperationHandlers,
       ),
     },

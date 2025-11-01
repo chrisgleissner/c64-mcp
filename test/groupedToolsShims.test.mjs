@@ -15,28 +15,28 @@ test.after(() => {
 
 test("grouped tools appear in registry list", () => {
   const toolNames = toolRegistry.list().map((descriptor) => descriptor.name);
-  assert.ok(toolNames.includes("c64.program"), "c64.program should be registered");
-  assert.ok(toolNames.includes("c64.memory"), "c64.memory should be registered");
-  assert.ok(toolNames.includes("c64.sound"), "c64.sound should be registered");
-  assert.ok(toolNames.includes("c64.system"), "c64.system should be registered");
-  assert.ok(toolNames.includes("c64.graphics"), "c64.graphics should be registered");
-  assert.ok(toolNames.includes("c64.rag"), "c64.rag should be registered");
-  assert.ok(toolNames.includes("c64.disk"), "c64.disk should be registered");
-  assert.ok(toolNames.includes("c64.drive"), "c64.drive should be registered");
-  assert.ok(toolNames.includes("c64.printer"), "c64.printer should be registered");
-  assert.ok(toolNames.includes("c64.config"), "c64.config should be registered");
-  assert.ok(toolNames.includes("c64.extract"), "c64.extract should be registered");
-  assert.ok(toolNames.includes("c64.stream"), "c64.stream should be registered");
+  assert.ok(toolNames.includes("c64_program"), "c64_program should be registered");
+  assert.ok(toolNames.includes("c64_memory"), "c64_memory should be registered");
+  assert.ok(toolNames.includes("c64_sound"), "c64_sound should be registered");
+  assert.ok(toolNames.includes("c64_system"), "c64_system should be registered");
+  assert.ok(toolNames.includes("c64_graphics"), "c64_graphics should be registered");
+  assert.ok(toolNames.includes("c64_rag"), "c64_rag should be registered");
+  assert.ok(toolNames.includes("c64_disk"), "c64_disk should be registered");
+  assert.ok(toolNames.includes("c64_drive"), "c64_drive should be registered");
+  assert.ok(toolNames.includes("c64_printer"), "c64_printer should be registered");
+  assert.ok(toolNames.includes("c64_config"), "c64_config should be registered");
+  assert.ok(toolNames.includes("c64_extract"), "c64_extract should be registered");
+  assert.ok(toolNames.includes("c64_stream"), "c64_stream should be registered");
 });
 
 test("registry only exposes grouped tool names", () => {
   const toolNames = toolRegistry.list().map((descriptor) => descriptor.name);
   for (const name of toolNames) {
-    assert.ok(name.startsWith("c64."), `unexpected legacy tool visible in registry: ${name}`);
+    assert.ok(name.startsWith("c64_"), `unexpected legacy tool visible in registry: ${name}`);
   }
 });
 
-test("c64.program run_prg delegates to legacy handler", async () => {
+test("c64_program run_prg delegates to legacy handler", async () => {
   const calls = [];
   const stubClient = {
     async runPrgFile(path) {
@@ -70,14 +70,14 @@ test("c64.program run_prg delegates to legacy handler", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.program", { op: "run_prg", path: "//USB0/demo.prg" }, ctx);
+  const result = await toolRegistry.invoke("c64_program", { op: "run_prg", path: "//USB0/demo.prg" }, ctx);
   assert.equal(result.isError, undefined);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].method, "runPrgFile");
   assert.equal(calls[0].path, "//USB0/demo.prg");
 });
 
-test("c64.program upload_run_basic uses shared BASIC handler", async () => {
+test("c64_program upload_run_basic uses shared BASIC handler", async () => {
   const uploads = [];
   let screenReads = 0;
   const stubClient = {
@@ -117,7 +117,7 @@ test("c64.program upload_run_basic uses shared BASIC handler", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.program",
+    "c64_program",
     { op: "upload_run_basic", program: '10 PRINT "HI"\n20 END' },
     ctx,
   );
@@ -127,7 +127,7 @@ test("c64.program upload_run_basic uses shared BASIC handler", async () => {
   assert.ok(screenReads >= 1);
 });
 
-test("c64.memory read delegates to legacy handler", async () => {
+test("c64_memory read delegates to legacy handler", async () => {
   const calls = [];
   const stubClient = {
     async readMemory(address, length) {
@@ -155,7 +155,7 @@ test("c64.memory read delegates to legacy handler", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.memory", { op: "read", address: "$0400", length: 1 }, ctx);
+  const result = await toolRegistry.invoke("c64_memory", { op: "read", address: "$0400", length: 1 }, ctx);
   assert.equal(result.isError, undefined);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].method, "readMemory");
@@ -163,7 +163,7 @@ test("c64.memory read delegates to legacy handler", async () => {
   assert.equal(calls[0].length, "1");
 });
 
-test("c64.memory wait_for_text polls screen", async () => {
+test("c64_memory wait_for_text polls screen", async () => {
   let readCount = 0;
   const stubClient = {
     async readMemory() {
@@ -191,12 +191,12 @@ test("c64.memory wait_for_text polls screen", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.memory", { op: "wait_for_text", pattern: "READY." }, ctx);
+  const result = await toolRegistry.invoke("c64_memory", { op: "wait_for_text", pattern: "READY." }, ctx);
   assert.equal(result.isError, undefined);
   assert.ok(readCount >= 1, "readScreen should be called at least once");
 });
 
-test("c64.memory write with verify pauses, writes, and resumes", async () => {
+test("c64_memory write with verify pauses, writes, and resumes", async () => {
   const callLog = [];
   let readInvocation = 0;
 
@@ -240,7 +240,7 @@ test("c64.memory write with verify pauses, writes, and resumes", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.memory",
+    "c64_memory",
     { op: "write", address: "$0400", bytes: "$ABCD", verify: true },
     ctx,
   );
@@ -259,7 +259,7 @@ test("c64.memory write with verify pauses, writes, and resumes", async () => {
   assert.equal(readCalls[1].address, "$0400");
 });
 
-test("c64.sound note_on delegates to legacy handler", async () => {
+test("c64_sound note_on delegates to legacy handler", async () => {
   const calls = [];
   const stubClient = {
     async sidNoteOn(payload) {
@@ -282,7 +282,7 @@ test("c64.sound note_on delegates to legacy handler", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.sound",
+    "c64_sound",
     { op: "note_on", voice: 2, note: "G4", waveform: "tri" },
     ctx,
   );
@@ -294,7 +294,7 @@ test("c64.sound note_on delegates to legacy handler", async () => {
   assert.equal(calls[0].payload.note, "G4");
 });
 
-test("c64.sound silence_all verify runs audio analyzer", async () => {
+test("c64_sound silence_all verify runs audio analyzer", async () => {
   const stubClient = {
     async sidSilenceAll() {
       return { success: true };
@@ -326,7 +326,7 @@ test("c64.sound silence_all verify runs audio analyzer", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.sound",
+    "c64_sound",
     { op: "silence_all", verify: true },
     ctx,
   );
@@ -337,7 +337,7 @@ test("c64.sound silence_all verify runs audio analyzer", async () => {
   assert.ok(result.metadata?.verification?.maxRms <= 0.02);
 });
 
-test("c64.system reset delegates to machine control", async () => {
+test("c64_system reset delegates to machine control", async () => {
   const calls = [];
   const stubClient = {
     async reset() {
@@ -359,14 +359,14 @@ test("c64.system reset delegates to machine control", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.system", { op: "reset" }, ctx);
+  const result = await toolRegistry.invoke("c64_system", { op: "reset" }, ctx);
 
   assert.equal(result.isError, undefined);
   assert.deepEqual(calls, ["reset"]);
   assert.equal(result.metadata?.success, true);
 });
 
-test("c64.system background task lifecycle proxies to meta tools", async () => {
+test("c64_system background task lifecycle proxies to meta tools", async () => {
   const { file, dir } = tmpPath("grouped-system", "tasks.json");
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(file, JSON.stringify({ tasks: [] }, null, 2));
@@ -389,7 +389,7 @@ test("c64.system background task lifecycle proxies to meta tools", async () => {
     };
 
     const start = await toolRegistry.invoke(
-      "c64.system",
+      "c64_system",
   { op: "start_task", name: "grouped-task", operation: "read", intervalMs: 10, maxIterations: 1 },
       ctx,
     );
@@ -397,13 +397,13 @@ test("c64.system background task lifecycle proxies to meta tools", async () => {
 
   await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const list = await toolRegistry.invoke("c64.system", { op: "list_tasks" }, ctx);
+    const list = await toolRegistry.invoke("c64_system", { op: "list_tasks" }, ctx);
     assert.equal(list.metadata?.success, true);
     const tasks = list.structuredContent?.data?.tasks ?? [];
     const match = tasks.find((task) => task.name === "grouped-task");
     assert.ok(match, "background task should be present");
 
-    const stop = await toolRegistry.invoke("c64.system", { op: "stop_all_tasks" }, ctx);
+    const stop = await toolRegistry.invoke("c64_system", { op: "stop_all_tasks" }, ctx);
     assert.equal(stop.metadata?.success, true);
   } finally {
     if (previous === undefined) delete process.env.C64_TASK_STATE_FILE;
@@ -411,7 +411,7 @@ test("c64.system background task lifecycle proxies to meta tools", async () => {
   }
 });
 
-test("c64.disk list_drives delegates to storage module", async () => {
+test("c64_disk list_drives delegates to storage module", async () => {
   const calls = [];
   const stubClient = {
     async drivesList() {
@@ -433,13 +433,13 @@ test("c64.disk list_drives delegates to storage module", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.disk", { op: "list_drives" }, ctx);
+  const result = await toolRegistry.invoke("c64_disk", { op: "list_drives" }, ctx);
 
   assert.equal(result.isError, undefined);
   assert.deepEqual(calls, ["drivesList"]);
 });
 
-test("c64.disk mount without verify calls driveMount", async () => {
+test("c64_disk mount without verify calls driveMount", async () => {
   const calls = [];
   const stubClient = {
     async driveMount(drive, image, options) {
@@ -462,7 +462,7 @@ test("c64.disk mount without verify calls driveMount", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.disk",
+    "c64_disk",
     {
       op: "mount",
       drive: "drive8",
@@ -481,7 +481,7 @@ test("c64.disk mount without verify calls driveMount", async () => {
   assert.equal(calls[0].options?.mode, "readonly");
 });
 
-test("c64.disk mount with verify delegates to meta workflow", async () => {
+test("c64_disk mount with verify delegates to meta workflow", async () => {
   const calls = [];
   const stubClient = {
     async driveMount() {
@@ -513,7 +513,7 @@ test("c64.disk mount with verify delegates to meta workflow", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.disk",
+      "c64_disk",
       {
         op: "mount",
         drive: "drive9",
@@ -536,7 +536,7 @@ test("c64.disk mount with verify delegates to meta workflow", async () => {
   }
 });
 
-test("c64.disk create_image validates D64 tracks", async () => {
+test("c64_disk create_image validates D64 tracks", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -552,7 +552,7 @@ test("c64.disk create_image validates D64 tracks", async () => {
 
   await assert.rejects(
     () => toolRegistry.invoke(
-      "c64.disk",
+      "c64_disk",
       { op: "create_image", format: "d64", path: "//USB0/bad.d64", tracks: 36 },
       ctx,
     ),
@@ -560,7 +560,7 @@ test("c64.disk create_image validates D64 tracks", async () => {
   );
 });
 
-test("c64.drive set_mode delegates to storage module", async () => {
+test("c64_drive set_mode delegates to storage module", async () => {
   const calls = [];
   const stubClient = {
     async driveSetMode(drive, mode) {
@@ -583,7 +583,7 @@ test("c64.drive set_mode delegates to storage module", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.drive",
+    "c64_drive",
     { op: "set_mode", drive: "drive8", mode: "1581" },
     ctx,
   );
@@ -592,7 +592,7 @@ test("c64.drive set_mode delegates to storage module", async () => {
   assert.deepEqual(calls, [{ drive: "drive8", mode: "1581" }]);
 });
 
-test("c64.printer print_text delegates to printer module", async () => {
+test("c64_printer print_text delegates to printer module", async () => {
   const calls = [];
   const stubClient = {
     async printTextOnPrinterAndRun(payload) {
@@ -615,7 +615,7 @@ test("c64.printer print_text delegates to printer module", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.printer",
+    "c64_printer",
     { op: "print_text", text: "HELLO", formFeed: true },
     ctx,
   );
@@ -626,7 +626,7 @@ test("c64.printer print_text delegates to printer module", async () => {
   assert.equal(calls[0].formFeed, true);
 });
 
-test("c64.printer print_bitmap routes to Commodore workflow", async () => {
+test("c64_printer print_bitmap routes to Commodore workflow", async () => {
   const calls = [];
   const stubClient = {
     async printBitmapOnCommodoreAndRun(payload) {
@@ -649,7 +649,7 @@ test("c64.printer print_bitmap routes to Commodore workflow", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.printer",
+    "c64_printer",
     {
       op: "print_bitmap",
       printer: "commodore",
@@ -666,7 +666,7 @@ test("c64.printer print_bitmap routes to Commodore workflow", async () => {
   assert.equal(calls[0].ensureMsb, true);
 });
 
-test("c64.extract sprites delegates to sprite extractor", async () => {
+test("c64_extract sprites delegates to sprite extractor", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -692,7 +692,7 @@ test("c64.extract sprites delegates to sprite extractor", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.extract",
+      "c64_extract",
       { op: "sprites", address: "$2000", length: 2048, stride: 64 },
       ctx,
     );
@@ -708,7 +708,7 @@ test("c64.extract sprites delegates to sprite extractor", async () => {
   }
 });
 
-test("c64.extract memory_dump forwards to meta dump tool", async () => {
+test("c64_extract memory_dump forwards to meta dump tool", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -734,7 +734,7 @@ test("c64.extract memory_dump forwards to meta dump tool", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.extract",
+      "c64_extract",
       {
         op: "memory_dump",
         address: "$0400",
@@ -758,7 +758,7 @@ test("c64.extract memory_dump forwards to meta dump tool", async () => {
   }
 });
 
-test("c64.stream start delegates to streaming start handler", async () => {
+test("c64_stream start delegates to streaming start handler", async () => {
   const calls = [];
   const stubClient = {
     async streamStart(stream, target) {
@@ -784,7 +784,7 @@ test("c64.stream start delegates to streaming start handler", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.stream",
+    "c64_stream",
     { op: "start", stream: "audio", target: "127.0.0.1:9000" },
     ctx,
   );
@@ -797,7 +797,7 @@ test("c64.stream start delegates to streaming start handler", async () => {
   assert.equal(result.metadata?.target, "127.0.0.1:9000");
 });
 
-test("c64.stream stop delegates to streaming stop handler", async () => {
+test("c64_stream stop delegates to streaming stop handler", async () => {
   const calls = [];
   const stubClient = {
     async streamStart() {
@@ -823,7 +823,7 @@ test("c64.stream stop delegates to streaming stop handler", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.stream",
+    "c64_stream",
     { op: "stop", stream: "audio" },
     ctx,
   );
@@ -834,7 +834,7 @@ test("c64.stream stop delegates to streaming stop handler", async () => {
   assert.equal(result.metadata?.stream, "audio");
 });
 
-test("c64.printer print_bitmap routes to Epson workflow", async () => {
+test("c64_printer print_bitmap routes to Epson workflow", async () => {
   const calls = [];
   const stubClient = {
     async printBitmapOnEpsonAndRun(payload) {
@@ -857,7 +857,7 @@ test("c64.printer print_bitmap routes to Epson workflow", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.printer",
+    "c64_printer",
     {
       op: "print_bitmap",
       printer: "epson",
@@ -877,7 +877,7 @@ test("c64.printer print_bitmap routes to Epson workflow", async () => {
   assert.equal(calls[0].repeats, 2);
 });
 
-test("c64.printer print_bitmap rejects invalid secondary address", async () => {
+test("c64_printer print_bitmap rejects invalid secondary address", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -893,7 +893,7 @@ test("c64.printer print_bitmap rejects invalid secondary address", async () => {
 
   await assert.rejects(
     () => toolRegistry.invoke(
-      "c64.printer",
+      "c64_printer",
       {
         op: "print_bitmap",
         printer: "commodore",
@@ -906,7 +906,7 @@ test("c64.printer print_bitmap rejects invalid secondary address", async () => {
   );
 });
 
-test("c64.config list delegates to configsList", async () => {
+test("c64_config list delegates to configsList", async () => {
   const calls = [];
   const stubClient = {
     async configsList() {
@@ -928,13 +928,13 @@ test("c64.config list delegates to configsList", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.config", { op: "list" }, ctx);
+  const result = await toolRegistry.invoke("c64_config", { op: "list" }, ctx);
 
   assert.equal(result.isError, undefined);
   assert.deepEqual(calls, ["configsList"]);
 });
 
-test("c64.config set delegates to configSet", async () => {
+test("c64_config set delegates to configSet", async () => {
   const calls = [];
   const stubClient = {
     async configSet(category, item, value) {
@@ -957,7 +957,7 @@ test("c64.config set delegates to configSet", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.config",
+    "c64_config",
     { op: "set", category: "Audio", item: "Volume", value: 70 },
     ctx,
   );
@@ -969,7 +969,7 @@ test("c64.config set delegates to configSet", async () => {
   assert.equal(calls[0].value, "70");
 });
 
-test("c64.config write_debugreg uppercases payload", async () => {
+test("c64_config write_debugreg uppercases payload", async () => {
   const calls = [];
   const stubClient = {
     async debugregWrite(value) {
@@ -992,7 +992,7 @@ test("c64.config write_debugreg uppercases payload", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.config",
+    "c64_config",
     { op: "write_debugreg", value: "2a" },
     ctx,
   );
@@ -1001,7 +1001,7 @@ test("c64.config write_debugreg uppercases payload", async () => {
   assert.deepEqual(calls, ["2A"]);
 });
 
-test("c64.config snapshot delegates to meta workflow", async () => {
+test("c64_config snapshot delegates to meta workflow", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -1027,7 +1027,7 @@ test("c64.config snapshot delegates to meta workflow", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.config",
+      "c64_config",
       { op: "snapshot", path: "/tmp/config.json" },
       ctx,
     );
@@ -1042,7 +1042,7 @@ test("c64.config snapshot delegates to meta workflow", async () => {
   }
 });
 
-test("c64.config restore forwards applyToFlash flag", async () => {
+test("c64_config restore forwards applyToFlash flag", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -1068,7 +1068,7 @@ test("c64.config restore forwards applyToFlash flag", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.config",
+      "c64_config",
       { op: "restore", path: "./snap.json", applyToFlash: true },
       ctx,
     );
@@ -1083,7 +1083,7 @@ test("c64.config restore forwards applyToFlash flag", async () => {
   }
 });
 
-test("c64.config diff delegates to config snapshot meta tool", async () => {
+test("c64_config diff delegates to config snapshot meta tool", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -1109,7 +1109,7 @@ test("c64.config diff delegates to config snapshot meta tool", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.config",
+      "c64_config",
       { op: "diff", path: "./snap.json" },
       ctx,
     );
@@ -1123,7 +1123,7 @@ test("c64.config diff delegates to config snapshot meta tool", async () => {
   }
 });
 
-test("c64.config shuffle delegates to program shuffle workflow", async () => {
+test("c64_config shuffle delegates to program shuffle workflow", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -1149,7 +1149,7 @@ test("c64.config shuffle delegates to program shuffle workflow", async () => {
 
   try {
     const result = await toolRegistry.invoke(
-      "c64.config",
+      "c64_config",
       { op: "shuffle", root: "/games" },
       ctx,
     );
@@ -1163,7 +1163,7 @@ test("c64.config shuffle delegates to program shuffle workflow", async () => {
   }
 });
 
-test("c64.graphics render_petscii delegates to legacy handler", async () => {
+test("c64_graphics render_petscii delegates to legacy handler", async () => {
   const calls = [];
   const stubClient = {
     async renderPetsciiScreenAndRun(payload) {
@@ -1192,7 +1192,7 @@ test("c64.graphics render_petscii delegates to legacy handler", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.graphics",
+    "c64_graphics",
     { op: "render_petscii", text: "HELLO", borderColor: 6 },
     ctx,
   );
@@ -1203,7 +1203,7 @@ test("c64.graphics render_petscii delegates to legacy handler", async () => {
   assert.equal(calls[0].borderColor, 6);
 });
 
-test("c64.graphics generate_sprite proxies to sprite helper", async () => {
+test("c64_graphics generate_sprite proxies to sprite helper", async () => {
   const calls = [];
   const stubClient = {
     async generateAndRunSpritePrg(payload) {
@@ -1233,7 +1233,7 @@ test("c64.graphics generate_sprite proxies to sprite helper", async () => {
 
   const sprite = Array.from({ length: 63 }, () => 0);
   const result = await toolRegistry.invoke(
-    "c64.graphics",
+    "c64_graphics",
     { op: "generate_sprite", sprite, index: 1, x: 140, y: 120, color: 5 },
     ctx,
   );
@@ -1247,7 +1247,7 @@ test("c64.graphics generate_sprite proxies to sprite helper", async () => {
   assert.equal(calls[0].color, 5);
 });
 
-test("c64.graphics generate_bitmap reports placeholder error", async () => {
+test("c64_graphics generate_bitmap reports placeholder error", async () => {
   const ctx = {
     client: {},
     rag: {},
@@ -1261,14 +1261,14 @@ test("c64.graphics generate_bitmap reports placeholder error", async () => {
     setPlatform,
   };
 
-  const result = await toolRegistry.invoke("c64.graphics", { op: "generate_bitmap" }, ctx);
+  const result = await toolRegistry.invoke("c64_graphics", { op: "generate_bitmap" }, ctx);
 
   assert.equal(result.isError, true);
   assert.equal(result.metadata?.error?.kind, "execution");
   assert.equal(result.metadata?.error?.details?.available, false);
 });
 
-test("c64.rag basic retrieval delegates to RAG layer", async () => {
+test("c64_rag basic retrieval delegates to RAG layer", async () => {
   const queries = [];
   const stubRag = {
     async retrieve(q, k, language) {
@@ -1297,7 +1297,7 @@ test("c64.rag basic retrieval delegates to RAG layer", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.rag",
+    "c64_rag",
     { op: "basic", q: "print border" },
     ctx,
   );
@@ -1310,7 +1310,7 @@ test("c64.rag basic retrieval delegates to RAG layer", async () => {
   assert.ok(result.structuredContent?.data?.refs?.length);
 });
 
-test("c64.rag asm retrieval delegates to RAG layer", async () => {
+test("c64_rag asm retrieval delegates to RAG layer", async () => {
   const queries = [];
   const stubRag = {
     async retrieve(q, k, language) {
@@ -1333,7 +1333,7 @@ test("c64.rag asm retrieval delegates to RAG layer", async () => {
   };
 
   const result = await toolRegistry.invoke(
-    "c64.rag",
+    "c64_rag",
     { op: "asm", q: "stable raster irq" },
     ctx,
   );

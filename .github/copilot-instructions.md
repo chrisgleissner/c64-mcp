@@ -89,8 +89,8 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 - Interpret `/C64` or `/c64` at the beginning of a message as a request to route subsequent steps through the `c64bridge` tools for this turn. Also accept `C64U` and `c64u` as equivalent triggers.
 - In C64 mode:
   - Use `upload_run_basic` or `upload_run_asm` for program execution.
-  - Use `read_screen`, `read`, or `write` (via `c64.memory`) for inspection or patches.
-  - Use SID/VIC helpers (`c64.sound` ops such as `generate`, `note_on`, `render_petscii_screen`, etc.) when relevant.
+  - Use `read_screen`, `read`, or `write` (via `c64_memory`) for inspection or patches.
+  - Use SID/VIC helpers (`c64_sound` ops such as `generate`, `note_on`, `render_petscii_screen`, etc.) when relevant.
   - Explain intended tool calls briefly before invoking them.
 
 ### Fallback Guidance
@@ -103,4 +103,4 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 
 - "Read the current C64 screen" → connect and call `read_screen`.
 - "/C64 draw a rectangle using BASIC" → generate BASIC, call `upload_run_basic`, then `read_screen`.
-- "Play a C major scale on the SID" → call `c64.sound` (op `generate`), then `c64.sound` (op `analyze`) for verification.
+- "Play a C major scale on the SID" → call `c64_sound` (op `generate`), then `c64_sound` (op `analyze`) for verification.

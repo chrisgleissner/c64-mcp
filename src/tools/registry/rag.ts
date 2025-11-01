@@ -52,18 +52,18 @@ export const ragModuleGroup = defineToolModule({
   supportedPlatforms: ["c64u", "vice"],
   tools: [
     {
-      name: "c64.rag",
+      name: "c64_rag",
       description: "Grouped entry point for BASIC and assembly RAG lookups.",
       summary: "Returns curated knowledge references for BASIC or 6502/6510 assembly queries.",
       inputSchema: discriminatedUnionSchema({
-        description: "RAG operations available via the c64.rag tool.",
+        description: "RAG operations available via the c64_rag tool.",
         variants: ragOperations.map((operation) => operation.schema),
       }),
-      tags: ["rag", "knowledge", "grouped"],
+      tags: ["rag", "reference", "grouped"],
       examples: [
         {
-          name: "Lookup BASIC references",
-          description: "Find PRINT syntax guidance",
+          name: "Retrieve BASIC snippet",
+          description: "Search for device 4 printing guidance",
           arguments: { op: "basic", q: "basic print device 4" },
         },
         {
@@ -73,7 +73,7 @@ export const ragModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.rag",
+        "c64_rag",
         ragOperationHandlers,
       ),
     },

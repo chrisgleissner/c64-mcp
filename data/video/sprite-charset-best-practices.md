@@ -270,7 +270,7 @@ When working with sprites and charsets:
 1. Use memory ranges documented in c64://specs/memory-map
 2. Avoid BASIC program area ($0801-$9FFF) unless controlling it
 3. Preserve zero page ($0000-$00FF) and stack ($0100-$01FF)
-4. Use the `c64.memory` operations `read` and `write` for safe access
+4. Use the `c64_memory` operations `read` and `write` for safe access
 
 ## Example Workflows
 
@@ -280,13 +280,13 @@ When working with sprites and charsets:
 2. Call `generate_sprite_prg` with sprite data
 3. Tool returns PRG that sets up sprite automatically
 4. Use `read_screen` to verify appearance
-5. Optionally call `c64.memory` `write` to adjust position/colour
+5. Optionally call `c64_memory` `write` to adjust position/colour
 
 ### Custom Charset Installation
 
 1. Design character set (full or partial)
 2. Encode to 8-byte-per-char format
-3. Use `c64.memory` `write` to copy the charset to $2000
+3. Use `c64_memory` `write` to copy the charset to $2000
 4. POKE $D018 to point VIC-II at new charset
 5. Use `upload_run_basic` to test character display
 6. Verify with `read_screen`
@@ -297,7 +297,7 @@ When working with sprites and charsets:
 2. Upload all frames to consecutive memory locations
 3. Generate BASIC program that cycles sprite pointer
 4. Use raster timing for smooth animation
-5. Verify frame timing with `c64.memory` `read` checks
+5. Verify frame timing with `c64_memory` `read` checks
 
 ## Best Practices Summary
 

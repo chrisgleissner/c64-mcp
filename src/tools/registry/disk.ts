@@ -353,11 +353,11 @@ export const diskModuleGroup = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.disk",
+      name: "c64_disk",
       description: "Grouped entry point for disk mounts, listings, image creation, and program discovery.",
       summary: "Mount or unmount images, create new disks, list drives, and find programs from one tool.",
       inputSchema: discriminatedUnionSchema({
-        description: "Disk operations available via the c64.disk tool.",
+        description: "Disk operations available via the c64_disk tool.",
         variants: diskOperations.map((operation) => operation.schema),
       }),
       tags: ["storage", "drive", "grouped"],
@@ -379,7 +379,7 @@ export const diskModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.disk",
+        "c64_disk",
         diskOperationHandlers,
       ),
     },

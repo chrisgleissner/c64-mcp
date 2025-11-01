@@ -337,7 +337,7 @@ test('downloads GitHub repo zip via default fetcher', { concurrency: false }, as
     const repoDir = path.join(outDir, 'github.com', 'test_sample');
     const helloPath = path.join(repoDir, 'hello.bas');
     const ignorePath = path.join(repoDir, 'ignore.bin');
-    const codesC64Path = path.join(repoDir, 'notes', 'control_codes_c64.txt');
+  const codesC64Path = path.join(repoDir, 'notes', 'control_codes_c64.txt');
     const codesC128Path = path.join(repoDir, 'notes', 'control_codes_c128.txt');
     const disasmEnPath = path.join(repoDir, 'docs', 'c64disasm_en.txt');
     const disasmDePath = path.join(repoDir, 'docs', 'c64disasm_de.txt');

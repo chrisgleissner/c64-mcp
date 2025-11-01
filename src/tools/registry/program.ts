@@ -99,11 +99,11 @@ export const programModule = defineToolModule({
   supportedPlatforms: ["c64u", "vice"],
   tools: [
     {
-      name: "c64.program",
+      name: "c64_program",
       description: "Grouped entry point for program upload, execution, and batch workflows.",
       summary: "Runs PRG/CRT files, uploads BASIC or ASM, and coordinates batch test flows.",
       inputSchema: discriminatedUnionSchema({
-        description: "Program operations available via the c64.program tool.",
+        description: "Program operations available via the c64_program tool.",
         variants: programOperations.map((operation) => operation.schema),
       }),
       tags: ["programs", "execution", "grouped"],
@@ -120,7 +120,7 @@ export const programModule = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.program",
+        "c64_program",
         programOperationHandlers,
       ),
     },

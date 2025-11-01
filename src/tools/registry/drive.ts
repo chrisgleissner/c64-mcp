@@ -73,15 +73,15 @@ export const driveModuleGroup = defineToolModule({
   defaultTags: ["drive", "hardware"],
   workflowHints: [
     "State the resulting power/mode/ROM so the user can reconcile IEC behaviour.",
-    "Suggest running c64.disk (op list_drives) to confirm status when appropriate.",
+    "Suggest running c64_disk (op list_drives) to confirm status when appropriate.",
   ],
   tools: [
     {
-      name: "c64.drive",
+      name: "c64_drive",
       description: "Grouped entry point for drive power, mode, reset, and ROM operations.",
       summary: "Power cycle drive slots, reset IEC state, switch emulation modes, or load custom ROMs.",
       inputSchema: discriminatedUnionSchema({
-        description: "Drive operations available via the c64.drive tool.",
+        description: "Drive operations available via the c64_drive tool.",
         variants: driveOperations.map((operation) => operation.schema),
       }),
       tags: ["drive", "hardware", "grouped"],
@@ -98,7 +98,7 @@ export const driveModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.drive",
+        "c64_drive",
         driveOperationHandlers,
       ),
     },

@@ -57,7 +57,7 @@ const graphicsOperations: GroupedOperationConfig[] = [
       { description: "Reserved high-resolution bitmap generator (coming soon)." },
     ),
     handler: async () => toolErrorResult(
-      new ToolExecutionError("c64.graphics op generate_bitmap is not yet available", {
+      new ToolExecutionError("c64_graphics op generate_bitmap is not yet available", {
         details: { available: false },
       }),
     ),
@@ -79,11 +79,11 @@ export const graphicsModuleGroup = defineToolModule({
   supportedPlatforms: ["c64u", "vice"],
   tools: [
     {
-      name: "c64.graphics",
+      name: "c64_graphics",
       description: "Grouped entry point for PETSCII art, sprite previews, and future bitmap generation.",
       summary: "Generates PETSCII art, renders text screens, or runs sprite demos from one tool.",
       inputSchema: discriminatedUnionSchema({
-        description: "Graphics operations available via the c64.graphics tool.",
+        description: "Graphics operations available via the c64_graphics tool.",
         variants: graphicsOperations.map((operation) => operation.schema),
       }),
       tags: ["graphics", "vic", "grouped"],
@@ -105,7 +105,7 @@ export const graphicsModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.graphics",
+        "c64_graphics",
         graphicsOperationHandlers,
       ),
     },

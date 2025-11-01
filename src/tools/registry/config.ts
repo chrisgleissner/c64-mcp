@@ -260,11 +260,11 @@ export const configModuleGroup = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.config",
+      name: "c64_config",
       description: "Grouped entry point for configuration reads/writes, diagnostics, and snapshots.",
       summary: "List or update settings, access firmware info, take snapshots, and run program shuffle workflows.",
       inputSchema: discriminatedUnionSchema({
-        description: "Configuration operations available via the c64.config tool.",
+        description: "Configuration operations available via the c64_config tool.",
         variants: configOperations.map((operation) => operation.schema),
       }),
       tags: ["config", "diagnostics", "grouped"],
@@ -282,11 +282,11 @@ export const configModuleGroup = defineToolModule({
         {
           name: "Snapshot config",
           description: "Write configuration snapshot to disk",
-          arguments: { op: "snapshot", path: "./snapshots/c64.json" },
+          arguments: { op: "snapshot", path: "./snapshots/c64_json" },
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.config",
+        "c64_config",
         configOperationHandlers,
       ),
     },

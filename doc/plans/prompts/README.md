@@ -47,13 +47,13 @@ Notes:
 
 | Family | Must-Suggest Tools | Optional Tools | Warnings |
 | --- | --- | --- | --- |
-| `basic-program` | `c64.program`, `c64.memory` | `c64.system` (ops `reset`, `start_task`) | Remind to reset only if user confirms; highlight PETSCII newline handling. |
-| `assembly-program` | `c64.program`, `c64.memory` | `c64.system` (ops `reset`, `pause`, `resume`) | Require IRQ acknowledgement steps for raster code; caution on zero-page writes. |
-| `sid-music` | `c64.sound` (ops `generate`, `note_on`, `analyze`) | `c64.sound` (ops `compile_play`, `play_sid_file`, `set_volume`) | Warn about volume resets (`$D418`) and making backups before overwriting SID memory. |
-| `graphics-demo` | `c64.program`, `c64.memory`, `c64.graphics` | `c64.system` (op `pause`), `c64.memory` (op `read`) | Emphasise safe colour RAM usage; mention border side-effects for raster tricks. |
-| `printer-job` | `c64.printer` (ops `print_text`, `print_bitmap`) | `c64.printer` (op `define_chars`), `c64.memory` | Remind users to send `CHR$(12)` before closing; confirm `printer` argument (`commodore` vs `epson`) before printing. |
-| `memory-debug` | `c64.memory`, `c64.system` (ops `pause`, `resume`) | `c64.system` (op `reset`) | Advise capturing snapshots before writes; include address validation heuristics. |
-| `drive-manager` | `c64.disk` (ops `list_drives`, `mount`, `unmount`) | `c64.disk` (ops `file_info`, `create_image`, `find_and_run`), `c64.drive` (ops `reset`, `power_on`, `power_off`, `load_rom`, `set_mode`), `c64.system` (op `resume`) | Highlight risk of interrupting running programs; recommend verifying mounts after actions. |
+| `basic-program` | `c64_program`, `c64_memory` | `c64_system` (ops `reset`, `start_task`) | Remind to reset only if user confirms; highlight PETSCII newline handling. |
+| `assembly-program` | `c64_program`, `c64_memory` | `c64_system` (ops `reset`, `pause`, `resume`) | Require IRQ acknowledgement steps for raster code; caution on zero-page writes. |
+| `sid-music` | `c64_sound` (ops `generate`, `note_on`, `analyze`) | `c64_sound` (ops `compile_play`, `play_sid_file`, `set_volume`) | Warn about volume resets (`$D418`) and making backups before overwriting SID memory. |
+| `graphics-demo` | `c64_program`, `c64_memory`, `c64_graphics` | `c64_system` (op `pause`), `c64_memory` (op `read`) | Emphasise safe colour RAM usage; mention border side-effects for raster tricks. |
+| `printer-job` | `c64_printer` (ops `print_text`, `print_bitmap`) | `c64_printer` (op `define_chars`), `c64_memory` | Remind users to send `CHR$(12)` before closing; confirm `printer` argument (`commodore` vs `epson`) before printing. |
+| `memory-debug` | `c64_memory`, `c64_system` (ops `pause`, `resume`) | `c64_system` (op `reset`) | Advise capturing snapshots before writes; include address validation heuristics. |
+| `drive-manager` | `c64_disk` (ops `list_drives`, `mount`, `unmount`) | `c64_disk` (ops `file_info`, `create_image`, `find_and_run`), `c64_drive` (ops `reset`, `power_on`, `power_off`, `load_rom`, `set_mode`), `c64_system` (op `resume`) | Highlight risk of interrupting running programs; recommend verifying mounts after actions. |
 
 ---
 
@@ -63,12 +63,12 @@ Notes:
 | --- | --- | --- |
 | `intro/core` | Universal introduction | Remind user the MCP runs against Ultimate 64 REST, mention tool invocation expectation. |
 | `safety/reset` | Caution about disruptive actions | Ask for confirmation before resets/writes that halt the machine. |
-| `workflow/basic-verify` | Post-run checklist for BASIC | Suggest `c64.memory` (op `read_screen`) capture, optional `c64.memory` (op `read`) for program area, note PETSCII output quirks. |
+| `workflow/basic-verify` | Post-run checklist for BASIC | Suggest `c64_memory` (op `read_screen`) capture, optional `c64_memory` (op `read`) for program area, note PETSCII output quirks. |
 | `workflow/asm-irq` | IRQ safety guidance | Outline `SEI`, vector setup, `$D01A` mask, `$D019` acknowledge, `CLI`. |
 | `workflow/sid-iterate` | Audio feedback loop | Steps: compose → play → run `analyze_audio` → adjust ADSR/frequency. |
-| `workflow/graphics-verify` | Visual validation | Encourage screenshot via `c64.memory` (op `read_screen`), mention border/background toggles. |
+| `workflow/graphics-verify` | Visual validation | Encourage screenshot via `c64_memory` (op `read_screen`), mention border/background toggles. |
 | `workflow/printer` | Print job completion | Ensure `CHR$(12)` for page eject, close channel, suggest checking printer status. |
-| `workflow/memory-snapshot` | Safe memory editing | Recommend pausing, using `c64.memory` reads before writes, and resuming afterwards. |
+| `workflow/memory-snapshot` | Safe memory editing | Recommend pausing, using `c64_memory` reads before writes, and resuming afterwards. |
 | `workflow/drive` | Drive changes | Pre-check currently mounted images, confirm after action, note potential interference with running programs. |
 
 Segments should be composable so prompts can include `intro/core` + family-specific workflow + optional `safety/reset` depending on requested action.

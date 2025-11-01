@@ -77,11 +77,11 @@ export const extractModule = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.extract",
+      name: "c64_extract",
       description: "Grouped entry point for sprite/charset extraction, memory dumps, filesystem stats, and firmware health checks.",
       summary: "Export sprites or charsets, dump RAM, compute filesystem stats, or run firmware health checks.",
       inputSchema: discriminatedUnionSchema({
-        description: "Extraction operations available via the c64.extract tool.",
+        description: "Extraction operations available via the c64_extract tool.",
         variants: extractOperations.map((operation) => operation.schema),
       }),
       tags: ["extract", "diagnostics", "grouped"],
@@ -98,7 +98,7 @@ export const extractModule = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.extract",
+        "c64_extract",
         extractOperationHandlers,
       ),
     },

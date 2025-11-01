@@ -43,7 +43,7 @@ test("toolRegistry.list returns all registered tools", () => {
 test("toolRegistry.invoke executes a tool", async () => {
   const ctx = createStubCtx();
 
-  const result = await toolRegistry.invoke("c64.config", { op: "version" }, ctx);
+  const result = await toolRegistry.invoke("c64_config", { op: "version" }, ctx);
   assert.ok(result, "should return a result");
   assert.equal(result.metadata?.success, true, "version operation should mark success");
   assert.deepEqual(result.structuredContent?.data, { version: "stub" });

@@ -178,11 +178,11 @@ export const printerModuleGroup = defineToolModule({
   ],
   tools: [
     {
-      name: "c64.printer",
+      name: "c64_printer",
       description: "Grouped entry point for Commodore and Epson printing helpers.",
       summary: "Print text or bitmaps and define custom characters for Commodore or Epson printers.",
       inputSchema: discriminatedUnionSchema({
-        description: "Printer operations available via the c64.printer tool.",
+        description: "Printer operations available via the c64_printer tool.",
         variants: printerOperations.map((operation) => operation.schema),
       }),
       tags: ["printer", "device", "grouped"],
@@ -199,7 +199,7 @@ export const printerModuleGroup = defineToolModule({
         },
       ],
       execute: createOperationDispatcher<GenericOperationMap>(
-        "c64.printer",
+        "c64_printer",
         printerOperationHandlers,
       ),
     },

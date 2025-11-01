@@ -41,27 +41,27 @@ Purpose: Execute the grouped-tool refactor captured in `doc/tool-consolidation/p
 
 ## Phase 2 — High-traffic Tool Migration (Program & Memory)
 
-- [x] Implement `c64.program` dispatch logic, migrate legacy program runner handlers, and ensure compatibility stubs continue to export old tool IDs until rollout completion.
-- [x] Implement `c64.memory` dispatch logic, integrating the `verify` option and consolidating screen read/wait operations; update associated tests.
+- [x] Implement `c64_program` dispatch logic, migrate legacy program runner handlers, and ensure compatibility stubs continue to export old tool IDs until rollout completion.
+- [x] Implement `c64_memory` dispatch logic, integrating the `verify` option and consolidating screen read/wait operations; update associated tests.
 - [x] Remove direct registration of legacy program/memory tools once grouped variants pass all tests and docs reference the new schema.
 
 ## Phase 3 — Audio, System, Graphics, Retrieval
 
-- [x] Migrate SID/music operations into `c64.sound`, covering pipeline/analysis flows and the `verify` flag on `silence_all`; refresh audio tests. *(2025-10-31)*
-- [x] Expand `c64.system` to include power/menu controls plus background task operations, ensuring pause/resume semantics remain unchanged. *(2025-11-01)*
-- [x] Consolidate PETSCII/sprite helpers into `c64.graphics` (including the forthcoming bitmap generator hook) and move BASIC/ASM retrieval to `c64.rag`; update prompts/tests referencing these tools. *(2025-10-31)*
+- [x] Migrate SID/music operations into `c64_sound`, covering pipeline/analysis flows and the `verify` flag on `silence_all`; refresh audio tests. *(2025-10-31)*
+- [x] Expand `c64_system` to include power/menu controls plus background task operations, ensuring pause/resume semantics remain unchanged. *(2025-11-01)*
+- [x] Consolidate PETSCII/sprite helpers into `c64_graphics` (including the forthcoming bitmap generator hook) and move BASIC/ASM retrieval to `c64_rag`; update prompts/tests referencing these tools. *(2025-10-31)*
 
 ## Phase 4 — Storage & Peripheral Tools
 
-- [x] Fold disk image/file workflows into `c64.disk`, unify mount verification, and update drive-mount tests. *(2025-11-02)*
-- [x] Move drive ROM/mode/power handling into `c64.drive` with new dispatch tests ensuring IEC state remains stable. *(2025-11-02)*
-- [x] Group printer helpers into `c64.printer`, validating datapath differences between Commodore and Epson flows. *(2025-11-02)*
+- [x] Fold disk image/file workflows into `c64_disk`, unify mount verification, and update drive-mount tests. *(2025-11-02)*
+- [x] Move drive ROM/mode/power handling into `c64_drive` with new dispatch tests ensuring IEC state remains stable. *(2025-11-02)*
+- [x] Group printer helpers into `c64_printer`, validating datapath differences between Commodore and Epson flows. *(2025-11-02)*
 
 ## Phase 5 — Configuration, Extraction, Streaming
 
-- [x] Combine config, debug register, info/version, snapshot, and shuffle operations into `c64.config`; refresh config integration tests. *(2025-10-31)*
-- [x] Implement `c64.extract` for sprites, charset rips, memory dumps, filesystem stats, and firmware health; ensure outputs remain byte-for-byte compatible. *(2025-10-31)*
-- [x] Port streaming operations into `c64.stream` and re-run streaming integration tests (or mocks) to confirm UDP setup remains intact. *(2025-10-31)*
+- [x] Combine config, debug register, info/version, snapshot, and shuffle operations into `c64_config`; refresh config integration tests. *(2025-10-31)*
+- [x] Implement `c64_extract` for sprites, charset rips, memory dumps, filesystem stats, and firmware health; ensure outputs remain byte-for-byte compatible. *(2025-10-31)*
+- [x] Port streaming operations into `c64_stream` and re-run streaming integration tests (or mocks) to confirm UDP setup remains intact. *(2025-10-31)*
 
 ## Phase 6 — Documentation, Schema, and Cleanup
 

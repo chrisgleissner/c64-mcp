@@ -167,17 +167,17 @@ Then render PETSCII art for it:
 # Upload and run BASIC
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"upload_run_basic","program":"10 PRINT \"HELLO\"\n20 GOTO 10"}' \
-  http://localhost:8000/tools/c64.program | jq
+  http://localhost:8000/tools/c64_program | jq
 
 # Read current screen (PETSCII→ASCII)
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"read_screen"}' \
-  http://localhost:8000/tools/c64.memory | jq
+  http://localhost:8000/tools/c64_memory | jq
 
 # Reset the machine
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"op":"reset"}' \
-  http://localhost:8000/tools/c64.system
+  http://localhost:8000/tools/c64_system
 ```
 
 ## Build & Test
@@ -204,7 +204,7 @@ This MCP server exposes **12 tools**, **25 resources**, and **7 prompts** for co
 
 ### Tools
 
-#### c64.config
+#### c64_config
 
 Grouped entry point for configuration reads/writes, diagnostics, and snapshots.
 
@@ -226,7 +226,7 @@ Grouped entry point for configuration reads/writes, diagnostics, and snapshots.
 | `version` | Fetch firmware version details. | — | — |
 | `write_debugreg` | Write a hex value to the Ultimate debug register ($D7FF). | `value` | — |
 
-#### c64.disk
+#### c64_disk
 
 Grouped entry point for disk mounts, listings, image creation, and program discovery.
 
@@ -239,7 +239,7 @@ Grouped entry point for disk mounts, listings, image creation, and program disco
 | `mount` | Mount a disk image with optional verification and retries. | `drive`, `image` | supports verify |
 | `unmount` | Remove the mounted image from an Ultimate drive slot. | `drive` | — |
 
-#### c64.drive
+#### c64_drive
 
 Grouped entry point for drive power, mode, reset, and ROM operations.
 
@@ -251,7 +251,7 @@ Grouped entry point for drive power, mode, reset, and ROM operations.
 | `reset` | Issue an IEC reset for the selected drive slot. | `drive` | — |
 | `set_mode` | Set the emulation mode for a drive slot (1541/1571/1581). | `drive`, `mode` | — |
 
-#### c64.extract
+#### c64_extract
 
 Grouped entry point for sprite/charset extraction, memory dumps, filesystem stats, and firmware health checks.
 
@@ -263,7 +263,7 @@ Grouped entry point for sprite/charset extraction, memory dumps, filesystem stat
 | `memory_dump` | Dump a RAM range to hex or binary files with manifest metadata. | `address`, `length`, `outputPath` | — |
 | `sprites` | Scan RAM for sprites and optionally export .spr files. | `address`, `length` | — |
 
-#### c64.graphics
+#### c64_graphics
 
 Grouped entry point for PETSCII art, sprite previews, and future bitmap generation.
 
@@ -274,7 +274,7 @@ Grouped entry point for PETSCII art, sprite previews, and future bitmap generati
 | `generate_sprite` | Build and run a sprite PRG from raw 63-byte sprite data. | `sprite` | — |
 | `render_petscii` | Render PETSCII text with optional border/background colours. | `text` | — |
 
-#### c64.memory
+#### c64_memory
 
 Grouped entry point for memory I/O, screen reads, and screen polling.
 
@@ -285,7 +285,7 @@ Grouped entry point for memory I/O, screen reads, and screen polling.
 | `wait_for_text` | Poll the screen until a substring or regex appears, or timeout elapses. | `pattern` | — |
 | `write` | Write a hexadecimal byte sequence into RAM. | `address`, `bytes` | supports verify |
 
-#### c64.printer
+#### c64_printer
 
 Grouped entry point for Commodore and Epson printing helpers.
 
@@ -295,7 +295,7 @@ Grouped entry point for Commodore and Epson printing helpers.
 | `print_bitmap` | Print a bitmap row via Commodore (BIM) or Epson ESC/P workflows. | `printer`, `columns` | — |
 | `print_text` | Generate BASIC that prints text to device 4. | `text` | — |
 
-#### c64.program
+#### c64_program
 
 Grouped entry point for program upload, execution, and batch workflows.
 
@@ -309,7 +309,7 @@ Grouped entry point for program upload, execution, and batch workflows.
 | `upload_run_asm` | Assemble 6502/6510 source, upload the PRG, and execute it. | `program` | supports verify |
 | `upload_run_basic` | Upload Commodore BASIC v2 source and execute it immediately. | `program` | supports verify |
 
-#### c64.rag
+#### c64_rag
 
 Grouped entry point for BASIC and assembly RAG lookups.
 
@@ -318,7 +318,7 @@ Grouped entry point for BASIC and assembly RAG lookups.
 | `asm` | Retrieve 6502/6510 assembly references from the local knowledge base. | `q` | — |
 | `basic` | Retrieve BASIC references and snippets from the local knowledge base. | `q` | — |
 
-#### c64.sound
+#### c64_sound
 
 Grouped entry point for SID control, playback, composition, and analysis workflows.
 
@@ -337,7 +337,7 @@ Grouped entry point for SID control, playback, composition, and analysis workflo
 | `set_volume` | Set the SID master volume register at $D418 (0-15). | `volume` | — |
 | `silence_all` | Silence all SID voices with optional audio verification. | — | supports verify |
 
-#### c64.stream
+#### c64_stream
 
 Grouped entry point for starting and stopping Ultimate streaming sessions.
 
@@ -346,7 +346,7 @@ Grouped entry point for starting and stopping Ultimate streaming sessions.
 | `start` | Start an Ultimate streaming session toward a host:port target. | `stream`, `target` | — |
 | `stop` | Stop an active Ultimate streaming session. | `stream` | — |
 
-#### c64.system
+#### c64_system
 
 Grouped entry point for power, reset, menu, and background task control.
 
