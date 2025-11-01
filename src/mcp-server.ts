@@ -482,11 +482,13 @@ function toCallToolResult(result: ToolRunResult): {
   content: ToolRunResult["content"];
   structuredContent?: ToolRunResult["structuredContent"];
   metadata?: ToolRunResult["metadata"];
+  isError?: boolean;
 } {
   const base: {
     content: ToolRunResult["content"];
     structuredContent?: ToolRunResult["structuredContent"];
     metadata?: ToolRunResult["metadata"];
+    isError?: boolean;
   } = { content: result.content };
 
   if (result.structuredContent !== undefined) {
@@ -494,6 +496,9 @@ function toCallToolResult(result: ToolRunResult): {
   }
   if (result.metadata !== undefined) {
     base.metadata = result.metadata;
+  }
+  if (result.isError !== undefined) {
+    base.isError = result.isError;
   }
 
   return base;

@@ -130,6 +130,56 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
+  test("c64_program upload_run_basic verify surfaces BASIC errors on last screen row", async () => {
+    await withSharedMcpClient(async ({ client, mockServer }) => {
+      const program = '10 PRINT "OK"\n20 END';
+      const resultPromise = client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64_program",
+            arguments: {
+              op: "upload_run_basic",
+              program,
+              verify: true,
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      const triggerErrorScreen = (async () => {
+        const deadline = Date.now() + 120;
+        let patched = false;
+        while (!patched && Date.now() < deadline) {
+          const last = mockServer.state.lastRequest;
+          if (last?.method === "GET" && typeof last.url === "string" && last.url.startsWith("/v1/machine:readmem")) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            mockServer.state.memory.fill(SPACE_SCREEN_CODE, 0x0400, 0x0400 + 0x03e8);
+            writeScreenTextAsCodes(mockServer.state, 24, 0, "?SYNTAX  ERROR IN 80");
+            patched = true;
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 2));
+        }
+        if (!patched) {
+          mockServer.state.memory.fill(SPACE_SCREEN_CODE, 0x0400, 0x0400 + 0x03e8);
+          writeScreenTextAsCodes(mockServer.state, 24, 0, "?SYNTAX  ERROR IN 80");
+        }
+      })();
+
+    const [result] = await Promise.all([resultPromise, triggerErrorScreen]);
+
+      assert.equal(result.isError, true, "verification should surface BASIC error");
+      assert.equal(result.metadata?.error?.kind, "execution");
+      assert.equal(result.metadata?.error?.details?.message, "SYNTAX");
+      assert.equal(result.metadata?.error?.details?.line, 80);
+      const textContent = getTextContent(result);
+      assert.ok(textContent, "Expected text response content");
+      assert.match(textContent.text, /BASIC program verification failed/i);
+    });
+  });
+
   test("c64_memory read_screen operation returns current screen text", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
