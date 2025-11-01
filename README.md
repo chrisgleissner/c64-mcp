@@ -205,7 +205,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **13 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **14 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -359,6 +359,16 @@ Grouped entry point for VICE debugger operations (breakpoints, registers, steppi
 | `set_registers` | Write register values by id or case-insensitive name. | `writes` | supports selectors |
 | `step` | Single-step CPU execution (into/over). | — | accepts `mode` |
 | `step_return` | Continue execution until the current routine returns. | — | — |
+
+#### c64_vice
+
+Grouped entry point for VICE emulator display capture and resource tweaks.
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `display_get` | Capture the emulator framebuffer and return geometry plus encoded pixels. | — | supports base64/hex |
+| `resource_get` | Read a VICE resource with safe prefixes (Sid, C64, VIC, Machine, CIA). | `name` | — |
+| `resource_set` | Update a VICE resource (int or string) with safe prefixes. | `name`, `value` | session-scoped |
 
 #### c64_stream
 

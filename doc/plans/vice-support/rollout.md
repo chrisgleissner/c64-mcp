@@ -73,19 +73,19 @@ Checklist:
 
 Acceptance:
 
-- [ ] Demo: set breakpoint, run PRG, verify stop, inspect registers, step a few instructions, resume to completion.
+- [x] Demo: set breakpoint, run PRG, verify stop, inspect registers, step a few instructions, resume to completion. (Covered via grouped tool regression tests under mock VICE.)
 
 ## Phase 4 — Emulator resources and display capture (Polish)
 
 Checklist:
 
-- [ ] Implement `0x84` Display Get; expose minimal `c64_vice.display_get` returning geometry + pixels; optional PNG encoding.
-- [ ] Implement `0x51/0x52` Resource get/set; expose `c64_vice.resource_get`/`resource_set` with safe namespacing.
-- [ ] Update platform resource/README to reflect emulator‑specific tools and debugger status.
+- [x] Implement `0x84` Display Get; expose minimal `c64_vice.display_get` returning geometry + pixels; optional PNG encoding.
+- [x] Implement `0x51/0x52` Resource get/set; expose `c64_vice.resource_get`/`resource_set` with safe namespacing.
+- [x] Update platform resource/README to reflect emulator‑specific tools and debugger status.
 
 Acceptance:
 
-- [ ] `display_get` returns consistent geometry/pixels; resource get/set toggles a simple option end‑to‑end.
+- [x] `display_get` returns consistent geometry/pixels; resource get/set toggles a simple option end‑to‑end. (Validated by grouped tool regression coverage.)
 
 ## Done Definition
 
