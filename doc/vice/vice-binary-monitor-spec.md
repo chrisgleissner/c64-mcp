@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The binary monitor exposes the built-in VICE monitor over a dedicated network socket (enable with `-binarymonitor`, configure the bind address with `-binarymonitoraddress` or the `BinaryMonitorServerAddress` resource). Only one client may be connected at a time. When packets arrive the monitor traps execution (`monitor_startup_trap`), executes the requested operation, and resumes the emulated machine. The default bind target is `ip4://127.0.0.1:6502`.
+The [binary monitor](https://vice-emu.sourceforge.io/vice_13.html) exposes the built-in VICE monitor over a dedicated network socket (enable with `-binarymonitor`, configure the bind address with `-binarymonitoraddress` or the `BinaryMonitorServerAddress` resource). Only one client may be connected at a time. When packets arrive the monitor traps execution (`monitor_startup_trap`), executes the requested operation, and resumes the emulated machine. The default bind target is `ip4://127.0.0.1:6502`.
 
 All multi-byte scalar fields are encoded little endian on the wire. The monitor forwards most operations to the same helper routines used by the text monitor, so side effects, breakpoint semantics, and register layouts are identical to the CLI monitor.
 
