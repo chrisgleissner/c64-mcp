@@ -319,7 +319,7 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/guide", "c64://specs/printer"],
       relatedPrompts: ["printer-job"],
       tags: ["text"],
-      prerequisites: ["upload_and_run_basic"],
+  prerequisites: ["upload_run_basic"],
       examples: [
         {
           name: "Print line",
@@ -378,7 +378,7 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/commodore-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["bitmap", "commodore"],
-      prerequisites: ["upload_and_run_basic"],
+  prerequisites: ["upload_run_basic"],
       examples: [
         {
           name: "Print row",
@@ -440,7 +440,7 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/epson-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["bitmap", "epson"],
-      prerequisites: ["upload_and_run_basic"],
+  prerequisites: ["upload_run_basic"],
       examples: [
         {
           name: "Epson row",
@@ -503,7 +503,7 @@ export const printerModule = defineToolModule({
       relatedResources: ["c64://docs/printer/commodore-bitmap"],
       relatedPrompts: ["printer-job"],
       tags: ["dll", "commodore"],
-      prerequisites: ["upload_and_run_basic"],
+  prerequisites: ["upload_run_basic"],
       examples: [
         {
           name: "Define glyphs",

@@ -18,6 +18,8 @@ export interface PollConfig {
   maxMs: number;
   /** Interval (in milliseconds) between consecutive screen polls */
   intervalMs: number;
+  /** Stabilization window (in milliseconds) to wait after RUN detection before sampling hardware */
+  stabilizeMs: number;
 }
 
 /**
@@ -49,13 +51,16 @@ export function loadPollConfig(): PollConfig {
   const isTestMode = process.env.C64_TEST_TARGET === "mock" || process.env.NODE_ENV === "test";
   const defaultMaxMs = isTestMode ? 100 : 2000;
   const defaultIntervalMs = isTestMode ? 30 : 200;
+  const defaultStabilizeMs = 100;
   
   const maxMs = parseInt(process.env.C64BRIDGE_POLL_MAX_MS ?? String(defaultMaxMs), 10);
   const intervalMs = parseInt(process.env.C64BRIDGE_POLL_INTERVAL_MS ?? String(defaultIntervalMs), 10);
+  const stabilizeMs = parseInt(process.env.C64BRIDGE_POLL_STABILIZE_MS ?? String(defaultStabilizeMs), 10);
 
   return {
     maxMs: Number.isFinite(maxMs) && maxMs > 0 ? maxMs : defaultMaxMs,
     intervalMs: Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : defaultIntervalMs,
+    stabilizeMs: Number.isFinite(stabilizeMs) && stabilizeMs >= 0 ? stabilizeMs : defaultStabilizeMs,
   };
 }
 
@@ -215,7 +220,11 @@ async function pollAsmOutcome(
   let pollCount = 0;
   let runDetected = false;
   
-  logger.debug("Starting ASM outcome polling with hardware monitoring", { maxMs: config.maxMs, intervalMs: config.intervalMs });
+  logger.debug("Starting ASM outcome polling with hardware monitoring", {
+    maxMs: config.maxMs,
+    intervalMs: config.intervalMs,
+    stabilizeMs: config.stabilizeMs,
+  });
   
   // Wait for RUN to appear first
   while (Date.now() - startTime < config.maxMs && !runDetected) {
@@ -225,9 +234,13 @@ async function pollAsmOutcome(
       
       if (upperScreen.includes("RUN") || upperScreen.includes("ERROR")) {
         runDetected = true;
-        logger.debug("RUN detected, starting 100ms stabilization", { elapsed: Date.now() - startTime });
-        // Wait 100ms for stabilization as per spec
-        await delay(100);
+        logger.debug("RUN detected, starting stabilization window", {
+          elapsed: Date.now() - startTime,
+          stabilizeMs: config.stabilizeMs,
+        });
+        if (config.stabilizeMs > 0) {
+          await delay(config.stabilizeMs);
+        }
         break;
       }
     } catch (error) {
@@ -333,11 +346,21 @@ export async function pollForProgramOutcome(
   type: "BASIC" | "ASM",
   client: C64Client,
   logger: ToolLogger,
-  config?: PollConfig,
+  config?: Partial<PollConfig>,
 ): Promise<PollResult> {
-  const pollConfig = config ?? loadPollConfig();
+  const defaults = loadPollConfig();
+  const pollConfig: PollConfig = {
+    maxMs: config?.maxMs ?? defaults.maxMs,
+    intervalMs: config?.intervalMs ?? defaults.intervalMs,
+    stabilizeMs: config?.stabilizeMs ?? defaults.stabilizeMs,
+  };
   
-  logger.debug("Starting program outcome polling", { type, maxMs: pollConfig.maxMs, intervalMs: pollConfig.intervalMs });
+  logger.debug("Starting program outcome polling", {
+    type,
+    maxMs: pollConfig.maxMs,
+    intervalMs: pollConfig.intervalMs,
+    stabilizeMs: pollConfig.stabilizeMs,
+  });
   
   // Poll for program outcome based on type
   if (type === "BASIC") {

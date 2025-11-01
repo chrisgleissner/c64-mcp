@@ -44,7 +44,7 @@ npm test -- --mock
 **Resolution:**
 
 1. Restart VS Code after changing MCP settings.
-2. Verify the settings JSON matches the snippet in `doc/MCP_SETUP.md` (`command`, `args`, `type: "stdio"`).
+2. Verify the settings JSON matches the snippet in `AGENTS.md` (`command`, `args`, `type: "stdio"`).
 3. Keep `npm start` (or `npx c64bridge`) running; Copilot terminates the stdio process when the chat closes.
 4. Inspect the Copilot output channel for connection errors and ensure the stdio server entry is configured and running.
 
@@ -139,7 +139,7 @@ Use these checks to validate the full stack:
 
 - [ ] GitHub Copilot extension installed and active
 - [ ] MCP experimental feature enabled (Copilot Chat ≥ v1.214)
-- [ ] Settings JSON matches `doc/MCP_SETUP.md`
+- [ ] Settings JSON matches `AGENTS.md`
 - [ ] `npm start` (or packaged CLI) running in a terminal
 - [ ] Connectivity logs confirm the REST endpoint is reachable
 - [ ] Hardware (or mock server) is online and accessible

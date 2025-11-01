@@ -12,7 +12,7 @@ function createLogger() {
   };
 }
 
-test("generate_sprite_prg accepts base64 sprite data and delegates to client", async () => {
+test("generate_sprite accepts base64 sprite data and delegates to client", async () => {
   const sprite = Buffer.alloc(63, 0x11).toString("base64");
   const calls = [];
   const ctx = {
@@ -26,7 +26,7 @@ test("generate_sprite_prg accepts base64 sprite data and delegates to client", a
   };
 
   const result = await graphicsModule.invoke(
-    "generate_sprite_prg",
+    "generate_sprite",
     { sprite, index: 2, x: 120, y: 150, color: 5, multicolour: true },
     ctx,
   );
@@ -42,7 +42,7 @@ test("generate_sprite_prg accepts base64 sprite data and delegates to client", a
   assert.equal(calls[0].multicolour, true);
 });
 
-test("generate_sprite_prg rejects invalid sprite definition", async () => {
+test("generate_sprite rejects invalid sprite definition", async () => {
   const ctx = {
     client: {
       async generateAndRunSpritePrg() {
@@ -52,13 +52,13 @@ test("generate_sprite_prg rejects invalid sprite definition", async () => {
     logger: createLogger(),
   };
 
-  const result = await graphicsModule.invoke("generate_sprite_prg", { sprite: "AA==" }, ctx);
+  const result = await graphicsModule.invoke("generate_sprite", { sprite: "AA==" }, ctx);
   assert.equal(result.isError, true);
   assert.equal(result.content[0].type, "text");
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("render_petscii_screen delegates to client", async () => {
+test("render_petscii delegates to client", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -71,7 +71,7 @@ test("render_petscii_screen delegates to client", async () => {
   };
 
   const result = await graphicsModule.invoke(
-    "render_petscii_screen",
+    "render_petscii",
     { text: "HELLO", borderColor: 4 },
     ctx,
   );
@@ -84,7 +84,7 @@ test("render_petscii_screen delegates to client", async () => {
   assert.deepEqual(calls[0], { text: "HELLO", borderColor: 4 });
 });
 
-test("create_petscii_image generates art and uploads program", async () => {
+test("create_petscii generates art and uploads program", async () => {
   const uploads = [];
   const ctx = {
     client: {
@@ -97,7 +97,7 @@ test("create_petscii_image generates art and uploads program", async () => {
   };
 
   const result = await graphicsModule.invoke(
-    "create_petscii_image",
+    "create_petscii",
     { prompt: "Draw a star with PETSCII" },
     ctx,
   );
@@ -116,7 +116,7 @@ test("create_petscii_image generates art and uploads program", async () => {
   assert.ok(Array.isArray(payload.rowHex));
 });
 
-test("create_petscii_image dry run skips upload", async () => {
+test("create_petscii dry run skips upload", async () => {
   const ctx = {
     client: {
       async uploadAndRunBasic() {
@@ -127,7 +127,7 @@ test("create_petscii_image dry run skips upload", async () => {
   };
 
   const result = await graphicsModule.invoke(
-    "create_petscii_image",
+    "create_petscii",
     { text: "HELLO", dryRun: true, borderColor: 3, backgroundColor: 0 },
     ctx,
   );
@@ -142,7 +142,7 @@ test("create_petscii_image dry run skips upload", async () => {
   assert.equal(payload.success, true);
 });
 
-test("generate_sprite_prg handles firmware failure", async () => {
+test("generate_sprite handles firmware failure", async () => {
   const sprite = Buffer.alloc(63, 0x11).toString("base64");
   const ctx = {
     client: {
@@ -154,7 +154,7 @@ test("generate_sprite_prg handles firmware failure", async () => {
   };
 
   const result = await graphicsModule.invoke(
-    "generate_sprite_prg",
+    "generate_sprite",
     { sprite, index: 0, x: 100, y: 100, color: 1 },
     ctx,
   );
@@ -163,7 +163,7 @@ test("generate_sprite_prg handles firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("render_petscii_screen handles firmware failure", async () => {
+test("render_petscii handles firmware failure", async () => {
   const ctx = {
     client: {
       async renderPetsciiScreenAndRun() {
@@ -174,7 +174,7 @@ test("render_petscii_screen handles firmware failure", async () => {
   };
 
   const result = await graphicsModule.invoke(
-    "render_petscii_screen",
+    "render_petscii",
     { text: "TEST" },
     ctx,
   );
@@ -183,7 +183,7 @@ test("render_petscii_screen handles firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("create_petscii_image handles upload failure", async () => {
+test("create_petscii handles upload failure", async () => {
   const ctx = {
     client: {
       async uploadAndRunBasic() {
@@ -194,7 +194,7 @@ test("create_petscii_image handles upload failure", async () => {
   };
 
   const result = await graphicsModule.invoke(
-    "create_petscii_image",
+    "create_petscii",
     { text: "TEST" },
     ctx,
   );
@@ -203,7 +203,7 @@ test("create_petscii_image handles upload failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("create_petscii_image validates input requirements", async () => {
+test("create_petscii validates input requirements", async () => {
   const ctx = {
     client: {
       async uploadAndRunBasic() {
@@ -213,13 +213,13 @@ test("create_petscii_image validates input requirements", async () => {
     logger: createLogger(),
   };
 
-  const result = await graphicsModule.invoke("create_petscii_image", {}, ctx);
+  const result = await graphicsModule.invoke("create_petscii", {}, ctx);
 
   assert.equal(result.isError, true);
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("create_petscii_image includes preview fields and executes PRG", async () => {
+test("create_petscii includes preview fields and executes PRG", async () => {
   const uploads = [];
   const ctx = {
     client: {
@@ -232,7 +232,7 @@ test("create_petscii_image includes preview fields and executes PRG", async () =
   };
 
   const result = await graphicsModule.invoke(
-    "create_petscii_image",
+    "create_petscii",
     { text: "HI", borderColor: 1, backgroundColor: 0, foregroundColor: 7, dryRun: false },
     ctx,
   );
@@ -257,7 +257,7 @@ test("create_petscii_image includes preview fields and executes PRG", async () =
   assert.ok(typeof payload.charRows === "number", "charRows should be a number");
 });
 
-test("generate_sprite_prg verifies sprite bytes, coordinates, and colour", async () => {
+test("generate_sprite verifies sprite bytes, coordinates, and colour", async () => {
   const sprite = Buffer.alloc(63, 0xFF).toString("base64");
   const calls = [];
   const ctx = {
@@ -271,7 +271,7 @@ test("generate_sprite_prg verifies sprite bytes, coordinates, and colour", async
   };
 
   const result = await graphicsModule.invoke(
-    "generate_sprite_prg",
+    "generate_sprite",
     { sprite, index: 1, x: 100, y: 80, color: 3, multicolour: false },
     ctx,
   );

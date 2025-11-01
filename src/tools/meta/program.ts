@@ -17,6 +17,7 @@ const programShuffleArgsSchema = objectSchema({
     captureScreen: optionalSchema(booleanSchema({ description: "Capture screen after each run", default: true }), true),
     maxPrograms: optionalSchema(numberSchema({ description: "Maximum number of programs to run", integer: true, minimum: 1, default: 10 }), 10),
     outputPath: optionalSchema(stringSchema({ description: "Output directory for run logs and captures", minLength: 1 })),
+    resetDelayMs: optionalSchema(numberSchema({ description: "Delay after reset operations to allow the platform to settle.", integer: true, minimum: 0, maximum: 1000, default: 100 }), 100),
   },
   required: [],
   additionalProperties: false,
@@ -47,6 +48,7 @@ const batchRunWithAssertionsArgsSchema = objectSchema({
     continueOnError: optionalSchema(booleanSchema({ description: "Continue running programs after assertion failure", default: false }), false),
     durationMs: optionalSchema(numberSchema({ description: "Duration to run each program before assertions", integer: true, minimum: 1, default: 2000 }), 2000),
     outputPath: optionalSchema(stringSchema({ description: "Output directory for test results", minLength: 1 })),
+    resetDelayMs: optionalSchema(numberSchema({ description: "Delay after reset operations to allow the platform to settle.", integer: true, minimum: 0, maximum: 1000, default: 100 }), 100),
   },
   required: ["programs"],
   additionalProperties: false,
@@ -68,6 +70,7 @@ export const tools: ToolDefinition[] = [
         const durationMs = parsed.durationMs ?? 5000;
         const maxPrograms = parsed.maxPrograms ?? 10;
         const captureScreen = parsed.captureScreen !== false;
+  const resetDelayMs = parsed.resetDelayMs ?? 100;
         
         // Discover programs
         const programs: string[] = [];
@@ -123,7 +126,9 @@ export const tools: ToolDefinition[] = [
             // Reset
             try {
               await (ctx.client as any).reset();
-              await sleep(100);
+              if (resetDelayMs > 0) {
+                await sleep(resetDelayMs);
+              }
             } catch (e) {
               // Ignore reset errors
             }
@@ -175,6 +180,7 @@ export const tools: ToolDefinition[] = [
         const programs = parsed.programs as Array<{ path: string; assertions?: Array<{ type: string; pattern?: string; address?: string; expected?: string }> }>;
         const continueOnError = parsed.continueOnError ?? false;
         const durationMs = parsed.durationMs ?? 2000;
+  const resetDelayMs = parsed.resetDelayMs ?? 100;
 
         const outputPath = parsed.outputPath
           ? resolvePath(String(parsed.outputPath))
@@ -245,7 +251,9 @@ export const tools: ToolDefinition[] = [
             // Reset
             try {
               await (ctx.client as any).reset();
-              await sleep(100);
+              if (resetDelayMs > 0) {
+                await sleep(resetDelayMs);
+              }
             } catch (e) {
               // Ignore reset errors
             }

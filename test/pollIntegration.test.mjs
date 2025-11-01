@@ -11,7 +11,20 @@ function createLogger() {
   };
 }
 
+function withPollStabilize(ms) {
+  const previous = process.env.C64BRIDGE_POLL_STABILIZE_MS;
+  process.env.C64BRIDGE_POLL_STABILIZE_MS = String(ms);
+  return () => {
+    if (previous === undefined) {
+      delete process.env.C64BRIDGE_POLL_STABILIZE_MS;
+    } else {
+      process.env.C64BRIDGE_POLL_STABILIZE_MS = previous;
+    }
+  };
+}
+
 test("ASM program with screen changes is detected as ok", async () => {
+  const restoreStabilize = withPollStabilize(0);
   const screens = [
     "READY.\n",
     "RUN\nSYS 2061\n",
@@ -41,19 +54,24 @@ test("ASM program with screen changes is detected as ok", async () => {
     logger: createLogger(),
   };
   
-  const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
-    { program: ".org $0801\n lda #$01\n sta $0400\n rts" },
-    ctx,
-  );
-  
-  assert.equal(result.isError, undefined);
-  assert.ok(result.structuredContent && result.structuredContent.type === "json");
-  const data = result.structuredContent.data;
-  assert.equal(data.kind, "upload_and_run_asm");
+  try {
+    const result = await programRunnersModule.invoke(
+      "upload_run_asm",
+      { program: ".org $0801\n lda #$01\n sta $0400\n rts" },
+      ctx,
+    );
+    
+    assert.equal(result.isError, undefined);
+    assert.ok(result.structuredContent && result.structuredContent.type === "json");
+    const data = result.structuredContent.data;
+    assert.equal(data.kind, "upload_run_asm");
+  } finally {
+    restoreStabilize();
+  }
 });
 
 test("ASM program with no screen changes is detected as crashed", async () => {
+  const restoreStabilize = withPollStabilize(0);
   const screens = [
     "READY.\n",
     "RUN\nSYS 2061\n",
@@ -79,17 +97,22 @@ test("ASM program with no screen changes is detected as crashed", async () => {
     logger: createLogger(),
   };
   
-  const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
-    { program: ".org $0801\nloop: jmp loop" }, // Infinite loop
-    ctx,
-  );
-  
-  assert.equal(result.isError, true);
-  assert.ok(result.content[0].text.includes("crashed"));
+  try {
+    const result = await programRunnersModule.invoke(
+      "upload_run_asm",
+      { program: ".org $0801\nloop: jmp loop" }, // Infinite loop
+      ctx,
+    );
+    
+    assert.equal(result.isError, true);
+    assert.ok(result.content[0].text.includes("crashed"));
+  } finally {
+    restoreStabilize();
+  }
 });
 
 test("ASM polling respects environment variables", async () => {
+  const restoreStabilize = withPollStabilize(0);
   // Set very short timeout
   process.env.C64BRIDGE_POLL_MAX_MS = "50";
   process.env.C64BRIDGE_POLL_INTERVAL_MS = "10";
@@ -118,20 +141,24 @@ test("ASM polling respects environment variables", async () => {
     logger: createLogger(),
   };
   
-  const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
-    { program: ".org $0801\nrts" },
-    ctx,
-  );
-  
-  // With short timeout, should quickly timeout and report crashed
-  assert.equal(result.isError, true);
-  
-  delete process.env.C64BRIDGE_POLL_MAX_MS;
-  delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+  try {
+    const result = await programRunnersModule.invoke(
+      "upload_run_asm",
+      { program: ".org $0801\nrts" },
+      ctx,
+    );
+    
+    // With short timeout, should quickly timeout and report crashed
+    assert.equal(result.isError, true);
+  } finally {
+    delete process.env.C64BRIDGE_POLL_MAX_MS;
+    delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+    restoreStabilize();
+  }
 });
 
 test("ASM program that executes instantly without RUN showing is ok", async () => {
+  const restoreStabilize = withPollStabilize(0);
   const ctx = {
     client: {
       async uploadAndRunAsm(program) {
@@ -145,12 +172,16 @@ test("ASM program that executes instantly without RUN showing is ok", async () =
     logger: createLogger(),
   };
   
-  const result = await programRunnersModule.invoke(
-    "upload_and_run_asm",
-    { program: ".org $0801\nrts" }, // Instant return
-    ctx,
-  );
-  
-  // Should be considered ok (instant execution)
-  assert.equal(result.isError, undefined);
+  try {
+    const result = await programRunnersModule.invoke(
+      "upload_run_asm",
+      { program: ".org $0801\nrts" }, // Instant return
+      ctx,
+    );
+    
+    // Should be considered ok (instant execution)
+    assert.equal(result.isError, undefined);
+  } finally {
+    restoreStabilize();
+  }
 });

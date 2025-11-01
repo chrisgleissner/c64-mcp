@@ -1,16 +1,9 @@
 # Changelog
 
-
 ## 0.7.0 - 2025-11-01
 
-### Features
-
-- Improved tool discovery by reducing tool surface to 12 tools with nested operations
-
-### Other Improvements
-
-- Improved documentation
-- Upgrade to Node 24 (42a7126)
+- Improved LLM tool discovery by consolidating to 12 tools with nested operations
+- Upgrade to Node 24
 
 ## 0.6.0 - 2025-10-30
 

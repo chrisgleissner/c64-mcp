@@ -13,6 +13,7 @@ const BASIC_DIR = path.resolve("data/basic/examples");
 const ASM_DIR = path.resolve("data/assembly/examples");
 const EXTERNAL_DIR = path.resolve("external");
 const DOC_ROOT = path.resolve("doc");
+const DOC_EXCLUDE_DIRS = new Set(["plans"]);
 const CONTEXT_DIR = path.resolve("data/context");
 const BOOTSTRAP_PATH = path.join(CONTEXT_DIR, "bootstrap.md");
 const AGENTS_PATH = path.resolve("AGENTS.md");
@@ -24,6 +25,19 @@ const ENV_DOC_FILES = (process.env.RAG_DOC_FILES ?? "")
   .map((entry) => entry.trim())
   .filter(Boolean)
   .map((entry) => path.resolve(entry));
+
+function shouldExcludeDocFile(file: string): boolean {
+  const absolute = path.resolve(file);
+  const relativeToDoc = path.relative(DOC_ROOT, absolute);
+  if (relativeToDoc === "" || relativeToDoc === ".") {
+    return false;
+  }
+  if (relativeToDoc.startsWith("..") || path.isAbsolute(relativeToDoc)) {
+    return false;
+  }
+  const [firstSegment] = relativeToDoc.split(path.sep);
+  return firstSegment !== undefined && DOC_EXCLUDE_DIRS.has(firstSegment);
+}
 
 function resolveEmbeddingsDir(override?: string): string {
   return path.resolve(override ?? process.env.RAG_EMBEDDINGS_DIR ?? "data");
@@ -539,9 +553,17 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
   const docCandidates: string[] = [];
   try {
     const mdFiles = await collectFiles(DOC_ROOT, [".md"]);
-    for (const f of mdFiles) docCandidates.push(f);
+    for (const f of mdFiles) {
+      if (!shouldExcludeDocFile(f)) {
+        docCandidates.push(f);
+      }
+    }
   } catch {}
-  for (const f of ENV_DOC_FILES) docCandidates.push(f);
+  for (const f of ENV_DOC_FILES) {
+    if (!shouldExcludeDocFile(f)) {
+      docCandidates.push(f);
+    }
+  }
   // De-duplicate
   const seenDocs = new Set<string>();
   const docIncluded = docCandidates.filter((f) => {
@@ -571,7 +593,9 @@ export async function buildAllIndexes({ model, embeddingsDir: overrideDir, basic
     }
   }
   for (const docFile of docIncluded) {
-    fileSources.push({ file: docFile, root: process.cwd() });
+    if (!shouldExcludeDocFile(docFile)) {
+      fileSources.push({ file: docFile, root: process.cwd() });
+    }
   }
   // Include context files as single-chunk documents if present
   const promptFiles = readPromptFiles();

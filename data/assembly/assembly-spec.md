@@ -52,7 +52,7 @@ MOS 6510 (C64 CPU) is a NMOS 6502 core with an 8‑bit data path and a 16‑bi
 
 ## EBNF (assembly source)
 
-```
+```ebnf
 program     = { line } ;
 line        = [ label ] , [ instruction | directive ] , [ comment ] , EOL ;
 label       = identifier , ":" ;

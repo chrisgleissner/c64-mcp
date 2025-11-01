@@ -112,4 +112,4 @@ User‑port mapping for CIA2 PRB and PRA b2 is defined in `io-spec.md` (pin lett
 **Provenance:**
 
 - [C64 Programmer’s Reference Guide](https://www.zimmers.net/cbmpics/cbm/c64/c64prg.txt)
-- [Mapping the C64](https://www.zimmers.net/anonftp/pub/cbm/c64/manuals/mapping-c64.txt)
+- [Mapping the C64](https://www.zimmers.net/anonftp/pub/cbm/c64/manuals/mapping-c64_txt)
