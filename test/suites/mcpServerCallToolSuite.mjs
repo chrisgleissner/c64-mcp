@@ -1,9 +1,47 @@
 import test from "#test/runner";
 import assert from "#test/assert";
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { getChargenGlyphs } from "../../src/chargen.js";
 
 function getTextContent(result) {
   return result.content.find((entry) => entry.type === "text");
+}
+
+const CHAR_TO_SCREEN = (() => {
+  const map = new Map();
+  for (const glyph of getChargenGlyphs()) {
+    if (!glyph || typeof glyph.screenCode !== "number") {
+      continue;
+    }
+    if (glyph.basic && glyph.basic.length === 1 && !map.has(glyph.basic)) {
+      map.set(glyph.basic, glyph.screenCode & 0xff);
+    }
+    const ascii = String.fromCharCode(glyph.petsciiCode & 0xff);
+    if (!map.has(ascii)) {
+      map.set(ascii, glyph.screenCode & 0xff);
+    }
+  }
+  if (!map.has(" ")) {
+    map.set(" ", 0x20);
+  }
+  return map;
+})();
+
+const SPACE_SCREEN_CODE = CHAR_TO_SCREEN.get(" ") ?? 0x20;
+
+function writeScreenTextAsCodes(state, row, column, text) {
+  const columns = 40;
+  const base = 0x0400 + (row * columns) + column;
+  const screenEnd = 0x0400 + 0x03e8;
+  const rowStart = 0x0400 + (row * columns);
+  state.memory.fill(SPACE_SCREEN_CODE, rowStart, rowStart + columns);
+  for (let i = 0; i < text.length; i += 1) {
+    const code = CHAR_TO_SCREEN.get(text[i]) ?? SPACE_SCREEN_CODE;
+    const offset = base + i;
+    if (offset >= 0x0400 && offset < screenEnd) {
+      state.memory[offset] = code;
+    }
+  }
 }
 
 export function registerMcpServerCallToolTests(withSharedMcpClient) {
