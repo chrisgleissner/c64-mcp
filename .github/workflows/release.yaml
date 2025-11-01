@@ -33,6 +33,86 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           CLEAN="${TAG#v}"
           echo "version=$CLEAN" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Determine previous tag
+        id: previous
+        env:
+          CURRENT_VERSION: ${{ steps.version.outputs.version }}
+          CURRENT_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          node <<'NODE'
+          import { execSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+
+          const currentVersion = process.env.CURRENT_VERSION;
+          const currentTag = process.env.CURRENT_TAG;
+
+          if (!currentVersion || !currentTag) {
+            console.error('Missing current version/tag context');
+            process.exit(1);
+          }
+
+          const toSemver = (value) => {
+            const cleaned = value.startsWith('v') ? value.slice(1) : value;
+            const parts = cleaned.split('.').map((n) => Number.parseInt(n, 10));
+            if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+            return { cleaned, parts };
+          };
+
+          const dedupe = new Map();
+          const rawTags = execSync('git tag --sort=version:refname', { encoding: 'utf8' })
+            .split('\n')
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+
+          for (const raw of rawTags) {
+            const info = toSemver(raw);
+            if (!info) continue;
+            if (!dedupe.has(info.cleaned)) dedupe.set(info.cleaned, new Set());
+            dedupe.get(info.cleaned).add(raw);
+          }
+
+          if (!dedupe.has(currentVersion)) {
+            console.error(`Current version ${currentVersion} not found among tags`);
+            process.exit(1);
+          }
+
+          const compare = (a, b) => {
+            for (let i = 0; i < 3; i += 1) {
+              if (a.parts[i] !== b.parts[i]) return a.parts[i] - b.parts[i];
+            }
+            return 0;
+          };
+
+          const ordered = Array.from(dedupe.keys())
+            .map((cleaned) => ({
+              cleaned,
+              parts: cleaned.split('.').map((n) => Number.parseInt(n, 10)),
+            }))
+            .filter((info) => info.parts.length === 3 && !info.parts.some(Number.isNaN))
+            .sort(compare);
+
+          const currentIndex = ordered.findIndex((info) => info.cleaned === currentVersion);
+          const previousInfo = currentIndex > 0 ? ordered[currentIndex - 1] : null;
+
+          const outputLines = [];
+
+          if (previousInfo) {
+            const candidates = Array.from(dedupe.get(previousInfo.cleaned));
+            const preferred = currentTag.startsWith('v')
+              ? candidates.find((tag) => tag.startsWith('v')) || candidates[0]
+              : candidates.find((tag) => !tag.startsWith('v')) || candidates[0];
+
+            outputLines.push(`version=${previousInfo.cleaned}`);
+            outputLines.push(`tag=${preferred}`);
+          } else {
+            outputLines.push('version=');
+            outputLines.push('tag=');
+          }
+
+          writeFileSync(process.env.GITHUB_OUTPUT, `${outputLines.join('\n')}\n`, { flag: 'a' });
+          NODE
 
       - name: Install dependencies
         run: npm ci
@@ -70,11 +150,49 @@ jobs:
           echo "$ENTRY" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
+      - name: Format release notes
+        id: notes
+        env:
+          CHANGELOG_ENTRY: ${{ steps.changelog.outputs.entry }}
+          CURRENT_TAG: ${{ steps.version.outputs.tag }}
+          PREVIOUS_TAG: ${{ steps.previous.outputs.tag }}
+        run: |
+          node <<'NODE'
+          import { writeFileSync } from 'node:fs';
+
+          const changelogEntry = process.env.CHANGELOG_ENTRY || '';
+          const previousTag = process.env.PREVIOUS_TAG;
+          const currentTag = process.env.CURRENT_TAG;
+
+          const lines = changelogEntry.split('\n');
+          const bodyLines = [];
+
+          if (lines.length > 0 && /^##\s+/.test(lines[0])) {
+            lines.shift();
+          }
+
+          while (lines.length > 0 && lines[0].trim() === '') {
+            lines.shift();
+          }
+
+          bodyLines.push('## What\'s Changed');
+          bodyLines.push('');
+          bodyLines.push(lines.join('\n').trim() || '- No notable changes in this release.');
+
+          if (previousTag) {
+            bodyLines.push('');
+            bodyLines.push(`**Full Changelog**: https://github.com/${process.env.GITHUB_REPOSITORY}/compare/${previousTag}...${currentTag}`);
+          }
+
+          const output = bodyLines.join('\n').replace(/\n{3,}/g, '\n\n');
+          writeFileSync(process.env.GITHUB_OUTPUT, `body<<EOF\n${output}\nEOF\n`, { flag: 'a' });
+          NODE
+
       - name: Update GitHub release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh release edit "${{ github.ref_name }}" --notes "${{ steps.changelog.outputs.entry }}"; then
+          if ! gh release edit "${{ github.ref_name }}" --notes "${{ steps.notes.outputs.body }}"; then
             echo "::warning::Failed to update release notes for ${{ github.ref_name }}. The release may not exist yet or there may be a permissions issue."
             echo "You can manually update the release notes at: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
           fi
