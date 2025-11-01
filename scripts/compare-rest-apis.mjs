@@ -207,14 +207,12 @@ function compareResponses(real, mock) {
   if (real.status !== mock.status) {
     issues.push({ kind: "status", real: real.status, mock: mock.status });
   }
-
   const realBody = normaliseBodyForDiff(real.bodyType, real.body);
   const mockBody = normaliseBodyForDiff(mock.bodyType, mock.body);
 
   if (JSON.stringify(real.headers) !== JSON.stringify(mock.headers)) {
     issues.push({ kind: "headers", real: real.headers, mock: mock.headers });
   }
-
   if (real.bodyType !== mock.bodyType) {
     issues.push({ kind: "body-type", real: real.bodyType, mock: mock.bodyType });
   } else if (JSON.stringify(realBody) !== JSON.stringify(mockBody)) {
@@ -345,142 +343,141 @@ function binaryZeros(length) {
 
 function createScenarios(assets) {
   return [
-  scenario("version-get", "GET /v1/version", () => [
-    {
-      name: "success",
-      method: "GET",
-      path: "/v1/version",
-      headers: { Accept: "application/json" },
-    },
-  ]),
-  scenario("info-get", "GET /v1/info", () => [
-    {
-      name: "success",
-      method: "GET",
-      path: "/v1/info",
-      headers: { Accept: "application/json" },
-    },
-  ]),
-  scenario("drives-get", "GET /v1/drives", () => [
-    {
-      name: "success",
-      method: "GET",
-      path: "/v1/drives",
-      headers: { Accept: "application/json" },
-    },
-  ]),
-  scenario("configs-get", "GET /v1/configs", () => [
-    {
-      name: "success",
-      method: "GET",
-      path: "/v1/configs",
-      headers: { Accept: "application/json" },
-    },
-  ]),
-  scenario("configs-category-get", "GET /v1/configs/{category}", (ctx) => {
-    if (!ctx.sharedCategory) {
-      return [
-        {
-          name: "missing-category",
-          method: "GET",
-          path: `/v1/configs/DOES_NOT_EXIST`,
-          headers: { Accept: "application/json" },
-          note: "Shared config category not found on both endpoints; testing error path.",
-        },
-      ];
-    }
-    return [
+    scenario("version-get", "GET /v1/version", () => [
       {
         name: "success",
         method: "GET",
-        path: `/v1/configs/${encodeURIComponent(ctx.sharedCategory)}`,
+        path: "/v1/version",
         headers: { Accept: "application/json" },
       },
-    ];
-  }),
-  scenario("configs-item-get", "GET /v1/configs/{category}/{item}", (ctx) => {
-    if (!ctx.sharedCategory || !ctx.sharedItem) {
-      return [
-        {
-          name: "missing-item",
-          method: "GET",
-          path: `/v1/configs/DOES_NOT_EXIST/NOPE`,
-          headers: { Accept: "application/json" },
-        },
-      ];
-    }
-    return [
+    ]),
+    scenario("info-get", "GET /v1/info", () => [
       {
         name: "success",
         method: "GET",
-        path: `/v1/configs/${encodeURIComponent(ctx.sharedCategory)}/${encodeURIComponent(ctx.sharedItem)}`,
+        path: "/v1/info",
         headers: { Accept: "application/json" },
       },
-    ];
-  }),
-  scenario("configs-item-put", "PUT /v1/configs/{category}/{item}", (ctx) => {
-    if (!ctx.sharedCategory || !ctx.sharedItem) {
+    ]),
+    scenario("drives-get", "GET /v1/drives", () => [
+      {
+        name: "success",
+        method: "GET",
+        path: "/v1/drives",
+        headers: { Accept: "application/json" },
+      },
+    ]),
+    scenario("configs-get", "GET /v1/configs", () => [
+      {
+        name: "success",
+        method: "GET",
+        path: "/v1/configs",
+        headers: { Accept: "application/json" },
+      },
+    ]),
+    scenario("configs-category-get", "GET /v1/configs/{category}", (ctx) => {
+      if (!ctx.sharedCategory) {
+        return [
+          {
+            name: "missing-category",
+            method: "GET",
+            path: `/v1/configs/DOES_NOT_EXIST`,
+            headers: { Accept: "application/json" },
+            note: "Shared config category not found on both endpoints; testing error path.",
+          },
+        ];
+      }
       return [
         {
-          name: "invalid-category",
+          name: "success",
+          method: "GET",
+          path: `/v1/configs/${encodeURIComponent(ctx.sharedCategory)}`,
+          headers: { Accept: "application/json" },
+        },
+      ];
+    }),
+    scenario("configs-item-get", "GET /v1/configs/{category}/{item}", (ctx) => {
+      if (!ctx.sharedCategory || !ctx.sharedItem) {
+        return [
+          {
+            name: "missing-item",
+            method: "GET",
+            path: `/v1/configs/DOES_NOT_EXIST/NOPE`,
+            headers: { Accept: "application/json" },
+          },
+        ];
+      }
+      return [
+        {
+          name: "success",
+          method: "GET",
+          path: `/v1/configs/${encodeURIComponent(ctx.sharedCategory)}/${encodeURIComponent(ctx.sharedItem)}`,
+          headers: { Accept: "application/json" },
+        },
+      ];
+    }),
+    scenario("configs-item-put", "PUT /v1/configs/{category}/{item}", (ctx) => {
+      if (!ctx.sharedCategory || !ctx.sharedItem) {
+        return [
+          {
+            name: "invalid-category",
+            method: "PUT",
+            path: `/v1/configs/DOES_NOT_EXIST/NOPE`,
+            query: { value: "foo" },
+          },
+        ];
+      }
+      return [
+        {
+          name: "set-same-value",
           method: "PUT",
-          path: `/v1/configs/DOES_NOT_EXIST/NOPE`,
-          query: { value: "foo" },
+          path: `/v1/configs/${encodeURIComponent(ctx.sharedCategory)}/${encodeURIComponent(ctx.sharedItem)}`,
+          query: { value: "" },
+          note: "Sets empty string; device typically normalises.",
         },
       ];
-    }
-    return [
+    }),
+    scenario("configs-post", "POST /v1/configs", () => [
       {
-        name: "set-same-value",
-        method: "PUT",
-        path: `/v1/configs/${encodeURIComponent(ctx.sharedCategory)}/${encodeURIComponent(ctx.sharedItem)}`,
-        query: { value: "" },
-        note: "Sets empty string; device typically normalises.",
+        name: "empty-payload",
+        method: "POST",
+        path: "/v1/configs",
+        bodyType: "json",
+        body: {},
       },
-    ];
-  }),
-  scenario("configs-post", "POST /v1/configs", () => [
-    {
-      name: "empty-payload",
-      method: "POST",
-      path: "/v1/configs",
-      bodyType: "json",
-      body: {},
-    },
-  ]),
-  scenario("machine-debugreg", "GET/PUT /v1/machine:debugreg", () => [
-    {
-      name: "read",
-      method: "GET",
-      path: "/v1/machine:debugreg",
-      headers: { Accept: "application/json" },
-    },
-    {
-      name: "write-ab",
-      method: "PUT",
-      path: "/v1/machine:debugreg",
-      query: { value: "AB" },
-    },
-  ]),
-  scenario("machine-readmem", "GET /v1/machine:readmem", () => [
-    {
-      name: "read-json",
-      method: "GET",
-      path: "/v1/machine:readmem",
-      query: { address: "0400", length: 16 },
-      headers: { Accept: "application/json" },
-    },
-    {
-      name: "invalid-length",
-      method: "GET",
-      path: "/v1/machine:readmem",
-      query: { address: "ZZZZ", length: 0 },
-      headers: { Accept: "application/json" },
-      note: "Intentionally invalid address/length to observe error parity.",
-    },
-  ]),
-  scenario("machine-writemem-put", "PUT /v1/machine:writemem", () => {
-    return [
+    ]),
+    scenario("machine-debugreg", ["GET /v1/machine:debugreg", "PUT /v1/machine:debugreg"], () => [
+      {
+        name: "read",
+        method: "GET",
+        path: "/v1/machine:debugreg",
+        headers: { Accept: "application/json" },
+      },
+      {
+        name: "write-ab",
+        method: "PUT",
+        path: "/v1/machine:debugreg",
+        query: { value: "AB" },
+      },
+    ]),
+    scenario("machine-readmem", "GET /v1/machine:readmem", () => [
+      {
+        name: "read-json",
+        method: "GET",
+        path: "/v1/machine:readmem",
+        query: { address: "0400", length: 16 },
+        headers: { Accept: "application/json" },
+      },
+      {
+        name: "invalid-length",
+        method: "GET",
+        path: "/v1/machine:readmem",
+        query: { address: "ZZZZ", length: 0 },
+        headers: { Accept: "application/json" },
+        note: "Intentionally invalid address/length to observe error parity.",
+      },
+    ]),
+    scenario("machine-writemem-put", "PUT /v1/machine:writemem", () => [
       {
         name: "write-hex",
         method: "PUT",
@@ -493,128 +490,148 @@ function createScenarios(assets) {
         path: "/v1/machine:writemem",
         query: { address: "C000", data: "GG" },
       },
-    ];
-  }),
-  scenario("machine-writemem-post", "POST /v1/machine:writemem", () => [
-    {
-      name: "write-binary",
-      method: "POST",
-      path: "/v1/machine:writemem",
-      query: { address: "C100" },
-      bodyType: "binary",
-      body: binaryZeros(32),
-    },
-  ]),
-  scenario("machine-reset", "PUT /v1/machine:reset", () => [
-    {
-      name: "success",
-      method: "PUT",
-      path: "/v1/machine:reset",
-    },
-  ]),
-  scenario("machine-pause-resume", "PUT /v1/machine:pause/resume", () => [
-    {
-      name: "pause",
-      method: "PUT",
-      path: "/v1/machine:pause",
-    },
-    {
-      name: "resume",
-      method: "PUT",
-      path: "/v1/machine:resume",
-    },
-  ]),
-  scenario("runners-run_prg", "POST /v1/runners:run_prg", () => [
-    {
-      name: "run-basic-prg",
-      method: "POST",
-      path: "/v1/runners:run_prg",
-      bodyType: "binary",
-      body: assets.helloPrg,
-      headers: { "X-Test": "run-prg" },
-    },
-    {
-      name: "missing-file",
-      method: "PUT",
-      path: "/v1/runners:run_prg",
-      query: { file: "//USB0/does-not-exist.prg" },
-    },
-  ]),
-  scenario("runners-load_prg", "POST/PUT /v1/runners:load_prg", () => [
-    {
-      name: "missing-file",
-      method: "PUT",
-      path: "/v1/runners:load_prg",
-      query: { file: "//USB0/does-not-exist.prg" },
-    },
-  ]),
-  scenario("runners-run_crt", "PUT /v1/runners:run_crt", () => [
-    {
-      name: "missing-crt",
-      method: "PUT",
-      path: "/v1/runners:run_crt",
-      query: { file: "//USB0/does-not-exist.crt" },
-    },
-  ]),
-  scenario("runners-sidplay", "PUT/POST /v1/runners:sidplay", () => [
-    {
-      name: "missing-sid-file",
-      method: "PUT",
-      path: "/v1/runners:sidplay",
-      query: { file: "//USB0/does-not-exist.sid", songnr: 0 },
-    },
-    {
-      name: "upload-invalid-sid",
-      method: "POST",
-      path: "/v1/runners:sidplay",
-      query: { songnr: 0 },
-      bodyType: "binary",
-      body: Buffer.from("INVALID"),
-    },
-  ]),
-  scenario("streams-start-stop", "PUT /v1/streams/{stream}:{start,stop}", () => [
-    {
-      name: "start-video-invalid-ip",
-      method: "PUT",
-      path: "/v1/streams/video:start",
-      query: { ip: "999.999.999.999" },
-    },
-    {
-      name: "stop-video",
-      method: "PUT",
-      path: "/v1/streams/video:stop",
-    },
-  ]),
-  scenario("drives-operations", "PUT /v1/drives/{drive}:*", (ctx) => {
-    const drive = ctx.sharedDrive ?? "drive8";
-    return [
+    ]),
+    scenario("machine-writemem-post", "POST /v1/machine:writemem", () => [
       {
-        name: "mount-missing-image",
+        name: "write-binary",
+        method: "POST",
+        path: "/v1/machine:writemem",
+        query: { address: "C100" },
+        bodyType: "binary",
+        body: binaryZeros(32),
+      },
+    ]),
+    scenario("machine-reset", "PUT /v1/machine:reset", () => [
+      {
+        name: "success",
         method: "PUT",
-        path: `/v1/drives/${encodeURIComponent(drive)}:mount`,
-        query: { image: "//USB0/does-not-exist.d64" },
+        path: "/v1/machine:reset",
+      },
+    ]),
+    scenario("machine-pause-resume", ["PUT /v1/machine:pause", "PUT /v1/machine:resume"], () => [
+      {
+        name: "pause",
+        method: "PUT",
+        path: "/v1/machine:pause",
       },
       {
-        name: "reset-drive",
+        name: "resume",
         method: "PUT",
-        path: `/v1/drives/${encodeURIComponent(drive)}:reset`,
+        path: "/v1/machine:resume",
+      },
+    ]),
+    scenario("runners-run_prg", ["POST /v1/runners:run_prg", "PUT /v1/runners:run_prg"], (ctx, assets) => [
+      {
+        name: "run-basic-prg",
+        method: "POST",
+        path: "/v1/runners:run_prg",
+        bodyType: "binary",
+        body: assets.helloPrg,
+        headers: { "X-Test": "run-prg" },
       },
       {
-        name: "set-mode-invalid",
+        name: "missing-file",
         method: "PUT",
-        path: `/v1/drives/${encodeURIComponent(drive)}:set_mode`,
-        query: { mode: "9999" },
+        path: "/v1/runners:run_prg",
+        query: { file: "//USB0/does-not-exist.prg" },
       },
-    ];
-  }),
-  scenario("files-info-invalid", "GET /v1/files/{path}:info", () => [
-    {
-      name: "missing-file",
-      method: "GET",
-      path: `/v1/files/${encodeURIComponent("Usb0/missing.prg")}:info`,
-      headers: { Accept: "application/json" },
-    },
-  ]),
+    ]),
+    scenario("runners-load_prg", ["POST /v1/runners:load_prg", "PUT /v1/runners:load_prg"], (ctx, assets) => [
+      {
+        name: "missing-file",
+        method: "PUT",
+        path: "/v1/runners:load_prg",
+        query: { file: "//USB0/does-not-exist.prg" },
+      },
+      {
+        name: "upload-basic",
+        method: "POST",
+        path: "/v1/runners:load_prg",
+        bodyType: "binary",
+        body: assets.helloPrg,
+        headers: { "X-Test": "load-prg" },
+        note: "Uploads a small BASIC program without running it.",
+      },
+    ]),
+    scenario("runners-run_crt", "PUT /v1/runners:run_crt", () => [
+      {
+        name: "missing-crt",
+        method: "PUT",
+        path: "/v1/runners:run_crt",
+        query: { file: "//USB0/does-not-exist.crt" },
+      },
+    ]),
+    scenario("runners-sidplay", ["PUT /v1/runners:sidplay", "POST /v1/runners:sidplay"], () => [
+      {
+        name: "missing-sid-file",
+        method: "PUT",
+        path: "/v1/runners:sidplay",
+        query: { file: "//USB0/does-not-exist.sid", songnr: 0 },
+      },
+      {
+        name: "upload-invalid-sid",
+        method: "POST",
+        path: "/v1/runners:sidplay",
+        query: { songnr: 0 },
+        bodyType: "binary",
+        body: Buffer.from("INVALID"),
+      },
+    ]),
+    scenario("streams-start-stop", ["PUT /v1/streams/{stream}:start", "PUT /v1/streams/{stream}:stop"], () => [
+      {
+        name: "start-video-invalid-ip",
+        method: "PUT",
+        path: "/v1/streams/video:start",
+        query: { ip: "999.999.999.999" },
+      },
+      {
+        name: "stop-video",
+        method: "PUT",
+        path: "/v1/streams/video:stop",
+      },
+    ]),
+    scenario("drives-operations", [
+      "PUT /v1/drives/{drive}:mount",
+      "PUT /v1/drives/{drive}:reset",
+      "PUT /v1/drives/{drive}:set_mode",
+    ], (ctx) => {
+      const drive = ctx.sharedDrive ?? "drive8";
+      return [
+        {
+          name: "mount-missing-image",
+          method: "PUT",
+          path: `/v1/drives/${encodeURIComponent(drive)}:mount`,
+          query: { image: "//USB0/does-not-exist.d64" },
+        },
+        {
+          name: "reset-drive",
+          method: "PUT",
+          path: `/v1/drives/${encodeURIComponent(drive)}:reset`,
+        },
+        {
+          name: "set-mode-invalid",
+          method: "PUT",
+          path: `/v1/drives/${encodeURIComponent(drive)}:set_mode`,
+          query: { mode: "9999" },
+        },
+      ];
+    }),
+    scenario("files-info-invalid", "GET /v1/files/{path}:info", () => [
+      {
+        name: "missing-file",
+        method: "GET",
+        path: `/v1/files/${encodeURIComponent("Usb0/missing.prg")}:info`,
+        headers: { Accept: "application/json" },
+      },
+    ]),
+    scenario("machine-reboot", "PUT /v1/machine:reboot", () => [
+      {
+        name: "reboot",
+        method: "PUT",
+        path: "/v1/machine:reboot",
+        note: "Exercises reboot endpoint; allow extra settle time after call.",
+      },
+    ]),
   ];
 }
 
@@ -676,7 +693,7 @@ async function performCleanupReset(realBase, mockBase, outputs) {
 
   outputs.push({
     scenarioId: "cleanup-reset",
-    operation: "PUT /v1/machine:reset",
+    operations: ["PUT /v1/machine:reset"],
     requestName: "final-reset",
     request: describedRequest,
     note: "Issued automatically after the comparison suite to return the device to READY.",
