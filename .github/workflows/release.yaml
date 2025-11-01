@@ -7,13 +7,7 @@ on:
       - 'v*.*.*'
 
 jobs:
-  verify_local:
-    uses: ./.github/workflows/package-check.yaml
-    with:
-      package_source: local
-
   release:
-    needs: verify_local
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/mcp-builder:latest
@@ -30,12 +24,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine tag version
         id: version
@@ -44,20 +34,50 @@ jobs:
           CLEAN="${TAG#v}"
           echo "version=$CLEAN" >> "$GITHUB_OUTPUT"
 
-      - name: Validate package version matches tag
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run release-prepare
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          CLEAN="${TAG#v}"
-          PKG_VER=$(node -p "require('./package.json').version")
-          MCP_VER=$(node -p "require('./mcp.json').version")
-          if [ "$CLEAN" != "$PKG_VER" ]; then
-            echo "Tag version $CLEAN does not match package.json version $PKG_VER" >&2
-            exit 1
+          npm run release:prepare -- "${{ steps.version.outputs.version }}"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push release preparation changes
+        run: |
+          git add package.json mcp.json CHANGELOG.md
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: prepare release ${{ steps.version.outputs.version }}"
+            git push origin HEAD:main
           fi
-          if [ "$CLEAN" != "$MCP_VER" ]; then
-            echo "Tag version $CLEAN does not match mcp.json version $MCP_VER" >&2
-            exit 1
+
+      - name: Verify local package
+        run: npm run check:package
+
+      - name: Extract changelog entry
+        id: changelog
+        run: |
+          ENTRY=$(node scripts/extract-changelog-entry.mjs "${{ steps.version.outputs.version }}")
+          echo "entry<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$ENTRY" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Update GitHub release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release edit "${{ github.ref_name }}" --notes "${{ steps.changelog.outputs.entry }}"; then
+            echo "::warning::Failed to update release notes for ${{ github.ref_name }}. The release may not exist yet or there may be a permissions issue."
+            echo "You can manually update the release notes at: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
           fi
+
+      - name: Build project
+        run: npm run build
 
       - name: Publish to npm
         run: |
