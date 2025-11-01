@@ -1,6 +1,6 @@
 {
   "name": "c64bridge",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -55,12 +55,12 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.2",
     "axios": "^1.7.7",
-  "fastify": "^5.6.1",
-  "date-fns": "^4.1.0",
-  "meyda": "^5.6.2",
-  "octokit": "^5.0.4",
-  "pitchfinder": "^2.2.0",
-  "reflect-metadata": "^0.2.2",
+    "fastify": "^5.6.1",
+    "date-fns": "^4.1.0",
+    "meyda": "^5.6.2",
+    "octokit": "^5.0.4",
+    "pitchfinder": "^2.2.0",
+    "reflect-metadata": "^0.2.2",
     "yaml": "^2.6.0"
   },
   "optionalDependencies": {
