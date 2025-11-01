@@ -72,16 +72,16 @@ export const basic_spec: string = `
 # Commodore BASIC v2 – Concise Language Specification
 
 ## When to Use REST API vs BASIC/Assembly
-**IMPORTANT: Use REST API for direct hardware manipulation**
-- If user says "direct", "directly change", "poke", or mentions "direct" + "RAM/SID/VIC", use write_memory REST API
+- **IMPORTANT: Use REST API for direct hardware manipulation**
+- If user says "direct", "directly change", "poke", or mentions "direct" + "RAM/SID/VIC", use write REST API
 - If user asks for sound generation, use REST API SID manipulation (unless they want a complete program)
-- REST API endpoints: write_memory (address, bytes), read_memory (address, length)
-- Examples: "directly set border red" → write_memory(53280, "02"), NOT POKE 53280,2
-- Examples: "make a sound" → write_memory SID registers, NOT BASIC sound code
+- REST API endpoints: write (address, bytes), read (address, length)
+- Examples: "directly set border red" → write(53280, "02"), NOT POKE 53280,2
+- Examples: "make a sound" → write SID registers, NOT BASIC sound code
 - Only generate BASIC/ASM code when user explicitly asks for programs/code
 
 ## SID Sound Generation via REST API
-**Use write_memory for direct SID chip manipulation:**
+**Use write for direct SID chip manipulation:**
 
 Key SID Registers (decimal addresses):
 - Volume Control: 54296 ($D418) - Set to 15 ($0F) for maximum volume
@@ -184,11 +184,11 @@ Waveform: Triangle wave ($10) + Gate ($01) = $11 (pleasant, not harsh)
 ADSR: Attack/Decay=$31 (gentle), Sustain/Release=$F6 (smooth)
 
 **Sound Generation Sequence:**
-1. Set volume: write_memory(54296, '0F')
+1. Set volume: write(54296, '0F')
 2. Configure ADSR envelope for each voice  
 3. Set frequencies for desired notes
-4. Trigger with waveform + gate: write_memory(control_reg, waveform + '1')
-5. Stop by clearing gate: write_memory(control_reg, waveform + '0')
+4. Trigger with waveform + gate: write(control_reg, waveform + '1')
+5. Stop by clearing gate: write(control_reg, waveform + '0')
 
 **Advanced SID Music Techniques:**
 

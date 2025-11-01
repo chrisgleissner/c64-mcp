@@ -18,7 +18,7 @@ test("background tasks persist and complete iterations", async () => {
       logger: createLogger(),
     };
 
-    const start = await metaModule.invoke("start_background_task", { name: "t1", operation: "read_memory", arguments: { address: "$0400", length: 1 }, intervalMs: 5, maxIterations: 2 }, ctx);
+  const start = await metaModule.invoke("start_background_task", { name: "t1", operation: "read", arguments: { address: "$0400", length: 1 }, intervalMs: 5, maxIterations: 2 }, ctx);
     assert.equal(start.metadata?.success, true);
 
     const t1 = await waitForTaskCompletion(metaModule, "t1", ctx);

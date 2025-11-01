@@ -7,7 +7,7 @@ import {
   type PlatformId,
   type PlatformStatus,
 } from "../platform.js";
-import { ToolUnsupportedPlatformError } from "./errors.js";
+import { ToolUnsupportedPlatformError, ToolValidationError } from "./errors.js";
 
 export type JsonSchema = {
   readonly type?: string | readonly string[];
@@ -29,6 +29,10 @@ export type JsonSchema = {
   readonly allOf?: readonly JsonSchema[];
   readonly minItems?: number;
   readonly maxItems?: number;
+  readonly oneOf?: readonly JsonSchema[];
+  readonly discriminator?: {
+    readonly propertyName: string;
+  };
 };
 
 export type ToolLifecycle = "request-response" | "stream" | "fire-and-forget";
@@ -69,6 +73,131 @@ export interface ToolRunResult {
   };
   readonly metadata?: Record<string, unknown>;
   readonly isError?: boolean;
+}
+
+export const OPERATION_DISCRIMINATOR = "op" as const;
+
+export const VERIFY_PROPERTY_NAME = "verify" as const;
+
+export interface VerifyOption {
+  readonly verify?: boolean;
+}
+
+export const VERIFY_PROPERTY_SCHEMA: JsonSchema = Object.freeze({
+  type: "boolean",
+  description: "When true, perform a verification step after completing the operation.",
+  default: false,
+});
+
+export interface OperationSchemaOptions {
+  readonly description?: string;
+  readonly opDescription?: string;
+  readonly properties?: Record<string, JsonSchema>;
+  readonly required?: readonly string[];
+  readonly additionalProperties?: boolean;
+}
+
+export function operationSchema(op: string, options: OperationSchemaOptions = {}): JsonSchema {
+  const {
+    description,
+    opDescription,
+    properties = {},
+    required = [],
+    additionalProperties = false,
+  } = options;
+
+  const schema: JsonSchema = {
+    type: "object",
+    ...(description ? { description } : {}),
+    properties: {
+      [OPERATION_DISCRIMINATOR]: {
+        const: op,
+        description: opDescription ?? `Selects the ${op} operation.`,
+      },
+      ...properties,
+    },
+    required: [OPERATION_DISCRIMINATOR, ...required],
+    additionalProperties,
+  };
+
+  return schema;
+}
+
+export interface DiscriminatedUnionSchemaOptions {
+  readonly description?: string;
+  readonly discriminator?: string;
+  readonly variants: readonly JsonSchema[];
+}
+
+export function discriminatedUnionSchema(options: DiscriminatedUnionSchemaOptions): JsonSchema {
+  const { description, discriminator = OPERATION_DISCRIMINATOR, variants } = options;
+
+  if (!variants || variants.length === 0) {
+    throw new Error("Discriminated union schemas require at least one variant.");
+  }
+
+  const schema: JsonSchema = {
+    type: "object",
+    ...(description ? { description } : {}),
+    oneOf: [...variants],
+    discriminator: {
+      propertyName: discriminator,
+    },
+  };
+
+  return schema;
+}
+
+export type OperationMap = Record<string, Record<string, unknown>>;
+
+export type OperationArgs<
+  TMap extends OperationMap,
+  TKey extends keyof TMap & string,
+> = Readonly<TMap[TKey]> & { readonly [OPERATION_DISCRIMINATOR]: TKey };
+
+export type OperationHandlerMap<TMap extends OperationMap> = {
+  readonly [K in keyof TMap & string]: (
+    args: OperationArgs<TMap, K>,
+    ctx: ToolExecutionContext,
+  ) => Promise<ToolRunResult>;
+};
+
+export function createOperationDispatcher<TMap extends OperationMap>(
+  toolName: string,
+  handlers: OperationHandlerMap<TMap>,
+): (args: unknown, ctx: ToolExecutionContext) => Promise<ToolRunResult> {
+  const allowed = Object.keys(handlers).sort();
+
+  return async (args, ctx) => {
+    if (typeof args !== "object" || args === null) {
+      throw new ToolValidationError(
+        `${toolName} requires an object argument with an ${OPERATION_DISCRIMINATOR} property`,
+        { path: "$" },
+      );
+    }
+
+    const record = args as Record<string, unknown>;
+    const opValue = record[OPERATION_DISCRIMINATOR];
+
+    if (typeof opValue !== "string" || opValue.length === 0) {
+      throw new ToolValidationError(
+        `${toolName} requires an ${OPERATION_DISCRIMINATOR} string to select an operation`,
+        { path: `$.${OPERATION_DISCRIMINATOR}` },
+      );
+    }
+
+    const opKey = opValue as keyof TMap & string;
+    const handler = handlers[opKey];
+
+    if (!handler) {
+      throw new ToolValidationError(
+        `${toolName} does not support ${OPERATION_DISCRIMINATOR} "${opValue}"`,
+        { path: `$.${OPERATION_DISCRIMINATOR}`, details: { allowed } },
+      );
+    }
+
+    return handler(record as OperationArgs<TMap, typeof opKey>, ctx);
+  };
 }
 
 export interface ToolDefinition {

@@ -1,7 +1,7 @@
 import { compileSidwaveToPrg, compileSidwaveToSid } from "../sidwaveCompiler.js";
 import { parseSidwave } from "../sidwave.js";
 import { recordAndAnalyzeAudio } from "../audio/record_and_analyze_audio.js";
-import { defineToolModule, type JsonSchema } from "./types.js";
+import { defineToolModule, type JsonSchema, type ToolExecutionContext } from "./types.js";
 import {
   booleanSchema,
   numberSchema,
@@ -20,6 +20,10 @@ import {
 } from "./errors.js";
 
 const NOTE_PATTERN = /^([A-Ga-g])([#b]?)(-?\d+)$/;
+
+const DEFAULT_SILENCE_VERIFY_DURATION_SECONDS = 1.5;
+const DEFAULT_SILENCE_VERIFY_RMS_THRESHOLD = 0.02;
+const DEFAULT_SILENCE_VERIFY_WAIT_MS = 150;
 
 function toRecord(details: unknown): Record<string, unknown> | undefined {
   if (details && typeof details === "object") {
@@ -153,9 +157,14 @@ const sidNoteOffArgsSchema = objectSchema({
   additionalProperties: false,
 });
 
-const sidSilenceArgsSchema = objectSchema<Record<string, never>>({
-  description: "No arguments are required to silence all SID voices.",
-  properties: {},
+const sidSilenceArgsSchema = objectSchema({
+  description: "Silence all SID voices with an optional verification capture.",
+  properties: {
+    verify: optionalSchema(booleanSchema({
+      description: "When true, record audio after silencing to confirm the SID output is quiet.",
+      default: false,
+    }), false),
+  },
   additionalProperties: false,
 });
 
@@ -345,6 +354,25 @@ function shouldAutoAnalyze(request: string): boolean {
   const subjectMatch = /(sid|audio|music|sound|song|play)/.test(lowered);
   const qualitativeMatch = /(does.*sound|how.*sound|sound.*right|sound.*good|sound.*correct)/.test(lowered);
   return (actionMatch && subjectMatch) || qualitativeMatch;
+}
+
+type AudioAnalyzer = (options: {
+  durationSeconds: number;
+  expectedSidwave?: string | Record<string, unknown>;
+}) => Promise<Awaited<ReturnType<typeof recordAndAnalyzeAudio>>>;
+
+function resolveAnalyzer(ctx: ToolExecutionContext): AudioAnalyzer {
+  const candidate = (ctx.client as { recordAndAnalyzeAudio?: unknown } | undefined)?.recordAndAnalyzeAudio;
+  if (typeof candidate === "function") {
+    return (options) => (candidate as AudioAnalyzer).call(ctx.client, options);
+  }
+  return (options) => recordAndAnalyzeAudio(options);
+}
+
+function extractRmsMetrics(globalMetrics: Record<string, unknown>): { average: number | null; max: number | null } {
+  const average = typeof globalMetrics.average_rms === "number" ? globalMetrics.average_rms : null;
+  const max = typeof globalMetrics.max_rms === "number" ? globalMetrics.max_rms : null;
+  return { average, max };
 }
 
 function normaliseSidwaveInput(input?: string | Record<string, unknown>): string | Record<string, unknown> | undefined {
@@ -646,8 +674,10 @@ export const audioModule = defineToolModule({
       ],
       async execute(args, ctx) {
         try {
-          sidSilenceArgsSchema.parse(args ?? {});
-          ctx.logger.info("Silencing all SID voices");
+          const parsed = sidSilenceArgsSchema.parse(args ?? {});
+          const verify = Boolean(parsed.verify);
+
+          ctx.logger.info("Silencing all SID voices", { verify });
 
           const result = await ctx.client.sidSilenceAll();
           if (!result.success) {
@@ -658,9 +688,74 @@ export const audioModule = defineToolModule({
 
           const detailRecord = toRecord(result.details) ?? {};
 
-          return textResult("SID voices silenced.", {
+          if (!verify) {
+            return textResult("SID voices silenced.", {
+              success: true,
+              details: detailRecord,
+              verify: false,
+              verification: null,
+            });
+          }
+
+          ctx.logger.info("Verifying SID silence via audio capture", {
+            durationSeconds: DEFAULT_SILENCE_VERIFY_DURATION_SECONDS,
+            waitBeforeCaptureMs: DEFAULT_SILENCE_VERIFY_WAIT_MS,
+            rmsThreshold: DEFAULT_SILENCE_VERIFY_RMS_THRESHOLD,
+          });
+
+          const analyzer = resolveAnalyzer(ctx);
+
+          if (DEFAULT_SILENCE_VERIFY_WAIT_MS > 0) {
+            await sleep(DEFAULT_SILENCE_VERIFY_WAIT_MS);
+          }
+
+          const analysis = await analyzer({
+            durationSeconds: DEFAULT_SILENCE_VERIFY_DURATION_SECONDS,
+          });
+
+          const globalMetrics = (analysis?.analysis?.global_metrics ?? {}) as Record<string, unknown>;
+          const { average, max } = extractRmsMetrics(globalMetrics);
+
+          if (average === null && max === null) {
+            throw new ToolExecutionError("Audio analysis did not provide RMS metrics for silence verification", {
+              details: globalMetrics,
+            });
+          }
+
+          const averageRms = average ?? max ?? 0;
+          const maxRms = max ?? average ?? 0;
+          const silent = maxRms <= DEFAULT_SILENCE_VERIFY_RMS_THRESHOLD;
+
+          ctx.logger.info("Silence verification completed", {
+            silent,
+            averageRms,
+            maxRms,
+            threshold: DEFAULT_SILENCE_VERIFY_RMS_THRESHOLD,
+          });
+
+          const verification = {
+            silent,
+            durationSeconds: analysis?.analysis?.durationSeconds ?? DEFAULT_SILENCE_VERIFY_DURATION_SECONDS,
+            waitBeforeCaptureMs: DEFAULT_SILENCE_VERIFY_WAIT_MS,
+            threshold: DEFAULT_SILENCE_VERIFY_RMS_THRESHOLD,
+            averageRms,
+            maxRms,
+            analysis,
+          } as const;
+
+          if (!silent) {
+            throw new ToolExecutionError("SID silence verification detected residual audio above threshold", {
+              details: verification,
+            });
+          }
+
+          const message = `SID voices silenced. Verified silence (max RMS ${maxRms.toFixed(3)} <= ${DEFAULT_SILENCE_VERIFY_RMS_THRESHOLD.toFixed(3)}).`;
+
+          return textResult(message, {
             success: true,
             details: detailRecord,
+            verify: true,
+            verification,
           });
         } catch (error) {
           if (error instanceof ToolError) {

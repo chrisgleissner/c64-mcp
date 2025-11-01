@@ -1,7 +1,7 @@
 import test from "#test/runner";
 import assert from "#test/assert";
 import { ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import { toolRegistry } from "../../src/tools/registry.js";
+import { toolRegistry } from "../../src/tools/registry/index.js";
 
 function assertDescriptorMetadata(metadata) {
   assert.ok(metadata, "tool metadata should exist");

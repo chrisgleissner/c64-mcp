@@ -124,6 +124,7 @@ describe("meta/audio", () => {
         analysisDurationSeconds: 1,
         silenceDurationSeconds: 0.5,
         postSilenceWaitMs: 0,
+        silenceWaitMs: 0,
       },
       ctx,
     );
@@ -150,6 +151,7 @@ describe("meta/audio", () => {
         waitBeforeCaptureMs: 0,
         verifySilenceBefore: false,
         verifySilenceAfter: false,
+        silenceWaitMs: 0,
       },
       ctx,
     );
@@ -174,6 +176,7 @@ describe("meta/audio", () => {
         waitBeforeCaptureMs: 0,
         postSilenceWaitMs: 0,
         silenceRmsThreshold: 0.02,
+        silenceWaitMs: 0,
       },
       ctx,
     );

@@ -64,7 +64,7 @@ test('applies default depth=5 and per-URL override', async () => {
     'http://example.com/d.s': { headers: { 'content-type': 'text/plain' }, body: 'LDA #$00' },
   };
 
-  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 5, request: fakeRequesterFactory(pages) });
+  const summaries = await fetchFromCsv({ csvPath: csv, outDir, defaultDepth: 5, request: fakeRequesterFactory(pages), perDomainRps: 1000 });
   assert.equal(summaries.length, 2);
   // depth=2 for first seed should allow index -> b.html -> c.bas (2 hops) and index -> a.bas (1 hop)
   const exampleDir = path.join(outDir, 'example.com');
@@ -337,7 +337,7 @@ test('downloads GitHub repo zip via default fetcher', { concurrency: false }, as
     const repoDir = path.join(outDir, 'github.com', 'test_sample');
     const helloPath = path.join(repoDir, 'hello.bas');
     const ignorePath = path.join(repoDir, 'ignore.bin');
-    const codesC64Path = path.join(repoDir, 'notes', 'control_codes_c64.txt');
+  const codesC64Path = path.join(repoDir, 'notes', 'control_codes_c64.txt');
     const codesC128Path = path.join(repoDir, 'notes', 'control_codes_c128.txt');
     const disasmEnPath = path.join(repoDir, 'docs', 'c64disasm_en.txt');
     const disasmDePath = path.join(repoDir, 'docs', 'c64disasm_de.txt');

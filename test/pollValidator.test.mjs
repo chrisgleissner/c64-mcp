@@ -14,6 +14,7 @@ function createLogger() {
 test("loadPollConfig uses defaults when env vars not set", () => {
   delete process.env.C64BRIDGE_POLL_MAX_MS;
   delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+  delete process.env.C64BRIDGE_POLL_STABILIZE_MS;
   
   const config = loadPollConfig();
   
@@ -22,28 +23,34 @@ test("loadPollConfig uses defaults when env vars not set", () => {
   if (isTestMode) {
     assert.equal(config.maxMs, 100);
     assert.equal(config.intervalMs, 30);
+    assert.equal(config.stabilizeMs, 100);
   } else {
     assert.equal(config.maxMs, 2000);
     assert.equal(config.intervalMs, 200);
+    assert.equal(config.stabilizeMs, 100);
   }
 });
 
 test("loadPollConfig reads from environment variables", () => {
   process.env.C64BRIDGE_POLL_MAX_MS = "3000";
   process.env.C64BRIDGE_POLL_INTERVAL_MS = "150";
+  process.env.C64BRIDGE_POLL_STABILIZE_MS = "75";
   
   const config = loadPollConfig();
   
   assert.equal(config.maxMs, 3000);
   assert.equal(config.intervalMs, 150);
+  assert.equal(config.stabilizeMs, 75);
   
   delete process.env.C64BRIDGE_POLL_MAX_MS;
   delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+  delete process.env.C64BRIDGE_POLL_STABILIZE_MS;
 });
 
 test("loadPollConfig handles invalid env values with defaults", () => {
   process.env.C64BRIDGE_POLL_MAX_MS = "invalid";
   process.env.C64BRIDGE_POLL_INTERVAL_MS = "-100";
+  process.env.C64BRIDGE_POLL_STABILIZE_MS = "-5";
   
   const config = loadPollConfig();
   
@@ -52,13 +59,16 @@ test("loadPollConfig handles invalid env values with defaults", () => {
   if (isTestMode) {
     assert.equal(config.maxMs, 100);
     assert.equal(config.intervalMs, 30);
+    assert.equal(config.stabilizeMs, 100);
   } else {
     assert.equal(config.maxMs, 2000);
     assert.equal(config.intervalMs, 200);
+    assert.equal(config.stabilizeMs, 100);
   }
   
   delete process.env.C64BRIDGE_POLL_MAX_MS;
   delete process.env.C64BRIDGE_POLL_INTERVAL_MS;
+  delete process.env.C64BRIDGE_POLL_STABILIZE_MS;
 });
 
 test("pollForProgramOutcome BASIC detects syntax error", async () => {
@@ -80,7 +90,7 @@ test("pollForProgramOutcome BASIC detects syntax error", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 20 },
+    { maxMs: 200, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "error");
@@ -107,7 +117,7 @@ test("pollForProgramOutcome BASIC detects error with line number", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 20 },
+    { maxMs: 200, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "error");
@@ -136,7 +146,7 @@ test("pollForProgramOutcome BASIC returns ok when no error", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 100, intervalMs: 20 },
+    { maxMs: 100, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "ok");
@@ -162,7 +172,7 @@ test("pollForProgramOutcome BASIC detects TYPE MISMATCH error", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 20 },
+    { maxMs: 200, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "error");
@@ -199,7 +209,7 @@ test("pollForProgramOutcome ASM detects screen change", async () => {
     "ASM",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 20 },
+    { maxMs: 200, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "ok");
@@ -230,7 +240,7 @@ test("pollForProgramOutcome ASM detects crash when no screen change", async () =
     "ASM",
     client,
     createLogger(),
-    { maxMs: 100, intervalMs: 20 },
+    { maxMs: 100, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "crashed");
@@ -256,7 +266,7 @@ test("pollForProgramOutcome handles screen read failures gracefully", async () =
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 150, intervalMs: 20 },
+    { maxMs: 150, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "ok");
@@ -274,7 +284,7 @@ test("pollForProgramOutcome BASIC returns ok if RUN not detected", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 50, intervalMs: 10 },
+    { maxMs: 50, intervalMs: 10, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "ok");
@@ -292,7 +302,7 @@ test("pollForProgramOutcome ASM returns ok if RUN not detected", async () => {
     "ASM",
     client,
     createLogger(),
-    { maxMs: 50, intervalMs: 10 },
+    { maxMs: 50, intervalMs: 10, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "ok");
@@ -318,7 +328,7 @@ test("pollForProgramOutcome BASIC case-insensitive RUN detection", async () => {
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 20 },
+    { maxMs: 200, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "error");
@@ -344,7 +354,7 @@ test("pollForProgramOutcome detects BASIC error without line number", async () =
     "BASIC",
     client,
     createLogger(),
-    { maxMs: 200, intervalMs: 20 },
+    { maxMs: 200, intervalMs: 20, stabilizeMs: 0 },
   );
   
   assert.equal(result.status, "error");

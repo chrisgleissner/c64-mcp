@@ -1,6 +1,6 @@
 {
   "name": "c64bridge",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Local MCP server for controlling a Commodore 64 via Ultimate 64 REST API",
   "type": "module",
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
     "mcp": "node scripts/invoke-bun.mjs src/mcp-server.ts",
     "mcp:node": "node dist/mcp-server.js",
     "mcp:build": "npm run build && node dist/mcp-server.js",
-    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && node scripts/invoke-bun.mjs scripts/update-readme.ts",
+  "build": "node scripts/prebuild.mjs && tsc -p tsconfig.json && node scripts/postbuild.mjs && node scripts/invoke-bun.mjs scripts/update-readme.ts",
     "lint": "npm run check",
     "test": "node scripts/invoke-bun.mjs scripts/run-tests.ts",
     "test:node": "node scripts/run-tests.mjs",
@@ -34,7 +34,8 @@
     "rag:fetch": "node scripts/fetch-external-sources.mjs",
     "rag:discover": "node scripts/invoke-bun.mjs src/rag/discover.ts",
     "changelog:generate": "node scripts/generate-changelog.mjs",
-    "release:prepare": "node scripts/prepare-release.mjs"
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "compare:rest": "node scripts/compare-rest-apis.mjs"
   },
   "keywords": [
     "mcp",

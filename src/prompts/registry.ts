@@ -1,6 +1,6 @@
 import { listKnowledgeResources } from "../rag/knowledgeIndex.js";
 import type { KnowledgeResourceDefinition } from "../rag/knowledgeIndex.js";
-import { toolRegistry } from "../tools/registry.js";
+import { toolRegistry } from "../tools/registry/index.js";
 import type { ToolDescriptor } from "../tools/types.js";
 
 export interface PromptDescriptor {
@@ -82,10 +82,10 @@ const BASE_SEGMENTS: Record<string, PromptSegment> = {
     id: "workflow/basic-verify",
     role: "assistant",
     content: [
-      "Verification for BASIC programs:",
-      "- After uploading, run `read_screen` to capture PETSCII output and confirm `READY.` appears when expected.",
-      "- Use `read_memory` around the BASIC program area when verifying that lines tokenised correctly.",
-      "- Call out newline and quotation handling quirks so the user can interpret the output accurately.",
+    "Verification for BASIC programs:",
+    "- After uploading, call `c64_memory` (op `read_screen`) to capture PETSCII output and confirm `READY.` appears when expected.",
+    "- Use `c64_memory` (op `read`) around the BASIC program area when verifying that lines tokenised correctly.",
+    "- Call out newline and quotation handling quirks so the user can interpret the output accurately.",
     ].join("\n"),
   },
   "workflow/asm-irq": {
@@ -104,7 +104,7 @@ const BASE_SEGMENTS: Record<string, PromptSegment> = {
     content: [
       "SID feedback loop:",
       "- Compose the sequence, waveform, ADSR, and modulation plan referencing SID register names.",
-      "- Explain how to play it (e.g., `music_generate`, `sid_note_on`, or uploading executable code).",
+  "- Explain how to play it (e.g., `c64_sound` ops `generate` or `note_on`, or uploading executable code).",
       "- After playback, run `analyze_audio` and describe how to adjust envelope, tuning, or rhythm.",
     ].join("\n"),
   },
@@ -112,10 +112,10 @@ const BASE_SEGMENTS: Record<string, PromptSegment> = {
     id: "workflow/graphics-verify",
     role: "assistant",
     content: [
-      "Graphics verification:",
-      "- List register writes for mode setup, colour RAM, and sprite pointers.",
-      "- Suggest capturing output with `read_screen` or noting expected border/background colours.",
-      "- Include timing checks (raster lines, badline windows) when applicable.",
+    "Graphics verification:",
+    "- List register writes for mode setup, colour RAM, and sprite pointers.",
+    "- Suggest capturing output with `c64_memory` (op `read_screen`) or noting expected border/background colours.",
+    "- Include timing checks (raster lines, badline windows) when applicable.",
     ].join("\n"),
   },
   "workflow/printer": {
@@ -132,10 +132,10 @@ const BASE_SEGMENTS: Record<string, PromptSegment> = {
     id: "workflow/memory-snapshot",
     role: "assistant",
     content: [
-      "Memory safety:",
-      "- Pause running code before writes, capture the target range with `read_memory`, then resume when safe.",
-      "- Explain how to revert the change (rewriting original bytes or power-cycling if needed).",
-      "- Document address ranges, register dependencies, and any expected side effects.",
+    "Memory safety:",
+    "- Pause running code before writes, capture the target range with `c64_memory` (op `read`), then resume when safe.",
+    "- Explain how to revert the change (rewriting original bytes or power-cycling if needed).",
+    "- Document address ranges, register dependencies, and any expected side effects.",
     ].join("\n"),
   },
   "workflow/drive": {
@@ -154,11 +154,11 @@ const BASIC_CORE_SEGMENT: PromptSegment = {
   id: "family/basic-core",
   role: "assistant",
   content: [
-    "BASIC workflow:",
-    "- Restate the request and outline a short plan citing `c64://specs/basic` for syntax or device usage.",
-    "- Generate a numbered BASIC listing with inline remarks when clarity is required.",
-    "- Describe how `upload_and_run_basic` loads the program and what output to inspect.",
-    "- Suggest follow-up diagnostics (screen capture, memory snapshot, or tool reruns).",
+  "BASIC workflow:",
+  "- Restate the request and outline a short plan citing `c64://specs/basic` for syntax or device usage.",
+  "- Generate a numbered BASIC listing with inline remarks when clarity is required.",
+  "- Describe how `c64_program` (op `upload_run_basic`) loads the program and what output to inspect.",
+  "- Suggest follow-up diagnostics (screen capture, memory snapshot, or tool reruns).",
   ].join("\n"),
 };
 
@@ -185,8 +185,8 @@ function assemblyCoreSegment(hardware?: AssemblyHardware): PromptSegment {
       "Assembly workflow:",
       focus,
       "- Provide memory layout, zero-page usage, and register effects for the routine.",
-      "- Explain how to build and deploy via `upload_and_run_asm` or targeted `write_memory` calls.",
-      "- Include verification steps using `read_memory`, `read_screen`, or hardware-specific checks.",
+  "- Explain how to build and deploy via `c64_program` (op `upload_run_asm`) or targeted `c64_memory` (op `write`) calls.",
+  "- Include verification steps using `c64_memory` operations or hardware-specific checks.",
     ].join("\n"),
   };
 }
@@ -261,7 +261,7 @@ const MEMORY_CORE_SEGMENT: PromptSegment = {
   content: [
     "Memory debugging workflow:",
     "- Restate the target address ranges and relate them to symbols from `c64://specs/assembly` or the memory map.",
-    "- Plan safe inspection or patching steps using `read_memory`, `write_memory`, `pause`, and `resume`.",
+  "- Plan safe inspection or patching steps using `c64_memory` operations alongside `pause` and `resume`.",
     "- Encourage logging or diffing memory before and after changes for auditability.",
   ].join("\n"),
 };
@@ -367,7 +367,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://docs/index",
         ],
         optionalResources: [],
-        tools: ["upload_and_run_basic", "read_screen", "read_memory"],
+  tools: ["c64_program", "c64_memory"],
         tags: ["basic", "program"],
       },
       buildMessages: () => [
@@ -389,7 +389,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://context/bootstrap",
         ],
         optionalResources: ["c64://docs/sid/best-practices"],
-        tools: ["upload_and_run_asm", "write_memory", "read_memory", "read_screen"],
+  tools: ["c64_program", "c64_memory"],
         tags: ["assembly", "program"],
       },
       arguments: [
@@ -430,7 +430,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://docs/sid/best-practices",
         ],
         optionalResources: [],
-        tools: ["music_generate", "analyze_audio", "sid_note_on", "sid_volume", "sidplay_file"],
+        tools: ["c64_sound"],
         tags: ["sid", "music"],
       },
       buildMessages: () => [
@@ -449,8 +449,8 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/vic",
           "c64://context/bootstrap",
         ],
-        optionalResources: ["c64://specs/assembly", "c64://specs/charset", "c64://docs/petscii-style"],
-        tools: ["upload_and_run_basic", "upload_and_run_asm", "render_petscii_screen"],
+  optionalResources: ["c64://specs/assembly", "c64://specs/charset", "c64://docs/petscii-style"],
+  tools: ["c64_program", "c64_memory", "c64_graphics"],
         tags: ["graphics", "vic"],
       },
       arguments: [
@@ -464,15 +464,15 @@ export function createPromptRegistry(): PromptRegistry {
       selectTools: (args) => {
         const mode = args.mode as GraphicsMode | undefined;
         if (mode === "sprite") {
-          return ["generate_sprite_prg", "write_memory", "read_memory"];
+          return ["c64_graphics", "c64_memory"];
         }
         if (mode === "bitmap" || mode === "multicolour") {
-          return ["write_memory", "read_memory"];
+          return ["c64_graphics", "c64_memory"];
         }
         if (mode === "text") {
-          return ["create_petscii_image", "read_screen"];
+          return ["c64_graphics", "c64_memory"];
         }
-        return ["read_screen"];
+        return ["c64_graphics", "c64_memory"];
       },
       buildMessages: (args) => {
         const mode = args.mode as GraphicsMode | undefined;
@@ -500,7 +500,7 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://docs/printer/epson-text",
           "c64://docs/printer/epson-bitmap",
         ],
-        tools: ["print_text"],
+  tools: ["c64_printer"],
         tags: ["printer"],
       },
       arguments: [
@@ -521,16 +521,7 @@ export function createPromptRegistry(): PromptRegistry {
         }
         return [];
       },
-      selectTools: (args) => {
-        const printerType = args.printerType as PrinterType | undefined;
-        if (printerType === "commodore") {
-          return ["print_text", "print_bitmap_commodore", "define_printer_chars"];
-        }
-        if (printerType === "epson") {
-          return ["print_text", "print_bitmap_epson"];
-        }
-        return ["print_text", "print_bitmap_commodore", "print_bitmap_epson", "define_printer_chars"];
-      },
+      selectTools: () => ["c64_printer"],
       buildMessages: (args) => {
         const printerType = args.printerType as PrinterType | undefined;
         return [
@@ -551,8 +542,8 @@ export function createPromptRegistry(): PromptRegistry {
           "c64://specs/assembly",
           "c64://docs/index",
         ],
-        optionalResources: [],
-        tools: ["read_memory", "write_memory", "pause", "resume", "read_screen"],
+    optionalResources: [],
+    tools: ["c64_memory", "c64_system"],
         tags: ["memory", "debug"],
       },
       buildMessages: () => [
@@ -570,17 +561,8 @@ export function createPromptRegistry(): PromptRegistry {
         requiredResources: ["c64://context/bootstrap"],
         optionalResources: [],
         tools: [
-          "drives_list",
-          "drive_mount",
-          "drive_remove",
-          "drive_reset",
-          "drive_on",
-          "drive_off",
-          "create_d64",
-          "create_d71",
-          "create_d81",
-          "create_dnp",
-          "file_info",
+          "c64_disk",
+          "c64_drive",
         ],
         tags: ["drive", "storage"],
       },

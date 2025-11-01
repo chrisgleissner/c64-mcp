@@ -25,7 +25,7 @@ basic,Simple C64 BASIC and Assembly examples,https://github.com/cslarsen/c64-exa
 basic,Snake clone in pure C64 BASIC (snake.bas),https://github.com/StefanHolmes/C64-Snake,10
 hardware,Ultimate C64 Reference Guide,https://github.com/mist64/c64ref,10
 hardware,61002 CPU notes (text),https://raw.githubusercontent.com/androdev4u/c64rom/refs/heads/master/61002/cpu_61002.txt,1
-hardware,Mapping the C64,https://www.zimmers.net/anonftp/pub/cbm/c64/manuals/mapping-c64.txt,1
+hardware,Mapping the C64,https://www.zimmers.net/anonftp/pub/cbm/c64/manuals/mapping-c64_txt,1
 hardware,C64 Service Manual (text),https://www.zimmers.net/cbmpics/cbm/c64/C64ServiceManual.txt,1
 hardware,Commodore 64 memory map (text),https://www.zimmers.net/anonftp/pub/cbm/maps/C64.MemoryMap.txt,1
 hardware,VIC-II controller documentation (text),https://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt,1

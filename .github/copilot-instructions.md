@@ -67,7 +67,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 - Keep PRs focused and minimal—change only what's necessary to address the task.
 - Provide clear descriptions explaining what changed and why.
-- Link to related issues using GitHub keywords (Fixes #123, Closes #456).
+- Link to related issues using GitHub keywords (for example, `Fixes issue 123`, `Closes issue 456`).
 - Ensure CI passes before requesting review.
 - Respond to review feedback promptly and professionally.
 
@@ -79,7 +79,7 @@ Thanks for helping keep the Commodore 64 MCP server robust and user-friendly!
 
 Use these rules to ensure Copilot reliably engages the `c64bridge` server when the user asks for C64 work.
 
-- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64bridge` (see `doc/MCP_SETUP.md`). If the server is not running, start it.
+- Only transport is stdio; always use it. Ensure the experimental MCP setting is enabled and a server entry exists for `c64bridge` (see `doc/AGENTS.md`). If the server is not running, start it.
 - Treat the following as strong routing signals: "c64", "commodore 64", "ultimate 64", "c64u", "vic", "sid", "petscii", "basic v2", "6510".
 - When such signals appear, prefer MCP tool usage from `c64bridge` without waiting for the user to select a server.
 - If the stdio server is not yet connected, attempt a tool list or a simple no-op like `version`/`info` to trigger activation. If the client cannot start the server automatically, start it (e.g., `npm start` or `node ./node_modules/c64bridge/dist/index.js`).
@@ -88,9 +88,9 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 
 - Interpret `/C64` or `/c64` at the beginning of a message as a request to route subsequent steps through the `c64bridge` tools for this turn. Also accept `C64U` and `c64u` as equivalent triggers.
 - In C64 mode:
-  - Use `upload_and_run_basic` or `upload_and_run_asm` for program execution.
-  - Use `read_screen`, `read_memory`, or `write_memory` for inspection or patches.
-  - Use SID/VIC helpers (`music_generate`, `sid_note_on`, `render_petscii_screen`, etc.) when relevant.
+  - Use `upload_run_basic` or `upload_run_asm` for program execution.
+  - Use `read_screen`, `read`, or `write` (via `c64_memory`) for inspection or patches.
+  - Use SID/VIC helpers (`c64_sound` ops such as `generate`, `note_on`, `render_petscii_screen`, etc.) when relevant.
   - Explain intended tool calls briefly before invoking them.
 
 ### Fallback Guidance
@@ -102,5 +102,5 @@ Use these rules to ensure Copilot reliably engages the `c64bridge` server when t
 ### Example Prompts for Activation
 
 - "Read the current C64 screen" → connect and call `read_screen`.
-- "/C64 draw a rectangle using BASIC" → generate BASIC, call `upload_and_run_basic`, then `read_screen`.
-- "Play a C major scale on the SID" → call `music_generate`, then `analyze_audio` for verification.
+- "/C64 draw a rectangle using BASIC" → generate BASIC, call `upload_run_basic`, then `read_screen`.
+- "Play a C major scale on the SID" → call `c64_sound` (op `generate`), then `c64_sound` (op `analyze`) for verification.

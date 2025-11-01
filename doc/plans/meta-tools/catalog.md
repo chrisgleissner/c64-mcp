@@ -87,7 +87,7 @@ Conventions:
 ### Background scheduling and automation
 
 - "start_background_task"
-  - Start a named background task that invokes a tool (e.g., read_memory, read_screen, sid_note_on) at a fixed interval for N iterations or indefinitely.
+  - Start a named background task that invokes a tool (e.g., `c64_memory` `read`, `read_screen`, `sid_note_on`) at a fixed interval for N iterations or indefinitely.
   - Agent state: task registry (id, name, schedule, next-run, last error), persistent across session.
   - REST: Depends on scheduled tool; common: GET /v1/machine:readmem, PUT|POST /v1/machine:writemem, PUT /v1/runners:run_prg, etc.
 
@@ -140,7 +140,7 @@ Container-aware traversal: All tools in this group recurse into disk/tape contai
 - "find_and_run_program_by_name"
   - Search under a root (including inside `.d64/.d71/.d81/.t64`) for the first program whose filename contains a substring; run it. Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
   - Agent state: recent searches (root, pattern, extensions), last run path.
-  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_and_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
+  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (`c64_program`, op `upload_run_basic`) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
 
 - "filesystem_stats_by_extension"
   - Walk all files beneath a root—including files inside disk/tape images—and compute counts and size statistics (total, min, max, mean) per extension, with convenience rollups for PRG vs non‑PRG and per‑folder (and per‑container) summaries.
@@ -253,7 +253,7 @@ File-Type Determination (CBM directory and PRG content):
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop
 
 - "action_latency_measure"
-  - Measure cycles between issuing an action (e.g., menu_button, write_memory) and the first observed matching bus event; return cycle/µs estimate.
+  - Measure cycles between issuing an action (e.g., menu_button, `c64_memory` `write`) and the first observed matching bus event; return cycle/µs estimate.
   - Agent state: action timestamp, first-match timestamp, CPU clock assumption (PAL/NTSC option).
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop, PUT /v1/machine:menu_button|:writemem|runners
 
@@ -299,7 +299,7 @@ Notes:
 ### Developer loops and QA harnesses
 
 - "red_green_refactor_loop"
-  - Run program → capture screen → apply write_memory fixups → rerun and compare; stop when assertion passes.
+  - Run program → capture screen → apply `c64_memory` `write` fixups → rerun and compare; stop when assertion passes.
   - Agent state: assertion, iteration counter, diffs.
   - REST: PUT /v1/runners:run_prg, GET /v1/machine:readmem, PUT|POST /v1/machine:writemem, PUT /v1/machine:reset
 
@@ -354,13 +354,13 @@ Notes:
 
 These meta tools build atop existing MCP tools which already wrap the REST surface:
 
-- Memory: `read_memory`, `write_memory`, `read_screen`
-- Programs: `upload_and_run_basic`, `upload_and_run_asm`, `run_prg_file`, `load_prg_file`, `run_crt_file`
-- Machine control: `reset_c64`, `reboot_c64`, `pause`, `resume`, `menu_button`, `debugreg_read`, `debugreg_write`
-- Storage: `drives_list`, `drive_mount`, `drive_remove`, `drive_reset`, `drive_on`, `drive_off`, `drive_mode`, `file_info`, `create_d64|d71|d81|dnp`
-- Audio/SID: `sid_volume`, `sid_reset`, `sid_note_on`, `sid_note_off`, `sid_silence_all`, `sidplay_file`, `modplay_file`, `music_generate`, `music_compile_and_play`, `record_and_analyze_audio`, `analyze_audio`
-- Streaming: `stream_start`, `stream_stop`
-- Developer/Config: `version`, `info`, `config_list|get|set|batch_update|load_from_flash|save_to_flash|reset_to_default`
+- Memory: `c64_memory` (operations: `read`, `write`, `read_screen`, `wait_for_text`)
+- Programs: `c64_program` (operations: `upload_run_basic`, `upload_run_asm`, `run_prg`, `load_prg`, `run_crt`, `batch_run`, `bundle_run`)
+- Machine control: `c64_system` (operations: `pause`, `resume`, `reset`, `reboot`, `poweroff`, `menu`, `start_task`, `stop_task`, `stop_all_tasks`, `list_tasks`)
+- Storage: `c64_disk` (operations: `list_drives`, `mount`, `unmount`, `file_info`, `create_image`, `find_and_run`) and `c64_drive` (operations: `reset`, `power_on`, `power_off`, `set_mode`, `load_rom`)
+- Audio/SID: `c64_sound` (ops `set_volume`, `reset`, `note_on`, `note_off`, `silence_all`, `play_sid_file`, `play_mod_file`, `generate`, `compile_play`, `pipeline`, `record_analyze`, `analyze`)
+- Streaming: `c64_stream` (ops `start`, `stop`)
+- Developer/Config: `c64_config` (ops `list`, `get`, `set`, `batch_update`, `load_flash`, `save_flash`, `reset_defaults`, `read_debugreg`, `write_debugreg`, `info`, `version`, `snapshot`, `restore`, `diff`, `shuffle`)
 
 By bundling these into single, parameterized meta tools with agent-side scheduling and state, the agent can execute complex workflows with one invocation, reducing latency and improving determinism.
 

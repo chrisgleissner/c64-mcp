@@ -1,9 +1,47 @@
 import test from "#test/runner";
 import assert from "#test/assert";
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { getChargenGlyphs } from "../../src/chargen.js";
 
 function getTextContent(result) {
   return result.content.find((entry) => entry.type === "text");
+}
+
+const CHAR_TO_SCREEN = (() => {
+  const map = new Map();
+  for (const glyph of getChargenGlyphs()) {
+    if (!glyph || typeof glyph.screenCode !== "number") {
+      continue;
+    }
+    if (glyph.basic && glyph.basic.length === 1 && !map.has(glyph.basic)) {
+      map.set(glyph.basic, glyph.screenCode & 0xff);
+    }
+    const ascii = String.fromCharCode(glyph.petsciiCode & 0xff);
+    if (!map.has(ascii)) {
+      map.set(ascii, glyph.screenCode & 0xff);
+    }
+  }
+  if (!map.has(" ")) {
+    map.set(" ", 0x20);
+  }
+  return map;
+})();
+
+const SPACE_SCREEN_CODE = CHAR_TO_SCREEN.get(" ") ?? 0x20;
+
+function writeScreenTextAsCodes(state, row, column, text) {
+  const columns = 40;
+  const base = 0x0400 + (row * columns) + column;
+  const screenEnd = 0x0400 + 0x03e8;
+  const rowStart = 0x0400 + (row * columns);
+  state.memory.fill(SPACE_SCREEN_CODE, rowStart, rowStart + columns);
+  for (let i = 0; i < text.length; i += 1) {
+    const code = CHAR_TO_SCREEN.get(text[i]) ?? SPACE_SCREEN_CODE;
+    const offset = base + i;
+    if (offset >= 0x0400 && offset < screenEnd) {
+      state.memory[offset] = code;
+    }
+  }
 }
 
 export function registerMcpServerCallToolTests(withSharedMcpClient) {
@@ -33,15 +71,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("upload_and_run_basic tool proxies to C64 client", async () => {
+  test("c64_program upload_run_basic operation proxies to C64 client", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const program = `10 PRINT "HELLO"\n20 GOTO 10`;
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "upload_and_run_basic",
+            name: "c64_program",
             arguments: {
+              op: "upload_run_basic",
               program,
             },
           },
@@ -61,7 +100,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("upload_and_run_asm tool assembles source and runs program", async () => {
+  test("c64_program upload_run_asm assembles source and runs program", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const program = `\n      .org $0801\nstart:\n      lda #$01\n      sta $0400\n      rts\n    `;
 
@@ -69,8 +108,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "upload_and_run_asm",
+            name: "c64_program",
             arguments: {
+              op: "upload_run_asm",
               program,
             },
           },
@@ -90,14 +130,66 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("read_screen tool returns current PETSCII screen", async () => {
+  test("c64_program upload_run_basic verify surfaces BASIC errors on last screen row", async () => {
+    await withSharedMcpClient(async ({ client, mockServer }) => {
+      const program = '10 PRINT "OK"\n20 END';
+      const resultPromise = client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64_program",
+            arguments: {
+              op: "upload_run_basic",
+              program,
+              verify: true,
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      const triggerErrorScreen = (async () => {
+        const deadline = Date.now() + 120;
+        let patched = false;
+        while (!patched && Date.now() < deadline) {
+          const last = mockServer.state.lastRequest;
+          if (last?.method === "GET" && typeof last.url === "string" && last.url.startsWith("/v1/machine:readmem")) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            mockServer.state.memory.fill(SPACE_SCREEN_CODE, 0x0400, 0x0400 + 0x03e8);
+            writeScreenTextAsCodes(mockServer.state, 24, 0, "?SYNTAX  ERROR IN 80");
+            patched = true;
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 2));
+        }
+        if (!patched) {
+          mockServer.state.memory.fill(SPACE_SCREEN_CODE, 0x0400, 0x0400 + 0x03e8);
+          writeScreenTextAsCodes(mockServer.state, 24, 0, "?SYNTAX  ERROR IN 80");
+        }
+      })();
+
+    const [result] = await Promise.all([resultPromise, triggerErrorScreen]);
+
+      assert.equal(result.isError, true, "verification should surface BASIC error");
+      assert.equal(result.metadata?.error?.kind, "execution");
+      assert.equal(result.metadata?.error?.details?.message, "SYNTAX");
+      assert.equal(result.metadata?.error?.details?.line, 80);
+      const textContent = getTextContent(result);
+      assert.ok(textContent, "Expected text response content");
+      assert.match(textContent.text, /BASIC program verification failed/i);
+    });
+  });
+
+  test("c64_memory read_screen operation returns current screen text", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "read_screen",
-            arguments: {},
+            name: "c64_memory",
+            arguments: {
+              op: "read_screen",
+            },
           },
         },
         CallToolResultSchema,
@@ -114,14 +206,15 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("read_memory tool returns hex dump with metadata", async () => {
+  test("c64_memory read operation returns hex dump with metadata", async () => {
     await withSharedMcpClient(async ({ client }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "read_memory",
+            name: "c64_memory",
             arguments: {
+              op: "read",
               address: "$0400",
               length: 8,
             },
@@ -138,18 +231,19 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
       assert.ok(result.metadata?.success, "metadata should flag success");
       assert.equal(result.metadata?.address, "$0400");
       assert.equal(result.metadata?.length, 8);
-      assert.equal(result.metadata?.hexData, "$1252454144592E0D");
+  assert.equal(result.metadata?.hexData, "$12050104192E2000");
     });
   });
 
-  test("write_memory tool writes bytes to mock C64", async () => {
+  test("c64_memory write operation writes bytes to mock C64", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "write_memory",
+            name: "c64_memory",
             arguments: {
+              op: "write",
               address: "$0400",
               bytes: "$AA55",
             },
@@ -172,14 +266,15 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("SID control tools operate via MCP", async () => {
+  test("c64_sound operations operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
       const volumeResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "sid_volume",
+            name: "c64_sound",
             arguments: {
+              op: "set_volume",
               volume: 12,
             },
           },
@@ -187,7 +282,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.ok(volumeResult.metadata?.success, "sid_volume should succeed");
+    assert.ok(volumeResult.metadata?.success, "set_volume should succeed");
       assert.equal(volumeResult.metadata?.appliedVolume, 12);
       assert.equal(mockServer.state.lastWrite?.address, 0xd418);
       assert.equal(mockServer.state.lastWrite?.bytes[0], 12);
@@ -196,8 +291,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "sid_note_on",
+            name: "c64_sound",
             arguments: {
+              op: "note_on",
               voice: 2,
               note: "C4",
               waveform: "tri",
@@ -212,7 +308,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.ok(noteOnResult.metadata?.success, "sid_note_on should succeed");
+    assert.ok(noteOnResult.metadata?.success, "note_on should succeed");
       assert.equal(noteOnResult.metadata?.voice, 2);
       assert.equal(mockServer.state.lastWrite?.address, 0xd407);
       assert.equal(mockServer.state.lastWrite?.bytes.length, 7);
@@ -221,8 +317,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "sid_note_off",
+            name: "c64_sound",
             arguments: {
+              op: "note_off",
               voice: 2,
             },
           },
@@ -230,7 +327,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.ok(noteOffResult.metadata?.success, "sid_note_off should succeed");
+      assert.ok(noteOffResult.metadata?.success, "note_off should succeed");
       assert.equal(noteOffResult.metadata?.voice, 2);
       assert.equal(mockServer.state.lastWrite?.address, 0xd40b);
       assert.equal(mockServer.state.lastWrite?.bytes[0], 0x00);
@@ -239,8 +336,10 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "sid_silence_all",
-            arguments: {},
+            name: "c64_sound",
+            arguments: {
+              op: "silence_all",
+            },
           },
         },
         CallToolResultSchema,
@@ -254,8 +353,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "sid_reset",
+            name: "c64_sound",
             arguments: {
+              op: "reset",
               hard: true,
             },
           },
@@ -271,126 +371,121 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
     });
   });
 
-  test("Machine control tools operate via MCP", async () => {
+  test("c64_system operations operate via MCP", async () => {
     await withSharedMcpClient(async ({ client, mockServer }) => {
-      const resetResult = await client.request(
-        {
-          method: "tools/call",
-          params: {
-            name: "reset_c64",
-            arguments: {},
-          },
-        },
-        CallToolResultSchema,
-      );
-
-      assert.ok(resetResult.metadata?.success, "reset_c64 should succeed");
-      assert.equal(mockServer.state.resets, 1, "reset endpoint should be invoked once");
-
-      const rebootResult = await client.request(
-        {
-          method: "tools/call",
-          params: {
-            name: "reboot_c64",
-            arguments: {},
-          },
-        },
-        CallToolResultSchema,
-      );
-
-      assert.ok(rebootResult.metadata?.success, "reboot_c64 should succeed");
-      assert.equal(mockServer.state.reboots, 1, "reboot endpoint should be invoked once");
-
       const pauseResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "pause",
-            arguments: {},
+            name: "c64_system",
+            arguments: { op: "pause" },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.ok(pauseResult.metadata?.success, "pause should succeed");
+      assert.ok(pauseResult.metadata?.success, "pause operation should succeed");
       assert.equal(mockServer.state.paused, true, "machine should be paused");
 
       const resumeResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "resume",
-            arguments: {},
+            name: "c64_system",
+            arguments: { op: "resume" },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.ok(resumeResult.metadata?.success, "resume should succeed");
+      assert.ok(resumeResult.metadata?.success, "resume operation should succeed");
       assert.equal(mockServer.state.paused, false, "machine should be resumed");
 
-      const debugReadResult = await client.request(
+      const resetResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "debugreg_read",
-            arguments: {},
+            name: "c64_system",
+            arguments: { op: "reset" },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.ok(debugReadResult.metadata?.success, "debugreg_read should succeed");
-      assert.equal(debugReadResult.metadata?.value, "00");
+      assert.ok(resetResult.metadata?.success, "reset operation should succeed");
+      assert.equal(mockServer.state.resets, 1, "reset endpoint should be invoked once");
 
-      const debugWriteResult = await client.request(
+      const rebootResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "debugreg_write",
+            name: "c64_system",
+            arguments: { op: "reboot" },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.ok(rebootResult.metadata?.success, "reboot operation should succeed");
+      assert.equal(mockServer.state.reboots, 1, "reboot endpoint should be invoked once");
+
+    });
+  });
+
+  test("c64_graphics create_petscii dry run returns art metadata", async () => {
+    await withSharedMcpClient(async ({ client }) => {
+      const result = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64_graphics",
             arguments: {
-              value: "AB",
+              op: "create_petscii",
+              prompt: "c64 logo",
+              dryRun: true,
             },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.ok(debugWriteResult.metadata?.success, "debugreg_write should succeed");
-      assert.equal(debugWriteResult.metadata?.value, "AB");
-      assert.equal(mockServer.state.debugreg, "AB");
+      assert.ok(Array.isArray(result.content));
+      const textContent = getTextContent(result);
+      assert.ok(textContent, "Expected text response content");
+      assert.match(textContent.text, /petsciiCodes/i);
 
-      const versionResult = await client.request(
+      assert.equal(result.metadata?.dryRun, true);
+      assert.equal(result.metadata?.ranOnC64, false);
+      assert.ok(result.structuredContent?.data?.program, "should include generated BASIC program");
+      assert.ok(result.structuredContent?.data?.petsciiCodes?.length > 0, "should include petscii codes");
+    });
+  });
+
+  test("c64_rag basic retrieval returns references", async () => {
+    await withSharedMcpClient(async ({ client }) => {
+      const result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "version",
-            arguments: {},
+            name: "c64_rag",
+            arguments: {
+              op: "basic",
+              q: "print reverse text",
+              k: 2,
+            },
           },
         },
         CallToolResultSchema,
       );
 
-      const versionContent = getTextContent(versionResult);
-      assert.ok(versionContent, "version tool should return text content");
-      assert.equal(versionResult.metadata?.success, true);
-      assert.equal(versionResult.metadata?.details?.version, "0.1-mock");
+      assert.ok(Array.isArray(result.content));
+      const textContent = getTextContent(result);
+      assert.ok(textContent, "Expected text response content");
+      assert.match(textContent.text, /Primary knowledge resources/i);
 
-      const infoResult = await client.request(
-        {
-          method: "tools/call",
-          params: {
-            name: "info",
-            arguments: {},
-          },
-        },
-        CallToolResultSchema,
-      );
-
-      const infoContent = getTextContent(infoResult);
-      assert.ok(infoContent, "info tool should return text content");
-      assert.equal(infoResult.metadata?.success, true);
-      assert.equal(infoResult.metadata?.details?.product, "U64-MOCK");
+      assert.ok(result.metadata?.success, "metadata should flag success");
+      assert.ok(result.structuredContent?.data?.refs, "should return structured refs");
+      assert.ok(result.structuredContent?.data?.refs.length <= 2);
     });
   });
 
@@ -400,14 +495,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "config_list",
-            arguments: {},
+            name: "c64_config",
+            arguments: {
+              op: "list",
+            },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.equal(listResult.metadata?.success, true, "config_list should succeed");
+      assert.equal(listResult.metadata?.success, true, "list operation should succeed");
   const listContent = getTextContent(listResult);
   assert.ok(listContent, "config_list should return text content");
   const categories = JSON.parse(listContent.text)?.categories ?? [];
@@ -420,8 +517,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "config_get",
+            name: "c64_config",
             arguments: {
+              op: "get",
               category: "Audio",
               item: "Volume",
             },
@@ -430,7 +528,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(getItemResult.metadata?.success, true, "config_get should succeed");
+      assert.equal(getItemResult.metadata?.success, true, "get operation should succeed");
       assert.equal(getItemResult.metadata?.category, "Audio");
       assert.equal(getItemResult.metadata?.item, "Volume");
 
@@ -438,8 +536,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "config_set",
+            name: "c64_config",
             arguments: {
+              op: "set",
               category: "Audio",
               item: "Volume",
               value: 11,
@@ -449,15 +548,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(setResult.metadata?.success, true, "config_set should succeed");
+      assert.equal(setResult.metadata?.success, true, "set operation should succeed");
       assert.equal(mockServer.state.configs.Audio.Volume, "11");
 
       const batchResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "config_batch_update",
+            name: "c64_config",
             arguments: {
+              op: "batch_update",
               Audio: {
                 Balance: "left",
               },
@@ -470,7 +570,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(batchResult.metadata?.success, true, "config_batch_update should succeed");
+      assert.equal(batchResult.metadata?.success, true, "batch_update operation should succeed");
       assert.equal(mockServer.state.configs.Audio.Balance, "left");
       assert.equal(mockServer.state.configs.Video.Mode, "NTSC");
 
@@ -478,42 +578,48 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "config_save_to_flash",
-            arguments: {},
+            name: "c64_config",
+            arguments: {
+              op: "save_flash",
+            },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.equal(saveResult.metadata?.success, true, "config_save_to_flash should succeed");
+      assert.equal(saveResult.metadata?.success, true, "save_flash operation should succeed");
       assert.ok(mockServer.state.flashSnapshot, "flash snapshot should be captured after save");
 
       const resetResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "config_reset_to_default",
-            arguments: {},
+            name: "c64_config",
+            arguments: {
+              op: "reset_defaults",
+            },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.equal(resetResult.metadata?.success, true, "config_reset_to_default should succeed");
+      assert.equal(resetResult.metadata?.success, true, "reset_defaults operation should succeed");
       assert.equal(mockServer.state.configs.Audio.Volume, "6", "reset should restore default volume");
 
       const loadResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "config_load_from_flash",
-            arguments: {},
+            name: "c64_config",
+            arguments: {
+              op: "load_flash",
+            },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.equal(loadResult.metadata?.success, true, "config_load_from_flash should succeed");
+      assert.equal(loadResult.metadata?.success, true, "load_flash operation should succeed");
       assert.equal(mockServer.state.configs.Video.Mode, "NTSC", "load should restore saved snapshot");
     });
   });
@@ -524,8 +630,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "stream_start",
+            name: "c64_stream",
             arguments: {
+              op: "start",
               stream: "audio",
               target: "127.0.0.1:9000",
             },
@@ -534,7 +641,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(startResult.metadata?.success, true, "stream_start should succeed");
+      assert.equal(startResult.metadata?.success, true, "start operation should succeed");
       assert.equal(mockServer.state.streams.audio.active, true);
       assert.equal(mockServer.state.streams.audio.target, "127.0.0.1:9000");
 
@@ -542,8 +649,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "stream_stop",
+            name: "c64_stream",
             arguments: {
+              op: "stop",
               stream: "audio",
             },
           },
@@ -551,7 +659,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(stopResult.metadata?.success, true, "stream_stop should succeed");
+      assert.equal(stopResult.metadata?.success, true, "stop operation should succeed");
       assert.equal(mockServer.state.streams.audio.active, false);
     });
   });
@@ -562,33 +670,36 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "drives_list",
-            arguments: {},
-          },
-        },
-        CallToolResultSchema,
-      );
-
-      assert.equal(listResult.metadata?.success, true, "drives_list should succeed");
-      assert.ok(listResult.metadata?.drives, "drives_list should include drive metadata");
-
-      const mountResult = await client.request(
-        {
-          method: "tools/call",
-          params: {
-            name: "drive_mount",
+            name: "c64_disk",
             arguments: {
-              drive: "drive8",
-              image: "/tmp/demo.d64",
-              type: "d64",
-              mode: "readwrite",
+              op: "list_drives",
             },
           },
         },
         CallToolResultSchema,
       );
 
-      assert.equal(mountResult.metadata?.success, true, "drive_mount should succeed");
+      assert.equal(listResult.metadata?.success, true, "list_drives operation should succeed");
+      assert.ok(listResult.metadata?.drives, "drives_list should include drive metadata");
+
+      const mountResult = await client.request(
+        {
+          method: "tools/call",
+          params: {
+            name: "c64_disk",
+            arguments: {
+              op: "mount",
+              drive: "drive8",
+              image: "/tmp/demo.d64",
+              type: "d64",
+              attachmentMode: "readwrite",
+            },
+          },
+        },
+        CallToolResultSchema,
+      );
+
+      assert.equal(mountResult.metadata?.success, true, "mount operation should succeed");
       assert.equal(mockServer.state.lastDriveOperation?.action, "mount");
       assert.deepEqual(mockServer.state.drives.drive8.mountedImage, {
         image: "/tmp/demo.d64",
@@ -600,8 +711,9 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         {
           method: "tools/call",
           params: {
-            name: "drive_mode",
+            name: "c64_drive",
             arguments: {
+              op: "set_mode",
               drive: "drive8",
               mode: "1571",
             },
@@ -610,15 +722,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(modeResult.metadata?.success, true, "drive_mode should succeed");
+      assert.equal(modeResult.metadata?.success, true, "set_mode operation should succeed");
       assert.equal(mockServer.state.drives.drive8.mode, "1571");
 
       const onResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "drive_on",
+            name: "c64_drive",
             arguments: {
+              op: "power_on",
               drive: "drive8",
             },
           },
@@ -626,15 +739,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(onResult.metadata?.success, true, "drive_on should succeed");
+      assert.equal(onResult.metadata?.success, true, "power_on operation should succeed");
       assert.equal(mockServer.state.drives.drive8.power, "on");
 
       const offResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "drive_off",
+            name: "c64_drive",
             arguments: {
+              op: "power_off",
               drive: "drive8",
             },
           },
@@ -642,15 +756,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(offResult.metadata?.success, true, "drive_off should succeed");
+      assert.equal(offResult.metadata?.success, true, "power_off operation should succeed");
       assert.equal(mockServer.state.drives.drive8.power, "off");
 
       const resetResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "drive_reset",
+            name: "c64_drive",
             arguments: {
+              op: "reset",
               drive: "drive8",
             },
           },
@@ -658,15 +773,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(resetResult.metadata?.success, true, "drive_reset should succeed");
+      assert.equal(resetResult.metadata?.success, true, "reset operation should succeed");
       assert.equal(mockServer.state.drives.drive8.resetCount, 1);
 
       const romResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "drive_load_rom",
+            name: "c64_drive",
             arguments: {
+              op: "load_rom",
               drive: "drive8",
               path: "/roms/custom.rom",
             },
@@ -675,15 +791,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(romResult.metadata?.success, true, "drive_load_rom should succeed");
+      assert.equal(romResult.metadata?.success, true, "load_rom operation should succeed");
       assert.equal(mockServer.state.drives.drive8.lastRom, "/roms/custom.rom");
 
       const removeResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "drive_remove",
+            name: "c64_disk",
             arguments: {
+              op: "unmount",
               drive: "drive8",
             },
           },
@@ -691,15 +808,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(removeResult.metadata?.success, true, "drive_remove should succeed");
+      assert.equal(removeResult.metadata?.success, true, "unmount operation should succeed");
       assert.equal(mockServer.state.drives.drive8.mountedImage, null);
 
       const infoResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "file_info",
+            name: "c64_disk",
             arguments: {
+              op: "file_info",
               path: "/tmp/demo.d64",
             },
           },
@@ -707,15 +825,17 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(infoResult.metadata?.success, true, "file_info should succeed");
+      assert.equal(infoResult.metadata?.success, true, "file_info operation should succeed");
       assert.equal(mockServer.state.lastFileInfo, "/tmp/demo.d64");
 
       const createD64Result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "create_d64",
+            name: "c64_disk",
             arguments: {
+              op: "create_image",
+              format: "d64",
               path: "/tmp/new.d64",
               tracks: 35,
               diskname: "DISK1",
@@ -725,14 +845,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(createD64Result.metadata?.success, true, "create_d64 should succeed");
+      assert.equal(createD64Result.metadata?.success, true, "create_image (d64) should succeed");
 
       const createD71Result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "create_d71",
+            name: "c64_disk",
             arguments: {
+              op: "create_image",
+              format: "d71",
               path: "/tmp/new.d71",
               diskname: "DISK2",
             },
@@ -741,14 +863,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(createD71Result.metadata?.success, true, "create_d71 should succeed");
+      assert.equal(createD71Result.metadata?.success, true, "create_image (d71) should succeed");
 
       const createD81Result = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "create_d81",
+            name: "c64_disk",
             arguments: {
+              op: "create_image",
+              format: "d81",
               path: "/tmp/new.d81",
               diskname: "DISK3",
             },
@@ -757,14 +881,16 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(createD81Result.metadata?.success, true, "create_d81 should succeed");
+      assert.equal(createD81Result.metadata?.success, true, "create_image (d81) should succeed");
 
       const createDnpResult = await client.request(
         {
           method: "tools/call",
           params: {
-            name: "create_dnp",
+            name: "c64_disk",
             arguments: {
+              op: "create_image",
+              format: "dnp",
               path: "/tmp/new.dnp",
               tracks: 80,
               diskname: "DISK4",
@@ -774,7 +900,7 @@ export function registerMcpServerCallToolTests(withSharedMcpClient) {
         CallToolResultSchema,
       );
 
-      assert.equal(createDnpResult.metadata?.success, true, "create_dnp should succeed");
+      assert.equal(createDnpResult.metadata?.success, true, "create_image (dnp) should succeed");
       assert.equal(mockServer.state.createdImages.length, 4, "All disk creations should be tracked");
       const createdTypes = mockServer.state.createdImages.map((entry) => entry.type).sort();
       assert.deepEqual(createdTypes, ["d64", "d71", "d81", "dnp"], "Disk creation types should match requests");

@@ -1,6 +1,13 @@
 import { Buffer } from "node:buffer";
 import { createPetsciiArt, type Bitmap } from "../petsciiArt.js";
-import { defineToolModule } from "./types.js";
+import {
+  defineToolModule,
+  OPERATION_DISCRIMINATOR,
+  type OperationHandlerMap,
+  type OperationMap,
+  type ToolExecutionContext,
+  type ToolRunResult,
+} from "./types.js";
 import {
   booleanSchema,
   numberSchema,
@@ -299,6 +306,177 @@ const renderPetsciiScreenArgsSchema = objectSchema<{
   additionalProperties: false,
 });
 
+type OperationlessArgs<T extends Record<string, unknown>> = Omit<T, typeof OPERATION_DISCRIMINATOR>;
+
+function stripOperationDiscriminator<T extends Record<string, unknown>>(
+  value: T,
+): OperationlessArgs<T> {
+  const { [OPERATION_DISCRIMINATOR]: _ignored, ...rest } = value;
+  return rest as OperationlessArgs<T>;
+}
+
+async function executeGenerateSprite(rawArgs: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
+  try {
+    const parsed = spriteArgsSchema.parse(rawArgs ?? {});
+    ctx.logger.info("Generating sprite PRG", {
+      index: parsed.index,
+      x: parsed.x,
+      y: parsed.y,
+      color: parsed.color,
+      multicolour: parsed.multicolour,
+    });
+
+    const result = await ctx.client.generateAndRunSpritePrg({
+      spriteBytes: parsed.sprite,
+      spriteIndex: parsed.index,
+      x: parsed.x,
+      y: parsed.y,
+      color: parsed.color,
+      multicolour: parsed.multicolour,
+    });
+
+    if (!result.success) {
+      throw new ToolExecutionError("C64 firmware reported failure while running sprite PRG", {
+        details: normaliseFailure(result.details),
+      });
+    }
+
+    return textResult("Sprite PRG generated and executed successfully.", {
+      success: true,
+      index: parsed.index,
+      x: parsed.x,
+      y: parsed.y,
+      color: parsed.color,
+      multicolour: parsed.multicolour,
+      spriteByteLength: parsed.sprite.length,
+      details: toRecord(result.details) ?? null,
+    });
+  } catch (error) {
+    if (error instanceof ToolError) {
+      return toolErrorResult(error);
+    }
+    return unknownErrorResult(error);
+  }
+}
+
+async function executeRenderPetscii(rawArgs: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
+  try {
+    const parsed = renderPetsciiScreenArgsSchema.parse(rawArgs ?? {});
+    ctx.logger.info("Rendering PETSCII screen", {
+      textLength: parsed.text.length,
+      borderColor: parsed.borderColor,
+      backgroundColor: parsed.backgroundColor,
+    });
+
+    const result = await ctx.client.renderPetsciiScreenAndRun(parsed);
+    if (!result.success) {
+      throw new ToolExecutionError("C64 firmware reported failure while rendering PETSCII text", {
+        details: normaliseFailure(result.details),
+      });
+    }
+
+    return textResult("PETSCII screen rendered successfully.", {
+      success: true,
+      textLength: parsed.text.length,
+      borderColor: parsed.borderColor ?? null,
+      backgroundColor: parsed.backgroundColor ?? null,
+      details: toRecord(result.details) ?? null,
+    });
+  } catch (error) {
+    if (error instanceof ToolError) {
+      return toolErrorResult(error);
+    }
+    return unknownErrorResult(error);
+  }
+}
+
+async function executeCreatePetscii(rawArgs: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
+  try {
+    const parsed = petsciiImageArgsSchema.parse(rawArgs ?? {});
+    if (!parsed.prompt && !parsed.text && !parsed.bitmap) {
+      throw new ToolValidationError("Provide a prompt, text, or explicit bitmap definition", { path: "$.prompt" });
+    }
+
+    ctx.logger.info("Generating PETSCII art", {
+      hasPrompt: Boolean(parsed.prompt),
+      hasText: Boolean(parsed.text),
+      dryRun: parsed.dryRun,
+      hasBitmap: Boolean(parsed.bitmap),
+      maxWidth: parsed.maxWidth,
+      maxHeight: parsed.maxHeight,
+    });
+
+    const art = createPetsciiArt({
+      prompt: parsed.prompt,
+      text: parsed.text,
+      maxWidth: parsed.maxWidth,
+      maxHeight: parsed.maxHeight,
+      borderColor: parsed.borderColor,
+      backgroundColor: parsed.backgroundColor,
+      foregroundColor: parsed.foregroundColor,
+      bitmap: parsed.bitmap,
+    });
+
+    let runResult: { success: boolean; details?: unknown } | undefined;
+    if (!parsed.dryRun) {
+      runResult = await ctx.client.uploadAndRunBasic(art.program);
+      if (!runResult.success) {
+        throw new ToolExecutionError("C64 firmware reported failure while rendering PETSCII art", {
+          details: normaliseFailure(runResult.details),
+        });
+      }
+    }
+
+    const ranOnC64 = !parsed.dryRun && Boolean(runResult?.success);
+    const data = {
+      success: parsed.dryRun ? true : Boolean(runResult?.success ?? true),
+      ranOnC64,
+      runDetails: runResult?.details ?? null,
+      program: art.program,
+      bitmapHex: art.bitmapHex,
+      rowHex: art.rowHex,
+      width: art.bitmap.width,
+      height: art.bitmap.height,
+      charColumns: art.charColumns,
+      charRows: art.charRows,
+      petsciiCodes: art.petsciiCodes,
+      usedShape: art.usedShape ?? null,
+      sourceText: art.sourceText ?? null,
+      ragRefs: null,
+    };
+
+    return jsonResult(data, {
+      ranOnC64,
+      dryRun: parsed.dryRun,
+      width: art.bitmap.width,
+      height: art.bitmap.height,
+      charColumns: art.charColumns,
+      charRows: art.charRows,
+    });
+  } catch (error) {
+    if (error instanceof ToolError) {
+      return toolErrorResult(error);
+    }
+    return unknownErrorResult(error);
+  }
+}
+
+export interface GraphicsOperationMap extends OperationMap {
+  readonly create_petscii: PetsciiImageArgs;
+  readonly render_petscii: {
+    readonly text: string;
+    readonly borderColor?: number;
+    readonly backgroundColor?: number;
+  };
+  readonly generate_sprite: SpriteArgs;
+}
+
+export const graphicsOperationHandlers: OperationHandlerMap<GraphicsOperationMap> = {
+  create_petscii: async (args, ctx) => executeCreatePetscii(stripOperationDiscriminator(args), ctx),
+  render_petscii: async (args, ctx) => executeRenderPetscii(stripOperationDiscriminator(args), ctx),
+  generate_sprite: async (args, ctx) => executeGenerateSprite(stripOperationDiscriminator(args), ctx),
+};
+
 export const graphicsModule = defineToolModule({
   domain: "graphics",
   summary: "PETSCII art, sprite workflows, and VIC-II graphics helpers.",
@@ -315,14 +493,14 @@ export const graphicsModule = defineToolModule({
   ],
   tools: [
     {
-      name: "generate_sprite_prg",
+      name: "generate_sprite",
       description: "Generate and execute a PRG that displays a sprite from raw 63-byte data. See c64://specs/vic for registers.",
       summary: "Uploads minimal machine code to copy sprite data, configure VIC-II, and render a sprite.",
       inputSchema: spriteArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/vic"],
       relatedPrompts: ["graphics-demo", "assembly-program"],
       tags: ["sprite", "assembly", "pal-ntsc"],
-      prerequisites: ["upload_and_run_asm"],
+  prerequisites: ["upload_run_asm"],
       examples: [
         {
           name: "Render sprite 0",
@@ -335,58 +513,18 @@ export const graphicsModule = defineToolModule({
         "Remind the user that sprites live in banked memory so further tweaks may require write_memory calls.",
       ],
       async execute(args, ctx) {
-        try {
-          const parsed = spriteArgsSchema.parse(args ?? {});
-          ctx.logger.info("Generating sprite PRG", {
-            index: parsed.index,
-            x: parsed.x,
-            y: parsed.y,
-            color: parsed.color,
-            multicolour: parsed.multicolour,
-          });
-
-          const result = await ctx.client.generateAndRunSpritePrg({
-            spriteBytes: parsed.sprite,
-            spriteIndex: parsed.index,
-            x: parsed.x,
-            y: parsed.y,
-            color: parsed.color,
-            multicolour: parsed.multicolour,
-          });
-
-          if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while running sprite PRG", {
-              details: normaliseFailure(result.details),
-            });
-          }
-
-          return textResult("Sprite PRG generated and executed successfully.", {
-            success: true,
-            index: parsed.index,
-            x: parsed.x,
-            y: parsed.y,
-            color: parsed.color,
-            multicolour: parsed.multicolour,
-            spriteByteLength: parsed.sprite.length,
-            details: toRecord(result.details) ?? null,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
+        return executeGenerateSprite(args, ctx);
       },
     },
     {
-      name: "render_petscii_screen",
+      name: "render_petscii",
       description: "Render PETSCII text to the screen with optional border/background colours. See c64://specs/basic.",
       summary: "Generates a BASIC program that clears the screen, sets colours, and prints text.",
       inputSchema: renderPetsciiScreenArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/basic", "c64://context/bootstrap"],
       relatedPrompts: ["basic-program", "graphics-demo"],
       tags: ["basic", "screen"],
-      prerequisites: ["upload_and_run_basic"],
+  prerequisites: ["upload_run_basic"],
       examples: [
         {
           name: "Render text",
@@ -399,45 +537,18 @@ export const graphicsModule = defineToolModule({
         "Echo the colour indices and mention CLEAR + PRINT so the user knows what ran.",
       ],
       async execute(args, ctx) {
-        try {
-          const parsed = renderPetsciiScreenArgsSchema.parse(args ?? {});
-          ctx.logger.info("Rendering PETSCII screen", {
-            textLength: parsed.text.length,
-            borderColor: parsed.borderColor,
-            backgroundColor: parsed.backgroundColor,
-          });
-
-          const result = await ctx.client.renderPetsciiScreenAndRun(parsed);
-          if (!result.success) {
-            throw new ToolExecutionError("C64 firmware reported failure while rendering PETSCII text", {
-              details: normaliseFailure(result.details),
-            });
-          }
-
-          return textResult("PETSCII screen rendered successfully.", {
-            success: true,
-            textLength: parsed.text.length,
-            borderColor: parsed.borderColor ?? null,
-            backgroundColor: parsed.backgroundColor ?? null,
-            details: toRecord(result.details) ?? null,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
+        return executeRenderPetscii(args, ctx);
       },
     },
     {
-      name: "create_petscii_image",
+      name: "create_petscii",
       description: "Create PETSCII art from prompts or text, optionally run it on the C64, and return metadata including PETSCII codes and glyphs. See c64://specs/basic, c64://specs/vic, and c64://specs/charset.",
       summary: "Synthesises PETSCII art, generates a BASIC program with preview metadata (petsciiCodes, glyphs, dimensions), and uploads it unless dry-run is requested.",
       inputSchema: petsciiImageArgsSchema.jsonSchema,
       relatedResources: ["c64://specs/basic", "c64://specs/vic", "c64://specs/charset"],
       relatedPrompts: ["graphics-demo", "basic-program"],
       tags: ["petscii", "basic", "pal-ntsc"],
-      prerequisites: ["upload_and_run_basic"],
+  prerequisites: ["upload_run_basic"],
       examples: [
         {
           name: "Generate PETSCII",
@@ -451,74 +562,7 @@ export const graphicsModule = defineToolModule({
         "Provide follow-up suggestions like saving the PRG or capturing the screen after rendering.",
       ],
       async execute(args, ctx) {
-        try {
-          const parsed = petsciiImageArgsSchema.parse(args ?? {});
-          if (!parsed.prompt && !parsed.text && !parsed.bitmap) {
-            throw new ToolValidationError("Provide a prompt, text, or explicit bitmap definition", { path: "$.prompt" });
-          }
-
-          ctx.logger.info("Generating PETSCII art", {
-            hasPrompt: Boolean(parsed.prompt),
-            hasText: Boolean(parsed.text),
-            dryRun: parsed.dryRun,
-            hasBitmap: Boolean(parsed.bitmap),
-            maxWidth: parsed.maxWidth,
-            maxHeight: parsed.maxHeight,
-          });
-
-          const art = createPetsciiArt({
-            prompt: parsed.prompt,
-            text: parsed.text,
-            maxWidth: parsed.maxWidth,
-            maxHeight: parsed.maxHeight,
-            borderColor: parsed.borderColor,
-            backgroundColor: parsed.backgroundColor,
-            foregroundColor: parsed.foregroundColor,
-            bitmap: parsed.bitmap,
-          });
-
-          let runResult: { success: boolean; details?: unknown } | undefined;
-          if (!parsed.dryRun) {
-            runResult = await ctx.client.uploadAndRunBasic(art.program);
-            if (!runResult.success) {
-              throw new ToolExecutionError("C64 firmware reported failure while rendering PETSCII art", {
-                details: normaliseFailure(runResult.details),
-              });
-            }
-          }
-
-          const ranOnC64 = !parsed.dryRun && Boolean(runResult?.success);
-          const data = {
-            success: parsed.dryRun ? true : Boolean(runResult?.success ?? true),
-            ranOnC64,
-            runDetails: runResult?.details ?? null,
-            program: art.program,
-            bitmapHex: art.bitmapHex,
-            rowHex: art.rowHex,
-            width: art.bitmap.width,
-            height: art.bitmap.height,
-            charColumns: art.charColumns,
-            charRows: art.charRows,
-            petsciiCodes: art.petsciiCodes,
-            usedShape: art.usedShape ?? null,
-            sourceText: art.sourceText ?? null,
-            ragRefs: null,
-          };
-
-          return jsonResult(data, {
-            ranOnC64,
-            dryRun: parsed.dryRun,
-            width: art.bitmap.width,
-            height: art.bitmap.height,
-            charColumns: art.charColumns,
-            charRows: art.charRows,
-          });
-        } catch (error) {
-          if (error instanceof ToolError) {
-            return toolErrorResult(error);
-          }
-          return unknownErrorResult(error);
-        }
+        return executeCreatePetscii(args, ctx);
       },
     },
   ],

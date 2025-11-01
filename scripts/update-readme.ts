@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { describeToolModules } from "../src/tools/registry.js";
+import { dirname, join, resolve as resolvePath } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { describeToolModules, type ToolModuleDescriptor } from "../src/tools/registry/index.js";
+import type { JsonSchema, ToolDescriptor } from "../src/tools/types.js";
 import { listKnowledgeResources } from "../src/rag/knowledgeIndex.js";
 import { createPromptRegistry } from "../src/prompts/registry.js";
 
@@ -14,23 +15,8 @@ const __dirname = dirname(__filename);
 const PROJECT_ROOT = join(__dirname, "..");
 const README_PATH = join(PROJECT_ROOT, "README.md");
 
-function titleCase(input: string): string {
-  return input
-    .split(/[\s_-]+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
 function escapeCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n|\r/g, " ").trim();
-}
-
-function formatTags(tags: readonly string[]): string {
-  if (!tags.length) {
-    return "—";
-  }
-  return tags.map((tag) => `\`${tag}\``).join(", ");
 }
 
 function renderTable(headers: readonly string[], rows: readonly (readonly string[])[]): string {
@@ -40,49 +26,138 @@ function renderTable(headers: readonly string[], rows: readonly (readonly string
   return [headerLine, separator, body].filter(Boolean).join("\n");
 }
 
-function renderToolsSection(): string[] {
-  const modules = describeToolModules();
-  const lines: string[] = ["### Tools", ""];
+type GroupedOperation = {
+  readonly op: string;
+  readonly description: string;
+  readonly required: readonly string[];
+  readonly notes: readonly string[];
+};
 
-  for (const module of modules) {
-    lines.push(`#### ${titleCase(module.domain)}`);
-    if (module.summary) {
-      lines.push(`> ${module.summary}`);
+type GroupedToolInfo = {
+  readonly tool: ToolDescriptor;
+  readonly operations: readonly GroupedOperation[];
+};
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function toTableValue(values: readonly string[]): string {
+  if (!values.length) {
+    return "—";
+  }
+  return values.join(", ");
+}
+
+function collectGroupedOperations(schema?: JsonSchema): readonly GroupedOperation[] {
+  if (!schema || !isObject(schema)) {
+    return [];
+  }
+
+  const discriminator = (schema as JsonSchema & { discriminator?: { propertyName?: string } }).discriminator;
+  const variants = (schema as JsonSchema & { oneOf?: readonly JsonSchema[] }).oneOf;
+
+  if (!discriminator || discriminator.propertyName !== "op" || !Array.isArray(variants)) {
+    return [];
+  }
+
+  const operations: GroupedOperation[] = [];
+
+  for (const variant of variants) {
+    if (!variant || !isObject(variant)) {
+      continue;
     }
-    if (module.workflowHints.length) {
-      lines.push("");
-      lines.push("**Workflow hints:**");
-      for (const hint of module.workflowHints) {
-        lines.push(`- ${hint}`);
+
+    const typedVariant = variant as JsonSchema;
+    const properties = (typedVariant.properties ?? {}) as Record<string, JsonSchema | undefined>;
+    const opSchema = properties.op;
+
+    let opName: string | undefined;
+    if (opSchema && isObject(opSchema)) {
+      const constValue = (opSchema as JsonSchema & { const?: unknown }).const;
+      if (typeof constValue === "string" && constValue.length > 0) {
+        opName = constValue;
+      } else if (Array.isArray((opSchema as JsonSchema).enum) && (opSchema as JsonSchema).enum![0]) {
+        const enumValue = (opSchema as JsonSchema).enum![0];
+        if (typeof enumValue === "string") {
+          opName = enumValue;
+        }
       }
     }
-    if (module.defaultTags.length) {
-      lines.push("");
-      lines.push(`**Default tags:** ${module.defaultTags.map((tag) => `\`${tag}\``).join(", ")}`);
+
+    if (!opName) {
+      continue;
     }
 
-    const rows = module.tools
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((tool) => [
-        `\`${tool.name}\``,
-        escapeCell(tool.description),
-        formatTags(tool.metadata.tags),
-      ]);
+    const description = getString(typedVariant.description, getString(opSchema?.description, `Operation ${opName}`));
+    const requiredProps = ((typedVariant.required as readonly string[] | undefined) ?? []).filter((name) => name !== "op");
 
-    lines.push("");
-    if (rows.length) {
-      lines.push(renderTable(["Name", "Description", "Tags"], rows));
-    } else {
-      lines.push("_No tools registered._");
+    const notes: string[] = [];
+    const hasVerificationProperty = Object.keys(properties).some((name) =>
+      name.toLowerCase().startsWith("verify"),
+    );
+    if (hasVerificationProperty) {
+      notes.push("supports verify");
     }
-    lines.push("");
+
+    operations.push({
+      op: opName,
+      description,
+      required: requiredProps,
+      notes,
+    });
   }
+
+  return operations;
+}
+
+export function renderToolsSection(modules: readonly ToolModuleDescriptor[] = describeToolModules()): string[] {
+  const lines: string[] = ["### Tools", ""];
+  const groupedTools: GroupedToolInfo[] = [];
+
+  for (const module of modules) {
+    for (const tool of module.tools) {
+      const operations = collectGroupedOperations(tool.inputSchema);
+      groupedTools.push({ tool, operations });
+    }
+  }
+
+  groupedTools
+    .slice()
+    .sort((a, b) => a.tool.name.localeCompare(b.tool.name))
+    .forEach(({ tool, operations }) => {
+      lines.push(`#### ${tool.name}`);
+      lines.push("");
+      lines.push(tool.description.trim() || "No description provided.");
+      lines.push("");
+
+      if (operations.length === 0) {
+        lines.push("_No operations defined._");
+      } else {
+        const operationRows = operations
+          .slice()
+          .sort((a, b) => a.op.localeCompare(b.op))
+          .map((operation) => [
+            `\`${operation.op}\``,
+            escapeCell(operation.description),
+            escapeCell(toTableValue(operation.required.map((name) => `\`${name}\``))),
+            operation.notes.length ? escapeCell(operation.notes.join(", ")) : "—",
+          ]);
+
+        lines.push(renderTable(["Operation", "Description", "Required Inputs", "Notes"], operationRows));
+      }
+
+      lines.push("");
+    });
 
   return lines;
 }
 
-function renderResourcesSection(): string[] {
+export function renderResourcesSection(): string[] {
   const resources = listKnowledgeResources()
     .slice()
     .sort((a, b) => {
@@ -106,7 +181,7 @@ function renderResourcesSection(): string[] {
   ];
 }
 
-function renderPromptsSection(): string[] {
+export function renderPromptsSection(): string[] {
   const promptRegistry = createPromptRegistry();
   const prompts = promptRegistry
     .list()
@@ -126,7 +201,7 @@ function renderPromptsSection(): string[] {
   ];
 }
 
-function renderSummarySection(): string[] {
+export function renderSummarySection(): string[] {
   const modules = describeToolModules();
   const resources = listKnowledgeResources();
   const promptRegistry = createPromptRegistry();
@@ -142,12 +217,12 @@ function renderSummarySection(): string[] {
   ];
 }
 
-function buildDocumentation(): string {
+export function buildDocumentation(): string {
   const sections = [renderSummarySection(), renderToolsSection(), renderResourcesSection(), renderPromptsSection()];
   return sections.flat().join("\n").trim();
 }
 
-async function updateReadme(): Promise<boolean> {
+export async function updateReadme(): Promise<boolean> {
   const readme = await readFile(README_PATH, "utf8");
   const pattern = new RegExp(
     `${START_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([\\s\\S]*?)${END_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
@@ -169,12 +244,27 @@ async function updateReadme(): Promise<boolean> {
   return true;
 }
 
-try {
-  const updated = await updateReadme();
-  if (updated) {
-    console.error("README.md updated with MCP documentation.");
+function isMainModule(metaUrl: string): boolean {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
   }
-} catch (error) {
-  console.error("Failed to update README.md:", error);
-  process.exitCode = 1;
+  try {
+    const entryUrl = pathToFileURL(resolvePath(entry)).href;
+    return entryUrl === metaUrl;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule(import.meta.url)) {
+  try {
+    const updated = await updateReadme();
+    if (updated) {
+      console.error("README.md updated with MCP documentation.");
+    }
+  } catch (error) {
+    console.error("Failed to update README.md:", error);
+    process.exitCode = 1;
+  }
 }

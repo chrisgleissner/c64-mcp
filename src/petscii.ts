@@ -6,6 +6,8 @@ Licensed under the GNU General Public License v2.0 or later.
 See <https://www.gnu.org/licenses/> for details.
 */
 
+import { getChargenGlyphs, type ChargenGlyph } from "./chargen.js";
+
 const PETSCII_TO_ASCII: Record<number, string> = {
   0x00: " ",
   0x07: "\u0007",
@@ -14,6 +16,17 @@ const PETSCII_TO_ASCII: Record<number, string> = {
   0x8d: "\n",
   0xa0: " ",
 };
+
+const SCREEN_CODE_TO_ASCII = new Map<number, string>();
+let screenCodeMapInitialised = false;
+
+function isPrintableAscii(char: string | undefined): boolean {
+  if (!char || char.length === 0) {
+    return false;
+  }
+  const code = char.charCodeAt(0);
+  return code === 0x20 || (code >= 0x21 && code <= 0x7e);
+}
 
 function petsciiByteToChar(byte: number): string {
   if (PETSCII_TO_ASCII[byte]) {
@@ -39,6 +52,80 @@ export function petsciiToAscii(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map(petsciiByteToChar)
     .join("");
+}
+
+function deriveGlyphChar(glyph: ChargenGlyph): string {
+  if (glyph.basic && glyph.basic.length === 1 && isPrintableAscii(glyph.basic)) {
+    return glyph.basic;
+  }
+
+  const ascii = petsciiByteToChar(glyph.petsciiCode & 0xff);
+  return isPrintableAscii(ascii) ? ascii : " ";
+}
+
+function ensureScreenCodeMap(): void {
+  if (screenCodeMapInitialised) {
+    return;
+  }
+
+  for (const glyph of getChargenGlyphs()) {
+    const code = glyph.screenCode & 0xff;
+    if (SCREEN_CODE_TO_ASCII.has(code)) {
+      continue;
+    }
+    SCREEN_CODE_TO_ASCII.set(code, deriveGlyphChar(glyph));
+  }
+
+  // Common control characters / gaps default to space to keep output tidy.
+  SCREEN_CODE_TO_ASCII.set(0x00, " ");
+  screenCodeMapInitialised = true;
+}
+
+export interface ScreenAsciiOptions {
+  readonly columns?: number;
+  readonly rows?: number;
+  readonly trimTrailingSpaces?: boolean;
+  readonly trimTrailingEmptyRows?: boolean;
+}
+
+export function screenCodesToAscii(bytes: Uint8Array, options?: ScreenAsciiOptions): string {
+  ensureScreenCodeMap();
+
+  const columns = options?.columns && options.columns > 0 ? options.columns : 40;
+  const maxRows = options?.rows && options.rows > 0 ? options.rows : undefined;
+  const trimSpaces = options?.trimTrailingSpaces !== false;
+  const trimEmptyRows = options?.trimTrailingEmptyRows !== false;
+
+  const lines: string[] = [];
+  const totalCells = maxRows ? Math.min(bytes.length, columns * maxRows) : bytes.length;
+
+  for (let index = 0; index < totalCells; index += columns) {
+    const end = Math.min(index + columns, totalCells);
+    if (index >= end) {
+      break;
+    }
+
+    let line = "";
+    for (let idx = index; idx < end; idx += 1) {
+      const code = bytes[idx] ?? 0;
+      const char = SCREEN_CODE_TO_ASCII.get(code & 0xff) ?? petsciiByteToChar(code & 0xff);
+      line += char;
+    }
+
+    if (trimSpaces) {
+      line = line.replace(/\s+$/, "");
+    }
+
+    lines.push(line);
+  }
+
+  if (trimEmptyRows) {
+    while (lines.length > 0 && lines[lines.length - 1]!.length === 0) {
+      lines.pop();
+    }
+  }
+
+  return lines.join("\n");
 }
 
 /**

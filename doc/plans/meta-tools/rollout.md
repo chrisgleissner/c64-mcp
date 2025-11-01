@@ -111,7 +111,7 @@ Rationale: These tools provide maximum value with minimal implementation effort.
   - Search under a root (including inside `.d64/.d71/.d81/.t64`) for the first program whose filename contains a substring; run it.
   - Supports PRG and CRT, case sensitivity toggle, and optional sort (path order vs. alphabetical).
   - Agent state: recent searches (root, pattern, extensions), last run path.
-  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_and_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
+  - REST: Container-aware GET /v1/files/{root}/**/*:info (wildcards) to discover; if target is inside a container, mount via PUT /v1/drives/{drive}:mount and run via a tiny BASIC loader (upload_run_basic) or menu automation; direct PUT /v1/runners:run_prg|:run_crt when file is on the host filesystem.
   - Dependencies: `find_paths_by_name` (✅ implemented)
   - Effort: 45 minutes
 - [x] `silence_and_verify` — Implementation notes:
@@ -304,7 +304,7 @@ These tools remain in the catalog for future implementation based on user demand
   - Dependencies: `debug_loop_run_and_capture`
   - Effort: 70 minutes
 - [ ] `action_latency_measure` — Implementation notes:
-  - **Performance measurement** — Measure cycles between issuing an action (e.g., menu_button, write_memory) and the first observed matching bus event; return cycle/µs estimate.
+  - **Performance measurement** — Measure cycles between issuing an action (e.g., menu_button, `c64_memory` `write`) and the first observed matching bus event; return cycle/µs estimate.
   - Agent state: action timestamp, first-match timestamp, CPU clock assumption (PAL/NTSC option).
   - REST: PUT /v1/machine:pause|resume, PUT /v1/streams/debug:start|stop, PUT /v1/machine:menu_button|:writemem|runners
   - Dependencies: `debug_loop_run_and_capture`
@@ -328,7 +328,7 @@ Notes:
 
 Not yet prioritized; these tools remain in the catalog for future implementation based on user demand:
 
-- [ ] `red_green_refactor_loop` — Iterate: run → capture screen → write_memory fixes → rerun until pass.
+- [ ] `red_green_refactor_loop` — Iterate: run → capture screen → `c64_memory` `write` fixes → rerun until pass.
 - [ ] `multi_range_guardrails` — Continuously verify invariants; auto-restore from snapshot on violations.
 - [ ] `safe_reset_sequence` — Snapshot select ranges; reset; compare persistence; resume.
 - [ ] `drive_recovery_sequence` — Detect error; reset; power cycle; remount last image; verify.

@@ -49,7 +49,7 @@ For every checklist item below, execute the following sub-steps in order (these 
 ## Phase 3 — MCP Surface Improvements
 
 - [x] M2: Standardize structured JSON outputs for all program runners, including entry addresses, artifacts, and URIs while retaining human-readable summaries (`src/tools/programRunners.ts`, `src/tools/types.ts`).
-- [x] M1: Remove the artificial dependency between `upload_and_run_basic` and `read_screen`, ensuring documentation reflects independent usage (`src/tools/memory.ts`, related docs or schemas).
+- [x] M1: Remove the artificial dependency between `upload_run_basic` and `read_screen`, ensuring documentation reflects independent usage (`src/tools/memory.ts`, related docs or schemas).
 
 ## Phase 4 — Reproducibility & Packaging
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/schemas/sidwave.schema.json",
+  "$id": "https://raw.githubusercontent.com/chrisgleissner/c64bridge/refs/heads/main/data/audio/sidwave.schema.json",
   "title": "SIDWAVE Composition Schema",
   "type": "object",
   "required": ["sidwave", "title", "tempo", "mode", "voices", "timeline"],

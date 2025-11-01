@@ -68,15 +68,15 @@ test("C64Client MCP tool coverage", async (t) => {
 
   await t.test("program runners", async () => {
     const basicResult = await client.uploadAndRunBasic('10 PRINT "HELLO"\n20 END');
-    expectSuccess(basicResult, "upload_and_run_basic");
+    expectSuccess(basicResult, "upload_run_basic");
     assert.ok(lastPrg instanceof Uint8Array, "PRG bytes captured");
 
     const asm = await client.uploadAndRunAsm("*=$0801\nBRK");
-    expectSuccess(asm, "upload_and_run_asm");
+    expectSuccess(asm, "upload_run_asm");
 
-    expectSuccess(await client.loadPrgFile("//disk/demo.prg"), "load_prg_file");
-    expectSuccess(await client.runPrgFile("//disk/demo.prg"), "run_prg_file");
-    expectSuccess(await client.runCrtFile("//cart/game.crt"), "run_crt_file");
+    expectSuccess(await client.loadPrgFile("//disk/demo.prg"), "load_prg");
+    expectSuccess(await client.runPrgFile("//disk/demo.prg"), "run_prg");
+    expectSuccess(await client.runCrtFile("//cart/game.crt"), "run_crt");
     expectSuccess(await client.sidplayFile("//music/song.sid", 1), "sidplay_file");
     expectSuccess(await client.modplayFile("//music/song.mod"), "modplay_file");
   });
@@ -90,17 +90,17 @@ test("C64Client MCP tool coverage", async (t) => {
 
   await t.test("graphics helpers", async () => {
     const spriteBytes = new Uint8Array(63).fill(0x11);
-    expectSuccess(await client.generateAndRunSpritePrg({ spriteBytes, spriteIndex: 0, x: 100, y: 50, color: 2, multicolour: false }), "generate_sprite_prg");
-    expectSuccess(await client.renderPetsciiScreenAndRun({ text: "PETSCII" }), "render_petscii_screen");
+  expectSuccess(await client.generateAndRunSpritePrg({ spriteBytes, spriteIndex: 0, x: 100, y: 50, color: 2, multicolour: false }), "generate_sprite");
+    expectSuccess(await client.renderPetsciiScreenAndRun({ text: "PETSCII" }), "render_petscii");
   });
 
   await t.test("memory access", async () => {
     const read = await client.readMemory("$0400", "4");
-    expectSuccess(read, "read_memory");
+      expectSuccess(read, "read");
     assert.equal(read.data, "$00010203");
 
     const write = await client.writeMemory("$0400", "$AA55");
-    expectSuccess(write, "write_memory");
+      expectSuccess(write, "write");
     const lastWrite = writes[writes.length - 1];
     assert.equal(lastWrite.address, 0x0400);
     assert.deepEqual(Array.from(lastWrite.bytes), [0xaa, 0x55]);

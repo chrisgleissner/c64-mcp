@@ -129,8 +129,14 @@ export function registerMcpServerPromptsTests(withSharedMcpClient) {
         GetPromptResultSchema,
       );
 
-      assert.ok(result._meta?.tools?.some((tool) => tool.name === "generate_sprite_prg"));
-      assert.ok(result._meta?.tools?.some((tool) => tool.name === "write_memory"));
+      assert.ok(
+        result._meta?.tools?.some((tool) => tool.name === "c64_graphics"),
+        "Graphics prompt should include c64_graphics grouped tool",
+      );
+      assert.ok(
+        result._meta?.tools?.some((tool) => tool.name === "c64_memory"),
+        "Graphics prompt should include c64_memory",
+      );
       assert.ok(
         result.messages.some((message) =>
           message.content.type === "text" && /sprite data/i.test(message.content.text),
@@ -152,12 +158,8 @@ export function registerMcpServerPromptsTests(withSharedMcpClient) {
       assert.ok(resourceUris.includes("c64://docs/printer/epson-text"), "should include Epson text guide");
       assert.ok(resourceUris.includes("c64://docs/printer/epson-bitmap"), "should include Epson bitmap guide");
       assert.ok(
-        result._meta?.tools?.some((tool) => tool.name === "print_text"),
-        "should include print_text tool",
-      );
-      assert.ok(
-        result._meta?.tools?.some((tool) => tool.name === "print_bitmap_epson"),
-        "should include Epson bitmap tool",
+        result._meta?.tools?.some((tool) => tool.name === "c64_printer"),
+        "should include c64_printer tool",
       );
     });
   });

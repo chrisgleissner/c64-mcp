@@ -59,7 +59,7 @@ Conversion: Screen code ≠ PETSCII code. Use charset reference (c64://specs/cha
 **Usage**:
 - BASIC/printing: Use PETSCII codes with CHR$() or PRINT
 - Direct screen memory: Use screen codes with POKE to $0400+offset
-- Tools: `create_petscii_image` returns both `petsciiCodes` array and screen memory data
+- Tools: `c64_graphics` (`create_petscii`) returns both `petsciiCodes` array and screen memory data
 
 ## Essential PETSCII Symbols
 
@@ -88,7 +88,8 @@ Conversion: Screen code ≠ PETSCII code. Use charset reference (c64://specs/cha
 ## Tool Integration
 
 ```javascript
-create_petscii_image({
+await callTool("c64_graphics", {
+  op: "create_petscii",
   prompt: "cat",
   borderColor: 0,
   backgroundColor: 6,

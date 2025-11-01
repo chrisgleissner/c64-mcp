@@ -1,16 +1,17 @@
-import type { ToolDescriptor, ToolExecutionContext, ToolModule, ToolRunResult } from "./types.js";
-import { programRunnersModule } from "./programRunners.js";
-import { memoryModule } from "./memory.js";
-import { audioModule } from "./audio.js";
-import { machineControlModule } from "./machineControl.js";
-import { storageModule } from "./storage.js";
-import { graphicsModule } from "./graphics.js";
-import { printerModule } from "./printer.js";
-import { ragModule } from "./rag.js";
-import { developerModule } from "./developer.js";
-import { streamingModule } from "./streaming.js";
-import { metaModule } from "./meta/index.js";
-import { getPlatformStatus, setPlatform } from "../platform.js";
+import type { ToolDescriptor, ToolExecutionContext, ToolModule, ToolRunResult } from "../types.js";
+import { getPlatformStatus, setPlatform } from "../../platform.js";
+import { programModule } from "./program.js";
+import { memoryModuleGroup as memoryModule } from "./memory.js";
+import { soundModuleGroup as soundModule } from "./sound.js";
+import { systemModuleGroup as systemModule } from "./system.js";
+import { graphicsModuleGroup as graphicsModule } from "./graphics.js";
+import { ragModuleGroup as ragModule } from "./rag.js";
+import { diskModuleGroup as diskModule } from "./disk.js";
+import { driveModuleGroup as driveModule } from "./drive.js";
+import { printerModuleGroup as printerModule } from "./printer.js";
+import { configModuleGroup as configModule } from "./config.js";
+import { extractModule } from "./extract.js";
+import { streamModule } from "./stream.js";
 
 interface RegisteredTool {
   readonly module: ToolModule;
@@ -25,28 +26,27 @@ export interface ToolModuleDescriptor {
   readonly tools: readonly ToolDescriptor[];
 }
 
-const toolModules: readonly ToolModule[] = [
-  programRunnersModule,
+const modules: readonly ToolModule[] = [
+  programModule,
   memoryModule,
-  audioModule,
-  machineControlModule,
-  storageModule,
+  soundModule,
+  systemModule,
   graphicsModule,
-  printerModule,
   ragModule,
-  developerModule,
-  streamingModule,
-  metaModule,
+  diskModule,
+  driveModule,
+  printerModule,
+  configModule,
+  extractModule,
+  streamModule,
 ];
 
 const toolMap: Map<string, RegisteredTool> = new Map();
 
-for (const module of toolModules) {
+for (const module of modules) {
   for (const descriptor of module.describeTools()) {
     if (toolMap.has(descriptor.name)) {
-      throw new Error(
-        `Duplicate tool name detected while registering modules: ${descriptor.name}`,
-      );
+      throw new Error(`Duplicate tool name detected while registering modules: ${descriptor.name}`);
     }
     toolMap.set(descriptor.name, { module, descriptor });
   }
@@ -57,11 +57,7 @@ export const toolRegistry = {
     return Array.from(toolMap.values(), (entry) => entry.descriptor);
   },
 
-  async invoke(
-    name: string,
-    args: unknown,
-    ctx: ToolExecutionContext,
-  ): Promise<ToolRunResult> {
+  async invoke(name: string, args: unknown, ctx: ToolExecutionContext): Promise<ToolRunResult> {
     const enrichedCtx: ToolExecutionContext = {
       ...ctx,
       platform: ctx.platform ?? getPlatformStatus(),
@@ -78,7 +74,7 @@ export const toolRegistry = {
 };
 
 export function describeToolModules(): readonly ToolModuleDescriptor[] {
-  return toolModules.map((module) => ({
+  return modules.map((module) => ({
     domain: module.domain,
     summary: module.summary,
     defaultTags: module.defaultTags,
