@@ -15,7 +15,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { Buffer } from "node:buffer";
 import { performance } from "node:perf_hooks";
 import YAML from "yaml";
-import { startMockC64Server } from "../test/mockC64Server.mjs";
+import { startMockC64Server } from "./mockC64Server.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");

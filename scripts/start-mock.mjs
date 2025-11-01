@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 
-const { startMockC64Server } = await import(path.join(root, 'test', 'mockC64Server.mjs'));
+const { startMockC64Server } = await import(path.join(root, 'scripts', 'mockC64Server.mjs'));
 
 const outPath = process.argv[2];
 if (!outPath) {

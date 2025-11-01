@@ -17,7 +17,7 @@ async function main() {
   };
   const outputFile = resolvePath(outputArg);
 
-  const moduleUrl = new URL('../test/mockC64Server.mjs', import.meta.url);
+  const moduleUrl = new URL('./mockC64Server.mjs', import.meta.url);
   const { startMockC64Server } = await import(moduleUrl.href);
   const server = await startMockC64Server();
   const baseUrl = server.baseUrl;

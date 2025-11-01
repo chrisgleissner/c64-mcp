@@ -9,7 +9,7 @@ import {
   buildCommodoreDllBasicProgram,
 } from "../src/c64Client.js";
 import { basicToPrg } from "../src/basicConverter.js";
-import { startMockC64Server } from "./mockC64Server.mjs";
+import { startMockC64Server } from "../scripts/mockC64Server.mjs";
 
 const SCREEN_BASE = "$0400";
 const SAFE_RAM_BASE = "$C000";
