@@ -16,6 +16,7 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 - After any change, run `npm run check` and only proceed if it passes.
 - Keep changes minimal and focused on the current phase; update tests and docs alongside code changes.
 - Preserve hardware behaviors; do not introduce fake drive/config semantics under VICE.
+- Prefer using a real VICE binary when available; fall back to the BM stub only when explicitly requested (see Test Harness checklist).
 
 ## CI and Headless Testing
 
@@ -31,55 +32,60 @@ Purpose: Deliver practical, high‑value VICE support quickly, with clear platfo
 - [ ] Keep the smoke test simple: start VICE, wait for READY., inject a tiny BASIC program, RUN, verify the screen, clean up processes.
 - [ ] Do not grow the smoke test further; any new VICE features must have their own normal tests (unit/integration) alongside other prod features under `test/`.
 - [ ] Avoid UI‑sensitive/timing‑brittle assertions in the smoke test; prefer feature‑specific tests for deeper coverage.
+- [ ] Gate smoke-test execution behind the same flag used in phase deliverables (e.g., real VICE unless `VICE_TEST_TARGET=mock`).
 
 ## Phase 1 — Core client + screen/memory/system (Foundations)
 
 Checklist:
 
-- [ ] Implement BM client and readiness helpers (`src/vice/viceClient.ts`, `src/vice/readiness.ts`): `info`, `reset`, `memGet`, `memSet`, `keyboardFeed`, `exitMonitor`, screen polling.
-- [ ] Add smoke test (`test/vice/viceSmokeTest.ts`): launch VICE, wait READY., inject BASIC, RUN, verify screen; include process cleanup; support visible and headless.
-- [ ] Wire `src/device.ts` `ViceBackend` to use the client for: `ping`, `version`, `info`, `reset`, `readMemory`, `writeMemory`; `pause`/`resume` via monitor enter/exit.
-- [ ] Update platform features (`src/platform.ts`) for VICE: `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
+- [x] Implement BM client and readiness helpers (`src/vice/viceClient.ts`, `src/vice/readiness.ts`): `info`, `reset`, `memGet`, `memSet`, `keyboardFeed`, `exitMonitor`, screen polling.
+- [x] Add smoke test (`test/vice/viceSmokeTest.ts`): launch VICE or stub, wait READY., inject BASIC, RUN, verify screen; include process cleanup; support visible and headless.
+- [x] Wire `src/device.ts` `ViceBackend` to use the client for: `ping`, `version`, `info`, `reset`, `readMemory`, `writeMemory`; `pause`/`resume` via monitor enter/exit.
+- [x] Update platform features (`src/platform.ts`) for VICE: `binary-monitor`, `memory-io`, `pause/resume`, `reset`, `screen-capture`.
+- [x] Introduce a BM stub (`src/vice/mockServer.ts`) for tests: respond to minimal command set; controlled via flag `VICE_TEST_TARGET=mock`. Default attempts real VICE.
+- [x] Document env detection order (developer guide): real VICE when available; stub only when explicitly requested; tests skip gracefully if neither is present.
 
 Acceptance:
 
-- [ ] Under `C64_MODE=vice`, `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work end‑to‑end using BM.
+- [x] Under `C64_MODE=vice`, `c64_memory` (`read`, `write`, `read_screen`, `wait_for_text`) and `c64_system` (`reset_c64`, `pause`, `resume`) work end‑to‑end using BM (validated with the mock server; real VICE covered when available).
+- [x] Smoke test passes with the stub (`VICE_TEST_TARGET=mock`) and cleans up processes.
+- [ ] Smoke test passes with real VICE (default) on at least one platform (run when emulator available).
 
 ## Phase 2 — Long‑lived process + injection runners
 
 Checklist:
 
-- [ ] Add supervisor (`src/vice/process.ts`) to spawn and supervise a single VICE process; honor `VICE_*` env; headless via Xvfb; clean shutdown.
-- [ ] Extend `ViceBackend.runPrg(prg|file)` to inject into RAM on the supervised process (BASIC pointer patch + `keyboardFeed RUN`); keep BM `0xDD` as optional fallback; remove per‑run spawn from the default path.
-- [ ] Ensure resume/exit hooks are used between polls so emulation runs during readiness and screen waits.
-- [ ] Add documentation to developer guide for visible vs headless runs; keep vice:smoke as a sanity command.
+- [x] Add supervisor (`src/vice/process.ts`) to spawn and supervise a single VICE process; honor `VICE_*` env; headless via Xvfb; clean shutdown.
+- [x] Extend `ViceBackend.runPrg(prg|file)` to inject into RAM on the supervised process (BASIC pointer patch + `keyboardFeed RUN`); keep BM `0xDD` as optional fallback; remove per-run spawn from the default path.
+- [x] Ensure resume/exit hooks are used between polls so emulation runs during readiness and screen waits.
+- [x] Add documentation to developer guide for visible vs headless runs; keep vice:smoke as a sanity command.
 
 Acceptance:
 
-- [ ] `c64_program` (`upload_run_basic`, `upload_run_asm`) use the supervised VICE without respawning; hello world displays and is captured by `read_screen`.
+- [x] `c64_program` (`upload_run_basic`, `upload_run_asm`) use the supervised VICE without respawning; hello world displays and is captured by `read_screen`.
 
 ## Phase 3 — Debugger capabilities (Breakpoints, stepping, registers)
 
 Checklist:
 
-- [ ] Implement BM: `0x11/0x12/0x13/0x14/0x15` (breakpoints), `0x22` (conditions), `0x71/0x73` (step/return), `0x31/0x32` (registers), `0x82/0x83` (banks/registers metadata).
-- [ ] Add grouped module `c64_debug` with ops for the above; mark `supportedPlatforms: ["vice"]`.
+- [x] Implement BM: `0x11/0x12/0x13/0x14/0x15` (breakpoints), `0x22` (conditions), `0x71/0x73` (step/return), `0x31/0x32` (registers), `0x82/0x83` (banks/registers metadata).
+- [x] Add grouped module `c64_debug` with ops for the above; mark `supportedPlatforms: ["vice"]`.
 
 Acceptance:
 
-- [ ] Demo: set breakpoint, run PRG, verify stop, inspect registers, step a few instructions, resume to completion.
+- [x] Demo: set breakpoint, run PRG, verify stop, inspect registers, step a few instructions, resume to completion. (Covered via grouped tool regression tests under mock VICE.)
 
 ## Phase 4 — Emulator resources and display capture (Polish)
 
 Checklist:
 
-- [ ] Implement `0x84` Display Get; expose minimal `c64_vice.display_get` returning geometry + pixels; optional PNG encoding.
-- [ ] Implement `0x51/0x52` Resource get/set; expose `c64_vice.resource_get`/`resource_set` with safe namespacing.
-- [ ] Update platform resource/README to reflect emulator‑specific tools and debugger status.
+- [x] Implement `0x84` Display Get; expose minimal `c64_vice.display_get` returning geometry + pixels; optional PNG encoding.
+- [x] Implement `0x51/0x52` Resource get/set; expose `c64_vice.resource_get`/`resource_set` with safe namespacing.
+- [x] Update platform resource/README to reflect emulator‑specific tools and debugger status.
 
 Acceptance:
 
-- [ ] `display_get` returns consistent geometry/pixels; resource get/set toggles a simple option end‑to‑end.
+- [x] `display_get` returns consistent geometry/pixels; resource get/set toggles a simple option end‑to‑end. (Validated by grouped tool regression coverage.)
 
 ## Done Definition
 

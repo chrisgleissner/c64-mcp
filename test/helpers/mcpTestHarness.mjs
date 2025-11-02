@@ -8,11 +8,13 @@ const registerAfterAll = typeof globalThis.Bun !== "undefined"
   : (await import("node:test")).after;
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { ListToolsResultSchema, ReadResourceResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { startMockC64Server } from "../../scripts/mockC64Server.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../..");
+const PLATFORM_RESOURCE_URI = "c64://platform/status";
 
 function resolveNodeExecutable() {
   const candidates = [
@@ -149,6 +151,39 @@ async function setupSharedServer() {
 
   await client.connect(transport);
 
+  const toolSupport = new Map();
+  let activePlatform = (process.env.C64_MODE ?? "").toLowerCase() === "vice" ? "vice" : "c64u";
+
+  try {
+    const toolList = await client.request({ method: "tools/list", params: {} }, ListToolsResultSchema);
+    for (const descriptor of toolList.tools ?? []) {
+      const rawPlatforms = Array.isArray(descriptor.metadata?.platforms) && descriptor.metadata.platforms.length > 0
+        ? descriptor.metadata.platforms
+        : ["c64u"];
+      const unique = Array.from(new Set(rawPlatforms.map((value) => String(value).toLowerCase())));
+      toolSupport.set(descriptor.name, Object.freeze(unique));
+    }
+  } catch {
+    // Ignore discovery errors; default behaviour assumes c64u-only tools when metadata is unavailable.
+  }
+
+  try {
+    const resource = await client.request(
+      { method: "resources/read", params: { uri: PLATFORM_RESOURCE_URI } },
+      ReadResourceResultSchema,
+    );
+    const text = resource.contents?.[0]?.text ?? "";
+    const match = text.match(/Current platform:\s*`([^`]+)`/i);
+    if (match) {
+      const candidate = match[1].trim().toLowerCase();
+      if (candidate === "vice" || candidate === "c64u") {
+        activePlatform = candidate;
+      }
+    }
+  } catch {
+    // Resource fetch is best-effort; fall back to environment when unavailable.
+  }
+
   let shutdownStarted = false;
   async function shutdown({ force = false } = {}) {
     if (shutdownStarted) {
@@ -187,6 +222,16 @@ async function setupSharedServer() {
     mockServer,
     stderrOutput,
     shutdown,
+    platform: activePlatform,
+    toolSupport,
+    isToolSupported(toolName, targetPlatform = activePlatform) {
+      const normalizedPlatform = targetPlatform === "vice" ? "vice" : "c64u";
+      const supported = toolSupport.get(toolName);
+      if (!supported || supported.length === 0) {
+        return normalizedPlatform === "c64u";
+      }
+      return supported.includes(normalizedPlatform);
+    },
   };
 }
 
@@ -239,6 +284,8 @@ export function withSharedMcpClient(callback) {
         client: harness.client,
         mockServer: harness.mockServer,
         stderrOutput: harness.stderrOutput,
+        platform: harness.platform,
+        isToolSupported: harness.isToolSupported,
       });
     } finally {
       const logs = harness.stderrOutput();

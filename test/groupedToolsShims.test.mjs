@@ -19,6 +19,7 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64_memory"), "c64_memory should be registered");
   assert.ok(toolNames.includes("c64_sound"), "c64_sound should be registered");
   assert.ok(toolNames.includes("c64_system"), "c64_system should be registered");
+  assert.ok(toolNames.includes("c64_debug"), "c64_debug should be registered");
   assert.ok(toolNames.includes("c64_graphics"), "c64_graphics should be registered");
   assert.ok(toolNames.includes("c64_rag"), "c64_rag should be registered");
   assert.ok(toolNames.includes("c64_disk"), "c64_disk should be registered");
@@ -27,6 +28,7 @@ test("grouped tools appear in registry list", () => {
   assert.ok(toolNames.includes("c64_config"), "c64_config should be registered");
   assert.ok(toolNames.includes("c64_extract"), "c64_extract should be registered");
   assert.ok(toolNames.includes("c64_stream"), "c64_stream should be registered");
+  assert.ok(toolNames.includes("c64_vice"), "c64_vice should be registered");
 });
 
 test("registry only exposes grouped tool names", () => {
@@ -1343,4 +1345,290 @@ test("c64_rag asm retrieval delegates to RAG layer", async () => {
   assert.equal(queries[0].language, "asm");
   assert.equal(queries[0].q, "stable raster irq");
   assert.equal(queries[0].k, 3);
+});
+
+test("c64_debug list_checkpoints proxies to VICE client", async () => {
+  const restore = getPlatformStatus().id;
+  setPlatform("vice");
+  try {
+    let calls = 0;
+    const stubClient = {
+      async viceCheckpointList() {
+        calls += 1;
+        return [
+          {
+            id: 1,
+            hit: false,
+            start: 0x0801,
+            end: 0x0801,
+            stopOnHit: true,
+            enabled: true,
+            temporary: false,
+            operations: { execute: true, load: false, store: false },
+            hitCount: 0,
+            ignoreCount: 0,
+            hasCondition: false,
+            memspace: 0,
+          },
+        ];
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const result = await toolRegistry.invoke("c64_debug", { op: "list_checkpoints" }, ctx);
+
+    assert.equal(result.isError, undefined);
+    assert.equal(calls, 1);
+  assert.equal(result.structuredContent?.type, "json");
+  const data = result.structuredContent?.data;
+  assert.ok(data && Array.isArray(data.checkpoints));
+  assert.equal(data.checkpoints[0].id, 1);
+  assert.equal(data.checkpoints[0].start, "$0801");
+  } finally {
+    setPlatform(restore);
+  }
+});
+
+test("c64_debug set_registers resolves metadata and writes values", async () => {
+  const restore = getPlatformStatus().id;
+  setPlatform("vice");
+  try {
+    let metadataCalls = 0;
+    const setCalls = [];
+    const stubClient = {
+      async viceRegistersAvailable(memspace) {
+        metadataCalls += 1;
+        return [
+          { id: 0, name: "PC", bits: 16, size: 2 },
+          { id: 1, name: "A", bits: 8, size: 1 },
+        ];
+      },
+      async viceRegistersSet(writes, options) {
+        setCalls.push({ writes, options });
+        return writes.map((write) => ({
+          id: write.id ?? (write.name?.toUpperCase() === "PC" ? 0 : 1),
+          size: write.value > 0xff ? 2 : 1,
+          value: write.value,
+        }));
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const result = await toolRegistry.invoke(
+      "c64_debug",
+      {
+        op: "set_registers",
+        writes: [
+          { name: "pc", value: 0x1234 },
+          { id: 1, value: 0x20 },
+        ],
+      },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.equal(metadataCalls, 1);
+    assert.equal(setCalls.length, 1);
+    assert.deepEqual(setCalls[0].writes, [
+      { name: "pc", value: 0x1234 },
+      { id: 1, value: 0x20 },
+    ]);
+    assert.equal(setCalls[0].options.memspace, 0);
+    assert.ok(Array.isArray(setCalls[0].options.metadata));
+  assert.equal(result.structuredContent?.type, "json");
+  const data = result.structuredContent?.data;
+  assert.ok(data && Array.isArray(data.registers));
+  assert.equal(data.registers.length, 2);
+  } finally {
+    setPlatform(restore);
+  }
+});
+
+test("c64_debug step over delegates to VICE stepping", async () => {
+  const restore = getPlatformStatus().id;
+  setPlatform("vice");
+  try {
+    const stepCalls = [];
+    const stubClient = {
+      async viceStepInstructions(count, options) {
+        stepCalls.push({ count, options });
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const result = await toolRegistry.invoke(
+      "c64_debug",
+      { op: "step", count: 2, mode: "over" },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.equal(stepCalls.length, 1);
+    assert.equal(stepCalls[0].count, 2);
+    assert.equal(stepCalls[0].options.stepOver, true);
+  } finally {
+    setPlatform(restore);
+  }
+});
+
+test("c64_vice display_get returns snapshot metadata", async () => {
+  const restore = getPlatformStatus().id;
+  setPlatform("vice");
+  try {
+    let calls = 0;
+    const stubClient = {
+      async viceDisplayGet(options) {
+        calls += 1;
+        assert.ok(options);
+        return {
+          debugWidth: 320,
+          debugHeight: 200,
+          innerWidth: 320,
+          innerHeight: 200,
+          offsetX: 0,
+          offsetY: 0,
+          bitsPerPixel: 8,
+          pixels: Buffer.from([0, 1, 2, 3]),
+        };
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const result = await toolRegistry.invoke("c64_vice", { op: "display_get" }, ctx);
+
+    assert.equal(result.isError, undefined);
+    assert.equal(calls, 1);
+    assert.equal(result.structuredContent?.type, "json");
+    const data = result.structuredContent?.data;
+    assert.ok(data);
+    assert.equal(data.byteLength, 4);
+    assert.equal(data.pixels.encoding, "base64");
+    assert.equal(data.pixels.data, Buffer.from([0, 1, 2, 3]).toString("base64"));
+  } finally {
+    setPlatform(restore);
+  }
+});
+
+test("c64_vice resource_set writes allowed resources", async () => {
+  const restore = getPlatformStatus().id;
+  setPlatform("vice");
+  try {
+    const calls = [];
+    const stubClient = {
+      async viceResourceSet(name, value) {
+        calls.push({ name, value });
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const result = await toolRegistry.invoke(
+      "c64_vice",
+      { op: "resource_set", name: "SidEngine", value: 2 },
+      ctx,
+    );
+
+    assert.equal(result.isError, undefined);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "SidEngine");
+    assert.equal(calls[0].value, 2);
+  } finally {
+    setPlatform(restore);
+  }
+});
+
+test("c64_vice resource_set rejects unsafe prefixes", async () => {
+  const restore = getPlatformStatus().id;
+  setPlatform("vice");
+  try {
+    const stubClient = {
+      async viceResourceSet() {
+        throw new Error("should not be called");
+      },
+    };
+
+    const ctx = {
+      client: stubClient,
+      rag: {},
+      logger: {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+      },
+      platform: getPlatformStatus(),
+      setPlatform,
+    };
+
+    const result = await toolRegistry.invoke(
+      "c64_vice",
+      { op: "resource_set", name: "Drive8Type", value: "1541" },
+      ctx,
+    );
+
+    assert.equal(result.isError, true);
+    assert.equal(result.metadata?.error?.kind, "validation");
+    assert.equal(result.metadata?.error?.path, "$.name");
+  } finally {
+    setPlatform(restore);
+  }
 });

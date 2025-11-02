@@ -32,6 +32,18 @@ bun install          # faster workflow (respects package-lock)
 
 `scripts/invoke-bun.mjs` automatically delegates npm scripts to Bun when available; stay on the npm variants if Bun is not installed.
 
+### Test Matrix
+
+| Platform | Target | Command | Environment |
+| --- | --- | --- | --- |
+| c64u | mock | `npm test -- --platform=c64u --target=mock` | `C64_MODE=c64u C64_TEST_TARGET=mock` |
+| c64u | device | `npm test -- --platform=c64u --target=device --base-url=http://c64u` | `C64_MODE=c64u C64_TEST_TARGET=real C64_TEST_BASE_URL=http://c64u` |
+| vice | mock | `npm test -- --platform=vice --target=mock` | `C64_MODE=vice VICE_TEST_TARGET=mock` |
+| vice | device | `npm test -- --platform=vice --target=device` | `C64_MODE=vice VICE_TEST_TARGET=vice` |
+| mixed | aggregate (no real c64u) | `npm run test:matrix` | see individual rows |
+
+The runner still accepts legacy flags (`--mock`, `--real`) for c64u workflows, but the explicit matrix keeps cross-platform runs symmetrical.
+
 Subsequent `npm run build` invocations reuse the incremental cache stored in `dist/.tsbuildinfo`; delete that file (or `dist/`) for a fully clean rebuild when needed.
 
 ## 3. Repository Layout (Essentials)
@@ -57,15 +69,14 @@ Subsequent `npm run build` invocations reuse the incremental cache stored in `di
 
 ## 5. Configuration & Backends
 
-Resolution order: `C64BRIDGE_CONFIG` → `~/.c64bridge.json` → `./c64bridge.json` → defaults (`host=c64u`, `port=80`). Supports hardware (`c64u`) and experimental VICE (`vice.exe`).
+Resolution order: `C64BRIDGE_CONFIG` → `~/.c64bridge.json` → `./c64bridge.json` → defaults (`host=c64u`, `port=80`). Supports hardware (`c64u`) and VICE (`vice.exe`).
 
 Key env flags:
 
 - `C64_MODE=c64u|vice` — force backend
 - `LOG_LEVEL=debug` — verbose logging (stderr)
 - `C64_TEST_TARGET` / `C64_TEST_BASE_URL` — influence test harness
-
-### VICE smoke test (Binary Monitor)
+- `VICE_TEST_TARGET=mock|vice` — test selection for VICE (default: auto-detect real VICE; set `mock` to run against the BM stub during tests)
 
 ## 6. RAG Maintenance
 
@@ -98,6 +109,7 @@ Environment knobs: `RAG_EMBEDDINGS_DIR`, `RAG_BUILD_ON_START`, `RAG_REINDEX_INTE
 - Logs quiet? Remember all server logs emit to stderr to keep stdout dedicated to MCP.
 
 Stay in lockstep with the [README](../README.md) and [`AGENTS.md`](../AGENTS.md) when introducing features so external docs remain accurate.
+
 ### VICE smoke test (Binary Monitor)
 
 Quick sanity that VICE is reachable and BASIC readiness + simple run works end‑to‑end.
@@ -113,6 +125,10 @@ Env knobs:
 - `VICE_WARP=0` — disable warp so you can observe visible output
 - `VICE_KEEP_OPEN=1` — keep window open after success
   (The smoke test registers exit/signal handlers and tears down spawned processes; with `VICE_KEEP_OPEN=1` only your visible VICE is left running.)
+- `VICE_TEST_TARGET=mock` — run the smoke test against the BM stub instead of launching VICE (useful on CI or platforms without VICE installed)
+- `FORCE_XVFB=1` — run headless via Xvfb even if a display is detected (default on CI)
+- `DISABLE_XVFB=1` — skip Xvfb and use the current `$DISPLAY` even in headless environments
+- `VICE_XVFB_DISPLAY=:nn` — override the Xvfb display number (defaults to `:99`)
 
 Implementation tip: programmatic shutdown
 

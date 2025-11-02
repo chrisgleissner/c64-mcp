@@ -12,8 +12,7 @@ Your AI Command Bridge for the Commodore 64.
 
 ## Overview
 
-C64 Bridge is a Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server that drives a real Commodore 64 Ultimate or Ultimate 64 over their REST APIs. 
-
+C64 Bridge is a Model Context Protocol ([MCP](https://modelcontextprotocol.io/docs/getting-started/intro)) server that drives a real Commodore 64 Ultimate or Ultimate 64 over their REST APIs.
 
 It is built on the official TypeScript `@modelcontextprotocol/sdk` and speaks stdio by default (editor‑friendly, zero config). A lightweight HTTP bridge exists for manual testing.
 
@@ -25,7 +24,7 @@ It is built on the official TypeScript `@modelcontextprotocol/sdk` and speaks st
 - SID composition, playback, and analysis
 - Local RAG over examples and docs for smarter prompting
 
-Backends: hardware C64U (primary) and an experimental VICE runner.
+Backends: C64U (primary) and VICE (preview)
 
 ## Quick Start
 
@@ -33,21 +32,25 @@ Backends: hardware C64U (primary) and an experimental VICE runner.
 
 - Linux (Ubuntu/Debian)
   - Recommended:
+
     ```bash
     sudo apt update
     sudo apt install -y curl ca-certificates
     curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
     sudo apt install -y nodejs
     ```
+
   - Fallback (may be older): `sudo apt install -y nodejs npm`
 
 - macOS
+
   ```bash
   brew install node@24
   brew link --overwrite node@24
   ```
 
 - Windows
+
   ```powershell
   # winget
   winget install OpenJS.NodeJS.LTS
@@ -60,11 +63,13 @@ Verify: `node --version` → v24.x
 2) Run the server (choose one)
 
 - npx (zero setup)
+
   ```bash
   npx -y c64bridge@latest
   ```
 
 - npm (project‑local)
+
   ```bash
   mkdir -p ~/c64bridge && cd ~/c64bridge
   npm init -y
@@ -73,6 +78,7 @@ Verify: `node --version` → v24.x
   ```
 
 - From source (contributing/testing)
+
   ```bash
   git clone https://github.com/chrisgleissner/c64bridge.git
   cd c64bridge
@@ -100,7 +106,7 @@ Hardware (C64U) example:
 }
 ```
 
-Experimental VICE runner:
+VICE runner configuration (preview):
 
 ```json
 {
@@ -157,7 +163,6 @@ Then render PETSCII art for it:
 
 ![duck petscii](./doc/img/prompts/duck_petscii.png)
 
-
 ## HTTP Invocation
 
 - Preferred transport is `stdio`. The HTTP bridge is disabled by default; enable it only for manual testing
@@ -200,7 +205,7 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 <!-- AUTO-GENERATED:MCP-DOCS-START -->
 
-This MCP server exposes **12 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
+This MCP server exposes **14 tools**, **25 resources**, and **7 prompts** for controlling your Commodore 64.
 
 ### Tools
 
@@ -225,6 +230,24 @@ Grouped entry point for configuration reads/writes, diagnostics, and snapshots.
 | `snapshot` | Snapshot configuration to disk for later restore or diff. | `path` | — |
 | `version` | Fetch firmware version details. | — | — |
 | `write_debugreg` | Write a hex value to the Ultimate debug register ($D7FF). | `value` | — |
+
+#### c64_debug
+
+Grouped entry point for VICE debugger operations (breakpoints, registers, stepping).
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `create_checkpoint` | Create a new checkpoint (breakpoint) in VICE. | `address` | — |
+| `delete_checkpoint` | Remove a checkpoint by id. | `id` | — |
+| `get_checkpoint` | Fetch a single checkpoint by id. | `id` | — |
+| `get_registers` | Read register values, optionally filtered by name or id. | — | — |
+| `list_checkpoints` | List all active VICE checkpoints (breakpoints). | — | — |
+| `list_registers` | List available registers (metadata). | — | — |
+| `set_condition` | Attach a conditional expression to a checkpoint. | `id`, `expression` | — |
+| `set_registers` | Write register values. | `writes` | — |
+| `step` | Single-step CPU execution. | — | — |
+| `step_return` | Continue execution until the current routine returns. | — | — |
+| `toggle_checkpoint` | Enable or disable a checkpoint by id. | `id`, `enabled` | — |
 
 #### c64_disk
 
@@ -362,6 +385,16 @@ Grouped entry point for power, reset, menu, and background task control.
 | `start_task` | Start a named background task that runs on an interval. | `name`, `operation` | — |
 | `stop_all_tasks` | Stop every running background task and persist state. | — | — |
 | `stop_task` | Stop a specific background task and clear its timer. | `name` | — |
+
+#### c64_vice
+
+Grouped entry point for VICE emulator display capture and resource access.
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `display_get` | Capture the emulator display buffer and metadata. | — | — |
+| `resource_get` | Read a VICE configuration resource (safe prefixes only). | `name` | — |
+| `resource_set` | Write a VICE configuration resource (safe prefixes only). | `name`, `value` | — |
 
 ### Resources
 

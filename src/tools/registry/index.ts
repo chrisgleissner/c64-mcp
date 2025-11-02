@@ -12,6 +12,8 @@ import { printerModuleGroup as printerModule } from "./printer.js";
 import { configModuleGroup as configModule } from "./config.js";
 import { extractModule } from "./extract.js";
 import { streamModule } from "./stream.js";
+import { debugModuleGroup as debugModule } from "../debug.js";
+import { viceModuleGroup as viceModule } from "../vice.js";
 
 interface RegisteredTool {
   readonly module: ToolModule;
@@ -39,6 +41,8 @@ const modules: readonly ToolModule[] = [
   configModule,
   extractModule,
   streamModule,
+  debugModule,
+  viceModule,
 ];
 
 const toolMap: Map<string, RegisteredTool> = new Map();

@@ -32,6 +32,7 @@ Implications for MCP:
   1) BM RAM injection on a long‑lived process (default): fast, DMA‑like, precise control.
   2) BM `0xDD` Autostart (fallback): file‑based, minimal pointer logic.
   3) Per‑run `x64sc -autostart` spawn (last resort): slowest; avoids long‑lived state.
+  - For tests, provide a BM stub controlled via `VICE_TEST_TARGET=mock`; default behavior is to use real VICE when available.
   2) Manage a long‑lived VICE process with BM and implement Autostart (`0xDD`) or direct program injection + `Keyboard Feed` for `RUN` (faster iteration, enables pause/step/breakpoints).
 
 ## Design Constraints & Decisions

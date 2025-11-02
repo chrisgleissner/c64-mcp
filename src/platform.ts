@@ -21,7 +21,13 @@ const PLATFORM_FEATURES: Record<PlatformId, { features: readonly string[]; limit
     limited: [],
   },
   vice: {
-    features: ["software-emulation", "prg-autostart"],
+    features: [
+      "software-emulation",
+      "binary-monitor",
+      "memory-io",
+      "screen-capture",
+      "system-control",
+    ],
     limited: ["no-rest-api", "no-drive-management", "limited-sid"],
   },
 };

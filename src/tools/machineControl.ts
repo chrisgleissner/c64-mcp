@@ -64,6 +64,7 @@ export const machineControlModule = defineToolModule({
       workflowHints: [
         "Use when the user wants a quick restart without losing power; mention that memory contents may persist.",
       ],
+      supportedPlatforms: ["c64u", "vice"],
       async execute(args, ctx) {
         try {
           resetArgsSchema.parse(args ?? {});
@@ -103,6 +104,7 @@ export const machineControlModule = defineToolModule({
       workflowHints: [
         "Choose reboot when configuration changed or hardware is stuck; warn that it will interrupt any running program.",
       ],
+      supportedPlatforms: ["c64u", "vice"],
       async execute(args, ctx) {
         try {
           rebootArgsSchema.parse(args ?? {});
@@ -142,6 +144,7 @@ export const machineControlModule = defineToolModule({
       workflowHints: [
         "Pause when the user needs a stable memory snapshot; remind them to resume to continue execution.",
       ],
+      supportedPlatforms: ["c64u", "vice"],
       async execute(args, ctx) {
         try {
           pauseArgsSchema.parse(args ?? {});
@@ -181,6 +184,7 @@ export const machineControlModule = defineToolModule({
       workflowHints: [
         "Call after a pause or diagnostic halt and confirm the machine is running again.",
       ],
+      supportedPlatforms: ["c64u", "vice"],
       async execute(args, ctx) {
         try {
           resumeArgsSchema.parse(args ?? {});
@@ -220,6 +224,7 @@ export const machineControlModule = defineToolModule({
       workflowHints: [
         "Use when the user explicitly requests power off; remind them to power on manually or via drive controls afterwards.",
       ],
+      supportedPlatforms: ["c64u"],
       async execute(args, ctx) {
         try {
           poweroffArgsSchema.parse(args ?? {});
@@ -259,6 +264,7 @@ export const machineControlModule = defineToolModule({
       workflowHints: [
         "Use when the user needs to open or close the Ultimate menu; suggest following up with drive operations if relevant.",
       ],
+      supportedPlatforms: ["c64u"],
       async execute(args, ctx) {
         try {
           menuButtonArgsSchema.parse(args ?? {});
