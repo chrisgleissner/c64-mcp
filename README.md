@@ -24,7 +24,7 @@ It is built on the official TypeScript `@modelcontextprotocol/sdk` and speaks st
 - SID composition, playback, and analysis
 - Local RAG over examples and docs for smarter prompting
 
-Backends: C64U (primary) and VICE (beta)
+Backends: C64U (primary) and VICE (preview)
 
 ## Quick Start
 
@@ -106,7 +106,7 @@ Hardware (C64U) example:
 }
 ```
 
-VICE runner configuration (beta):
+VICE runner configuration (preview):
 
 ```json
 {
