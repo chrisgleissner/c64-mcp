@@ -11,7 +11,11 @@ function createLogger() {
   };
 }
 
-test("config_list returns categories", async () => {
+const platform = (process.env.C64_MODE ?? "").toLowerCase() === "vice" ? "vice" : "c64u";
+const testC64uOnly = platform === "vice" ? test.skip : test;
+const testViceOnly = platform === "vice" ? test : test.skip;
+
+testC64uOnly("config_list returns categories", async () => {
   const ctx = {
     client: {
       async configsList() {
@@ -35,7 +39,7 @@ test("config_list returns categories", async () => {
   assert.equal(result.metadata.categoryCount, 2);
 });
 
-test("config_get forwards category and item", async () => {
+testC64uOnly("config_get forwards category and item", async () => {
   const calls = [];
   const ctx = {
     client: {
@@ -64,7 +68,7 @@ test("config_get forwards category and item", async () => {
   assert.deepEqual(calls, [{ category: "Audio", item: "Volume" }]);
 });
 
-test("config_set reports firmware failure", async () => {
+testC64uOnly("config_set reports firmware failure", async () => {
   const ctx = {
     client: {
       async configSet() {
@@ -85,7 +89,7 @@ test("config_set reports firmware failure", async () => {
   assert.deepEqual(result.metadata.error.details, { reason: "denied" });
 });
 
-test("config_batch_update validates payload", async () => {
+testC64uOnly("config_batch_update validates payload", async () => {
   const ctx = {
     client: {
       async configBatchUpdate() {
@@ -100,7 +104,7 @@ test("config_batch_update validates payload", async () => {
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("config_reset_to_default succeeds", async () => {
+testC64uOnly("config_reset_to_default succeeds", async () => {
   const ctx = {
     client: {
       async configResetToDefault() {
@@ -117,7 +121,7 @@ test("config_reset_to_default succeeds", async () => {
   assert.deepEqual(result.metadata.details, { rebootRequired: true });
 });
 
-test("debugreg_read returns uppercase value", async () => {
+testC64uOnly("debugreg_read returns uppercase value", async () => {
   const ctx = {
     client: {
       async debugregRead() {
@@ -135,7 +139,7 @@ test("debugreg_read returns uppercase value", async () => {
   assert.deepEqual(result.metadata.details, { raw: "1a" });
 });
 
-test("debugreg_write validates input", async () => {
+testC64uOnly("debugreg_write validates input", async () => {
   const ctx = {
     client: {
       async debugregWrite() {
@@ -151,7 +155,7 @@ test("debugreg_write validates input", async () => {
   assert.equal(result.metadata.error.kind, "validation");
 });
 
-test("version returns firmware payload", async () => {
+testC64uOnly("version returns firmware payload", async () => {
   const ctx = {
     client: {
       async version() {
@@ -169,7 +173,7 @@ test("version returns firmware payload", async () => {
   assert.deepEqual(result.structuredContent?.data, { version: "1.2.3" });
 });
 
-test("config_set with firmware failure", async () => {
+testC64uOnly("config_set with firmware failure", async () => {
   const ctx = {
     client: {
       async configSet() {
@@ -189,7 +193,7 @@ test("config_set with firmware failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("config_batch_update with firmware failure", async () => {
+testC64uOnly("config_batch_update with firmware failure", async () => {
   const ctx = {
     client: {
       async configBatchUpdate() {
@@ -209,7 +213,7 @@ test("config_batch_update with firmware failure", async () => {
   assert.ok(result.content[0].text.includes("batch configuration update"));
 });
 
-test("config_load_from_flash success", async () => {
+testC64uOnly("config_load_from_flash success", async () => {
   const ctx = {
     client: {
       async configLoadFromFlash() {
@@ -225,7 +229,7 @@ test("config_load_from_flash success", async () => {
   assert.equal(result.metadata.success, true);
 });
 
-test("config_load_from_flash failure", async () => {
+testC64uOnly("config_load_from_flash failure", async () => {
   const ctx = {
     client: {
       async configLoadFromFlash() {
@@ -241,7 +245,7 @@ test("config_load_from_flash failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("config_save_to_flash success", async () => {
+testC64uOnly("config_save_to_flash success", async () => {
   const ctx = {
     client: {
       async configSaveToFlash() {
@@ -257,7 +261,7 @@ test("config_save_to_flash success", async () => {
   assert.equal(result.metadata.success, true);
 });
 
-test("config_save_to_flash failure", async () => {
+testC64uOnly("config_save_to_flash failure", async () => {
   const ctx = {
     client: {
       async configSaveToFlash() {
@@ -273,7 +277,7 @@ test("config_save_to_flash failure", async () => {
   assert.ok(result.content[0].text.includes("firmware reported failure"));
 });
 
-test("config_reset_to_default failure", async () => {
+testC64uOnly("config_reset_to_default failure", async () => {
   const ctx = {
     client: {
       async configResetToDefault() {
@@ -287,4 +291,20 @@ test("config_reset_to_default failure", async () => {
 
   assert.equal(result.isError, true);
   assert.ok(result.content[0].text.includes("firmware reported failure"));
+});
+
+testViceOnly("developer tools are unavailable on vice", async () => {
+  const ctx = {
+    client: {
+      async configsList() {
+        throw new Error("should not run");
+      },
+    },
+    logger: createLogger(),
+  };
+
+  await assert.rejects(
+    () => developerModule.invoke("config_list", {}, ctx),
+    (error) => error?.name === "ToolUnsupportedPlatformError",
+  );
 });

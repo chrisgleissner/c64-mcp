@@ -9,7 +9,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
   - Development: `npm start` (runs via Node for MCP stdio server compatibility, loads `src/mcp-server.ts`).
   - Published CLI: `c64bridge` (imports `dist/index.js`).
 - Build pipeline: `npm run build` invokes TypeScript compiler and Bun scripts to emit JavaScript into `dist/`, normalize the layout, and refresh README tool/resource tables. No client manifest is required for MCP; `mcp.json` is human-maintained metadata used by packaging.
-- Test pipeline: `npm test` runs tests via Bun's native test runner. Use `npm run coverage` for coverage reports.
+- Test pipeline: `npm run test:matrix` runs the full mock and VICE suites via Bun. Use `npm run coverage` for coverage reports.
 - Key domains:
   - C64 hardware control (BASIC/ASM upload, screen & memory access, SID, VIC-II).
   - Local RAG over `data/` with embeddings.
@@ -19,6 +19,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 ## Coding Standards
 
 - **Test-Driven Development**: write or update tests in `test/` alongside feature work. When fixing bugs, add regression coverage first.
+- **Test Matrix**: run `npm run test:matrix` after each change to exercise all supported targets before sending updates.
 - **Code Coverage**: maintain or improve overall coverage (check `npm run coverage`) which must exceed 80%, but aim for 85%+.
 - **KISS & DRY**: keep implementations simple, avoid duplication, and refactor shared logic into helpers when needed.
 - **Maintainability**: prefer readable, well-structured code; limit cleverness; include succinct comments only where the intent is not obvious.
@@ -35,6 +36,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 ## Workflow Essentials
 
 - Use `npm run release:prepare -- <semver>` to bump versions in `package.json` / `mcp.json`, regenerate the MCP manifest, and prepend changelog notes distilled from commit history.
+- Run `npm run test:matrix` locally before pushing to ensure CI will pass the comprehensive suite.
 - GitHub Actions release workflow publishes on semantic tags (`X.Y.Z`) and runs a post-publish smoke test via npm.
 - Provide documentation updates (`doc/`, `README.md`, `CHANGELOG.md`) with user-facing changes.
 
@@ -45,7 +47,7 @@ This repository contains a Model Context Protocol (MCP) server that drives Commo
 
 ## Review Checklist
 
-1. Tests added/updated and green (`npm test`).
+1. Tests added/updated and green (`npm run test:matrix`).
 2. `npm run build` cleanly rebuilds (emits `dist/`).
 3. Docs amended when user-facing behavior changes.
 4. Commit messages are short, clear, and follow Conventional Commits with clear feat/fix/docs/chore/build/style/refactor/test prefixes.

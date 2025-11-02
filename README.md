@@ -24,7 +24,7 @@ It is built on the official TypeScript `@modelcontextprotocol/sdk` and speaks st
 - SID composition, playback, and analysis
 - Local RAG over examples and docs for smarter prompting
 
-Backends: hardware C64U (primary) and an experimental VICE runner.
+Backends: C64U (primary) and VICE (beta)
 
 ## Quick Start
 
@@ -106,7 +106,7 @@ Hardware (C64U) example:
 }
 ```
 
-Experimental VICE runner:
+VICE runner configuration (beta):
 
 ```json
 {
@@ -231,6 +231,24 @@ Grouped entry point for configuration reads/writes, diagnostics, and snapshots.
 | `version` | Fetch firmware version details. | — | — |
 | `write_debugreg` | Write a hex value to the Ultimate debug register ($D7FF). | `value` | — |
 
+#### c64_debug
+
+Grouped entry point for VICE debugger operations (breakpoints, registers, stepping).
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `create_checkpoint` | Create a new checkpoint (breakpoint) in VICE. | `address` | — |
+| `delete_checkpoint` | Remove a checkpoint by id. | `id` | — |
+| `get_checkpoint` | Fetch a single checkpoint by id. | `id` | — |
+| `get_registers` | Read register values, optionally filtered by name or id. | — | — |
+| `list_checkpoints` | List all active VICE checkpoints (breakpoints). | — | — |
+| `list_registers` | List available registers (metadata). | — | — |
+| `set_condition` | Attach a conditional expression to a checkpoint. | `id`, `expression` | — |
+| `set_registers` | Write register values. | `writes` | — |
+| `step` | Single-step CPU execution. | — | — |
+| `step_return` | Continue execution until the current routine returns. | — | — |
+| `toggle_checkpoint` | Enable or disable a checkpoint by id. | `id`, `enabled` | — |
+
 #### c64_disk
 
 Grouped entry point for disk mounts, listings, image creation, and program discovery.
@@ -342,34 +360,6 @@ Grouped entry point for SID control, playback, composition, and analysis workflo
 | `set_volume` | Set the SID master volume register at $D418 (0-15). | `volume` | — |
 | `silence_all` | Silence all SID voices with optional audio verification. | — | supports verify |
 
-#### c64_debug
-
-Grouped entry point for VICE debugger operations (breakpoints, registers, stepping).
-
-| Operation | Description | Required Inputs | Notes |
-| --- | --- | --- | --- |
-| `list_checkpoints` | List all active VICE checkpoints (breakpoints). | — | — |
-| `get_checkpoint` | Inspect a checkpoint by id, including address range and flags. | `id` | — |
-| `create_checkpoint` | Create a checkpoint with optional range, operation filters, and memspace. | `address` | supports memspace |
-| `delete_checkpoint` | Remove a checkpoint by id. | `id` | — |
-| `toggle_checkpoint` | Enable or disable a checkpoint. | `id`, `enabled` | — |
-| `set_condition` | Attach or replace a monitor conditional expression. | `id`, `expression` | — |
-| `list_registers` | List register metadata for the current memspace. | — | — |
-| `get_registers` | Read register values, optionally filtered by id or name. | — | supports selectors |
-| `set_registers` | Write register values by id or case-insensitive name. | `writes` | supports selectors |
-| `step` | Single-step CPU execution (into/over). | — | accepts `mode` |
-| `step_return` | Continue execution until the current routine returns. | — | — |
-
-#### c64_vice
-
-Grouped entry point for VICE emulator display capture and resource tweaks.
-
-| Operation | Description | Required Inputs | Notes |
-| --- | --- | --- | --- |
-| `display_get` | Capture the emulator framebuffer and return geometry plus encoded pixels. | — | supports base64/hex |
-| `resource_get` | Read a VICE resource with safe prefixes (Sid, C64, VIC, Machine, CIA). | `name` | — |
-| `resource_set` | Update a VICE resource (int or string) with safe prefixes. | `name`, `value` | session-scoped |
-
 #### c64_stream
 
 Grouped entry point for starting and stopping Ultimate streaming sessions.
@@ -395,6 +385,16 @@ Grouped entry point for power, reset, menu, and background task control.
 | `start_task` | Start a named background task that runs on an interval. | `name`, `operation` | — |
 | `stop_all_tasks` | Stop every running background task and persist state. | — | — |
 | `stop_task` | Stop a specific background task and clear its timer. | `name` | — |
+
+#### c64_vice
+
+Grouped entry point for VICE emulator display capture and resource access.
+
+| Operation | Description | Required Inputs | Notes |
+| --- | --- | --- | --- |
+| `display_get` | Capture the emulator display buffer and metadata. | — | — |
+| `resource_get` | Read a VICE configuration resource (safe prefixes only). | `name` | — |
+| `resource_set` | Write a VICE configuration resource (safe prefixes only). | `name`, `value` | — |
 
 ### Resources
 

@@ -32,6 +32,10 @@ jobs:
         run: bun run build
       - name: Run test coverage (Bun)
         run: bun run coverage
+      - name: Run vice mock tests
+        run: npm run test -- --platform=vice --target=mock
+      - name: Run vice device tests
+        run: npm run test -- --platform=vice --target=device
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
